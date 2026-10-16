@@ -1,0 +1,8 @@
+[project]
+name = "dynetkat-lean-py"
+version = "0.1.0"
+description = "Auxiliary Python scripts for DyNetKAT Lean formalization"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

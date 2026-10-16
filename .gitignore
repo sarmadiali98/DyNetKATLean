@@ -1,0 +1,10 @@
+# Build artifacts
+.lake/
+
+# Python
+python/.venv/
+python/__pycache__/
+python/.pytest_cache/
+
+# OS
+.DS_Store
