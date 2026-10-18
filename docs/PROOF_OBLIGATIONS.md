@@ -20,7 +20,11 @@ the set of complete tests **A** and complete assignments **Π** are finite.
 
 **Difficulty:** Easy (standard `Fintype` instances in Lean).
 
-**Status:** Not started.
+**Status:** Done (machine-checked).
+- `Packet.lean:158-161` — `instance : Fintype CtxPkt` via `Pi.instFintype` (domain `FieldName` and codomain `FieldValueEnum` both finite).
+- `Packet.lean:198-200` — `instance : Fintype CompleteTest` (transferred from `CtxPkt` along `CompleteTest = CtxPkt`).
+- `Packet.lean:258-260` — `instance : Fintype CompleteAssignmentValuation` (transferred from `CtxPkt`).
+- Cardchecked: `|CtxPkt| = 256` (4⁴). Confirmed by `NETKAT_AUDIT.md §0.4` and `HANDOFF.md` (Task 2S, 2026-10-17).
 
 ### T1.2 NetKAT denotational semantics well-defined
 
@@ -31,7 +35,21 @@ the set of complete tests **A** and complete assignments **Π** are finite.
 
 **Difficulty:** Medium (Kleene star finiteness requires finite-domain proof).
 
-**Status:** Not started.
+**Status:** Semantics defined, identities proven; star-termination theorem missing.
+- `Semantics.lean:51` — `StarClosure` inductive (reflexive-transitive closure).
+- `Semantics.lean:61-71` — `Semantics : NetKAT → CtxPkt → CtxPkt → Prop` (8 clauses, total match).
+- `Semantics.lean:74` — `eval` (set-of-outputs form).
+- Basic identities proven: `drop_empty` (82), `id_diag` (91), `union_sem` (95),
+  `seq_sem` (100), `fieldTest_sem` (156), `completeTest_sem` (252),
+  `assign1_sem` (263), `assign1_seq_sem` (277), `assign_list_sem` (311),
+  `completeAssignExpr_sem` (635), `star_refl` (140), `star_step` (144).
+- Boolean algebra and packet algebra theorems in `Semantics.lean:498-588`.
+- **Missing (star-termination, T1.2-STAR):** No theorem proves that
+  `StarClosure (Semantics N)` stabilizes in ≤ |CtxPkt|² iterations on the
+  finite packet domain. This blocks computable star traversal and normalization
+  of `N*` terms. Cited as outstanding obligation in
+  `UNIFIED_ARCHITECTURE_REQUIREMENTS.md:1678` and Risk R5 (line 823).
+  **Do NOT assume the star bound without a proof.**
 
 ### T1.3 Basic NetKAT semantic identities
 
@@ -45,7 +63,17 @@ the set of complete tests **A** and complete assignments **Π** are finite.
 
 **Difficulty:** Easy.
 
-**Status:** Not started.
+**Status:** Done (machine-checked). All identities listed in §I-B and Figure 4
+are implemented and proven with no `sorry`/`admit`/`axiom`. Key theorems:
+- `drop_empty` (`Semantics.lean:82`), `id_diag` (`Semantics.lean:91`),
+  `union_sem` (`Semantics.lean:95`), `seq_sem` (`Semantics.lean:100`).
+- Boolean algebra (Figure 4 BA axioms): `pred_excluded_middle` (498),
+  `pred_contra` (507), `pred_deMorgan_or` (523), `pred_deMorgan_and` (538).
+- Packet algebra (Figure 4 PA axioms): `assign_overwrite` (558),
+  `assign_comm_diff` (570), `assign_test_same_field` (577),
+  `test_assign_same_field` (585).
+- Star properties: `star_refl` (140), `star_step` (144).
+- Total: 30+ semantic identity theorems, all machine-checked.
 
 ### T1.4 NetKAT normal forms (Lemma 5)
 
@@ -57,7 +85,60 @@ such that E_NK ⊢ p ≡ q.
 **Difficulty:** Hard (requires reproducing E_NK from Anderson et al. [2]
 and proving the language-model decomposition ⟦p⟧ = ⋃_{x∈G(p)} ⟦x⟧).
 
-**Status:** Not started.
+**Status:** Representation + semantic-correspondence theorems implemented;
+algorithm G and E_NK derivation relation missing. Lemma 5 itself is NOT proved.
+
+  **Implemented (semantic correspondence, not equational derivability):**
+
+  - Normal form *representation*:
+    `NormalForm.lean:60` — `abbrev NormalForm := Finset (CompleteTest × CompleteAssignmentValuation)`.
+    `NormalForm.lean:80` — `ofSummand` (computable): `(α,π) ↦ .seq (.completeTest α) (completeAssignExpr π)`.
+    `NormalForm.lean:114` — `interpret` (noncomputable): union fold over summands; empty → `.drop`.
+    `NormalForm.lean:371` — `idNF` (computable): diagonal embedding `{ (α,α) | α }`.
+    `NormalForm.lean:400` — `testNF` (noncomputable).
+    `NormalForm.lean:558` — `unionNF` (noncomputable): `a ∪ b`.
+    `NormalForm.lean:592` — `assign1NF` (noncomputable).
+    `NormalForm.lean:755` — `seqNF` (noncomputable): relational composition on Finsets.
+
+  - Semantic correspondence *theorems* (all machine-checked, no proof holes):
+    - `interpret_sem` (`NormalForm.lean:263`): `⟦interpret(nf)⟧(σ,τ) ↔ ∃ (α,π) ∈ nf, holdsComplete α σ ∧ τ = π`.
+    - `ofSummand_sem` (`NormalForm.lean:138`): single-summand semantics.
+    - `fold_sem` (`NormalForm.lean:199`): list-fold semantics.
+    - `emptyNF_sem` (`NormalForm.lean:337`): `⟦interpret(∅)⟧ = ⟦0⟧`.
+    - `idNF_sem` (`NormalForm.lean:417`): `⟦interpret(idNF)⟧ = ⟦NetKAT.id⟧`.
+    - `testNF_sem` (`NormalForm.lean:478`): `⟦interpret(testNF Pr)⟧ = ⟦.test Pr⟧`.
+    - `assign1NF_sem` (`NormalForm.lean:624`): `⟦interpret(assign1NF f v)⟧ = ⟦.assign1 f v⟧`.
+    - `unionNF_sem` (`NormalForm.lean:686`): `⟦interpret(unionNF a b)⟧ = ⟦.union (interpret a) (interpret b)⟧`.
+    - `mem_seqNF_iff` (`NormalForm.lean:802`): membership characterization for `seqNF`.
+    - `seqNF_sem` (`NormalForm.lean:883`): relational composition semantics.
+
+  **Missing (the actual Lemma 5 proof):**
+
+  - **Algorithm G: `NetKAT → NormalForm`** — no function computes the normal form
+    of an arbitrary NetKAT term. `NormalForm.interpret` is a *semantic* interpreter
+    (Prop-valued, noncomputable); it does **not** produce a normal form from input.
+  - **E_NK derivation relation** — no inductive relation `E_NK ⊢ p ≡ q` exists.
+    Only semantic *theorems* (proofs about `⟦−⟧`) are present. Lemma 5 requires
+    *equational derivability*: `E_NK ⊢ p ≡ q`, not semantic equivalence `⟦p⟧ = ⟦q⟧`.
+    These are distinct notions (semantic equivalence ⊆ equational derivability).
+  - **Lemma 5 proof** — `E_NK ⊢ p ≡ interpret(G(p))` is **NOT** proved. The
+    representation and semantic-correspondence theorems are supporting
+    infrastructure, not the normalization theorem itself.
+
+  **Do NOT mark Lemma 5 complete.** The semantic correspondence theorems establish
+  that `interpret` is *sound* with respect to the denotational semantics, but they
+  do not establish that every NetKAT term has an equational normal form under
+  `E_NK` (completeness of normalization). That requires the missing `G` algorithm
+  and the `E_NK` derivation relation.
+
+  **Distinction required (per task instructions):**
+  - *Semantic proofs* (what exists): theorems of the form `⟦N₁⟧ = ⟦N₂⟧` established
+    by machine-checked Lean proofs about `Semantics`.
+  - *E_NK derivability* (what is missing): an inductive relation modeling
+    axiom applications from Figure 4 / Anderson et al. [2], i.e. `E_NK ⊢ p ≡ q`.
+  - Lemma 5 states equational derivability (`E_NK ⊢ p ≡ q`), **not** semantic
+    equivalence (`⟦p⟧ = ⟦q⟧`). The existing theorems prove semantic equivalence,
+    which is necessary but not sufficient for Lemma 5.
 
 ---
 
@@ -376,10 +457,15 @@ with synchronization, it is prevented.
    may have limitations.  Need to verify that coinductive bisimilarity
    can be defined and reasoned about effectively.
 
-2. **NetKAT completeness (T1.4):** Requires reproducing the full NetKAT
-   axiomatization E_NK from Anderson et al. [2].  This is the most
-   substantial external dependency.  Decision: implement a minimal
+2. **NetKAT completeness (T1.4 / Lemma 5):** Requires reproducing the full NetKAT
+   axiomatization E_NK from Anderson et al. [2] as an inductive derivability
+   relation `E_NK ⊢ p ≡ q`, plus the normalization algorithm `G : NetKAT → NormalForm`.
+   This is the most substantial external dependency.  Decision: implement a minimal
    dup-free NetKAT completeness proof, citing [2] for the full theory.
+   **Note (per T1.4 above):** Semantic-correspondence theorems for the NormalForm
+   representation are already proven (machine-checked), but Lemma 5 itself
+   (`E_NK ⊢ p ≡ interpret(G(p))`) is NOT proved — the `G` algorithm and `E_NK`
+   derivation relation are both missing.
 
 3. **A15 `[owise]` side condition:** The "otherwise" condition in axiom
    A15 needs careful formal treatment.  In a derivation system, it must
@@ -389,10 +475,11 @@ with synchronization, it is prevented.
    guarded recursion.  Must verify this is well-defined constructively.
 
 5. **Finite-domain finiteness of star:** ⟦N*⟧ = ⋃ₖ ⟦N⟧ᵏ terminates only
-   because the packet domain is finite.  This needs an explicit proof in
-   Lean.
+   because the packet domain is finite.  The `StarClosure` inductive is defined
+   (`Semantics.lean:51`) and basic properties proven (`star_refl`, `star_step`),
+   but **no proof bounds the number of iterations**.  This needs an explicit
+   proof in Lean.  **Do not assume a star bound without proving it.**
 
-6. **Mathlib dependency:** The existing repo uses no Mathlib.  The
-   formalization will need `Fintype`, finite sets, etc.  Decision:
-   consider whether to depend on Mathlib (for `Fintype`, `finset`, etc.)
-   or implement minimal infrastructure.
+6. **Mathlib dependency:** The project depends on Mathlib4 (v4.19.0) per
+   `lakefile.toml`.  `Fintype`, `Finset`, `Pi.instFintype`, `funext_iff`,
+   and `Classical` are already used.  No new dependency changes needed.

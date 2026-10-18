@@ -213,12 +213,12 @@ reimplementing from scratch.
 3. **Figure 3 (NetKAT Syntax)** lists `f←n` as a basic NetKAT term (`N ::= Pr | f←n | ...`). Single-field assignment `f←n` is distinct from a complete assignment `f₁←v₁ · ... · fₙ←vₙ`.
 4. Figure 3 (Semantics): `Jf←nK(σ::h) = {σ[f:=n]::h}` — a single-field assignment changes only field f, leaving all others unchanged.
 
-### Current implementation
+### Current implementation (pre-correction state — before resolution)
 
 | Paper concept | Lean definition | File:Line |
 |---|---|---|
-| CompleteAssignment π (overwrites all fields) | `def CompleteAssignment := CtxPkt → CtxPkt` | `Packet.lean:177` |
-| Single-field assignment f←v | `def fieldAssign (f v) := .assign (fun σ => Packet.update σ f v)` | `AST.lean:112-113` |
+| CompleteAssignment π (overwrites all fields) | `def CompleteAssignment := CtxPkt → CtxPkt` | `Packet.lean:177` (legacy; **removed in Task 2R-K**) |
+| Single-field assignment f←v | `def fieldAssign (f v) := .assign (fun σ => Packet.update σ f v)` | `AST.lean:112-113` (legacy; **removed in Task 2R-J**)
 
 ### Discrepancy
 
@@ -274,14 +274,14 @@ The migration to a paper-faithful assignment representation was completed across
 Tasks 2O–2R-K. The following evidence confirms Definition 4 and Figure 3 conformance:
 
 **Definitions in place (all verified):**
-- `CompleteAssignmentValuation := CtxPkt` (`Packet.lean:202`) — a total valuation
+- `CompleteAssignmentValuation := CtxPkt` (`Packet.lean:253`) — a total valuation
   `FieldName → FieldValueEnum`, the direct dual of `CompleteTest`. Admits only
   total field-overwriting valuations, matching Definition 4's σπ notation.
-- `applyValuation (π σ) := π` (`Packet.lean:210`) — the output equals the valuation π
+- `applyValuation (π σ) := π` (`Packet.lean:268`) — the output equals the valuation π
   itself, matching Definition 4's "σπ equals π".
 - `assign1 : FieldName → FieldValueEnum → NetKAT` (`AST.lean:94`) — the paper's
   primitive single-field assignment constructor `f←v` (Figure 3, p. 5).
-- `fieldEnum : List FieldName` (`AST.lean:124`) — enumerates all fields exactly
+- `fieldEnum : List FieldName` (`AST.lean:137`) — enumerates all fields exactly
   once; proven complete (`fieldEnum_complete`, `AST.lean:150`) and nodup
   (`fieldEnum_nodup`, `AST.lean:156`).
 - `completeAssignExpr (π) : NetKAT` (`AST.lean:137`) — composes `assign1 f (π f)`
@@ -297,12 +297,12 @@ Tasks 2O–2R-K. The following evidence confirms Definition 4 and Figure 3 confo
 - `fieldEnum_updates_complete` (`Semantics.lean:595`) — updating every field to π's
   values yields π, independent of input.
 - `completeAssignExpr_sem` (`Semantics.lean:635`) — `⟦completeAssignExpr π⟧(σ,τ) ↔ τ = π`.
-- `applyValuation_field` (`Packet.lean:219`) — applying π yields a packet whose
+- `applyValuation_field` (`Packet.lean:277`) — applying π yields a packet whose
   every field is π's value.
 
 **Legacy representation removed:**
 - `CompleteAssignment := CtxPkt → CtxPkt` — removed (`Packet.lean`; only referenced
-  in a comment at `Packet.lean:188`).
+  in a comment at `Packet.lean:239`).
 - `applyAssign` — removed (dead code, no callers).
 - `fieldAssign` — removed, superseded by `assign1` (paper primitive).
 - `.assign` AST constructor — removed, superseded by `completeAssignExpr`.

@@ -204,6 +204,30 @@ instance : Fintype CompleteTest :=
 def holdsComplete (alpha : CtxPkt) (sigma : CtxPkt) : Prop :=
   forall f, alpha f = sigma f
 
+/-- **Complete-test uniqueness (Task 3D-1):** A complete test α holds on a
+    packet σ if and only if σ is exactly α (as a total valuation).
+
+    Since α and σ are both total functions `FieldName → FieldValueEnum`,
+    `holdsComplete α σ` means `∀ f, α f = σ f`, which by function
+    extensionality is exactly `α = σ`. This establishes that a complete
+    test matches exactly one packet — its own representing valuation.
+
+    This is the foundation for the normalization construction (Lemma 5):
+    it guarantees that the complete-test component of a normal-form summand
+    picks out a unique packet. -/
+theorem     holdsComplete_iff_eq (α : CompleteTest) (σ : CtxPkt) :
+    holdsComplete α σ ↔ σ = α := by
+  -- holdsComplete α σ := ∀ f, α f = σ f  (by definition)
+  -- By function extensionality: (∀ f, σ f = α f) ↔ σ = α.
+  -- Since equality is symmetric (α f = σ f ↔ σ f = α f), we adjust.
+  unfold holdsComplete
+  -- Goal: (∀ f, α f = σ f) ↔ (σ = α)
+  rw [funext_iff]
+  -- Goal: (∀ f, α f = σ f) ↔ (∀ f, σ f = α f)
+  apply forall_congr'
+  intro f
+  exact eq_comm
+
 ------------------------------------------------------------------------
 -- Complete-assignment valuation representation (Definition 4, p. 8)
 --

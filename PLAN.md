@@ -36,7 +36,12 @@ paper (arXiv:2102.10035v4 / FoSSaCS 2022).  Source of truth: `DyNetKAT.pdf`.
 - Multi-packet configurations (d, H, H′).
 - Labeled small-step semantics (Fig. 8).
 - Labels: (σ,σ′) | x?r | x!r | rcfg(x,r).
-- Per-packet consistency (Theorem 3 / design rationale).
+- Per-packet consistency — a design rationale, not a proved theorem. §II-B (Design
+  Decisions) motivates the layering abstraction from [21] (Reitblatt et al.,
+  "Abstractions for network update") that every data-plane flow sees one set of
+  flow-tables; §II-C states this "corresponds to the so-called per-packet consistency
+  in [21]." The paper proves NO "Theorem 3" here — the only proved theorem in this
+  paper is Theorem 1 (Soundness & Ground-Completeness, §III).
 
 ### Phase 3 — Extended DyNetKAT & axiomatization
 

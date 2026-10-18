@@ -32,25 +32,28 @@ The sets **A** (all complete tests) and **Π** (all complete assignments) are
 - This finiteness makes **A** and **Π** finite.
 
 **Required Lean representation:**
-- A `FieldType` type (finite enumeration of field names).
-- For each field, a finite value set; package as `FieldSpec : FieldType → Type`.
-- `Packet := FieldType → Value` but since values are finite per field, use a
-  structured record or finite-map representation.
-- `CompleteTest` and `CompleteAssignment` as inductive types or finite
-  products over `FieldType`.
-- Lemmas that **A** and **Π** are finite (`Fintype` instances).
+- `def Packet (FieldType : Type) (Value : Type) := FieldType → Value` — parameterized over finite field types (`Packet.lean:36`).  ✅
+- `inductive FieldName` (tpSrc, tpDst, swId, port) with `[Fintype FieldName]` (`Packet.lean:117-130`) — concrete test fixture.
+- `inductive FieldValueEnum` (v0, v1, v8, v9) with `[Fintype FieldValueEnum]` (`Packet.lean:132-145`) — concrete test fixture.
+- `abbrev CtxPkt := Packet FieldName FieldValueEnum` (`Packet.lean:148`) — concrete packet space.
+- `def CompleteTest := CtxPkt` (`Packet.lean:193`) — complete test as a **total valuation** `FieldName → FieldValueEnum` (Definition 4, p. 8).  ✅
+- `def CompleteAssignmentValuation := CtxPkt` (`Packet.lean:253`) — complete assignment as a **total valuation** (the dual of `CompleteTest`).  ✅
+- `[Fintype CtxPkt]` (`Packet.lean:158-161`), `[Fintype CompleteTest]` (`Packet.lean:198-200`),
+  `[Fintype CompleteAssignmentValuation]` (`Packet.lean:258-260`) — finiteness of packet space, A, and Π.  ✅
 
 **Dependencies:** None (root of the model).
 
-**Proof obligation:** Establish `Fintype Packet` (or equivalently finiteness
-of **A** and **Π**) from the finite-domain assumption.
+**Proof obligation:** `Fintype Packet` (or equivalently finiteness of **A** and **Π**)
+from the finite-domain assumption — **satisfied**: `Fintype CtxPkt` is established
+at `Packet.lean:158-161`.
 
 **Ambiguities / open questions:**
-- The paper does not fix the specific field set; it is parameterized.
-  **Recommendation:** parameterize over a `Fintype FieldType` and finite
-  per-field value types.
+- The paper uses per-field value domains `Vi`; the implementation uses a single
+  `Value` type for all fields. This is a documented simplification (see
+  `Packet.lean:15-18` design note) — the finiteness argument applies equally.
 
-**Implementation status:** Not started (new repo).
+**Implementation status:** Implemented. Concrete 4×4 packet model with
+parameterized `Packet` foundation.
 
 ### 2. NetKAT syntax (dup-free)
 
@@ -71,13 +74,14 @@ where `α` ranges over complete tests, `π` over complete assignments, `0` = dro
 **Required Lean representation:**
 ```lean
 inductive NetKAT
-  | drop       -- 0
-  | id         -- 1
-  | test       -- α (complete test)
-  | assign     -- π (complete assignment)
-  | union      -- N + N
-  | seq        -- N ; N
-  | star       -- N *
+  | drop             -- 0
+  | id               -- 1
+  | test             -- Pr (general predicate, Figure 3)
+  | completeTest     -- α (complete test, Definition 4)
+  | assign1          -- f←v (primitive single-field assignment, Figure 3)
+  | union            -- N + N
+  | seq              -- N ; N
+  | star             -- N *
 ```
 
 **Dependencies:** Packet model (complete tests & assignments).
@@ -85,12 +89,14 @@ inductive NetKAT
 **Proof obligation:** None for syntax alone.
 
 **Ambiguities / open questions:**
-- Whether `test`/`assign` should be parameterized by concrete field=value or
-  by the abstract `CompleteTest`/`CompleteAssignment` types.
-  **Recommendation:** use abstract types; the concrete packet semantics unfolds
-  them.
+- `test` takes a `Predicate` (general boolean predicate, Figure 3), not a `CompleteTest`.
+  Complete tests α have a separate constructor `completeTest`.
+- `assign1` is the paper's primitive single-field assignment `f←v`, separate from
+  complete assignments π (which are built as sequences of `assign1` via
+  `completeAssignExpr`).
 
-**Implementation status:** Not started.
+**Implementation status:** Implemented. `NetKAT` inductive at `AST.lean:89-97`
+with all 8 constructors above.
 
 ### 3. NetKAT denotational semantics
 
@@ -113,19 +119,23 @@ inductive NetKAT
 - `⟦N*⟧ = id ∧ N` (Kleene star as iteration).
 
 **Required Lean representation:**
-- `⟦N⟧ : Packet → Set Packet` (or `Packet → List Packet` for executable form).
-- Define union, composition, Kleene star (`rtc` of composition).
-- Prove finite-domain finiteness of the star's iteration.
+- `Semantics : NetKAT → CtxPkt → CtxPkt → Prop` — relational semantics over concrete packets (`Semantics.lean:61-71`).
+- `eval : NetKAT → CtxPkt → Set CtxPkt` — set-of-outputs form (`Semantics.lean:74`).
+- `StarClosure` inductive — reflexive-transitive closure (`Semantics.lean:51`).
+- All basic semantic identities proven: `drop_empty`, `id_diag`, `union_sem`,
+  `seq_sem`, `fieldTest_sem`, `completeTest_sem`, `assign1_sem`,
+  `completeAssignExpr_sem`, etc.
 
 **Dependencies:** Packet model; NetKAT syntax.
 
 **Proof obligation:**
-- `⟦N*⟧` is well-defined (finite union terminates).
-- Basic identities: `⟦N₁+N₂⟧ = ⟦N₁⟧ ∪ ⟦N₂⟧`, etc.
+- `⟦N*⟧` is well-defined (reflexive-transitive closure over finite domain).
+- Basic identities proven (see list above).
 
 **Ambiguities / open questions:** None significant.
 
-**Implementation status:** Not started.
+**Implementation status:** Implemented — `Semantics.lean` defines all 8
+clauses; 30+ semantic identity theorems proven with no `sorry`/`axiom`.
 
 ---
 
@@ -264,6 +274,15 @@ inductive Action where
 The paper's rules (Fig. 8).  The rule names below follow the appendix convention
 `cpol_*` (seen in the ar5iv appendix output at printed p. 2550+).
 
+**Figure 8 verification (2026-10-18):** the two tentative rules below that
+were pending figure verification — `(cpol_;✗)` (drop) and `(cpol_;_‖)`
+(parallel specialization) — were checked against the `pdftotext -layout`
+extraction of `DyNetKAT.pdf` (Fig. 8, printed p. 9–10): **neither exists**.
+Both entries are corrected in place below.  The figure's complete rule set
+is `(cpolX;)`, `(cpolX)`, `(cpol⊕)`×2, `(cpol‖)`×2, `(cpol?)`, `(cpol!)`,
+`(cpol!?)`, `(cpol?!)` with label grammar
+`γ ::= (σ,σ′) | x!q | x?q | rcfg(x,q)`.
+
 **Rule (cpol_;✓) — packet flows through NetKAT policy:**
 ```
        σ′ ∈ ⟦N⟧(σ)
@@ -272,16 +291,17 @@ The paper's rules (Fig. 8).  The rule names below follow the appendix convention
 Condition: σ′ ∈ ⟦N⟧(σ), i.e., N maps packet σ to some output σ′.
 The packet σ is removed from the head of `H` and σ′ is pushed to `H′`.
 
-**Rule (cpol_;✗) — packet dropped by NetKAT policy:**
-```
-     ⟦N⟧(σ) = ∅
-  (N;d, σ::H, H′) →(σ,⊥?) (d, H, H′)   [drop: packet consumed, no output]
-```
-**Ambiguity (pending figure verification):** the ar5iv extraction does not
-show the exact label for the drop case.  The existing repo's `Semantics/Basic.lean`
-uses `.drop input` / `Label.drop`.  **Recommendation:** define the drop
-transition as consuming σ from `H` without producing output in `H′`; the
-label should match Fig. 8 precisely.
+**No drop rule (corrected 2026-10-18, confirmed against Fig. 8):**
+Figure 8 contains **no** `(cpol_;✗)` rule and no drop label.  When
+`⟦N⟧(σ::⟨⟩) = ∅`, the premise `σ′ ∈ ⟦N⟧(σ::⟨⟩)` of `(cpolX;)` has no
+witness, so **no transition fires** and the configuration
+`(N;d, σ::H, H′)` is **stuck** (the packet is *not* consumed; nothing
+changes).  Evidence: the appendix soundness proof of A0 states that since
+`⟦0⟧(σ::⟨⟩) = ∅`, "the term `0;p` does not afford any transition," whence
+`(0;p) ∼ ⊥`.  The journal repo's `Label.drop`/`policyDrop` is a
+journal-extension deviation and must not be carried over.  **Design:**
+no `Action.drop` constructor, no `cpol_seq_bad` Step constructor — the
+drop case is modeled purely as absence of a `Step` witness.
 
 **Rule (cpol_⊕) — choice left/right:**
 ```
@@ -297,12 +317,13 @@ label should match Fig. 8 precisely.
 ```
 (symmetrically for right component `q → q′`)
 
-**Rule (cpol_;_‖) — NetKAT policy in left of parallel:**
-```
-  (N;d, H, H′) →γ (d, H″, H‴)
-  ((N;d)‖q, H, H′) →γ (d‖q, H″, H‴)
-```
-This is a specialization of `cpol_‖` for the `N;d` prefix.
+**No `(cpol_;_‖)` rule (corrected 2026-10-18, confirmed against Fig. 8):**
+the earlier tentative "NetKAT policy in left of parallel" specialization
+does **not** appear in Figure 8.  A `N;d` operand inside a parallel
+composition is already covered by the general asynchronous rule `(cpol‖)`:
+`(cpolX;)` fires on the sub-configuration `(N;d, σ::H, H′)` and `(cpol‖)`
+lifts that step to `((N;d)‖q, σ::H, H′)`.  No separate constructor is
+needed.
 
 **Rule (cpol_recv) — receive (asynchronous):**
 ```
@@ -330,17 +351,19 @@ This is a specialization of `cpol_‖` for the `N;d` prefix.
 **Required Lean representation:**
 ```lean
 inductive Step : Config → Action → Config → Prop
-  | cpol_seq_ok ...
-  | cpol_seq_bad ...
-  | cpol_choice_l ...
-  | cpol_choice_r ...
-  | cpol_par_l ...
-  | cpol_par_r ...
-  | cpol_par_seq ...
-  | cpol_recv ...
-  | cpol_send ...
-  | cpol_sync ...
+  | cpol_seq_ok ...          -- (cpolX;)  — the only history-modifying rule
+  | cpol_choice_l ...        -- (cpol⊕) left
+  | cpol_choice_r ...        -- (cpol⊕) right
+  | cpol_par_l ...           -- (cpol‖) left
+  | cpol_par_r ...           -- (cpol‖) right
+  | cpol_recv ...            -- (cpol?)   — axiom rule, no premises
+  | cpol_send ...            -- (cpol!)   — axiom rule, no premises
+  | cpol_sync_send_recv ...  -- (cpol!?)
+  | cpol_sync_recv_send ...  -- (cpol?!)
+  | cpol_var ...             -- (cpolX)   — recursion unfolding, env X = p
 ```
+(No `cpol_seq_bad`: the drop case is a stuck configuration, not a rule.
+Full constructor designs: `docs/PROCESS_SEMANTICS_DESIGN.md` §3–§10.)
 
 **Dependencies:** DyNetKAT syntax; Action type; NetKAT denotational semantics;
 Packet model; Config structure.
@@ -350,8 +373,12 @@ Packet model; Config structure.
 - The relation is the least relation closed under the rules.
 
 **Ambiguities / open questions:**
-- Exact handling of `H` / `H′` in synchronization.
-- Exact label for the drop case.
+- Exact handling of `H` / `H′` in synchronization.  (Partially resolved by
+  Fig. 8: the send/receive and synchronization rules leave both lists
+  unchanged; see `docs/PROCESS_SEMANTICS_DESIGN.md` §7–§8.)
+- ~~Exact label for the drop case.~~ **Resolved (2026-10-18):** there is
+  no drop case and no drop label — the configuration is stuck when
+  `⟦N⟧(σ::⟨⟩) = ∅` (see the corrected drop entry above).
 
 **Implementation status:** Not started.  (Critical: all subsequent semantic
 results depend on this.)

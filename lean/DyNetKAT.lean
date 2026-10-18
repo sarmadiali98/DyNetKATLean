@@ -5,6 +5,8 @@ import Mathlib.Data.Fintype.Basic
 import DyNetKAT.NetKAT.Packet
 import DyNetKAT.NetKAT.AST
 import DyNetKAT.NetKAT.Semantics
+import DyNetKAT.NetKAT.NormalForm
+import DyNetKAT.DyNetKAT.AST
 import DyNetKAT.Basic
 
 namespace DyNetKAT
