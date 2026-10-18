@@ -25,6 +25,16 @@ new module. No process syntax or `Step` relation was added.
 
 Verification: `cd lean && lake build DyNetKAT`.
 
+### Bisimilar symmetry checkpoint (2026-10-18)
+
+Added only `Bisimilar.symm` in `lean/DyNetKAT/DyNetKAT/Bisimulation.lean`.
+The proof reuses the existential bisimulation witness and applies the symmetry
+conjunct of `IsBisimulation` to reverse the related processes. No axioms,
+`sorry`, or unrelated code changes were added.
+
+Verification: `cd lean && lake build DyNetKAT` succeeds; existing linter
+warnings remain non-fatal.
+
 ### Config implementation checkpoint (2026-10-18)
 
 Implemented `lean/DyNetKAT/DyNetKAT/Config.lean` per Figure 8 and
@@ -85,6 +95,40 @@ unchanged across synchronization.
 
 Verification: `cd lean && lake build DyNetKAT` and `git diff --check` succeed.
 No recursion rule, axioms, proof holes, or unrelated changes were added.
+
+### Bisimulation definitions checkpoint (2026-10-18)
+
+### Bisimilar right-choice congruence checkpoint (2026-10-18)
+
+Added only `Bisimilar.choice_right` in
+`lean/DyNetKAT/DyNetKAT/Bisimulation.lean`. The proof lifts the existing
+bisimulation witness through the right branch of choice, uses the existing
+choice transition constructors, and preserves pending and handled packet
+histories exactly.
+
+Verification: `cd lean && lake build DyNetKAT` and `git diff --check` succeed.
+No axioms, `sorry`, or unrelated code changes were added.
+
+### Bisimilar transitivity checkpoint (2026-10-18)
+
+Added only `Bisimilar.trans` in `lean/DyNetKAT/DyNetKAT/Bisimulation.lean`.
+The witness is the symmetric union of the two relational compositions, with
+transition matching chained through the intermediate process. No axioms,
+`sorry`, or changes to Definition 2 or existing proofs were added.
+
+Verification: `cd lean && lake build DyNetKAT` succeeds; `git diff --check`
+is clean. Existing duplicated namespace linter warnings remain non-fatal.
+
+Added `lean/DyNetKAT/DyNetKAT/Bisimulation.lean` with `IsBisimulation env R`
+and `Bisimilar env p q`, following Definition 2. `IsBisimulation` requires a
+symmetric process relation and the forward transition-matching condition for
+each related pair, universally over initial pending/handled histories and
+requiring exact equality of action and resulting histories. The matched target
+processes must again be related by `R`. `Bisimilar` is defined as membership
+in every bisimulation for the fixed `RecEnv`. This module is imported by the
+library root. No equivalence, congruence, or other proofs were added.
+
+Verification: `cd lean && lake build DyNetKAT`.
 
 1. **Paper identified:** *DyNetKAT: An Algebra of Dynamic Networks*
    — arXiv:2102.10035v4 (22 May 2021), FoSSaCS 2022.  Source used: `DyNetKAT.pdf`.
@@ -5878,3 +5922,28 @@ Implemented `lean/DyNetKAT/DyNetKAT/AST.lean` from
 - No commits or pushes were made.
 
 **STOP after this AST implementation.**
+
+## Choice-left bisimulation preservation checkpoint (2026-10-18)
+
+Added only `Bisimilar.choice_left` in
+`lean/DyNetKAT/DyNetKAT/Bisimulation.lean`, proving
+`p ∼ q → (p ⊕ r) ∼ (q ⊕ r)` from the existing `Step` choice rules and
+`IsBisimulation` definition. The witness relation preserves both `pending` and
+`handled` packet histories exactly in every matching transition. No `sorry`,
+axioms, unrelated changes, commits, or pushes were made.
+
+Verification: `lake build DyNetKAT` passed; `git diff --check` passed.
+
+## Receive-prefix bisimulation congruence checkpoint (2026-10-18)
+
+Fixed only the two `cpol_recv` cases in `Bisimilar.recv_left` in
+`lean/DyNetKAT/DyNetKAT/Bisimulation.lean`. The original proof attempted to
+match the receive transition with the same-side continuation, but the premise
+step starts from the opposite prefixed process. It also related continuations
+with `R p q`/`R q p` in places where the step source type required the opposite
+prefix. The corrected branches match the opposite prefix's receive step and
+use `R p q` forward and symmetry `R q p` backward. The theorem statement,
+`IsBisimulation` (Definition 2), and SOS semantics are unchanged.
+
+Verification: `lake build DyNetKAT` passed; `git diff --check` passed. No
+`sorry`, axioms, unrelated edits, commits, or pushes were added.

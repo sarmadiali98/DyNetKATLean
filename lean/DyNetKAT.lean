@@ -11,6 +11,7 @@ import DyNetKAT.DyNetKAT.Action
 import DyNetKAT.DyNetKAT.Config
 import DyNetKAT.DyNetKAT.RecEnv
 import DyNetKAT.DyNetKAT.Semantics
+import DyNetKAT.DyNetKAT.Bisimulation
 import DyNetKAT.Basic
 
 namespace DyNetKAT

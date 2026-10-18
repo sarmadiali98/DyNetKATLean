@@ -1,0 +1,371 @@
+import DyNetKAT.DyNetKAT.Semantics
+
+namespace DyNetKAT.DyNetKAT
+
+open DyNetKAT.NetKAT
+
+/-- A symmetric process relation that matches labeled transitions while
+    preserving both packet histories. -/
+def IsBisimulation (env : RecEnv) (R : DyNetKAT → DyNetKAT → Prop) : Prop :=
+  (∀ p q, R p q → R q p) ∧
+  ∀ p q, R p q →
+    ∀ (pending handled : List CtxPkt) (action : Action)
+      (p' : DyNetKAT) (pending' handled' : List CtxPkt),
+      Step env
+        (show Config from { proc := p, pending := pending, handled := handled })
+        action
+        (show Config from { proc := p', pending := pending', handled := handled' }) →
+      ∃ q',
+        Step env
+          (show Config from { proc := q, pending := pending, handled := handled })
+          action
+          (show Config from { proc := q', pending := pending', handled := handled' }) ∧
+        R p' q'
+
+/-- Two processes are bisimilar when some bisimulation relates them. -/
+def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop :=
+  ∃ R, IsBisimulation env R ∧ R p q
+
+theorem Bisimilar.refl (env : RecEnv) (p : DyNetKAT) : Bisimilar env p p := by
+  refine ⟨fun p q => p = q, ?_, rfl⟩
+  constructor
+  · intro p q relation
+    exact relation.symm
+  · intro p q relation pending handled action p' pending' handled' step
+    subst q
+    exact ⟨p', step, rfl⟩
+
+theorem Bisimilar.symm (env : RecEnv) {p q : DyNetKAT} (h : Bisimilar env p q) :
+    Bisimilar env q p := by
+  rcases h with ⟨R, hR, hpq⟩
+  exact ⟨R, hR, hR.1 p q hpq⟩
+
+theorem Bisimilar.trans (env : RecEnv) {p q r : DyNetKAT}
+    (hpq : Bisimilar env p q) (hqr : Bisimilar env q r) : Bisimilar env p r := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  rcases hqr with ⟨S, hS, hqr⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x z =>
+    (∃ y, R x y ∧ S y z) ∨ (∃ y, R z y ∧ S y x)
+  refine ⟨T, ?_, Or.inl ⟨q, hpq, hqr⟩⟩
+  constructor
+  · intro x z h
+    rcases h with ⟨y, hxy, hyz⟩ | ⟨y, hzy, hyx⟩
+    · exact Or.inr ⟨y, hxy, hyz⟩
+    · exact Or.inl ⟨y, hzy, hyx⟩
+  · intro x z h pending handled action x' pending' handled' step
+    rcases h with ⟨y, hxy, hyz⟩ | ⟨y, hzy, hyx⟩
+    · rcases hR.2 x y hxy pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      rcases hS.2 y z hyz pending handled action y' pending' handled' step' with
+        ⟨z', step'', hyz'⟩
+      exact ⟨z', step'', Or.inl ⟨y', hxy', hyz'⟩⟩
+    · rcases hS.2 x y (hS.1 y x hyx) pending handled action x' pending' handled' step with
+        ⟨y', step', hyx'⟩
+      rcases hR.2 y z (hR.1 z y hzy) pending handled action y' pending' handled' step' with
+        ⟨z', step'', hzy'⟩
+      exact ⟨z', step'', Or.inr ⟨y', hR.1 y' z' hzy', hS.1 x' y' hyx'⟩⟩
+
+theorem Bisimilar.choice_left (env : RecEnv) {p q r : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.choice p r) (.choice q r) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (x = .choice p r ∧ y = .choice q r) ∨
+    (x = .choice q r ∧ y = .choice p r) ∨
+    R x y ∨ x = y
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy | ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 x y hxy)))
+    · exact Or.inr (Or.inr (Or.inr rfl))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy | ⟨rfl, rfl⟩
+    · cases step with
+      | cpol_choice_l _ _ _ action pending pending' handled handled' steps =>
+          rcases hR.2 p q hpq pending handled action _ pending' handled' steps with
+            ⟨q1, steps1, hp1q1⟩
+          exact ⟨q1, Step.cpol_choice_l q r q1 action pending pending' handled handled' steps1,
+            Or.inr (Or.inr (Or.inl hp1q1))⟩
+      | cpol_choice_r _ _ _ action pending pending' handled handled' steps =>
+          exact ⟨_, Step.cpol_choice_r q r _ action pending pending' handled handled' steps,
+            Or.inr (Or.inr (Or.inr rfl))⟩
+    · cases step with
+      | cpol_choice_l _ _ _ action pending pending' handled handled' steps =>
+          rcases hR.2 q p (hR.1 p q hpq) pending handled action _ pending' handled' steps with
+            ⟨p1, steps1, hp1q1⟩
+          exact ⟨p1, Step.cpol_choice_l p r p1 action pending pending' handled handled' steps1,
+            Or.inr (Or.inr (Or.inl hp1q1))⟩
+      | cpol_choice_r _ _ _ action pending pending' handled handled' steps =>
+          exact ⟨_, Step.cpol_choice_r p r _ action pending pending' handled handled' steps,
+            Or.inr (Or.inr (Or.inr rfl))⟩
+    · rcases hR.2 x y hxy pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
+    · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
+
+theorem Bisimilar.choice_right (env : RecEnv) {p q r : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.choice r p) (.choice r q) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (x = .choice r p ∧ y = .choice r q) ∨
+    (x = .choice r q ∧ y = .choice r p) ∨
+    R x y ∨ x = y
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy | ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 x y hxy)))
+    · exact Or.inr (Or.inr (Or.inr rfl))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy | ⟨rfl, rfl⟩
+    · cases step with
+      | cpol_choice_l _ _ _ action pending pending' handled handled' steps =>
+          exact ⟨_, Step.cpol_choice_l r q _ action pending pending' handled handled' steps,
+            Or.inr (Or.inr (Or.inr rfl))⟩
+      | cpol_choice_r _ _ _ action pending pending' handled handled' steps =>
+          rcases hR.2 p q hpq pending handled action _ pending' handled' steps with
+            ⟨q1, steps1, hp1q1⟩
+          exact ⟨q1, Step.cpol_choice_r r q q1 action pending pending' handled handled' steps1,
+            Or.inr (Or.inr (Or.inl hp1q1))⟩
+    · cases step with
+      | cpol_choice_l _ _ _ action pending pending' handled handled' steps =>
+          exact ⟨_, Step.cpol_choice_l r p _ action pending pending' handled handled' steps,
+            Or.inr (Or.inr (Or.inr rfl))⟩
+      | cpol_choice_r _ _ _ action pending pending' handled handled' steps =>
+          rcases hR.2 q p (hR.1 p q hpq) pending handled action _ pending' handled' steps with
+            ⟨p1, steps1, hp1q1⟩
+          exact ⟨p1, Step.cpol_choice_r r p p1 action pending pending' handled handled' steps1,
+            Or.inr (Or.inr (Or.inl hp1q1))⟩
+    · rcases hR.2 x y hxy pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
+    · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
+
+theorem Bisimilar.parallel_right (env : RecEnv) {p q r : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.parallel p r) (.parallel q r) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (∃ a b c, R a b ∧ x = .parallel a c ∧ y = .parallel b c) ∨
+    (∃ a b c, R a b ∧ x = .parallel b c ∧ y = .parallel a c) ∨
+    R x y ∨ x = y
+  refine ⟨T, ?_, Or.inl ⟨p, q, r, hpq, rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨a, b, c, hab, rfl, rfl⟩ | ⟨a, b, c, hab, rfl, rfl⟩ | hab | rfl
+    · exact Or.inr (Or.inl ⟨a, b, c, hab, rfl, rfl⟩)
+    · exact Or.inl ⟨a, b, c, hab, rfl, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 x y hab)))
+    · exact Or.inr (Or.inr (Or.inr rfl))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨a, b, c, hab, rfl, rfl⟩ | ⟨a, b, c, hab, rfl, rfl⟩ | hab | rfl
+    · cases step with
+      | cpol_par_l a c a' action pending pending' handled handled' substep =>
+          rcases hR.2 a b hab pending handled action _ pending' handled' substep with
+            ⟨b', substep', hab'⟩
+          exact ⟨_, Step.cpol_par_l b c b' action pending pending' handled handled' substep',
+            Or.inl ⟨a', b', c, hab', rfl, rfl⟩⟩
+      | cpol_par_r a c c' action pending pending' handled handled' substep =>
+          exact ⟨_, Step.cpol_par_r b c _ action pending pending' handled handled' substep,
+            Or.inl ⟨a, b, c', hab, rfl, rfl⟩⟩
+      | cpol_sync_recv_send x r a c a' c' pending handled recv_step send_step =>
+          rcases hR.2 a b hab pending handled (Action.recv x r) _ pending handled recv_step with
+            ⟨b', recv_step', hab'⟩
+          exact ⟨_, Step.cpol_sync_recv_send x r b c b' c' pending handled recv_step' send_step,
+            Or.inl ⟨a', b', c', hab', rfl, rfl⟩⟩
+      | cpol_sync_send_recv x r a c a' c' pending handled send_step recv_step =>
+          rcases hR.2 a b hab pending handled (Action.send x r) _ pending handled send_step with
+            ⟨b', send_step', hab'⟩
+          exact ⟨_, Step.cpol_sync_send_recv x r b c b' c' pending handled send_step' recv_step,
+            Or.inl ⟨a', b', c', hab', rfl, rfl⟩⟩
+    · cases step with
+      | cpol_par_l b c b' action pending pending' handled handled' substep =>
+          rcases hR.2 b a (hR.1 a b hab) pending handled action _ pending' handled' substep with
+            ⟨a', substep', hba'⟩
+          have hrel : T (.parallel b' c) (.parallel a' c) :=
+            Or.inl ⟨b', a', c, hba', rfl, rfl⟩
+          exact ⟨.parallel a' c, Step.cpol_par_l a c a' action pending pending' handled handled' substep', hrel⟩
+      | cpol_par_r b c c' action pending pending' handled handled' substep =>
+          exact ⟨.parallel a c', Step.cpol_par_r a c c' action pending pending' handled handled' substep,
+            Or.inr (Or.inl ⟨a, b, c', hab, rfl, rfl⟩)⟩
+      | cpol_sync_recv_send x r b c b' c' pending handled recv_step send_step =>
+          rcases hR.2 b a (hR.1 a b hab) pending handled (Action.recv x r) _ pending handled recv_step with
+            ⟨a', recv_step', hba'⟩
+          have hrel : T (.parallel b' c') (.parallel a' c') :=
+            Or.inl ⟨b', a', c', hba', rfl, rfl⟩
+          exact ⟨.parallel a' c', Step.cpol_sync_recv_send x r a c a' c' pending handled recv_step' send_step, hrel⟩
+      | cpol_sync_send_recv x r b c b' c' pending handled send_step recv_step =>
+          rcases hR.2 b a (hR.1 a b hab) pending handled (Action.send x r) _ pending handled send_step with
+            ⟨a', send_step', hba'⟩
+          have hrel : T (.parallel b' c') (.parallel a' c') :=
+            Or.inl ⟨b', a', c', hba', rfl, rfl⟩
+          exact ⟨.parallel a' c', Step.cpol_sync_send_recv x r a c a' c' pending handled send_step' recv_step, hrel⟩
+    · rcases hR.2 x y hab pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
+    · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
+
+theorem Bisimilar.parallel_left (env : RecEnv) {p q r : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.parallel r p) (.parallel r q) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (∃ a b c, R a b ∧ x = .parallel c a ∧ y = .parallel c b) ∨
+    (∃ a b c, R a b ∧ x = .parallel c b ∧ y = .parallel c a) ∨
+    R x y ∨ x = y
+  refine ⟨T, ?_, Or.inl ⟨p, q, r, hpq, rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨a, b, c, hab, rfl, rfl⟩ | ⟨a, b, c, hab, rfl, rfl⟩ | hab | rfl
+    · exact Or.inr (Or.inl ⟨a, b, c, hab, rfl, rfl⟩)
+    · exact Or.inl ⟨a, b, c, hab, rfl, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 x y hab)))
+    · exact Or.inr (Or.inr (Or.inr rfl))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨a, b, c, hab, rfl, rfl⟩ | ⟨a, b, c, hab, rfl, rfl⟩ | hab | rfl
+    · cases step with
+      | cpol_par_l c a c' action pending pending' handled handled' substep =>
+          exact ⟨_, Step.cpol_par_l c b c' action pending pending' handled handled' substep,
+            Or.inl ⟨a, b, c', hab, rfl, rfl⟩⟩
+      | cpol_par_r c a a' action pending pending' handled handled' substep =>
+          rcases hR.2 a b hab pending handled action _ pending' handled' substep with
+            ⟨b', substep', hab'⟩
+          exact ⟨_, Step.cpol_par_r c b b' action pending pending' handled handled' substep',
+            Or.inl ⟨a', b', c, hab', rfl, rfl⟩⟩
+      | cpol_sync_recv_send x r c a c' a' pending handled recv_step send_step =>
+          rcases hR.2 a b hab pending handled (Action.send x r) _ pending handled send_step with
+            ⟨b', send_step', hab'⟩
+          exact ⟨_, Step.cpol_sync_recv_send x r c b c' b' pending handled recv_step send_step',
+            Or.inl ⟨a', b', c', hab', rfl, rfl⟩⟩
+      | cpol_sync_send_recv x r c a c' a' pending handled send_step recv_step =>
+          rcases hR.2 a b hab pending handled (Action.recv x r) _ pending handled recv_step with
+            ⟨b', recv_step', hab'⟩
+          exact ⟨_, Step.cpol_sync_send_recv x r c b c' b' pending handled send_step recv_step',
+            Or.inl ⟨a', b', c', hab', rfl, rfl⟩⟩
+    · cases step with
+      | cpol_par_l c b c' action pending pending' handled handled' substep =>
+          exact ⟨_, Step.cpol_par_l c a c' action pending pending' handled handled' substep,
+            Or.inl ⟨b, a, c', hR.1 a b hab, rfl, rfl⟩⟩
+      | cpol_par_r c b b' action pending pending' handled handled' substep =>
+          rcases hR.2 b a (hR.1 a b hab) pending handled action _ pending' handled' substep with
+            ⟨a', substep', hba'⟩
+          have hrel : T (.parallel c b') (.parallel c a') :=
+            Or.inl ⟨b', a', c, hba', rfl, rfl⟩
+          exact ⟨.parallel c a', Step.cpol_par_r c a a' action pending pending' handled handled' substep', hrel⟩
+      | cpol_sync_recv_send x r c b c' b' pending handled recv_step send_step =>
+          rcases hR.2 b a (hR.1 a b hab) pending handled (Action.send x r) _ pending handled send_step with
+            ⟨a', send_step', hba'⟩
+          have hrel : T (.parallel c' b') (.parallel c' a') :=
+            Or.inl ⟨b', a', c', hba', rfl, rfl⟩
+          exact ⟨.parallel c' a', Step.cpol_sync_recv_send x r c a c' a' pending handled recv_step send_step', hrel⟩
+      | cpol_sync_send_recv x r c b c' b' pending handled send_step recv_step =>
+          rcases hR.2 b a (hR.1 a b hab) pending handled (Action.recv x r) _ pending handled recv_step with
+            ⟨a', recv_step', hba'⟩
+          have hrel : T (.parallel c' b') (.parallel c' a') :=
+            Or.inl ⟨b', a', c', hba', rfl, rfl⟩
+          exact ⟨.parallel c' a', Step.cpol_sync_send_recv x r c a c' a' pending handled send_step recv_step', hrel⟩
+    · rcases hR.2 x y hab pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
+    · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
+
+theorem Bisimilar.nSeq_left (env : RecEnv) {n : NetKAT} {p q : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.nSeq n p) (.nSeq n q) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (x = .nSeq n p ∧ y = .nSeq n q) ∨
+    (x = .nSeq n q ∧ y = .nSeq n p) ∨
+    R x y ∨ x = y
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy | ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 x y hxy)))
+    · exact Or.inr (Or.inr (Or.inr rfl))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy | ⟨rfl, rfl⟩
+    · cases step with
+      | cpol_seq_ok _ _ sigma sigma' _ _ evaluates =>
+          exact ⟨q, Step.cpol_seq_ok n q sigma sigma' _ _ evaluates,
+            Or.inr (Or.inr (Or.inl hpq))⟩
+    · cases step with
+      | cpol_seq_ok _ _ sigma sigma' _ _ evaluates =>
+          exact ⟨p, Step.cpol_seq_ok n p sigma sigma' _ _ evaluates,
+            Or.inr (Or.inr (Or.inl (hR.1 p q hpq)))⟩
+    · rcases hR.2 x y hxy pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
+    · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
+
+theorem Bisimilar.recv_left (env : RecEnv) {x : Channel} {n : NetKAT}
+    {p q : DyNetKAT} (hpq : Bisimilar env p q) :
+    Bisimilar env (.recv x n p) (.recv x n q) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+    (a = .recv x n p ∧ b = .recv x n q) ∨
+    (a = .recv x n q ∧ b = .recv x n p) ∨
+    R a b ∨ a = b
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro a b h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hab | ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 a b hab)))
+    · exact Or.inr (Or.inr (Or.inr rfl))
+  · intro a b h pending handled action a' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hab | ⟨rfl, rfl⟩
+    · cases step with
+      | cpol_recv _ _ _ pending handled =>
+          exact ⟨q, Step.cpol_recv x n q pending handled,
+            Or.inr (Or.inr (Or.inl hpq))⟩
+    · cases step with
+      | cpol_recv _ _ _ pending handled =>
+          exact ⟨p, Step.cpol_recv x n p pending handled,
+            Or.inr (Or.inr (Or.inl (hR.1 p q hpq)))⟩
+    · rcases hR.2 a b hab pending handled action a' pending' handled' step with
+        ⟨b', step', hab'⟩
+      exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
+    · exact ⟨a', step, Or.inr (Or.inr (Or.inr rfl))⟩
+
+theorem Bisimilar.send_left (env : RecEnv) {x : Channel} {n : NetKAT}
+    {p q : DyNetKAT} (hpq : Bisimilar env p q) :
+    Bisimilar env (.send x n p) (.send x n q) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+    (a = .send x n p ∧ b = .send x n q) ∨
+    (a = .send x n q ∧ b = .send x n p) ∨
+    R a b ∨ a = b
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro a b h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hab | ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 a b hab)))
+    · exact Or.inr (Or.inr (Or.inr rfl))
+  · intro a b h pending handled action a' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hab | ⟨rfl, rfl⟩
+    · cases step with
+      | cpol_send _ _ _ pending handled =>
+          exact ⟨q, Step.cpol_send x n q pending handled,
+            Or.inr (Or.inr (Or.inl hpq))⟩
+    · cases step with
+      | cpol_send _ _ _ pending handled =>
+          exact ⟨p, Step.cpol_send x n p pending handled,
+            Or.inr (Or.inr (Or.inl (hR.1 p q hpq)))⟩
+    · rcases hR.2 a b hab pending handled action a' pending' handled' step with
+        ⟨b', step', hab'⟩
+      exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
+    · exact ⟨a', step, Or.inr (Or.inr (Or.inr rfl))⟩
+
+end DyNetKAT.DyNetKAT
