@@ -1,0 +1,16 @@
+import DyNetKAT.DyNetKAT.AST
+import DyNetKAT.NetKAT.Packet
+
+open DyNetKAT.NetKAT
+
+namespace DyNetKAT.DyNetKAT
+
+/- Configuration `(d, H, H')` from Figure 8 of the DyNetKAT paper.
+   Histories are ordered lists: the pending head is processed next, while
+   the handled head is the most recently produced packet. -/
+structure Config where
+  proc : DyNetKAT
+  pending : List CtxPkt
+  handled : List CtxPkt
+
+end DyNetKAT.DyNetKAT

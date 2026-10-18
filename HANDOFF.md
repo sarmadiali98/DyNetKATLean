@@ -5,7 +5,86 @@
 **Date:** 2026-10-18
 **Session:** Phase 0 (Source & repository audit) + Phase 4 (Repository foundation) + Phase 1 (NetKAT semantic core)
 
+### RecEnv implementation checkpoint (2026-10-18)
+
+Implemented `lean/DyNetKAT/DyNetKAT/RecEnv.lean` for the minimal `(cpolX)`
+recursion support. `RecEnv` is `Var → Option DyNetKAT`, with `lookup`, `empty`,
+and `define`; optional lookup represents undefined variables explicitly, while
+functional bindings provide one body per variable. The implementation does not
+assume or check guardedness and does not add `Step`.
+
+The root `lean/DyNetKAT.lean` imports `RecEnv`. Lookup behavior is checked by
+theorems for empty environments, the defined variable, and other variables.
+
+### Action implementation checkpoint (2026-10-18)
+
+Implemented `lean/DyNetKAT/DyNetKAT/Action.lean` with exactly the four Figure 8
+labels: `packet`, `recv`, `send`, and `rcfg`. It reuses `CtxPkt`, `Channel`, and
+the existing dup-free `NetKAT` type. The root `lean/DyNetKAT.lean` imports the
+new module. No process syntax or `Step` relation was added.
+
+Verification: `cd lean && lake build DyNetKAT`.
+
+### Config implementation checkpoint (2026-10-18)
+
+Implemented `lean/DyNetKAT/DyNetKAT/Config.lean` per Figure 8 and
+`docs/PROCESS_AST_DESIGN.md` §7. `Config` contains exactly `proc : DyNetKAT`,
+`pending : List CtxPkt`, and `handled : List CtxPkt`; the lists preserve
+paper ordering (pending head is next to process, handled head is newest output).
+The root `lean/DyNetKAT.lean` import list now exposes `Config`. No `Action`,
+`Step`, or transition rules were added.
+
+Verification: `cd lean && lake build DyNetKAT` succeeds. Existing linter
+warnings remain non-fatal.
+
 ### Verified status
+
+### Semantics implementation checkpoint (2026-10-18)
+
+Implemented `lean/DyNetKAT/DyNetKAT/Semantics.lean` with an incomplete
+`Step (env : RecEnv)` relation containing only Figure 8's `(cpolX;)` rule.
+The constructor uses the existing NetKAT `Semantics` relation, emits
+`Action.packet sigma sigma'`, consumes exactly the pending head packet, and
+conses exactly the output packet onto `handled`. No drop rule, other SOS rules,
+axioms, or proof holes were added. `Action.lean` and `Config.lean` now open the
+NetKAT namespace so their existing concrete `CtxPkt` references elaborate
+without unintended implicit parameters.
+
+Verification: `cd lean && lake build DyNetKAT` succeeds; existing duplicated
+namespace linter warnings remain non-fatal.
+
+### Choice rules checkpoint (2026-10-18)
+
+Added only Figure 8's two `(cpol⊕)` constructors to
+`lean/DyNetKAT/DyNetKAT/Semantics.lean`. Each lifts a child `Step`, propagates
+its action and packet histories unchanged, replaces the choice with the chosen
+branch's target process, and discards the unchosen branch. Existing packet
+processing behavior and action labels are unchanged.
+
+Verification: `cd lean && lake build DyNetKAT` succeeds. Existing duplicated
+namespace linter warnings remain non-fatal.
+
+### Parallel rules checkpoint (2026-10-18)
+
+Added only Figure 8's left and right `(cpol‖)` constructors to
+`lean/DyNetKAT/DyNetKAT/Semantics.lean`. Each lifts a child step, preserves the
+other parallel process, and propagates the action and packet histories without
+modification.
+
+Verification: `cd lean && lake build DyNetKAT` and `git diff --check` succeed.
+Existing duplicated namespace and unused-variable linter warnings remain
+non-fatal.
+
+### Synchronization rules checkpoint (2026-10-18)
+
+Added only Figure 8's `(cpol!?)` and `(cpol?!)` constructors to
+`lean/DyNetKAT/DyNetKAT/Semantics.lean`. Each requires matching channel and
+policy labels from receive/send child steps, emits `Action.rcfg`, preserves the
+parallel continuations, and leaves pending and handled packet histories
+unchanged across synchronization.
+
+Verification: `cd lean && lake build DyNetKAT` and `git diff --check` succeed.
+No recursion rule, axioms, proof holes, or unrelated changes were added.
 
 1. **Paper identified:** *DyNetKAT: An Algebra of Dynamic Networks*
    — arXiv:2102.10035v4 (22 May 2021), FoSSaCS 2022.  Source used: `DyNetKAT.pdf`.

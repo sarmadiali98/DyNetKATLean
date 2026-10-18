@@ -7,6 +7,10 @@ import DyNetKAT.NetKAT.AST
 import DyNetKAT.NetKAT.Semantics
 import DyNetKAT.NetKAT.NormalForm
 import DyNetKAT.DyNetKAT.AST
+import DyNetKAT.DyNetKAT.Action
+import DyNetKAT.DyNetKAT.Config
+import DyNetKAT.DyNetKAT.RecEnv
+import DyNetKAT.DyNetKAT.Semantics
 import DyNetKAT.Basic
 
 namespace DyNetKAT
