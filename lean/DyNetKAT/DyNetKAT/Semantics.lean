@@ -93,6 +93,17 @@ inductive Step (env : RecEnv) : Config → Action → Config → Prop
         (show Config from
           { proc := continuation, pending := pending, handled := handled })
 
+  | cpol_rcfg
+      (x : Channel) (n : DyNetKAT.NetKAT.NetKAT)
+      (continuation : DyNetKAT)
+      (pending handled : List CtxPkt) :
+      Step env
+        (show Config from
+          { proc := .rcfgPrefix x n continuation, pending := pending, handled := handled })
+        (show Action from Action.rcfg x n)
+        (show Config from
+          { proc := continuation, pending := pending, handled := handled })
+
   | cpol_var
       (name : Var) (body body' : DyNetKAT) (action : Action)
       (pending pending' handled handled' : List CtxPkt)

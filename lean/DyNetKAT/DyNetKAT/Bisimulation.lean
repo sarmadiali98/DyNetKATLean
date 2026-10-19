@@ -368,6 +368,37 @@ theorem Bisimilar.send_left (env : RecEnv) {x : Channel} {n : NetKAT}
       exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
     · exact ⟨a', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
+theorem Bisimilar.rcfgPrefix_left (env : RecEnv) {x : Channel} {n : NetKAT}
+    {p q : DyNetKAT} (hpq : Bisimilar env p q) :
+    Bisimilar env (.rcfgPrefix x n p) (.rcfgPrefix x n q) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+    (a = .rcfgPrefix x n p ∧ b = .rcfgPrefix x n q) ∨
+    (a = .rcfgPrefix x n q ∧ b = .rcfgPrefix x n p) ∨
+    R a b ∨ a = b
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro a b h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hab | ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 a b hab)))
+    · exact Or.inr (Or.inr (Or.inr rfl))
+  · intro a b h pending handled action a' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hab | ⟨rfl, rfl⟩
+    · cases step with
+      | cpol_rcfg _ _ _ pending handled =>
+          exact ⟨q, Step.cpol_rcfg x n q pending handled,
+            Or.inr (Or.inr (Or.inl hpq))⟩
+    · cases step with
+      | cpol_rcfg _ _ _ pending handled =>
+          exact ⟨p, Step.cpol_rcfg x n p pending handled,
+            Or.inr (Or.inr (Or.inl (hR.1 p q hpq)))⟩
+    · rcases hR.2 a b hab pending handled action a' pending' handled' step with
+        ⟨b', step', hab'⟩
+      exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
+    · exact ⟨a', step, Or.inr (Or.inr (Or.inr rfl))⟩
+
 theorem Bisimilar.restrict (env : RecEnv) {actions : Set CommunicationAction}
     {p q : DyNetKAT} (hpq : Bisimilar env p q) :
     Bisimilar env (.restrict actions p) (.restrict actions q) := by
