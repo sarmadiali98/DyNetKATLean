@@ -71,6 +71,55 @@ inductive Step (env : RecEnv) : Config → Action → Config → Prop
          action
          (show Config from { proc := .parallel p q', pending := pending', handled := handled' })
 
+  | cpol_left_merge
+      (p q p' : DyNetKAT) (action : Action)
+      (pending pending' handled handled' : List CtxPkt)
+      (steps : Step env
+        (show Config from { proc := p, pending := pending, handled := handled })
+        action
+        (show Config from { proc := p', pending := pending', handled := handled' })) :
+      Step env
+        (show Config from { proc := .leftMerge p q, pending := pending, handled := handled })
+        action
+        (show Config from
+          { proc := .parallel p' q, pending := pending', handled := handled' })
+
+  | cpol_comm_merge_recv_send
+      (x : Channel) (r : DyNetKAT.NetKAT.NetKAT)
+      (q s q' s' : DyNetKAT)
+      (pending : List CtxPkt)
+      (handled : List CtxPkt)
+      (recv_step : Step env
+        (show Config from { proc := q, pending := pending, handled := handled })
+        (show Action from Action.recv x r)
+        (show Config from { proc := q', pending := pending, handled := handled }))
+      (send_step : Step env
+        (show Config from { proc := s, pending := pending, handled := handled })
+        (show Action from Action.send x r)
+        (show Config from { proc := s', pending := pending, handled := handled })) :
+      Step env
+        (show Config from { proc := .commMerge q s, pending := pending, handled := handled })
+        (show Action from Action.rcfg x r)
+        (show Config from { proc := .parallel q' s', pending := pending, handled := handled })
+
+  | cpol_comm_merge_send_recv
+      (x : Channel) (r : DyNetKAT.NetKAT.NetKAT)
+      (q s q' s' : DyNetKAT)
+      (pending : List CtxPkt)
+      (handled : List CtxPkt)
+      (send_step : Step env
+        (show Config from { proc := q, pending := pending, handled := handled })
+        (show Action from Action.send x r)
+        (show Config from { proc := q', pending := pending, handled := handled }))
+      (recv_step : Step env
+        (show Config from { proc := s, pending := pending, handled := handled })
+        (show Action from Action.recv x r)
+        (show Config from { proc := s', pending := pending, handled := handled })) :
+      Step env
+        (show Config from { proc := .commMerge q s, pending := pending, handled := handled })
+        (show Action from Action.rcfg x r)
+        (show Config from { proc := .parallel q' s', pending := pending, handled := handled })
+
   | cpol_recv
       (x : Channel) (p : DyNetKAT.NetKAT.NetKAT)
       (continuation : DyNetKAT)

@@ -275,6 +275,169 @@ theorem Bisimilar.parallel_left (env : RecEnv) {p q r : DyNetKAT}
       exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
     · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
+theorem Bisimilar.leftMerge_left (env : RecEnv) {p q r : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.leftMerge p r) (.leftMerge q r) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (x = .leftMerge p r ∧ y = .leftMerge q r) ∨
+    (x = .leftMerge q r ∧ y = .leftMerge p r) ∨
+    Bisimilar env x y
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Bisimilar.symm env hxy))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy
+    · cases step with
+      | cpol_left_merge _ _ p' action pending pending' handled handled' substep =>
+          rcases hR.2 p q hpq pending handled action p' pending' handled' substep with
+            ⟨q', substep', hp'q'⟩
+          exact ⟨.parallel q' r,
+            Step.cpol_left_merge q r q' action pending pending' handled handled' substep',
+            Or.inr (Or.inr (Bisimilar.parallel_right env ⟨R, hR, hp'q'⟩))⟩
+    · cases step with
+      | cpol_left_merge _ _ q' action pending pending' handled handled' substep =>
+          rcases hR.2 q p (hR.1 p q hpq) pending handled action q' pending' handled' substep with
+            ⟨p', substep', hq'p'⟩
+          exact ⟨.parallel p' r,
+            Step.cpol_left_merge p r p' action pending pending' handled handled' substep',
+            Or.inr (Or.inr (Bisimilar.parallel_right env ⟨R, hR, hq'p'⟩))⟩
+    · rcases hxy with ⟨S, hS, hxy⟩
+      rcases hS.2 x y hxy pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr ⟨S, hS, hxy'⟩)⟩
+
+theorem Bisimilar.leftMerge_right (env : RecEnv) {p q r : DyNetKAT}
+     (hpq : Bisimilar env p q) :
+     Bisimilar env (.leftMerge r p) (.leftMerge r q) := by
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (x = .leftMerge r p ∧ y = .leftMerge r q) ∨
+    (x = .leftMerge r q ∧ y = .leftMerge r p) ∨
+    Bisimilar env x y
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Bisimilar.symm env hxy))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy
+    · cases step with
+      | cpol_left_merge _ _ r' action pending pending' handled handled' substep =>
+          exact ⟨.parallel r' q,
+            Step.cpol_left_merge r q r' action pending pending' handled handled' substep,
+            Or.inr (Or.inr (Bisimilar.parallel_left env hpq))⟩
+    · cases step with
+      | cpol_left_merge _ _ r' action pending pending' handled handled' substep =>
+          exact ⟨.parallel r' p,
+            Step.cpol_left_merge r p r' action pending pending' handled handled' substep,
+            Or.inr (Or.inr (Bisimilar.parallel_left env (Bisimilar.symm env hpq)))⟩
+    · rcases hxy with ⟨S, hS, hxy⟩
+      rcases hS.2 x y hxy pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr ⟨S, hS, hxy'⟩)⟩
+
+theorem Bisimilar.commMerge_right (env : RecEnv) {p q r : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.commMerge p r) (.commMerge q r) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (x = .commMerge p r ∧ y = .commMerge q r) ∨
+    (x = .commMerge q r ∧ y = .commMerge p r) ∨
+    Bisimilar env x y
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Bisimilar.symm env hxy))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy
+    · cases step with
+        | cpol_comm_merge_recv_send chan pol q0 s q1 s1 pending handled recv_step send_step =>
+            rcases hR.2 p q hpq pending handled (Action.recv chan pol) q1 pending handled recv_step with
+              ⟨q', recv_step', hp'q'⟩
+            exact ⟨.parallel q' s1,
+              Step.cpol_comm_merge_recv_send chan pol q r q' s1 pending handled recv_step' send_step,
+              Or.inr (Or.inr (Bisimilar.parallel_right env ⟨R, hR, hp'q'⟩))⟩
+        | cpol_comm_merge_send_recv chan pol q0 s q1 s1 pending handled send_step recv_step =>
+            rcases hR.2 p q hpq pending handled (Action.send chan pol) q1 pending handled send_step with
+              ⟨q', send_step', hp'q'⟩
+            exact ⟨.parallel q' s1,
+              Step.cpol_comm_merge_send_recv chan pol q r q' s1 pending handled send_step' recv_step,
+              Or.inr (Or.inr (Bisimilar.parallel_right env ⟨R, hR, hp'q'⟩))⟩
+    · cases step with
+      | cpol_comm_merge_recv_send chan pol _ _ q1 s1 pending handled recv_step send_step =>
+          rcases hR.2 q p (hR.1 p q hpq) pending handled (Action.recv chan pol) q1 pending handled recv_step with
+            ⟨p', recv_step', hq'p'⟩
+          exact ⟨.parallel p' s1,
+            Step.cpol_comm_merge_recv_send chan pol p r p' s1 pending handled recv_step' send_step,
+            Or.inr (Or.inr (Bisimilar.parallel_right env ⟨R, hR, hq'p'⟩))⟩
+      | cpol_comm_merge_send_recv chan pol _ _ q1 s1 pending handled send_step recv_step =>
+          rcases hR.2 q p (hR.1 p q hpq) pending handled (Action.send chan pol) q1 pending handled send_step with
+            ⟨p', send_step', hq'p'⟩
+          exact ⟨.parallel p' s1,
+            Step.cpol_comm_merge_send_recv chan pol p r p' s1 pending handled send_step' recv_step,
+            Or.inr (Or.inr (Bisimilar.parallel_right env ⟨R, hR, hq'p'⟩))⟩
+    · rcases hxy with ⟨S, hS, hxy⟩
+      rcases hS.2 x y hxy pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr ⟨S, hS, hxy'⟩)⟩
+
+theorem Bisimilar.commMerge_left (env : RecEnv) {p q r : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.commMerge r p) (.commMerge r q) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+    (x = .commMerge r p ∧ y = .commMerge r q) ∨
+    (x = .commMerge r q ∧ y = .commMerge r p) ∨
+    Bisimilar env x y
+  refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+  constructor
+  · intro x y h
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy
+    · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+    · exact Or.inl ⟨rfl, rfl⟩
+    · exact Or.inr (Or.inr (Bisimilar.symm env hxy))
+  · intro x y h pending handled action x' pending' handled' step
+    rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | hxy
+    · cases step with
+      | cpol_comm_merge_recv_send chan pol r0 p0 r' p' pending handled recv_step send_step =>
+          rcases hR.2 p q hpq pending handled (Action.send chan pol) p' pending handled send_step with
+            ⟨q', send_step', hp'q'⟩
+          exact ⟨.parallel r' q',
+            Step.cpol_comm_merge_recv_send chan pol r q r' q' pending handled recv_step send_step',
+            Or.inr (Or.inr (Bisimilar.parallel_left env ⟨R, hR, hp'q'⟩))⟩
+      | cpol_comm_merge_send_recv chan pol r0 p0 r' p' pending handled send_step recv_step =>
+          rcases hR.2 p q hpq pending handled (Action.recv chan pol) p' pending handled recv_step with
+            ⟨q', recv_step', hp'q'⟩
+          exact ⟨.parallel r' q',
+            Step.cpol_comm_merge_send_recv chan pol r q r' q' pending handled send_step recv_step',
+            Or.inr (Or.inr (Bisimilar.parallel_left env ⟨R, hR, hp'q'⟩))⟩
+    · cases step with
+      | cpol_comm_merge_recv_send chan pol r0 q0 r' q' pending handled recv_step send_step =>
+          rcases hR.2 q p (hR.1 p q hpq) pending handled (Action.send chan pol) q' pending handled send_step with
+            ⟨p', send_step', hq'p'⟩
+          exact ⟨.parallel r' p',
+            Step.cpol_comm_merge_recv_send chan pol r p r' p' pending handled recv_step send_step',
+            Or.inr (Or.inr (Bisimilar.parallel_left env ⟨R, hR, hq'p'⟩))⟩
+      | cpol_comm_merge_send_recv chan pol r0 q0 r' q' pending handled send_step recv_step =>
+          rcases hR.2 q p (hR.1 p q hpq) pending handled (Action.recv chan pol) q' pending handled recv_step with
+            ⟨p', recv_step', hq'p'⟩
+          exact ⟨.parallel r' p',
+            Step.cpol_comm_merge_send_recv chan pol r p r' p' pending handled send_step recv_step',
+            Or.inr (Or.inr (Bisimilar.parallel_left env ⟨R, hR, hq'p'⟩))⟩
+    · rcases hxy with ⟨S, hS, hxy⟩
+      rcases hS.2 x y hxy pending handled action x' pending' handled' step with
+        ⟨y', step', hxy'⟩
+      exact ⟨y', step', Or.inr (Or.inr ⟨S, hS, hxy'⟩)⟩
+
 theorem Bisimilar.nSeq_left (env : RecEnv) {n : NetKAT} {p q : DyNetKAT}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.nSeq n p) (.nSeq n q) := by

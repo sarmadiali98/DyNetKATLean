@@ -3,6 +3,7 @@
 --
 -- Per the DyNetKAT paper (arXiv:2102.10035v4):
 --   Eq. 1, p. 8:   D ::= ⊥ | N;D | x?N;D | x!N;D | D‖D | D⊕D | X
+--   Eq. 6, p. 14:  Dₑ ::= ... | Dₑ⌊⌊Dₑ | Dₑ|Dₑ | ...
 --   where N ranges over NetKAT⁻ᵈᵘᵖ (the existing `NetKAT` inductive in
 --   `NetKAT/AST.lean`), x ranges over channel names, and X ranges over a
 --   (countably infinite) set of recursive variables.
@@ -77,7 +78,7 @@ inductive CommunicationAction : Type
     reconfiguration prefix from Eq. (6), p. 14:
 
     `D_e ::= ⊥ | N;D_e | x?N;D_e | x!N;D_e | rcfg_{x,N};D_e
-             | D_e‖D_e | D_e⊕D_e | X`
+             | D_e‖D_e | D_e⊕D_e | D_e⌊⌊D_e | D_e|D_e | X`
 
     - `deadlock`   : ⊥        — "a dummy policy without behaviour"
     - `nSeq`       : N;D      — NetKAT policy applied to the current packet,
@@ -88,6 +89,8 @@ inductive CommunicationAction : Type
                                     distinct from the `Action.rcfg` label
     - `parallel`   : D‖D      — asynchronous parallel composition
     - `choice`     : D⊕D      — non-deterministic choice
+    - `leftMerge`   : D⌊⌊D     — left-merge operator (Eq. 6)
+    - `commMerge`   : D|D      — communication-merge operator (Eq. 6)
     - `restrict`   : δ_ℒ(D)   — restriction to communication actions (Eq. 6)
     - `project`    : π_n(D)   — projection to depth n (Eq. 6)
     - `var`        : X        — recursive variable (unfolded via `X ≜ d`)
@@ -102,6 +105,8 @@ inductive DyNetKAT : Type
   | rcfgPrefix : Channel → NetKAT → DyNetKAT → DyNetKAT     -- rcfg_{x,N};D (Eq. 6)
   | parallel   : DyNetKAT → DyNetKAT → DyNetKAT             -- D‖D    (Eq. 1)
   | choice     : DyNetKAT → DyNetKAT → DyNetKAT             -- D⊕D    (Eq. 1)
+  | leftMerge  : DyNetKAT → DyNetKAT → DyNetKAT             -- D⌊⌊D   (Eq. 6)
+  | commMerge  : DyNetKAT → DyNetKAT → DyNetKAT             -- D|D    (Eq. 6)
   | restrict   : Set CommunicationAction → DyNetKAT → DyNetKAT -- δ_ℒ(D) (Eq. 6)
   | project    : Nat → DyNetKAT → DyNetKAT                  -- π_n(D) (Eq. 6)
   | var        : Var → DyNetKAT                             -- X      (Eq. 1)
