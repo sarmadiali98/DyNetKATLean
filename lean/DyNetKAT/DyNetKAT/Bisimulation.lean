@@ -368,4 +368,131 @@ theorem Bisimilar.send_left (env : RecEnv) {x : Channel} {n : NetKAT}
       exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
     · exact ⟨a', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
+theorem Bisimilar.restrict (env : RecEnv) {actions : Set CommunicationAction}
+    {p q : DyNetKAT} (hpq : Bisimilar env p q) :
+    Bisimilar env (.restrict actions p) (.restrict actions q) := by
+  rcases hpq with ⟨R, hR, hpq⟩
+  let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+    (∃ c d, R c d ∧ a = .restrict actions c ∧ b = .restrict actions d) ∨
+    (∃ c d, R c d ∧ a = .restrict actions d ∧ b = .restrict actions c) ∨
+    R a b ∨ a = b
+  refine ⟨T, ?_, Or.inl ⟨p, q, hpq, rfl, rfl⟩⟩
+  constructor
+  · intro a b h
+    rcases h with ⟨c, d, hcd, hac, hbd⟩ | ⟨c, d, hcd, hac, hbd⟩ | hab | hab
+    · exact Or.inr (Or.inl ⟨c, d, hcd, hbd, hac⟩)
+    · exact Or.inl ⟨c, d, hcd, hbd, hac⟩
+    · exact Or.inr (Or.inr (Or.inl (hR.1 a b hab)))
+    · exact Or.inr (Or.inr (Or.inr hab.symm))
+  · intro a b h pending handled action a' pending' handled' step
+    rcases h with ⟨c, d, hcd, hac, hbd⟩ | ⟨c, d, hcd, hac, hbd⟩ | hab | hab
+    · have step_c : Step env
+          (show Config from { proc := .restrict actions c, pending := pending, handled := handled })
+          action
+          (show Config from { proc := a', pending := pending', handled := handled' }) := by
+          simpa [hac] using step
+      cases step_c with
+      | cpol_restrict _ c c' action pending pending' handled handled' allowed step' =>
+          rcases hR.2 c d hcd pending handled action _ pending' handled' step' with
+            ⟨q', step'', hp'q'⟩
+          subst b
+          exact ⟨.restrict actions q', Step.cpol_restrict actions d q' action pending pending'
+            handled handled' allowed step'', Or.inl ⟨c', q', hp'q', rfl, rfl⟩⟩
+    · have step_d : Step env
+          (show Config from { proc := .restrict actions d, pending := pending, handled := handled })
+          action
+          (show Config from { proc := a', pending := pending', handled := handled' }) := by
+          simpa [hac] using step
+      cases step_d with
+      | cpol_restrict _ d d' action pending pending' handled handled' allowed step' =>
+          rcases hR.2 d c (hR.1 c d hcd) pending handled action _ pending' handled' step' with
+            ⟨p', step'', hq'p'⟩
+          subst b
+          exact ⟨.restrict actions p', Step.cpol_restrict actions c p' action pending pending'
+            handled handled' allowed step'', Or.inl ⟨d', p', hq'p', rfl, rfl⟩⟩
+    · rcases hR.2 a b hab pending handled action a' pending' handled' step with
+        ⟨b', step', hab'⟩
+      exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
+    · have step_b : Step env
+          (show Config from { proc := b, pending := pending, handled := handled })
+          action
+          (show Config from { proc := a', pending := pending', handled := handled' }) := by
+          simpa [hab] using step
+      exact ⟨a', step_b, Or.inr (Or.inr (Or.inr rfl))⟩
+
+theorem Bisimilar.project (env : RecEnv) {n : Nat} {p q : DyNetKAT}
+    (hpq : Bisimilar env p q) :
+    Bisimilar env (.project n p) (.project n q) := by
+  cases n with
+  | zero =>
+      let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+        (a = .project 0 p ∧ b = .project 0 q) ∨
+        (a = .project 0 q ∧ b = .project 0 p) ∨
+        a = b
+      refine ⟨T, ?_, Or.inl ⟨rfl, rfl⟩⟩
+      constructor
+      · intro a b h
+        rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | rfl
+        · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
+        · exact Or.inl ⟨rfl, rfl⟩
+        · exact Or.inr (Or.inr rfl)
+      · intro a b h pending handled action a' pending' handled' step
+        rcases h with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | rfl
+        · cases step
+        · cases step
+        · exact ⟨a', step, Or.inr (Or.inr rfl)⟩
+  | succ n =>
+    rcases hpq with ⟨R, hR, hpq⟩
+    let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+      (∃ k c d, k ≤ n + 1 ∧ R c d ∧ a = .project k c ∧ b = .project k d) ∨
+      (∃ k c d, k ≤ n + 1 ∧ R c d ∧ a = .project k d ∧ b = .project k c) ∨
+      R a b ∨ a = b
+    refine ⟨T, ?_, Or.inl ⟨n + 1, p, q, le_rfl, hpq, rfl, rfl⟩⟩
+    constructor
+    · intro a b h
+      rcases h with ⟨k, c, d, hk, hcd, hac, hbd⟩ |
+          ⟨k, c, d, hk, hcd, hac, hbd⟩ | hab | hab
+      · exact Or.inr (Or.inl ⟨k, c, d, hk, hcd, hbd, hac⟩)
+      · exact Or.inl ⟨k, c, d, hk, hcd, hbd, hac⟩
+      · exact Or.inr (Or.inr (Or.inl (hR.1 a b hab)))
+      · exact Or.inr (Or.inr (Or.inr hab.symm))
+    · intro a b h pending handled action a' pending' handled' step
+      rcases h with ⟨k, c, d, hk, hcd, hac, hbd⟩ |
+          ⟨k, c, d, hk, hcd, hac, hbd⟩ | hab | hab
+      · have step_c : Step env
+            (show Config from { proc := .project k c, pending := pending, handled := handled })
+            action
+            (show Config from { proc := a', pending := pending', handled := handled' }) := by
+            simpa [hac] using step
+        cases step_c with
+        | cpol_project m c c' action pending pending' handled handled' step' =>
+            rcases hR.2 c d hcd pending handled action _ pending' handled' step' with
+              ⟨d', step'', hcd'⟩
+            have hm : m ≤ n + 1 := Nat.le_trans (Nat.le_succ m) hk
+            subst b
+            exact ⟨.project m d', Step.cpol_project m d d' action pending pending'
+              handled handled' step'', Or.inl ⟨m, c', d', hm, hcd', rfl, rfl⟩⟩
+      · have step_d : Step env
+            (show Config from { proc := .project k d, pending := pending, handled := handled })
+            action
+            (show Config from { proc := a', pending := pending', handled := handled' }) := by
+            simpa [hac] using step
+        cases step_d with
+        | cpol_project m d d' action pending pending' handled handled' step' =>
+            rcases hR.2 d c (hR.1 c d hcd) pending handled action _ pending' handled' step' with
+              ⟨c', step'', hd'c'⟩
+            have hm : m ≤ n + 1 := Nat.le_trans (Nat.le_succ m) hk
+            subst b
+            exact ⟨.project m c', Step.cpol_project m c c' action pending pending'
+              handled handled' step'', Or.inl ⟨m, d', c', hm, hd'c', rfl, rfl⟩⟩
+      · rcases hR.2 a b hab pending handled action a' pending' handled' step with
+          ⟨b', step', hab'⟩
+        exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
+      · have step_b : Step env
+            (show Config from { proc := b, pending := pending, handled := handled })
+            action
+            (show Config from { proc := a', pending := pending', handled := handled' }) := by
+            simpa [hab] using step
+        exact ⟨a', step_b, Or.inr (Or.inr (Or.inr rfl))⟩
+
 end DyNetKAT.DyNetKAT

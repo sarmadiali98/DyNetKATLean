@@ -20,7 +20,9 @@
 --   4. No `rcfg` constructor — `rcfg` appears only as an action label
 --      (Fig. 8, deferred to `Action.lean`) and as an extended-syntax
 --      constant (Eq. 6, deferred to `Operators.lean`). Eq. (1) has none.
---   5. Trailing `; ⊥` is omitted in the paper "whenever clear from the
+--   5. Restriction sets exclude packet and `rcfg` labels by construction
+--      (Eq. 6, p. 14).
+--   6. Trailing `; ⊥` is omitted in the paper "whenever clear from the
 --      context" (§II-C); here every sequence carries an explicit
 --      continuation, and bare `N` is expressed via `policy` below.
 ------------------------------------------------------------------------
@@ -60,6 +62,13 @@ abbrev Channel : Type := String
     rather than an inductive tree. -/
 abbrev Var : Type := String
 
+/-- The action forms admitted in restriction sets ℒ (Eq. 6, p. 14):
+    communications `x?N` and `x!N`, with `N ∈ NetKAT⁻ᵈᵘᵖ`. Packet and
+    reconfiguration labels are intentionally not members of this type. -/
+inductive CommunicationAction : Type
+  | recv : Channel → NetKAT → CommunicationAction
+  | send : Channel → NetKAT → CommunicationAction
+
 ------------------------------------------------------------------------
 -- The DyNetKAT inductive (Eq. 1, p. 8)
 ------------------------------------------------------------------------
@@ -75,6 +84,8 @@ abbrev Var : Type := String
     - `send`       : x!N;D    — send a NetKAT⁻ᵈᵘᵖ policy through channel x
     - `parallel`   : D‖D      — asynchronous parallel composition
     - `choice`     : D⊕D      — non-deterministic choice
+    - `restrict`   : δ_ℒ(D)   — restriction to communication actions (Eq. 6)
+    - `project`    : π_n(D)   — projection to depth n (Eq. 6)
     - `var`        : X        — recursive variable (unfolded via `X ≜ d`)
 
     The `NetKAT` argument is the existing dup-free `NetKAT` type
@@ -86,6 +97,8 @@ inductive DyNetKAT : Type
   | send       : Channel → NetKAT → DyNetKAT → DyNetKAT     -- x!N;D  (Eq. 1)
   | parallel   : DyNetKAT → DyNetKAT → DyNetKAT             -- D‖D    (Eq. 1)
   | choice     : DyNetKAT → DyNetKAT → DyNetKAT             -- D⊕D    (Eq. 1)
+  | restrict   : Set CommunicationAction → DyNetKAT → DyNetKAT -- δ_ℒ(D) (Eq. 6)
+  | project    : Nat → DyNetKAT → DyNetKAT                  -- π_n(D) (Eq. 6)
   | var        : Var → DyNetKAT                             -- X      (Eq. 1)
 
 ------------------------------------------------------------------------

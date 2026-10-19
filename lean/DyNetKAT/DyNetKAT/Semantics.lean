@@ -142,4 +142,38 @@ inductive Step (env : RecEnv) : Config → Action → Config → Prop
         (show Action from Action.rcfg x r)
         (show Config from { proc := .parallel q' s', pending := pending, handled := handled })
 
+  | cpol_project
+      (n : Nat)
+      (p p' : DyNetKAT) (action : Action)
+      (pending pending' handled handled' : List CtxPkt)
+      (step : Step env
+        (show Config from { proc := p, pending := pending, handled := handled })
+        action
+        (show Config from { proc := p', pending := pending', handled := handled' })) :
+      Step env
+        (show Config from
+          { proc := .project (n + 1) p, pending := pending, handled := handled })
+        action
+        (show Config from
+          { proc := .project n p', pending := pending', handled := handled' })
+
+  | cpol_restrict
+      (actions : Set CommunicationAction)
+      (p p' : DyNetKAT) (action : Action)
+      (pending pending' handled handled' : List CtxPkt)
+      (allowed : match action with
+        | .packet _ _ => True
+        | .recv x r => CommunicationAction.recv x r ∉ actions
+        | .send x r => CommunicationAction.send x r ∉ actions
+        | .rcfg _ _ => True)
+      (step : Step env
+        (show Config from { proc := p, pending := pending, handled := handled })
+        action
+        (show Config from { proc := p', pending := pending', handled := handled' })) :
+      Step env
+        (show Config from { proc := .restrict actions p, pending := pending, handled := handled })
+        action
+        (show Config from
+          { proc := .restrict actions p', pending := pending', handled := handled' })
+
 end DyNetKAT.DyNetKAT
