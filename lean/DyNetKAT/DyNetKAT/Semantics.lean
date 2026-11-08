@@ -2,6 +2,7 @@ import DyNetKAT.DyNetKAT.Config
 import DyNetKAT.DyNetKAT.Action
 import DyNetKAT.DyNetKAT.RecEnv
 import DyNetKAT.NetKAT.Semantics
+import DyNetKAT.NetKAT.HistorySemantics
 
 namespace DyNetKAT.DyNetKAT
 
@@ -15,7 +16,9 @@ inductive Step (env : RecEnv) : Config → Action → Config → Prop
       (p : DyNetKAT.NetKAT.NetKAT) (q : DyNetKAT)
       (sigma sigma' : CtxPkt)
       (pendingTail handled : List CtxPkt)
-      (evaluates : DyNetKAT.NetKAT.Semantics p sigma sigma') :
+      (evaluates : DyNetKAT.NetKAT.HistorySemantics p
+        (DyNetKAT.NetKAT.History.singleton sigma)
+        (DyNetKAT.NetKAT.History.singleton sigma')) :
       Step env
         (show Config from
           { proc := .nSeq p q, pending := sigma :: pendingTail, handled := handled })
