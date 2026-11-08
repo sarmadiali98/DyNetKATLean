@@ -56,6 +56,14 @@
 --     contribution comes from a head-reachable node's label, and a
 --     reference contributes `.drop` locally, so cyclic references
 --     neither duplicate nor fabricate contributions.
+--   * `graphHead_complete` (S6B Part 3B) — semantic completeness, the
+--     converse inclusion: whenever `graphHead G = some H`, every packet
+--     pair described by `GraphHeadSpec G G.root` lies in the semantics
+--     of `H`.  No supportedness hypothesis is needed beyond the success
+--     itself (success already forces every involved local collection to
+--     succeed); supportedness is only needed to GUARANTEE that some `H`
+--     exists (`graphHead_supported_some`), which yields the packaged
+--     specification equivalence `graphHead_spec_iff`.
 --
 -- Termination: `headCollect` and `headRefsList` are structurally
 -- recursive (references are never followed during collection), and
@@ -68,11 +76,13 @@
 --
 -- Scope boundary: this module implements the executable extraction,
 -- its supportedness theorem, the relational graph-head specification
--- (`GraphHeadSpec`), and the semantic soundness of the extraction
--- against that specification (`graphHead_sound`, S6B Part 3A).  It does
--- NOT prove graph head completeness, does NOT prove compatibility with
--- the S4A AST-level `head`, does NOT implement graph tail extraction
--- (S6C), and does not integrate the recursive safety checker (S6D).
+-- (`GraphHeadSpec`), the semantic soundness of the extraction against
+-- that specification (`graphHead_sound`, S6B Part 3A), and its semantic
+-- completeness (`graphHead_complete`, S6B Part 3B), packaged into the
+-- specification equivalence `graphHead_spec_iff`.  It does NOT prove
+-- compatibility with the S4A AST-level `head`, does NOT implement graph
+-- tail extraction (S6C), and does not integrate the recursive safety
+-- checker (S6D).
 ------------------------------------------------------------------------
 
 import Mathlib.Data.Set.Basic
@@ -1706,8 +1716,8 @@ theorem graphHead_supported_some_root (G : ProcessGraph)
 -- contributes `.drop` locally (its label is collected separately), so
 -- a cyclic graph neither duplicates contributions nor introduces
 -- spurious ones — every contribution is accounted for by a
--- head-reachable node, which is all soundness requires.  (Completeness
--- is a separate milestone.)
+--     head-reachable node, which is all soundness requires.  (Completeness
+--     is established in §9.)
 ------------------------------------------------------------------------
 
 /-- Prefix occurrences lift through head-subterm containment: a policy
@@ -1780,7 +1790,7 @@ theorem graphHeadUnion_sound (G : ProcessGraph) (L : List NodeId) (H : NetKAT)
     prescribed by the specification, in the inclusion sense: whenever
     `graphHead G = some H`, the semantics of `H` is included in the
     behavior described by `GraphHeadSpec G G.root`.  (Completeness —
-    the converse inclusion — is a separate milestone.) -/
+    the converse inclusion — is `graphHead_complete` in §9.) -/
 theorem graphHead_sound (G : ProcessGraph) (H : NetKAT)
     (hhead : graphHead G = some H) :
     ∀ σ τ : CtxPkt, Semantics H σ τ → GraphHeadSpec G G.root σ τ := by
@@ -1806,7 +1816,395 @@ theorem graphHead_sound_of_supported (G : ProcessGraph)
   exact ⟨H, hH, graphHead_sound G H hH⟩
 
 ------------------------------------------------------------------------
--- §9 Worked examples: the recursive behaviors
+-- §9 Semantic completeness of `graphHead` (S6B Part 3B)
+--
+-- `graphHead_complete`: every packet pair described by the relational
+-- specification `GraphHeadSpec G G.root` lies in the semantics of the
+-- extracted policy, whenever the extraction succeeds.  Together with
+-- `graphHead_sound` (S6B Part 3A) this yields the specification
+-- equivalence `graphHead_spec_iff` on the supported domain.
+--
+-- Architecture (each step reuses the existing infrastructure):
+--   1. `HeadPrefixOfFree` and `headCollect_prefix_complete` — LOCAL
+--      completeness of the collection, opposite in direction to
+--      `headCollect_prefix_sound`: every packet pair contributed by a
+--      REF-FREE prefix occurrence lies in the semantics of the local
+--      collection.  The unrestricted converse of
+--      `headCollect_prefix_sound` is false: an occurrence behind a
+--      reference is not covered by the referring term's own collection
+--      (a reference contributes `.drop` locally); it is covered by the
+--      referenced node's collection, which is exactly the contribution
+--      the worklist fold adds.
+--   2. `headSub_collection_point` — every head-subterm occurrence is
+--      reached from its anchor by ref-free steps followed by at most one
+--      final reference jump, so every occurrence has a collection point:
+--      the anchor itself or the label of a head-reachable node.
+--   3. `unionOverList_start_some`, `unionOverList_start_cover`,
+--      `unionOverList_mem_cover` — the fold covers the start value and
+--      every visited node's contribution.
+--   4. `headRun_root_success` — the visited list contains EXACTLY the
+--      head-reachable nodes, so every collection point of the second
+--      kind is a visited node.
+--
+-- Supportedness is NOT needed for the completeness direction itself:
+-- the success hypothesis `graphHead G = some H` already entails that the
+-- root collection and the collection of every visited label succeeded.
+-- Supportedness (`GraphHeadSupported`, or its weaker shape-only root
+-- condition — see `graphHead_supported_some_root`, which derives the
+-- node closure from the graph's own `root_closed`/`closed` fields) is
+-- needed only to GUARANTEE that some `H` exists, i.e. for the packaged
+-- existence statement and the equivalence theorem.  Without it the
+-- equivalence genuinely fails: a reachable unsupported constructor makes
+-- `graphHead` fail (`none`) while the specification can still be
+-- nonempty (witnessed by the test fixture in `test_graph_head.lean`).
+------------------------------------------------------------------------
+
+/-- Ref-free prefix occurrence: `N` occurs at a packet-prefix position of
+    `gp` reachable without crossing any reference edge.  This is exactly
+    the fragment of `HeadPrefixOf` that `headCollect` covers locally;
+    occurrences behind references are covered at the referenced node's
+    label instead. -/
+inductive HeadPrefixOfFree (G : ProcessGraph) : GProc → NetKAT → Prop
+  | here (N : NetKAT) (cont : GProc) : HeadPrefixOfFree G (.nSeq N cont) N
+  | nSeq (N : NetKAT) (cont : GProc) (M : NetKAT)
+      (h : HeadPrefixOfFree G cont M) : HeadPrefixOfFree G (.nSeq N cont) M
+  | choice_left (a b : GProc) (M : NetKAT)
+      (h : HeadPrefixOfFree G a M) : HeadPrefixOfFree G (.choice a b) M
+  | choice_right (a b : GProc) (M : NetKAT)
+      (h : HeadPrefixOfFree G b M) : HeadPrefixOfFree G (.choice a b) M
+
+/-- Ref-free prefix occurrences are prefix occurrences. -/
+theorem headPrefixOfFree_to_headPrefixOf {G : ProcessGraph} {gp : GProc}
+    {N : NetKAT} (h : HeadPrefixOfFree G gp N) : HeadPrefixOf G gp N := by
+  induction h with
+  | here N cont => exact HeadPrefixOf.here N cont
+  | nSeq N cont M _ ih => exact HeadPrefixOf.nSeq N cont M ih
+  | choice_left a b M _ ih => exact HeadPrefixOf.choice_left a b M ih
+  | choice_right a b M _ ih => exact HeadPrefixOf.choice_right a b M ih
+
+/-- A ref-free head-subterm of the shape `N; cont` witnesses a ref-free
+    prefix occurrence (counterpart of `headPrefixOf_of_headSub`). -/
+theorem headPrefixOfFree_of_headSubFree (G : ProcessGraph) :
+    ∀ (gp sub : GProc), HeadSubFree G gp sub →
+      ∀ (N : NetKAT) (cont : GProc), sub = .nSeq N cont →
+        HeadPrefixOfFree G gp N := by
+  intro gp sub hs
+  induction hs with
+  | refl gp =>
+      intro N cont heq
+      subst heq
+      exact HeadPrefixOfFree.here N cont
+  | nSeq N' cont' sub' _ ih =>
+      intro N cont heq
+      exact HeadPrefixOfFree.nSeq N' cont' N (ih N cont heq)
+  | choice_left a b sub' _ ih =>
+      intro N cont heq
+      exact HeadPrefixOfFree.choice_left a b N (ih N cont heq)
+  | choice_right a b sub' _ ih =>
+      intro N cont heq
+      exact HeadPrefixOfFree.choice_right a b N (ih N cont heq)
+
+/-- Characterization of ref-free prefix occurrences by ref-free
+    head-subterms of the shape `N; cont` (counterpart of
+    `headPrefixOf_iff_headSub`). -/
+theorem headPrefixOfFree_iff_headSubFree (G : ProcessGraph) (gp : GProc)
+    (N : NetKAT) :
+    HeadPrefixOfFree G gp N ↔ ∃ cont : GProc, HeadSubFree G gp (.nSeq N cont) := by
+  constructor
+  · intro h
+    induction h with
+    | here N cont => exact ⟨cont, HeadSubFree.refl (.nSeq N cont)⟩
+    | nSeq N cont M _ ih =>
+        obtain ⟨cont'', hs⟩ := ih
+        exact ⟨cont'', HeadSubFree.nSeq N cont (.nSeq M cont'') hs⟩
+    | choice_left a b M _ ih =>
+        obtain ⟨cont'', hs⟩ := ih
+        exact ⟨cont'', HeadSubFree.choice_left a b (.nSeq M cont'') hs⟩
+    | choice_right a b M _ ih =>
+        obtain ⟨cont'', hs⟩ := ih
+        exact ⟨cont'', HeadSubFree.choice_right a b (.nSeq M cont'') hs⟩
+  · rintro ⟨cont, hs⟩
+    exact headPrefixOfFree_of_headSubFree G gp _ hs N cont rfl
+
+/-- **Local completeness of the collection** (S6B Part 3B): the direction
+    opposite to `headCollect_prefix_sound`, on its exact domain of
+    validity.  Every packet pair contributed by a ref-free prefix
+    occurrence lies in the semantics of the local collection — provided
+    the collection succeeds.  (Occurrences behind references are covered
+    by the referenced node's own collection; see
+    `headSub_collection_point` and `graphHead_complete`.  `HeadShapeOk`
+    is not needed here: success of the collection is the hypothesis, and
+    on the supported domain success is guaranteed by
+    `graphHead_supported_some` via `headCollect_none_failure`.) -/
+theorem headCollect_prefix_complete (G : ProcessGraph) :
+    ∀ (gp : GProc) (N : NetKAT), HeadPrefixOfFree G gp N →
+      ∀ σ τ : CtxPkt, Semantics N σ τ →
+        ∀ H : NetKAT, headCollect gp = some H → Semantics H σ τ := by
+  intro gp N h
+  induction h with
+  | here N cont =>
+      intro σ τ hsem H hcol
+      obtain ⟨H', h', hH⟩ := headCollect_nSeq_inv N cont H hcol
+      subst hH
+      exact (union_sem N H' σ τ).mpr (Or.inl hsem)
+  | nSeq N' cont M _ ih =>
+      intro σ τ hsem H hcol
+      obtain ⟨H', h', hH⟩ := headCollect_nSeq_inv N' cont H hcol
+      subst hH
+      exact (union_sem N' H' σ τ).mpr (Or.inr (ih σ τ hsem H' h'))
+  | choice_left a b M _ ih =>
+      intro σ τ hsem H hcol
+      obtain ⟨H₁, H₂, ha, hb, hH⟩ := headCollect_choice_inv a b H hcol
+      subst hH
+      exact (union_sem H₁ H₂ σ τ).mpr (Or.inl (ih σ τ hsem H₁ ha))
+  | choice_right a b M _ ih =>
+      intro σ τ hsem H hcol
+      obtain ⟨H₁, H₂, ha, hb, hH⟩ := headCollect_choice_inv a b H hcol
+      subst hH
+      exact (union_sem H₁ H₂ σ τ).mpr (Or.inr (ih σ τ hsem H₂ hb))
+
+/-- **Collection-point decomposition**: every head-subterm occurrence is
+    reached from its anchor by ref-free head-subterm steps followed by at
+    most one final reference jump.  Consequently every prefix occurrence
+    has a collection point: either the anchor term itself (ref-free
+    occurrence, covered by the anchor's local collection) or the label of
+    a node head-reachable from the anchor (covered by that node's local
+    collection, which the worklist fold visits exactly once).  The proof
+    is a straightforward induction on the `HeadSub` derivation, so no
+    acyclicity assumption is involved. -/
+theorem headSub_collection_point (G : ProcessGraph) :
+    ∀ {anchor sub : GProc}, HeadSub G anchor sub →
+      ∃ cp : GProc,
+        (cp = anchor ∨ ∃ j, HeadPathTo G anchor j ∧ cp = G.label j) ∧
+        HeadSubFree G cp sub := by
+  intro anchor sub h
+  induction h with
+  | refl gp => exact ⟨gp, Or.inl rfl, HeadSubFree.refl gp⟩
+  | nSeq N cont sub _ ih =>
+      obtain ⟨cp, hcp, hfree⟩ := ih
+      rcases hcp with hEq | ⟨j, hj, hcpEq⟩
+      · refine ⟨.nSeq N cont, Or.inl rfl, ?_⟩
+        rw [hEq] at hfree
+        exact HeadSubFree.nSeq N cont sub hfree
+      · refine ⟨G.label j, Or.inr ⟨j, HeadPathTo.nSeq N cont j hj, rfl⟩, ?_⟩
+        rw [hcpEq] at hfree
+        exact hfree
+  | choice_left a b sub _ ih =>
+      obtain ⟨cp, hcp, hfree⟩ := ih
+      rcases hcp with hEq | ⟨j, hj, hcpEq⟩
+      · refine ⟨.choice a b, Or.inl rfl, ?_⟩
+        rw [hEq] at hfree
+        exact HeadSubFree.choice_left a b sub hfree
+      · refine ⟨G.label j, Or.inr ⟨j, HeadPathTo.choice_left a b j hj, rfl⟩, ?_⟩
+        rw [hcpEq] at hfree
+        exact hfree
+  | choice_right a b sub _ ih =>
+      obtain ⟨cp, hcp, hfree⟩ := ih
+      rcases hcp with hEq | ⟨j, hj, hcpEq⟩
+      · refine ⟨.choice a b, Or.inl rfl, ?_⟩
+        rw [hEq] at hfree
+        exact HeadSubFree.choice_right a b sub hfree
+      · refine ⟨G.label j, Or.inr ⟨j, HeadPathTo.choice_right a b j hj, rfl⟩, ?_⟩
+        rw [hcpEq] at hfree
+        exact hfree
+  | ref i sub _ ih =>
+      obtain ⟨cp, hcp, hfree⟩ := ih
+      rcases hcp with hEq | ⟨j, hj, hcpEq⟩
+      · refine ⟨G.label i, Or.inr ⟨i, HeadPathTo.ref i, rfl⟩, ?_⟩
+        rw [hEq] at hfree
+        exact hfree
+      · refine ⟨G.label j,
+          Or.inr ⟨j, headPathTo_trans (HeadPathTo.ref i) hj, rfl⟩, ?_⟩
+        rw [hcpEq] at hfree
+        exact hfree
+
+theorem unionStep_none_of_acc_none (f : NodeId → Option NetKAT) (j : NodeId) :
+    unionStep f j none = none := by
+  simp only [unionStep]
+  cases f j <;> rfl
+
+/-- The start value of a successful fold is successful: if the fold over
+    `l` starting from `start` succeeds, then `start` was already `some`. -/
+theorem unionOverList_start_some (f : NodeId → Option NetKAT) :
+    ∀ (l : List NodeId) (start : Option NetKAT) (H : NetKAT),
+      unionOverList f l start = some H → ∃ H₀, start = some H₀ := by
+  intro l
+  induction l with
+  | nil => intro start H h; exact ⟨H, h⟩
+  | cons j js ih =>
+      intro start H h
+      cases start with
+      | none =>
+          exfalso
+          rw [unionOverList] at h
+          rw [unionStep_none_of_acc_none] at h
+          rw [unionOverList_none f js] at h
+          exact Option.noConfusion h
+      | some H₀ => exact ⟨H₀, rfl⟩
+
+/-- **Completeness of the completed worklist collection** (S6B Part 3B):
+    if the traversal succeeded with `L` and the union fold combined the
+    root's local collection with the local collections of the visited
+    labels into `H`, then every packet pair described by the
+    specification of the root lies in the semantics of `H`.  Each
+    collection point of a specification contribution is either the root
+    (whose collection is the fold's start value) or the label of a
+    head-reachable node (which the worklist visits exactly once, by
+    `headRun_root_success`), and the local collection is complete on
+    ref-free occurrences (`headCollect_prefix_complete`).  Cycles need no
+    special treatment: the derivation of the specification is finite, so
+    the collection point exists after finitely many reference jumps. -/
+theorem graphHeadUnion_complete (G : ProcessGraph) (L : List NodeId) (H : NetKAT)
+    (hrun : headRun G (headRefsList G.root) ∅ [] = some L)
+    (hfold : graphHeadUnion G L (headCollect G.root) = some H)
+    (σ τ : CtxPkt) (hspec : GraphHeadSpec G G.root σ τ) :
+    Semantics H σ τ := by
+  obtain ⟨hcover, _hlive⟩ := headRun_root_success G L hrun
+  rw [graphHeadUnion] at hfold
+  obtain ⟨H₀, hcol⟩ : ∃ H₀, headCollect G.root = some H₀ :=
+    unionOverList_start_some (fun j => headCollect (G.label j)) L
+      (headCollect G.root) H hfold
+  have hfold' : unionOverList (fun j => headCollect (G.label j)) L (some H₀) =
+      some H := by
+    rw [hcol] at hfold
+    exact hfold
+  have hall : ∀ j, j ∈ L → ∃ Hⱼ, headCollect (G.label j) = some Hⱼ :=
+    unionOverList_all_some (fun j => headCollect (G.label j)) L H₀ H hfold'
+  obtain ⟨N, hpre, hsem⟩ := (graphHeadSpec_iff_prefix G G.root σ τ).mp hspec
+  obtain ⟨cont, hsub⟩ := (headPrefixOf_iff_headSub G G.root N).mp hpre
+  obtain ⟨cp, hcp, hcpfree⟩ := headSub_collection_point G hsub
+  rcases hcp with hEq | ⟨j, hjpath, hjcp⟩
+  · -- the occurrence is ref-free at the root: covered by the start value
+    rw [hEq] at hcpfree
+    have h₀ : Semantics H₀ σ τ :=
+      headCollect_prefix_complete G G.root N
+        (headPrefixOfFree_of_headSubFree G G.root _ hcpfree N cont rfl) σ τ hsem
+        H₀ hcol
+    exact unionOverList_start_cover (fun j => headCollect (G.label j)) σ τ L
+      H₀ H hfold' h₀
+  · -- the occurrence is ref-free at the label of a head-reachable node
+    rw [hjcp] at hcpfree
+    have hjL : j ∈ L := hcover j hjpath
+    obtain ⟨Hⱼ, hfj⟩ := hall j hjL
+    have hⱼ : Semantics Hⱼ σ τ :=
+      headCollect_prefix_complete G (G.label j) N
+        (headPrefixOfFree_of_headSubFree G (G.label j) _ hcpfree N cont rfl) σ τ
+        hsem Hⱼ hfj
+    exact unionOverList_mem_cover (fun j => headCollect (G.label j)) σ τ L
+      H₀ H hfold' j hjL Hⱼ hfj hⱼ
+
+/-- **Semantic completeness of graph-native head extraction** (S6B Part 3B):
+    every NetKAT policy produced by `graphHead` captures the full behavior
+    prescribed by the specification: whenever `graphHead G = some H`, the
+    behavior described by `GraphHeadSpec G G.root` is included in the
+    semantics of `H`.  Together with `graphHead_sound` (S6B Part 3A) the
+    extraction is semantically exact whenever it succeeds — no
+    supportedness hypothesis is needed beyond the success itself, because
+    success already forces every involved local collection to succeed. -/
+theorem graphHead_complete (G : ProcessGraph) (H : NetKAT)
+    (hhead : graphHead G = some H) :
+    ∀ σ τ : CtxPkt, GraphHeadSpec G G.root σ τ → Semantics H σ τ := by
+  intro σ τ hspec
+  cases hrun : headRun G (headRefsList G.root) ∅ [] with
+  | none =>
+      have hhead' : graphHead G = none := by simp only [graphHead, hrun]
+      rw [hhead'] at hhead
+      exact Option.noConfusion hhead
+  | some L =>
+      have hhead' : graphHead G = graphHeadUnion G L (headCollect G.root) := by
+        simp only [graphHead, hrun]
+      rw [hhead'] at hhead
+      exact graphHeadUnion_complete G L H hrun hhead σ τ hspec
+
+/-- **Packaged completeness on the supported domain**: on a supported
+    graph the extraction succeeds AND its result captures the full
+    specification behavior. -/
+theorem graphHead_complete_of_supported (G : ProcessGraph)
+    (hsupported : GraphHeadSupported G) (σ τ : CtxPkt)
+    (hspec : GraphHeadSpec G G.root σ τ) :
+    ∃ H : NetKAT, graphHead G = some H ∧ Semantics H σ τ := by
+  obtain ⟨H, hH⟩ := graphHead_supported_some G hsupported
+  exact ⟨H, hH, graphHead_complete G H hH σ τ hspec⟩
+
+/-- **Packaged completeness under the weaker shape-only condition**: by
+    `graphHead_supported_some_root`, the node-closure conjunct of
+    `GraphHeadSupported` is derivable from the graph's own
+    `root_closed`/`closed` fields (`headPathTo_nodes_closed`), so only
+    the shape condition on the root's head region is needed. -/
+theorem graphHead_complete_of_shapeOk_root (G : ProcessGraph)
+    (hshape : ∀ dst, HeadSub G G.root dst → HeadShapeOk G dst)
+    (σ τ : CtxPkt) (hspec : GraphHeadSpec G G.root σ τ) :
+    ∃ H : NetKAT, graphHead G = some H ∧ Semantics H σ τ := by
+  obtain ⟨H, hH⟩ := graphHead_supported_some_root G hshape
+  exact ⟨H, hH, graphHead_complete G H hH σ τ hspec⟩
+
+/-- **Specification equivalence** (S6B Part 3B): on the supported domain,
+    the relational specification and the extracted policy's semantics
+    coincide packet-pair by packet-pair.  The forward direction is
+    `graphHead_complete_of_supported`; the reverse direction reuses
+    `graphHead_sound` (S6B Part 3A) without duplicating its proof. -/
+theorem graphHead_spec_iff (G : ProcessGraph)
+    (hsupported : GraphHeadSupported G) (σ τ : CtxPkt) :
+    GraphHeadSpec G G.root σ τ ↔
+      ∃ H : NetKAT, graphHead G = some H ∧ Semantics H σ τ := by
+  constructor
+  · exact graphHead_complete_of_supported G hsupported σ τ
+  · rintro ⟨H, hH, hsem⟩
+    exact graphHead_sound G H hH σ τ hsem
+
+/-- Specification equivalence under the weaker shape-only condition
+    (the node-closure conjunct of `GraphHeadSupported` is redundant for
+    well-formed graphs). -/
+theorem graphHead_spec_iff_of_shapeOk_root (G : ProcessGraph)
+    (hshape : ∀ dst, HeadSub G G.root dst → HeadShapeOk G dst) (σ τ : CtxPkt) :
+    GraphHeadSpec G G.root σ τ ↔
+      ∃ H : NetKAT, graphHead G = some H ∧ Semantics H σ τ := by
+  constructor
+  · exact graphHead_complete_of_shapeOk_root G hshape σ τ
+  · rintro ⟨H, hH, hsem⟩
+    exact graphHead_sound G H hH σ τ hsem
+
+/-- Reusable supportedness introduction: if an invariant `Inv` holds at
+    the anchor, every `Inv` term is shape-ok, and `Inv` is closed under
+    the head-region descents (through `nSeq` continuations, `choice`
+    branches and live references into node labels), then every
+    head-subterm of the anchor is shape-ok.  This discharges the shape
+    condition of `GraphHeadSupported` for concrete graphs by a finite
+    invariant — cyclic definitions included, since the induction runs on
+    the finite `HeadSub` derivation, never on the unfolding. -/
+theorem headShapeOk_of_headSub_inv (G : ProcessGraph) :
+    ∀ (a dst : GProc), HeadSub G a dst →
+      ∀ Inv : GProc → Prop,
+        Inv a →
+        (∀ b, Inv b → HeadShapeOk G b) →
+        (∀ b, Inv b → ∀ (N : NetKAT) (cont : GProc), b = .nSeq N cont → Inv cont) →
+        (∀ b, Inv b → ∀ (x y : GProc), b = .choice x y → Inv x ∧ Inv y) →
+        (∀ b, Inv b → ∀ (i : NodeId), b = .ref i → i ∈ G.nodes ∧ Inv (G.label i)) →
+        HeadShapeOk G dst := by
+  intro a dst h
+  induction h with
+  | refl gp =>
+      intro Inv hInv hOk _ _ _
+      exact hOk gp hInv
+  | nSeq N cont sub _ ih =>
+      intro Inv hInv hOk hNSeq hChoice hRef
+      refine ih Inv ?_ hOk hNSeq hChoice hRef
+      exact hNSeq _ hInv N cont rfl
+  | choice_left a b sub _ ih =>
+      intro Inv hInv hOk hNSeq hChoice hRef
+      refine ih Inv ?_ hOk hNSeq hChoice hRef
+      exact (hChoice _ hInv a b rfl).1
+  | choice_right a b sub _ ih =>
+      intro Inv hInv hOk hNSeq hChoice hRef
+      refine ih Inv ?_ hOk hNSeq hChoice hRef
+      exact (hChoice _ hInv a b rfl).2
+  | ref i sub _ ih =>
+      intro Inv hInv hOk hNSeq hChoice hRef
+      refine ih Inv ?_ hOk hNSeq hChoice hRef
+      exact (hRef _ hInv i rfl).2
+
+------------------------------------------------------------------------
+-- §10 Worked examples: the recursive behaviors
 --
 -- The four required behaviors are witnessed by concrete graphs and
 -- executable extraction results:
