@@ -132,7 +132,7 @@ import DyNetKAT
  def ex2Graph : ProcessGraph := toGraph ex2Env ex2Proc ex2Sup ex2_sup
 
  theorem ex2_label : ex2Graph.label (varNode "X") = .nSeq NetKAT.id .deadlock := by
-   simp [ex2Graph, toGraph, toGraphLabel, toGProc, varNode, ex2_lookup]
+   simp [ex2Graph, ex2Sup, toGProc, ex2_lookup]
 
  theorem ex2_corr : Corr ex2Graph ex2Env ex2Proc ex2Graph.root :=
    toGraph_corr ex2Env ex2Proc ex2Sup ex2_sup
@@ -180,7 +180,7 @@ import DyNetKAT
 
  theorem ex3_backedge :
      ex3Graph.label (varNode "X") = .nSeq NetKAT.id (GProc.ref (varNode "X")) := by
-   simp [ex3Graph, toGraph, toGraphLabel, toGProc, varNode, ex3_lookup]
+   simp [ex3Graph, ex3Sup, toGProc, ex3_lookup]
 
  theorem ex3_mem : varNode "X" ∈ ex3Graph.nodes := by
    simp [ex3Graph, toGraph, ex3Sup, varNode]
@@ -250,11 +250,11 @@ import DyNetKAT
 
  theorem ex4_labelX :
      ex4Graph.label (varNode "X") = .nSeq NetKAT.id (GProc.ref (varNode "Y")) := by
-   simp [ex4Graph, toGraph, toGraphLabel, toGProc, varNode, ex4_lookupX]
+   simp [ex4Graph, ex4Sup, toGProc, ex4_lookupX]
 
  theorem ex4_labelY :
      ex4Graph.label (varNode "Y") = .nSeq NetKAT.id (GProc.ref (varNode "X")) := by
-   simp [ex4Graph, toGraph, toGraphLabel, toGProc, varNode, ex4_lookupY]
+   simp [ex4Graph, ex4Sup, toGProc, ex4_lookupY]
 
  theorem ex4_corr : Corr ex4Graph ex4Env ex4Proc ex4Graph.root :=
    toGraph_corr ex4Env ex4Proc ex4Sup ex4_supX
@@ -308,6 +308,15 @@ import DyNetKAT
    · exact toGraph_corr ex4Env (.var "X") ex4Sup ex4_supX
    · exact toGraph_corr ex4Env (.var "Y") ex4Sup ex4_supY
 
+ example : GBisimilar ex4Graph (.ref (varNode "X")) (.ref (varNode "Y")) :=
+   (gbisimilar_iff_bisimilar ex4Graph ex4Env ex4_corr
+     (toGraph_corr ex4Env (.var "Y") ex4Sup ex4_supY)).mpr ex4_mutually_bisimilar
+
+ example : GBisimilar ex4Graph (.ref (varNode "X")) (.ref (varNode "X")) :=
+   GBisimilar.trans ex4Graph
+     ⟨ex4R, ex4_isGBisimulation, Or.inl ⟨rfl, rfl⟩⟩
+     ⟨ex4R, ex4_isGBisimulation, Or.inr (Or.inl ⟨rfl, rfl⟩)⟩
+
  ------------------------------------------------------------------------
  -- Example 5 — a recursive cycle containing packet processing
  --
@@ -337,7 +346,7 @@ import DyNetKAT
 
  theorem ex5_label :
      ex5Graph.label (varNode "X") = .nSeq pTest (GProc.ref (varNode "X")) := by
-   simp [ex5Graph, toGraph, toGraphLabel, toGProc, varNode, ex5_lookup]
+   simp [ex5Graph, ex5Sup, toGProc, ex5_lookup]
 
  theorem ex5_corr : Corr ex5Graph ex5Env ex5Proc ex5Graph.root :=
    toGraph_corr ex5Env ex5Proc ex5Sup ex5_sup
@@ -372,7 +381,7 @@ import DyNetKAT
  theorem ex6_label :
      ex6Graph.label (varNode "X") =
        .choice (.nSeq NetKAT.id (GProc.ref (varNode "X"))) .deadlock := by
-   simp [ex6Graph, toGraph, toGraphLabel, toGProc, varNode, ex6_lookup]
+   simp [ex6Graph, ex6Sup, toGProc, ex6_lookup]
 
  theorem ex6_corr : Corr ex6Graph ex6Env ex6Proc ex6Graph.root :=
    toGraph_corr ex6Env ex6Proc ex6Sup ex6_sup
@@ -505,10 +514,10 @@ import DyNetKAT
  def ex9Graph : ProcessGraph := toGraph ex9Env ex9Proc ex9Sup ex9_sup
 
  theorem ex9_labelX : ex9Graph.label (varNode "X") = GProc.ref (varNode "Y") := by
-   simp [ex9Graph, toGraph, toGraphLabel, toGProc, varNode, ex9_lookupX]
+   simp [ex9Graph, ex9Sup, toGProc, ex9_lookupX]
 
  theorem ex9_labelY : ex9Graph.label (varNode "Y") = GProc.ref (varNode "X") := by
-   simp [ex9Graph, toGraph, toGraphLabel, toGProc, varNode, ex9_lookupY]
+   simp [ex9Graph, ex9Sup, toGProc, ex9_lookupY]
 
  theorem ex9_sos_stuck (pt hl : List CtxPkt) (a : Action) (dst : Config) :
      ¬ Step ex9Env

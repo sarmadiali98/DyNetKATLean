@@ -69,6 +69,8 @@
 import DyNetKAT.NetKAT.Decision
 import DyNetKAT.DyNetKAT.SafetyHead
 import DyNetKAT.DyNetKAT.TailExtraction
+import DyNetKAT.DyNetKAT.GraphTail
+import DyNetKAT.DyNetKAT.GraphRestriction
 
 set_option linter.dupNamespace false
 
@@ -609,5 +611,170 @@ theorem safetyCheck_pipeline_semantic (env : RecEnv) (p : DyNetKAT) (R : Reconfi
   · simp only [hres, cond35Result_nonzero_eq_true_iff]
     exact checkCondition35_tailHeadSpec ingress egress R q hsupT Q H₂ hQ hH₂ _
       (checkCondition35_some ingress egress R q Q H₂ hQ hH₂)
+
+/-! ## Verification on closed graphs in the head/tail fragment -/
+
+/-- Check equations (34) and (35) on the graph supplied to the paper's
+    head and tail operators. Each failed extraction has its own result. -/
+def safetyCheckGraph (G : ProcessGraph) (R : ReconfigSet)
+    (ingress egress : NetKAT) : SafetyCheckResult :=
+  ⟨match graphHead G with
+   | none => .headFailure
+   | some H => .isZero (netkatIsZero (reachabilityPolicy ingress H egress)),
+   match graphTail G R with
+   | none => .tailFailure
+   | some T =>
+       match graphHead T with
+       | none => .tailHeadFailure
+       | some H => .nonzero (!netkatIsZero (reachabilityPolicy ingress H egress))⟩
+
+/-- A packet flow through the selected graph configuration, from ingress
+    through a head or tail contribution to egress. -/
+def flowVia (ingress egress : NetKAT) (config : CtxPkt → CtxPkt → Prop) : Prop :=
+  ∃ σ ρ κ τ, Semantics ingress σ ρ ∧ config ρ κ ∧ Semantics egress κ τ
+
+private theorem flowVia_semantics (ingress H egress : NetKAT) :
+    flowVia ingress egress (Semantics H) ↔
+      ∃ σ τ, Semantics (reachabilityPolicy ingress H egress) σ τ := by
+  constructor
+  · rintro ⟨σ, ρ, κ, τ, hIn, hCore, hOut⟩
+    exact ⟨σ, τ, (reachabilityPolicy_sem ingress H egress σ τ).mpr
+      ⟨ρ, κ, hIn, hCore, hOut⟩⟩
+  · rintro ⟨σ, τ, h⟩
+    obtain ⟨ρ, κ, hIn, hCore, hOut⟩ := (reachabilityPolicy_sem ingress H egress σ τ).mp h
+    exact ⟨σ, ρ, κ, τ, hIn, hCore, hOut⟩
+
+/-- Condition (34) is exact whenever initial-head extraction succeeds. -/
+theorem safetyCheckGraph_initial_correct {G : ProcessGraph} {R : ReconfigSet}
+    {ingress egress H : NetKAT} (hHead : graphHead G = some H) :
+    (safetyCheckGraph G R ingress egress).initialCondition = .isZero true ↔
+      ¬ flowVia ingress egress (GraphHeadSpec G G.root) := by
+  have hSem : Semantics H = GraphHeadSpec G G.root := by
+    funext σ τ
+    exact propext ⟨graphHead_sound G H hHead σ τ, graphHead_complete G H hHead σ τ⟩
+  simp only [safetyCheckGraph, hHead, Cond34Result.isZero.injEq, netkatIsZero_correct,
+    ← hSem, flowVia_semantics, not_exists]
+
+/-- Condition (35) is exact whenever tail and head-of-tail extraction succeed. -/
+theorem safetyCheckGraph_post_correct {G T : ProcessGraph} {R : ReconfigSet}
+    {ingress egress H : NetKAT} (hTail : graphTail G R = some T)
+    (hHead : graphHead T = some H) :
+    (safetyCheckGraph G R ingress egress).postReconfigurationCondition = .nonzero true ↔
+      flowVia ingress egress (GraphTailSpec G R G.root) := by
+  have hSem : Semantics H = GraphTailSpec G R G.root := by
+    funext σ τ
+    exact propext ⟨graphTail_sound hTail hHead, graphTail_complete hTail hHead⟩
+  simp only [safetyCheckGraph, hTail, hHead, Cond35Result.nonzero.injEq,
+    Bool.not_eq_true', netkatIsZero_reachabilityPolicy_false_iff, ← hSem, flowVia]
+
+/-- On the supported domain the graph checker evaluates both conditions.
+    The relational specifications give their exact truth values. -/
+theorem safetyCheckGraph_correct (G : ProcessGraph) (R : ReconfigSet)
+    (ingress egress : NetKAT) (hHead : GraphHeadSupported G) (hTail : GraphTailDomain G R) :
+    ∃ H₁ T H₂, graphHead G = some H₁ ∧ graphTail G R = some T ∧ graphHead T = some H₂ ∧
+      ((safetyCheckGraph G R ingress egress).initialCondition = .isZero true ↔
+        ¬ flowVia ingress egress (GraphHeadSpec G G.root)) ∧
+      ((safetyCheckGraph G R ingress egress).postReconfigurationCondition = .nonzero true ↔
+        flowVia ingress egress (GraphTailSpec G R G.root)) := by
+  obtain ⟨H₁, h₁⟩ := graphHead_supported_some G hHead
+  obtain ⟨T, hT⟩ := graphTail_domain_some hTail
+  obtain ⟨H₂, h₂⟩ := graphTail_head_some hT
+  exact ⟨H₁, T, H₂, h₁, hT, h₂, safetyCheckGraph_initial_correct h₁,
+    safetyCheckGraph_post_correct hT h₂⟩
+
+/-- Frontend checks that must succeed before a closed graph is available. -/
+inductive GraphInputError where
+  | invalidGraph
+  | compilationFailed
+  deriving DecidableEq, BEq, Repr
+
+/-- Validate closure when the graph arrives as raw nodes and labels. -/
+def validateProcessGraph (nodes : Finset NodeId) (root : GProc) (label : NodeId → GProc) :
+    Except GraphInputError ProcessGraph :=
+  if hRoot : gprocRefs root ⊆ nodes then
+    if hLabels : ∀ i ∈ nodes, gprocRefs (label i) ⊆ nodes then
+      .ok ⟨nodes, root, label, hRoot, hLabels⟩
+    else .error .invalidGraph
+  else .error .invalidGraph
+
+theorem validateProcessGraph_invalid_iff (nodes : Finset NodeId) (root : GProc)
+    (label : NodeId → GProc) :
+    validateProcessGraph nodes root label = .error .invalidGraph ↔
+      ¬ (gprocRefs root ⊆ nodes ∧ ∀ i ∈ nodes, gprocRefs (label i) ⊆ nodes) := by
+  unfold validateProcessGraph
+  split
+  · split <;> simp_all
+  · simp_all
+
+private theorem blockCommunication_shape {Q : ProcessGraph} {p q : GProc}
+    (h : blockCommunication p = some q) (hc : gprocRefs q ⊆ Q.nodes) :
+    TailShapeOk Q q := by
+  induction p generalizing q with
+  | nSeq _ _ ih =>
+      obtain ⟨p', hp, rfl⟩ := Option.map_eq_some'.mp h
+      exact .nSeq (ih hp hc)
+  | rcfgPrefix _ _ _ ih =>
+      obtain ⟨p', hp, rfl⟩ := Option.map_eq_some'.mp h
+      exact .rcfgPrefix (ih hp hc)
+  | choice _ _ ih₁ ih₂ =>
+      obtain ⟨_, hp, he⟩ := Option.bind_eq_some_iff.mp h
+      obtain ⟨_, hq, rfl⟩ := Option.map_eq_some'.mp he
+      obtain ⟨hc₁, hc₂⟩ := Finset.union_subset_iff.mp hc
+      exact .choice (ih₁ hp hc₁) (ih₂ hq hc₂)
+  | deadlock | recv | send => cases h; exact .deadlock
+  | ref i => cases h; exact .ref (hc (Finset.mem_singleton_self i))
+  | parallel | leftMerge | commMerge | restrict | project => cases h
+
+theorem preprocessGraph_supported {G Q : ProcessGraph} (h : preprocessGraph G = some Q) :
+    GraphHeadSupported Q ∧ GraphTailSupported Q := by
+  obtain ⟨hNodes, hRoot, hLabels⟩ := preprocessGraph_eq_some h
+  have rootShape := blockCommunication_shape hRoot Q.root_closed
+  have labelShape (i) (hi : i ∈ Q.nodes) : TailShapeOk Q (Q.label i) :=
+    blockCommunication_shape (hLabels i (hNodes ▸ hi)) (Q.closed i hi)
+  exact graphSupported_of_shapes rootShape labelShape
+
+/-- Check the graph under restriction of all communication actions. If
+    restriction cannot be eliminated in the sequential fragment, both
+    conditions report preprocessing failure. -/
+def safetyCheckRestrictedGraph (G : ProcessGraph) (R : ReconfigSet)
+    (ingress egress : NetKAT) : SafetyCheckResult :=
+  match preprocessGraph G with
+  | none => ⟨.preprocessFailure, .preprocessFailure⟩
+  | some Q => safetyCheckGraph Q R ingress egress
+
+theorem safetyCheckRestrictedGraph_correct {G Q : ProcessGraph} {R : ReconfigSet}
+    {ingress egress : NetKAT} (h : preprocessGraph G = some Q) :
+    ∃ H₁ T H₂, graphHead Q = some H₁ ∧ graphTail Q R = some T ∧ graphHead T = some H₂ ∧
+      ((safetyCheckRestrictedGraph G R ingress egress).initialCondition = .isZero true ↔
+        ¬ flowVia ingress egress (GraphHeadSpec Q Q.root)) ∧
+      ((safetyCheckRestrictedGraph G R ingress egress).postReconfigurationCondition =
+        .nonzero true ↔ flowVia ingress egress (GraphTailSpec Q R Q.root)) := by
+  obtain ⟨hHead, hTail⟩ := preprocessGraph_supported h
+  simpa only [safetyCheckRestrictedGraph, h] using
+    safetyCheckGraph_correct Q R ingress egress hHead (graphTailSupported_implies_domain hTail)
+
+/-- Resolve recursion once, then restrict and verify the closed graph. -/
+def compileAndSafetyCheckGraph (env : RecEnv) (p : DyNetKAT) (support : Finset Var)
+    (R : ReconfigSet) (ingress egress : NetKAT) : Except GraphInputError SafetyCheckResult :=
+  match compileGraph env p support with
+  | none => .error .compilationFailed
+  | some G => .ok (safetyCheckRestrictedGraph G R ingress egress)
+
+/-- Successful frontend compilation relates the root to the original SOS.
+    After restriction elimination the result decides (34) and (35). -/
+theorem compileAndSafetyCheckGraph_correct {env : RecEnv} {p : DyNetKAT}
+    {support : Finset Var} {G Q : ProcessGraph} (hCompile : compileGraph env p support = some G)
+    {R : ReconfigSet} {ingress egress : NetKAT}
+    (hPrep : preprocessGraph G = some Q) :
+    Corr G env p G.root ∧
+      ∃ result, compileAndSafetyCheckGraph env p support R ingress egress = .ok result ∧
+        (result.initialCondition = .isZero true ↔
+          ¬ flowVia ingress egress (GraphHeadSpec Q Q.root)) ∧
+        (result.postReconfigurationCondition = .nonzero true ↔
+          flowVia ingress egress (GraphTailSpec Q R Q.root)) := by
+  obtain ⟨_, _, _, _, _, _, hInitial, hPost⟩ :=
+    safetyCheckRestrictedGraph_correct (R := R) (ingress := ingress) (egress := egress) hPrep
+  exact ⟨compileGraph_corr hCompile, safetyCheckRestrictedGraph G R ingress egress,
+    by simp only [compileAndSafetyCheckGraph, hCompile], hInitial, hPost⟩
 
 end DyNetKAT.DyNetKAT

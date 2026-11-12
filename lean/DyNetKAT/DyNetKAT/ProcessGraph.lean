@@ -32,8 +32,7 @@
 --      an explicit finite-support assumption (`FiniteSupport`); the
 --      construction uses no choice principles.  A concrete environment
 --      with infinitely many reachable definitions (`infEnv`) is proved
---      to admit NO finite support, so not every `RecEnv` yields a
---      finite graph.
+--      to admit no finite support for this label-preserving compiler.
 --   6. Bounded exploration (`GReachableWithin`, `GSteps`) with
 --      monotonicity, the zero-depth cutoff, and composition; the
 --      correspondence of bounded graph exploration with finite SOS
@@ -41,7 +40,7 @@
 --      bridge to the paper's projection `π_n`
 --      (`steps_project_lift`, `steps_project_unwrap`).
 --   7. Cyclic graph bisimulation (`IsGBisimulation`, `GBisimilar`) and
---      the unbounded transfer theorem: a finite graph bisimulation
+--      the unbounded transfer theorem: a graph bisimulation
 --      between corresponding processes yields genuine unbounded
 --      `Bisimilar env` (`gbisimilar_transfer`), for every environment
 --      under which the correspondence holds
@@ -57,7 +56,8 @@
 ------------------------------------------------------------------------
 
 import Mathlib.Data.Set.Basic
-import Mathlib.Data.Finset.Basic
+import Mathlib.Data.Finset.Sort
+import Mathlib.Data.String.Basic
 import DyNetKAT.NetKAT.Packet
 import DyNetKAT.NetKAT.HistorySemantics
 import DyNetKAT.DyNetKAT.AST
@@ -342,6 +342,33 @@ inductive GStep (G : ProcessGraph) : GConfig → Action → GConfig → Prop
         a
         (show GConfig from
           { proc := .restrict L gp', pending := pt', handled := hl' })
+
+------------------------------------------------------------------------
+/-- A transition of a closed graph term remains within the graph's node set. -/
+theorem GStep.closed {G : ProcessGraph} {src dst : GConfig} {a : Action}
+    (step : GStep G src a dst) :
+    gprocRefs src.proc ⊆ G.nodes → gprocRefs dst.proc ⊆ G.nodes := by
+  induction step with
+  | seq_ok | recv | send | rcfg => exact id
+  | restrict _ _ _ _ _ _ _ _ _ _ ih | project _ _ _ _ _ _ _ _ _ ih => exact ih
+  | choice_l _ _ _ _ _ _ _ _ _ ih =>
+      exact fun h => ih (Finset.union_subset_iff.mp h).1
+  | choice_r _ _ _ _ _ _ _ _ _ ih =>
+      exact fun h => ih (Finset.union_subset_iff.mp h).2
+  | par_l _ _ _ _ _ _ _ _ _ ih | left_merge _ _ _ _ _ _ _ _ _ ih =>
+      exact fun h => Finset.union_subset_iff.mpr
+        ⟨ih (Finset.union_subset_iff.mp h).1, (Finset.union_subset_iff.mp h).2⟩
+  | par_r _ _ _ _ _ _ _ _ _ ih =>
+      exact fun h => Finset.union_subset_iff.mpr
+        ⟨(Finset.union_subset_iff.mp h).1, ih (Finset.union_subset_iff.mp h).2⟩
+  | sync_recv_send _ _ _ _ _ _ _ _ _ _ ih₁ ih₂ |
+    sync_send_recv _ _ _ _ _ _ _ _ _ _ ih₁ ih₂ |
+    comm_merge_recv_send _ _ _ _ _ _ _ _ _ _ ih₁ ih₂ |
+    comm_merge_send_recv _ _ _ _ _ _ _ _ _ _ ih₁ ih₂ =>
+      exact fun h => Finset.union_subset_iff.mpr
+        ⟨ih₁ (Finset.union_subset_iff.mp h).1, ih₂ (Finset.union_subset_iff.mp h).2⟩
+  | var i _ _ _ _ _ _ _ ih =>
+      exact fun h => ih (G.closed i (h (Finset.mem_singleton_self i)))
 
 ------------------------------------------------------------------------
 -- §4 The process/graph correspondence
@@ -1146,8 +1173,8 @@ theorem graph_step_iff (G : ProcessGraph) (env : RecEnv) (p : DyNetKAT) (gp : GP
 --
 -- `RecEnv := Var → Option DyNetKAT` places no finiteness restriction: an
 -- environment may define infinitely many reachable variables (see
--- `infEnv_no_finite_support` below), and such an environment admits no
--- finite faithful graph.  The construction therefore takes an explicit
+-- `infEnv_no_finite_support` below), so allocating a node for each
+-- reachable variable requires an explicit
 -- finite-support witness: a finite set `S` of variables containing the
 -- direct variables of the root and closed under the bodies of its
 -- members.  Under this hypothesis every reachable variable is defined
@@ -1215,52 +1242,104 @@ theorem gprocRefs_toGProc (d : DyNetKAT) :
   | project n d ih => simp [toGProc, gprocRefs, recursiveVars, ih]
   | var x => simp [toGProc, gprocRefs, recursiveVars, varNode, Finset.image_singleton]
 
-/-- The label of a node in the constructed graph: a variable node carries
-    the translation of its defining body.  `Option.getD` supplies an inert
-    default for variables outside the support set; under the finite-support
-    hypothesis those variables never occur, so the default is never used
-    by any live node. -/
-def toGraphLabel (env : RecEnv) (S : Finset Var) (i : NodeId) : GProc :=
-  match i with
-  | Sum.inl x => toGProc ((env.lookup x).getD .deadlock)
+/-- Materialize the labels before handing the graph to the verifier. -/
+private def graphLabels (env : RecEnv) (S : Finset Var) : List (Var × GProc) :=
+  (S.sort (· ≤ ·)).map fun x => (x, toGProc ((env.lookup x).getD .deadlock))
+
+private def lookupGraphLabel (labels : List (Var × GProc)) : NodeId → GProc
+  | Sum.inl x => (labels.lookup x).getD .deadlock
   | Sum.inr _ => .deadlock
+
+/-- Lookup in the compiled table. Identifiers outside its domain are inert. -/
+def toGraphLabel (env : RecEnv) (S : Finset Var) : NodeId → GProc :=
+  lookupGraphLabel (graphLabels env S)
+
+@[simp] theorem toGraphLabel_varNode {env : RecEnv} {S : Finset Var} {x : Var}
+    (hx : x ∈ S) :
+    toGraphLabel env S (varNode x) = toGProc ((env.lookup x).getD .deadlock) := by
+  have lookup (xs : List Var) (h : x ∈ xs) :
+      (xs.map (fun y => (y, toGProc ((env.lookup y).getD .deadlock)))).lookup x =
+        some (toGProc ((env.lookup x).getD .deadlock)) := by
+    induction xs with
+    | nil => simp at h
+    | cons y ys ih =>
+        by_cases he : x = y
+        · subst y
+          simp [List.lookup]
+        · have hne : (x == y) = false := beq_eq_false_iff_ne.mpr he
+          simpa [List.lookup, hne] using ih ((List.mem_cons.mp h).resolve_left he)
+  change ((graphLabels env S).lookup x).getD .deadlock = _
+  rw [graphLabels, lookup (S.sort (· ≤ ·)) (by simpa using hx)]
+  rfl
 
 /-- Construction of the finite recursive process graph from an environment
     under the finite-support hypothesis: one node per supported variable
     (the canonical `varNode x`), the root being the translation of the
     original process.  Fully constructive. -/
 def toGraph (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
-    (hsup : FiniteSupport env root S) : ProcessGraph where
-  nodes := S.image varNode
-  root := toGProc root
-  label := toGraphLabel env S
-  root_closed := by
-    rw [gprocRefs_toGProc]
-    exact Finset.image_subset_image hsup.1
-  closed := by
-    intro i hi
-    cases i with
-    | inl x =>
-        rw [Finset.mem_image] at hi
-        obtain ⟨y, hy, hy_eq⟩ := hi
-        have hxy : x = y := by simpa [varNode] using hy_eq.symm
-        subst hxy
-        obtain ⟨b, hb, hbsub⟩ := hsup.2 x hy
-        rw [toGraphLabel]
-        simp only [hb, Option.getD_some]
-        rw [gprocRefs_toGProc]
-        exact Finset.image_subset_image hbsub
-    | inr k =>
-        rw [Finset.mem_image] at hi
-        obtain ⟨y, _, hy_eq⟩ := hi
-        simp [varNode] at hy_eq
+    (hsup : FiniteSupport env root S) : ProcessGraph :=
+  let labels := graphLabels env S
+  { nodes := S.image varNode
+    root := toGProc root
+    label := lookupGraphLabel labels
+    root_closed := by
+      rw [gprocRefs_toGProc]
+      exact Finset.image_subset_image hsup.1
+    closed := by
+      intro i hi
+      cases i with
+      | inl x =>
+          rw [Finset.mem_image] at hi
+          obtain ⟨y, hy, hy_eq⟩ := hi
+          have hxy : x = y := by simpa [varNode] using hy_eq.symm
+          subst hxy
+          obtain ⟨b, hb, hbsub⟩ := hsup.2 x hy
+          change gprocRefs (toGraphLabel env S (varNode x)) ⊆ _
+          rw [toGraphLabel_varNode hy, hb, Option.getD_some, gprocRefs_toGProc]
+          exact Finset.image_subset_image hbsub
+      | inr k =>
+          rw [Finset.mem_image] at hi
+          obtain ⟨y, _, hy_eq⟩ := hi
+          simp [varNode] at hy_eq }
 
-/-- The constructed graph preserves the original process: the root of the
-    graph corresponds to the original process under the environment. -/
-theorem toGraph_corr (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
-    (hsup : FiniteSupport env root S) :
-    Corr (toGraph env root S hsup) env root (toGProc root) := by
-  refine ⟨fun p gp => gp = toGProc p ∧ recursiveVars p ⊆ S, ⟨?_, ?_⟩, ⟨rfl, hsup.1⟩⟩
+@[simp] theorem toGraph_label_varNode {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+    (hsup : FiniteSupport env root S) {x : Var} (hx : x ∈ S) :
+    (toGraph env root S hsup).label (varNode x) =
+      toGProc ((env.lookup x).getD .deadlock) :=
+  toGraphLabel_varNode hx
+
+instance (env : RecEnv) (root : DyNetKAT) (S : Finset Var) :
+    Decidable (FiniteSupport env root S) := by
+  have check (x : Var) : Decidable (∃ b, env.lookup x = some b ∧ recursiveVars b ⊆ S) := by
+    cases h : env.lookup x with
+    | none => simp [h]; infer_instance
+    | some b => simp [h]; infer_instance
+  letI (x : Var) := check x
+  unfold FiniteSupport
+  infer_instance
+
+/-- Compile against a supplied finite set of variables. An undefined variable
+    or a reference outside the supplied set makes compilation fail. -/
+def compileGraph (env : RecEnv) (root : DyNetKAT) (S : Finset Var) : Option ProcessGraph :=
+  if h : FiniteSupport env root S then some (toGraph env root S h) else none
+
+theorem compileGraph_eq_some_iff {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+    {G : ProcessGraph} :
+    compileGraph env root S = some G ↔
+      ∃ h : FiniteSupport env root S, G = toGraph env root S h := by
+  unfold compileGraph
+  split <;> simp_all [eq_comm]
+
+theorem compileGraph_eq_none_iff (env : RecEnv) (root : DyNetKAT) (S : Finset Var) :
+    compileGraph env root S = none ↔ ¬ FiniteSupport env root S := by
+  unfold compileGraph
+  split <;> simp_all
+
+/-- The same compiled table interprets every process closed over its support. -/
+theorem toGraph_corr_of_subset (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
+    (hsup : FiniteSupport env root S) (p : DyNetKAT) (hp : recursiveVars p ⊆ S) :
+    Corr (toGraph env root S hsup) env p (toGProc p) := by
+  refine ⟨fun p gp => gp = toGProc p ∧ recursiveVars p ⊆ S, ⟨?_, ?_⟩, ⟨rfl, hp⟩⟩
   · intro p gp hp
     obtain ⟨rfl, hsub⟩ := hp
     cases p with
@@ -1307,7 +1386,7 @@ theorem toGraph_corr (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
         have hx : x ∈ S := hsub (by simp [recursiveVars])
         obtain ⟨b, hb, hbsub⟩ := hsup.2 x hx
         have hlab : (toGraph env root S hsup).label (varNode x) = toGProc b := by
-          simp [toGraph, toGraphLabel, varNode, hb]
+          simp [hx, hb]
         exact ⟨varNode x, rfl, b, hb, ⟨hlab, hbsub⟩⟩
   · intro p gp hp
     obtain ⟨rfl, hsub⟩ := hp
@@ -1355,18 +1434,29 @@ theorem toGraph_corr (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
         have hx : x ∈ S := hsub (by simp [recursiveVars])
         obtain ⟨b, hb, hbsub⟩ := hsup.2 x hx
         have hlab : (toGraph env root S hsup).label (varNode x) = toGProc b := by
-          simp [toGraph, toGraphLabel, varNode, hb]
+          simp [hx, hb]
         exact ⟨x, b, rfl, hb, ⟨hlab, hbsub⟩⟩
 
+/-- The root of the graph corresponds to the original process. -/
+theorem toGraph_corr (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
+    (hsup : FiniteSupport env root S) :
+    Corr (toGraph env root S hsup) env root (toGProc root) :=
+  toGraph_corr_of_subset env root S hsup root hsup.1
+
+/-- Successful compilation gives an unbounded two-way step correspondence. -/
+theorem compileGraph_corr {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+    {G : ProcessGraph} (h : compileGraph env root S = some G) :
+    Corr G env root G.root := by
+  obtain ⟨hs, rfl⟩ := compileGraph_eq_some_iff.mp h
+  exact toGraph_corr env root S hs
+
 ------------------------------------------------------------------------
--- §6.1 Not every environment admits a finite graph
+-- §6.1 Infinite reachable support prevents label-preserving compilation
 --
 -- The environment `infEnv` defines *every* variable `x` as `id; (x ++ "0")`,
 -- so the variables reachable from `X` are `X`, `X0`, `X00`, … — infinitely
 -- many distinct definitions.  No finite support set exists for it, hence
--- no finite graph can be constructed by `toGraph` from it.  This is the
--- formal counterpart of the finite-support caveat: arbitrary `RecEnv`s do
--- NOT induce finite graphs.
+-- no finite graph can be constructed by `toGraph` from it.
 ------------------------------------------------------------------------
 
 /-- The infinite-chain environment: every variable `x` is defined as
@@ -1657,9 +1747,9 @@ theorem gsteps_reachable_within {G : ProcessGraph} {gc gc' : GConfig}
 -- §9 Cyclic graph bisimulation and unbounded transfer
 --
 -- A graph bisimulation is an ordinary bisimulation on the graph LTS.
--- Because the LTS is given by a FINITE graph whose cycles are first-class
--- nodes, a finite relation suffices for unbounded reasoning: no
--- unrolling, no AIP, no cutoff.  The transfer theorems below lift graph
+-- The finite definition table represents cycles without unfolding.
+-- The graph LTS may still have infinitely many process states.
+-- The transfer theorems below lift graph
 -- bisimilarity to genuine unbounded `Bisimilar env` of the original SOS.
 ------------------------------------------------------------------------
 
@@ -1698,6 +1788,27 @@ theorem GBisimilar.symm (G : ProcessGraph) {gp gq : GProc} (h : GBisimilar G gp 
   obtain ⟨R, hR, hgp⟩ := h
   exact ⟨R, hR, hR.1 gp gq hgp⟩
 
+theorem gbisimilar_isGBisimulation (G : ProcessGraph) :
+    IsGBisimulation G (GBisimilar G) := by
+  refine ⟨fun _ _ h => GBisimilar.symm G h, ?_⟩
+  rintro p q ⟨R, hR, hpq⟩ pt hl a p' pt' hl' hstep
+  obtain ⟨q', hstep', hpq'⟩ := hR.2 p q hpq pt hl a p' pt' hl' hstep
+  exact ⟨q', hstep', R, hR, hpq'⟩
+
+theorem GBisimilar.trans (G : ProcessGraph) {p q r : GProc}
+    (hpq : GBisimilar G p q) (hqr : GBisimilar G q r) :
+    GBisimilar G p r := by
+  let R : GProc → GProc → Prop := fun x z =>
+    ∃ y, GBisimilar G x y ∧ GBisimilar G y z
+  refine ⟨R, ⟨?_, ?_⟩, q, hpq, hqr⟩
+  · rintro x z ⟨y, hxy, hyz⟩
+    exact ⟨y, GBisimilar.symm G hyz, GBisimilar.symm G hxy⟩
+  · rintro x z ⟨y, hxy, hyz⟩ pt hl a x' pt' hl' hstep
+    have bisim := gbisimilar_isGBisimulation G
+    obtain ⟨y', hy, hxy'⟩ := bisim.2 x y hxy pt hl a x' pt' hl' hstep
+    obtain ⟨z', hz, hyz'⟩ := bisim.2 y z hyz pt hl a y' pt' hl' hy
+    exact ⟨z', hz, y', hxy', hyz'⟩
+
 /-- **Unbounded transfer**: a graph bisimulation between corresponding
     processes yields genuine unbounded bisimilarity in the original
     environment-indexed SOS.  The proof lifts the graph bisimulation
@@ -1722,6 +1833,32 @@ theorem gbisimilar_transfer (G : ProcessGraph) (env : RecEnv) {gp gq : GProc}
     obtain ⟨y', hstep', hcy⟩ :=
       gstep_to_step G env ⟨gy, pt, hl⟩ ⟨gz', pt', hl'⟩ a hgstep' y hy
     exact ⟨y', hstep', ⟨gy₁, gz', hcx, hcy, hR'⟩⟩
+
+/-- Bisimilarity is reflected and preserved for corresponding processes. -/
+theorem gbisimilar_iff_bisimilar (G : ProcessGraph) (env : RecEnv)
+    {p q : DyNetKAT} {gp gq : GProc} (hp : Corr G env p gp) (hq : Corr G env q gq) :
+    GBisimilar G gp gq ↔ Bisimilar env p q := by
+  refine ⟨fun h => gbisimilar_transfer G env h hp hq, ?_⟩
+  rintro ⟨R, hR, hpq⟩
+  refine ⟨fun x y => ∃ u v, Corr G env u x ∧ Corr G env v y ∧ R u v,
+    ⟨?_, ?_⟩, p, q, hp, hq, hpq⟩
+  · rintro x y ⟨u, v, hu, hv, huv⟩
+    exact ⟨v, u, hv, hu, hR.1 u v huv⟩
+  · rintro x y ⟨u, v, hu, hv, huv⟩ pt hl a x' pt' hl' hx
+    obtain ⟨u', hu', hcx⟩ :=
+      gstep_to_step G env ⟨x, pt, hl⟩ ⟨x', pt', hl'⟩ a hx u hu
+    obtain ⟨v', hv', huv'⟩ := hR.2 u v huv pt hl a u' pt' hl' hu'
+    obtain ⟨y', hy', hcy⟩ :=
+      step_to_gstep G env ⟨v, pt, hl⟩ ⟨v', pt', hl'⟩ a hv' y hv
+    exact ⟨y', hy', u', v', hcx, hcy, huv'⟩
+
+theorem compileGraph_bisimilar_iff {env : RecEnv} {p q : DyNetKAT} {S : Finset Var}
+    {G : ProcessGraph} (h : compileGraph env (.choice p q) S = some G) :
+    GBisimilar G (toGProc p) (toGProc q) ↔ Bisimilar env p q := by
+  obtain ⟨hs, rfl⟩ := compileGraph_eq_some_iff.mp h
+  exact gbisimilar_iff_bisimilar _ env
+    (toGraph_corr_of_subset _ _ _ hs p (fun _ hi => hs.1 (Finset.mem_union_left _ hi)))
+    (toGraph_corr_of_subset _ _ _ hs q (fun _ hi => hs.1 (Finset.mem_union_right _ hi)))
 
 /-- **Environment independence**: once the recursive variables are resolved
     into graph edges, the bisimilarity verdict no longer depends on the
