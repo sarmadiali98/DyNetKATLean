@@ -5,6 +5,7 @@
 import DyNetKAT.NetKAT.Semantics
 import Mathlib.Data.Finset.Lattice.Basic
 import Mathlib.Data.Multiset.MapFold
+import Mathlib.Logic.Function.Iterate
 
 namespace DyNetKAT.NetKAT
 
@@ -27,6 +28,7 @@ local instance : DecidableEq CtxPkt := ctxPktDecidableEq
 inductive EvalResult where
   | supported (outputs : Finset CtxPkt)
   | unsupported
+  deriving DecidableEq
 
 namespace EvalResult
 
@@ -129,6 +131,44 @@ private def boundedStarWith (step : CtxPkt → EvalResult) : Nat → CtxPkt → 
           | .unsupported => .unsupported
            | .supported next => .supported (packets ∪ next)
 
+private def advanceStar (step : CtxPkt → EvalResult) : EvalResult → EvalResult
+  | .unsupported => .unsupported
+  | .supported packets => combineEvalResult (.supported packets) (postWith step packets)
+
+/-- Stop iterating as soon as the reachable set stabilizes. The maximum
+    number of iterations in `execute` comes from the cardinality proof. -/
+private def saturateStar (step : CtxPkt → EvalResult) : Nat → EvalResult → EvalResult
+  | 0, reached => reached
+  | n + 1, reached =>
+      let next := advanceStar step reached
+      if next = reached then reached else saturateStar step n next
+
+open Function in
+private theorem saturateStar_eq_iterate (step : CtxPkt → EvalResult)
+    (n : Nat) (reached : EvalResult) :
+    saturateStar step n reached = (advanceStar step)^[n] reached := by
+  induction n generalizing reached with
+  | zero => rfl
+  | succ n ih =>
+      rw [saturateStar, iterate_succ_apply]
+      by_cases h : advanceStar step reached = reached
+      · simp only [h, if_pos, iterate_fixed h n]
+      · exact if_neg h ▸ ih _
+
+open Function in
+private theorem saturateStar_eq_boundedStarWith (step : CtxPkt → EvalResult)
+    (n : Nat) (σ : CtxPkt) :
+    saturateStar step n (.supported {σ}) = boundedStarWith step n σ := by
+  rw [saturateStar_eq_iterate]
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+      rw [iterate_succ_apply', boundedStarWith, ih]
+      cases h : boundedStarWith step n σ with
+      | unsupported => rfl
+      | supported reached =>
+          cases hPost : postWith step reached <;> simp [advanceStar, hPost, combineEvalResult]
+
 private theorem boundedStarWith_supported
     (step : CtxPkt → EvalResult)
     (hstep : ∀ τ, ∃ A : Finset CtxPkt, step τ = .supported A) :
@@ -182,7 +222,7 @@ mutual
         match execute p σ with
         | .unsupported => .unsupported
          | .supported A => evalSeq q A.1
-    | .star p, σ => boundedStarWith (execute p) (Fintype.card CtxPkt) σ
+    | .star p, σ => saturateStar (execute p) (Fintype.card CtxPkt) (.supported {σ})
     | .completeTest α, σ =>
         if σ = α then .supported {σ} else .supported ∅
 
@@ -245,7 +285,7 @@ theorem execute_star_eq_boundedStar
     (p : NetKAT) (σ : CtxPkt) :
     execute (.star p) σ =
       boundedStar p (Fintype.card CtxPkt) σ := by
-  rw [execute]
+  rw [execute, saturateStar_eq_boundedStarWith]
   induction Fintype.card CtxPkt generalizing σ with
   | zero => rfl
   | succ n ih =>
@@ -653,9 +693,7 @@ theorem execute_supported
       obtain ⟨B, hB⟩ := boundedStarWith_supported (execute p)
         (fun τ => ihp τ)
         (Fintype.card CtxPkt) σ
-      exact ⟨B, by
-        change execute (.star p) σ = .supported B
-        simpa [execute] using hB⟩
+      exact ⟨B, by simpa only [execute, saturateStar_eq_boundedStarWith] using hB⟩
 
 /- A supported, semantically correct predicate negation agrees with the
    relational negation semantics. -/
@@ -1145,5 +1183,12 @@ theorem execute_correct
       exact execute_star_correct p σ B hB (by
         intro ρ _
         exact ihp ρ) τ
+
+/-- The executable finite output set equals the denotational output set. -/
+theorem eval_correct (p : NetKAT) (σ : CtxPkt) :
+    ∃ B : Finset CtxPkt, execute p σ = .supported B ∧ (B : Set CtxPkt) = eval p σ := by
+  obtain ⟨B, hB, hSem⟩ := execute_correct p σ
+  refine ⟨B, hB, Set.ext fun τ => ?_⟩
+  exact (hSem τ).symm
 
 end DyNetKAT.NetKAT

@@ -160,6 +160,9 @@ instance : Fintype CtxPkt :=
     (inferInstance : DecidableEq FieldName) (inferInstance : Fintype FieldName)
     (fun (_ : FieldName) => (inferInstance : Fintype FieldValueEnum))
 
+set_option maxRecDepth 10000 in
+theorem ctxPkt_card : Fintype.card CtxPkt = 256 := by decide
+
 -- `CompleteTest` and `CompleteAssignmentValuation` are both `def`-aliases of
 -- `CtxPkt` (a total function `FieldName → FieldValueEnum`).  Type-class inference
 -- does not look through `def` transparency, so explicit `Fintype` instances are

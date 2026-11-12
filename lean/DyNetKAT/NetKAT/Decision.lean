@@ -32,6 +32,7 @@
 ------------------------------------------------------------------------
 
 import DyNetKAT.NetKAT.Evaluator
+import DyNetKAT.NetKAT.HistorySemantics
 
 namespace DyNetKAT.NetKAT
 
@@ -170,6 +171,59 @@ theorem netkatIsZero_correct
       exact absurd hp (h σ τ)
     · intro hd
       exact absurd hd (sem_drop_false σ τ)
+
+/-- The evaluator gives every output history by replacing its input head
+    with one of the computed packets and retaining the input tail. -/
+theorem execute_history_correct (p : NetKAT) (σ : CtxPkt) :
+    ∃ B : Finset CtxPkt, execute p σ = .supported B ∧
+      ∀ τ (h h' : List CtxPkt),
+        HistorySemantics p ⟨σ, h⟩ ⟨τ, h'⟩ ↔ h' = h ∧ τ ∈ B := by
+  obtain ⟨B, hB, hSem⟩ := execute_correct p σ
+  exact ⟨B, hB, fun τ h h' =>
+    (historySemantics_iff_packetSemantics p σ τ h h').trans
+      (and_congr_right fun _ => hSem τ)⟩
+
+/-- Equivalence of dup-free policies on all histories over the same packet
+    universe. Singleton histories recover the packet relation. -/
+theorem netkatEquiv_history_correct (p q : NetKAT) :
+    netkatEquiv p q = true ↔
+      ∀ h h' : History, HistorySemantics p h h' ↔ HistorySemantics q h h' := by
+  rw [netkatEquiv_correct]
+  constructor
+  · rintro hpq ⟨σ, h⟩ ⟨τ, h'⟩
+    simp only [historySemantics_iff_packetSemantics, hpq σ τ]
+  · intro hpq σ τ
+    simpa only [historySemantics_iff_packetSemantics, true_and] using
+      hpq ⟨σ, []⟩ ⟨τ, []⟩
+
+theorem netkatIsZero_history_correct (p : NetKAT) :
+    netkatIsZero p = true ↔ ∀ h h' : History, ¬ HistorySemantics p h h' := by
+  rw [netkatIsZero, netkatEquiv_history_correct]
+  simp only [HistorySemantics, iff_false]
+
+/-- Elaborate the complete-test shorthand into the common NetKAT syntax
+    of primitive field tests, sequencing and identity. -/
+def completeTestExpr (α : CompleteTest) : NetKAT :=
+  NetKAT.fieldEnum.foldr (fun f rest => .seq (NetKAT.fieldTest f (α f)) rest) .id
+
+theorem completeTestExpr_correct (α : CompleteTest) (σ τ : CtxPkt) :
+    Semantics (completeTestExpr α) σ τ ↔ Semantics (.completeTest α) σ τ := by
+  have fields (fs : List FieldName) :
+      Semantics (fs.foldr (fun f rest => .seq (NetKAT.fieldTest f (α f)) rest) .id) σ τ ↔
+        (∀ f ∈ fs, σ f = α f) ∧ σ = τ := by
+    induction fs with
+    | nil => simp [id_diag]
+    | cons f fs ih =>
+        simp only [List.foldr_cons, seq_sem, fieldTest_sem]
+        constructor
+        · rintro ⟨ρ, ⟨hField, rfl⟩, hRest⟩
+          obtain ⟨hFields, rfl⟩ := ih.mp hRest
+          exact ⟨fun g hg => (List.mem_cons.mp hg).elim (fun h => h ▸ hField) (hFields g), rfl⟩
+        · rintro ⟨h, rfl⟩
+          exact ⟨σ, ⟨h f (by simp), rfl⟩,
+            ih.mpr ⟨fun g hg => h g (List.mem_cons_of_mem _ hg), rfl⟩⟩
+  rw [completeTestExpr, fields, Semantics]
+  exact and_congr_left' ⟨fun h f => (h f (NetKAT.fieldEnum_complete f)).symm, fun h f _ => (h f).symm⟩
 
 /-- Secondary characterization: a policy is zero exactly when every execution
     computes a supported empty output set. -/

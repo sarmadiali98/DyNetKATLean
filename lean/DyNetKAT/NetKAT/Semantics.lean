@@ -581,7 +581,7 @@ theorem assign_test_same_field (f : FieldName) (v : FieldValueEnum) (σ : CtxPkt
   show Packet.update σ f v f = v
   exact Packet.get_update_same σ f v
 
-/-- PA-FILTER-MOD: f=v; f←v' ≡ f←v' (assignment after test of same field) -/
+/-- The updated field has the assigned value after a successful test. -/
 theorem test_assign_same_field (f : FieldName) (v v' : FieldValueEnum) (σ : CtxPkt)
     (h : σ f = v) :
     Packet.update σ f v' f = v' := by
