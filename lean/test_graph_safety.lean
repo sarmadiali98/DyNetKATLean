@@ -536,4 +536,54 @@ private def packetParallelCandidate : NormalizationCandidate 3 where
 #print axioms netkatEquiv_katch_restricted
 #print axioms netkatIsZero_katch_restricted
 
+
+private theorem concreteSupport :
+    ProjectionSupport rawGraph (fun _ => firewallChecks) (ProjectionLive rawFirewall rawInit) := by
+  apply toGraph_projectionSupport rawSupported firewallProjectionWellFormed
+  intro x b hx hb
+  obtain ⟨body, he, _, hc⟩ := firewallProjectionBodies x hx
+  cases Option.some.inj (hb.symm.trans he)
+  exact hc
+
+private theorem concreteRootValid :
+    (CheckedResidual.mk rawGraph.root firewallChecks).Valid (ProjectionLive rawFirewall rawInit) :=
+  toGProc_projectionValid (env := rawFirewall) (root := rawInit) ⟨trivial, trivial⟩
+
+private def concreteFirewall :=
+  discoverClosure concreteSupport .structural ⟨16, 64, 16⟩
+    ⟨rawGraph.root, firewallChecks⟩ concreteRootValid
+
+#guard (match concreteFirewall with
+  | .ok rows => rows.length == 2 && (rows.map fun r => r.moves.length).sum == 11
+  | .error _ => false)
+
+private def firewallModeRows : ClosureCandidate rawGraph :=
+  [⟨closedState, closedRow, closedRowExact⟩, ⟨openState, openRow, openRowExact⟩]
+
+-- The generic state-property theorem bounds every derivative to one of
+-- the two firewall modes, even when packet lists are quantified per step.
+example {p : GProc}
+    (reach : Relation.ReflTransGen (ConcreteStep rawGraph) rawGraph.root p) :
+    p = closedState ∨ p = openState := by
+  have checked : checkClosure .structural rawGraph.root firewallModeRows = true := rfl
+  apply (checkClosure_sound checked).liftProperty ?_ reach
+  rintro _ ⟨r, hr, rfl⟩
+  simp only [firewallModeRows, List.mem_cons, List.not_mem_nil, or_false] at hr
+  rcases hr with rfl | rfl
+  · exact Or.inl rfl
+  · exact Or.inr rfl
+
+private theorem restrictedValid : firewallProjectionState.Valid (ProjectionLive rawFirewall rawInit) :=
+  ⟨concreteRootValid.1, by simp [firewallProjectionState, CheckedResidual.restrict,
+    AllRestrictionChecksCorrect, RestrictionChecks.child, rawGraph, rawInit, toGraph, toGProc]⟩
+
+-- Opaque restriction identity is independent of executable row exactness.
+#guard (match ConcreteRow.load concreteSupport ⟨firewallProjectionState, restrictedValid⟩ with
+  | some (row, _) => decide (row.moves.map Prod.fst =
+      [.visible (.packet reverse), .visible (.rcfg "secConReq" .id)])
+  | none => false)
+
+example : discoverClosure concreteSupport .structural ⟨16, 64, 16⟩
+    firewallProjectionState restrictedValid = .error .cannotIdentifyState := rfl
+
 end DyNetKAT.DyNetKAT.GraphSafetyTests

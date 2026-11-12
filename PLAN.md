@@ -228,3 +228,20 @@ without a supplied derivative certificate. Cover depth zero, a synchronization
 at the cutoff, mutual recursion, nested restriction and both merge operators.
 The statement and proof order are specified in
 [PROOF_OBLIGATIONS.md](docs/PROOF_OBLIGATIONS.md#finite-depth-projection).
+
+
+### Recursive analysis and concrete certificates
+
+Use reachable dependency SCCs to select the analysis route. An acyclic
+dependency graph gives the administrative ground unfolding theorem. On
+cyclic inputs, try finite concrete closure with explicit state, transition
+and worklist limits. A checked closure covers the reachable graph processes
+at every depth and supports lifting arbitrary predicates on those processes.
+When discovery runs out of resources or cannot establish identity, use exact
+finite projection for the requested depth under its existing hypotheses.
+
+Finite bisimulation discovery tries all matching symbolic alternatives in
+the product of two concrete closures and checks the resulting relation.
+Future work on finite quotients requires a separately proved abstraction
+relation, including preservation of actions and packet-list effects across
+related states.

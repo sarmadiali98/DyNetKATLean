@@ -95,4 +95,13 @@ example : ¬ WellFormed (loopEnv false) (.var "X") := by
 #print axioms DependencyGraph.guarded_scc
 #print axioms DependencyGraph.acyclic_unfolds_ground
 
+-- The acyclic route needs no projection support or restriction classifiers.
+private def noClosureAttempt {G : ProcessGraph} (_ : Unit) :
+    Except DiscoveryFailure (ClosureCandidate G) := .error .resourceLimit
+
+example : analyzeRecursive chainFinite .structural noClosureAttempt = .ground := rfl
+
+example : ∃ q, Ground q ∧ DerivesNoAIP chainEnv (.var "X") q :=
+  analyzeRecursive_ground (hs := chainFinite) (id := .structural) (attempt := noClosureAttempt) rfl
+
 end DyNetKAT.DyNetKAT.DependencySCCTests

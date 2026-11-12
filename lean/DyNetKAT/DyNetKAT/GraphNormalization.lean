@@ -72,7 +72,7 @@ def sameProcess : GProc → GProc → Bool
   | .project i u, .project j v => decide (i = j) && sameProcess u v
   | _, _ => false
 
-private theorem sameProcess_sound {p q : GProc} (h : sameProcess p q = true) : p = q := by
+theorem sameProcess_sound {p q : GProc} (h : sameProcess p q = true) : p = q := by
   induction p generalizing q <;> cases q <;>
     simp_all [sameProcess] <;> aesop
 
@@ -119,7 +119,7 @@ private theorem realizes_allowed {l : SequentialLabel} {pt hl pt' hl' : List Ctx
     actionAllowed Set.univ a := by
   cases h <;> trivial
 
-private theorem realizes_enabled {l : SequentialLabel} {pt hl pt' hl' : List CtxPkt}
+theorem realizes_enabled {l : SequentialLabel} {pt hl pt' hl' : List CtxPkt}
     {a : Action} (h : MoveLabel.Realizes (.visible l) pt hl a pt' hl') :
     l.enabled = true := by
   cases h with

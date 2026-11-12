@@ -240,4 +240,29 @@ example : ∃ q, IsDNKNormalForm q ∧ DerivesNoAIP env restrictedRoot q :=
 #print axioms guardedMoves_exact
 #print axioms MovesExact.source_steps
 
+
+private def closureChecks : RestrictionChecks := fun _ _ => false
+
+private theorem closureSupport :
+    ProjectionSupport graph (fun _ => closureChecks) (ProjectionLive env root) := by
+  apply toGraph_projectionSupport supported wellFormed
+  intro x b hx hb
+  have hm := reachableVars_subset_of_finiteSupport env root support supported x hx
+  simp [support] at hm
+  rcases hm with rfl | rfl
+  · have he : b = hostBody := Option.some.inj (hb.symm.trans rfl)
+    subst b
+    trivial
+  · have he : b = switchBody := Option.some.inj (hb.symm.trans rfl)
+    subst b
+    trivial
+
+private def hostClosure :=
+  discoverClosure closureSupport .structural ⟨8, 32, 8⟩ ⟨graph.root, closureChecks⟩
+    (toGProc_projectionValid (env := env) (root := root) ⟨trivial, trivial⟩)
+
+#guard (match hostClosure with
+  | .ok rows => rows.length == 4 && (rows.map fun r => r.moves.length).sum == 10
+  | .error _ => false)
+
 end DyNetKAT.DyNetKAT.GuardedMovesTests

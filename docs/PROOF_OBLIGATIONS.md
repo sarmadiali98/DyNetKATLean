@@ -266,3 +266,48 @@ translation.
   positive variant. The paper supplies no general parser-to-verdict
   theorem and no measured runtime guarantee. Prove the executable
   reductions at their actual domains.
+
+
+### Checked concrete recursive analysis
+
+- `ConcreteRow` uses `MovesExact` from the checked residual enumerator.
+  Empty packet policies are filtered with the existing certified zero test.
+  Send and receive remain in the row when the supplied root allows them.
+  `NormalizationCandidate` serves the separate restricted sequential
+  normalization path and uses only visible labels.
+- `checkClosure_sound` checks root membership and every exact symbolic
+  target. `ValidClosure.allReachable` uses reflexive-transitive closure with
+  no depth index. `coversSource` transfers actual source executions through
+  `Corr`, and `liftProperty` lifts any predicate established on the
+  represented graph processes. `ConcreteStep` existentially quantifies
+  packet lists at each step, so this process-level theorem also covers
+  concatenations of edges whose packet lists need not compose.
+- Finite projection describes exact behavior through the requested
+  depth. Finite closure covers all depths when checking succeeds.
+  Discovery failures carry no claim about finiteness, safety, or
+  equivalence. A transition budget counts enumerated enabled symbolic row
+  entries, including duplicates. A row is computed before its size is
+  charged, so the budget does not bound the cost of computing a row.
+- `ConcreteIdentity.structural` reuses `sameProcess_sound`. Callers can
+  supply another partial test with a proof that a positive match implies
+  actual graph syntax equality. Classifiers justify moves via
+  `ProjectionSupport` and `CheckedResidual.Valid`. The structural test
+  cannot identify residuals containing opaque restriction sets.
+- `checkBisimulation_sound` checks symmetry and every outgoing move.
+  Discovery starts from the product of the two concrete closures and prunes
+  pairs using existential matching over all same-label alternatives.
+  Identical symbolic labels preserve the same action and both packet lists
+  by `MoveLabel.Realizes`. Packet policies with different syntax may be
+  semantically equivalent, so symbolic matching can return `unknown`.
+  `ValidBisimCertificate.bisimilar` transfers through `Corr`.
+  The separate reconfiguration mismatch checker proves absence of a matching
+  concrete action. Failure of relation discovery supplies no negative evidence.
+- Regressions count one state and one edge for the recursive self-loop,
+  three states and four edges for the mutually recursive nondeterministic
+  fixture, four states and ten edges for `Host || Switch`, and two states
+  and eleven edges for the unrestricted firewall. The firewall with an
+  explicit outer restriction returns `cannotIdentifyState` with structural
+  comparison. Its existing restricted normalization and projection proofs
+  still apply. Spawning hits the four-state limit, is independently proved
+  to admit no valid finite closure, and retains exact finite projection at
+  every requested depth.

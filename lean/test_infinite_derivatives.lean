@@ -193,4 +193,33 @@ example : ∃ q, IsDNKNormalForm q ∧ DerivesNoAIP spawnEnv (.var "X") q :=
 #print axioms spawn_no_finite_derivatives
 #print axioms spawn_rejects_every_candidate
 
+
+private def spawnClosure :=
+  discoverClosure
+    (toGraph_projectionSupport spawnSupported spawnWellFormed (fun _ => checks)
+      (fun x b hx hb => spawnBodyChecks x b hx hb))
+    .structural ⟨4, 32, 8⟩ ⟨graph.root, checks⟩
+    (toGProc_projectionValid (env := spawnEnv) (root := .var "X") trivial)
+
+private def spawnClosureFailure : Option DiscoveryFailure :=
+  match spawnClosure with
+  | .ok _ => none
+  | .error e => some e
+
+#eval spawnClosureFailure
+#guard (spawnClosureFailure == some .resourceLimit)
+
+example (n : Nat) : ∃ q,
+    renderProjection graph (fun _ => checks) n ⟨graph.root, checks⟩ = some q ∧
+      Bisimilar spawnEnv q (.project n (.var "X")) := spawn_projection n
+
+theorem spawn_no_valid_closure (rows : ClosureCandidate graph) :
+    ¬ ValidClosure graph.root rows := by
+  intro cert
+  apply (Set.infinite_range_of_injective spawnInjective) (cert.reachableFinite.subset ?_)
+  rintro _ ⟨n, rfl⟩
+  apply Relation.ReflTransGen.mono ?_ (spawnReach n)
+  rintro _ _ ⟨pt, hl, a, pt', hl', _, hs⟩
+  exact ⟨pt, hl, a, pt', hl', hs⟩
+
 end DyNetKAT.DyNetKAT.InfiniteDerivativesTests
