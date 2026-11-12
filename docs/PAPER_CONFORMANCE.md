@@ -1,1122 +1,309 @@
-# PAPER_CONFORMANCE.md — DyNetKAT FoSSaCS Paper Conformance Map
-
-**Paper version:** *DyNetKAT: An Algebra of Dynamic Networks*
-arXiv:2102.10035v4 (22 May 2021).  FoSSaCS 2022.
-
-**Scope:** The original DyNetKAT calculus only — its syntax, operational
-semantics, equational theory, bisimilarity, normal forms, semantic results,
-and safety framework.  The journal extension (log-based extraction, bounded
-schedules, SDNRacer-specific causality) is deliberately out of scope.
-
----
-
-## I. NetKAT Preliminaries
-
-The DyNetKAT paper builds on NetKAT [Anderson et al., POPL 2014].  The
-dup-free fragment, denoted **NetKAT⁻ᵈᵘᵖ**, is the foundation.
-
-### 1. Packet model
-
-**Paper location:** printed p. 5, §"Network packets" (within §I-A);
-also §I-B "The NetKAT Language".
-
-**Mathematical statement:**
-A network packet is a function σ from a finite set of field names to a finite
-set of values: `σ : Fields → Values`.  Complete tests α are predicates of the
-form `f₁=v₁ · … · fₙ=vₙ`; complete assignments π are `f₁←v₁ · … · fₙ←vₙ`.
-The sets **A** (all complete tests) and **Π** (all complete assignments) are
-**finite** by the finite-domain assumption.
-
-**Assumptions & side conditions:**
-- Field names and value domains are finite.
-- This finiteness makes **A** and **Π** finite.
-
-**Required Lean representation:**
-- `def Packet (FieldType : Type) (Value : Type) := FieldType → Value` — parameterized over finite field types (`Packet.lean:36`).  ✅
-- `inductive FieldName` (tpSrc, tpDst, swId, port) with `[Fintype FieldName]` (`Packet.lean:117-130`) — concrete test fixture.
-- `inductive FieldValueEnum` (v0, v1, v8, v9) with `[Fintype FieldValueEnum]` (`Packet.lean:132-145`) — concrete test fixture.
-- `abbrev CtxPkt := Packet FieldName FieldValueEnum` (`Packet.lean:148`) — concrete packet space.
-- `def CompleteTest := CtxPkt` (`Packet.lean:193`) — complete test as a **total valuation** `FieldName → FieldValueEnum` (Definition 4, p. 8).  ✅
-- `def CompleteAssignmentValuation := CtxPkt` (`Packet.lean:253`) — complete assignment as a **total valuation** (the dual of `CompleteTest`).  ✅
-- `[Fintype CtxPkt]` (`Packet.lean:158-161`), `[Fintype CompleteTest]` (`Packet.lean:198-200`),
-  `[Fintype CompleteAssignmentValuation]` (`Packet.lean:258-260`) — finiteness of packet space, A, and Π.  ✅
-
-**Dependencies:** None (root of the model).
-
-**Proof obligation:** `Fintype Packet` (or equivalently finiteness of **A** and **Π**)
-from the finite-domain assumption — **satisfied**: `Fintype CtxPkt` is established
-at `Packet.lean:158-161`.
-
-**Ambiguities / open questions:**
-- The paper uses per-field value domains `Vi`; the implementation uses a single
-  `Value` type for all fields. This is a documented simplification (see
-  `Packet.lean:15-18` design note) — the finiteness argument applies equally.
-
-**Implementation status:** Implemented. Concrete 4×4 packet model with
-parameterized `Packet` foundation.
-
-### 2. NetKAT syntax (dup-free)
-
-**Paper location:** printed p. 6, §I-B.
-
-**Mathematical statement:**
-```
-N ::= 0 | 1 | f=v | f←v | α | π | N + N | N;N | N*
-```
-where `α` ranges over complete tests, `π` over complete assignments, `0` = drop,
-`1` = identity, `+` = choice, `;` = sequential composition, `*` = Kleene star.
-
-(The full NetKAT also has `dup`; DyNetKAT uses **NetKAT⁻ᵈᵘᵖ**, i.e. without `dup`.)
-
-**Assumptions & side conditions:**
-- No `dup` operator in this fragment.
-
-**Required Lean representation:**
-```lean
-inductive NetKAT
-  | drop             -- 0
-  | id               -- 1
-  | test             -- Pr (general predicate, Figure 3)
-  | completeTest     -- α (complete test, Definition 4)
-  | assign1          -- f←v (primitive single-field assignment, Figure 3)
-  | union            -- N + N
-  | seq              -- N ; N
-  | star             -- N *
-```
-
-**Dependencies:** Packet model (complete tests & assignments).
-
-**Proof obligation:** None for syntax alone.
-
-**Ambiguities / open questions:**
-- `test` takes a `Predicate` (general boolean predicate, Figure 3), not a `CompleteTest`.
-  Complete tests α have a separate constructor `completeTest`.
-- `assign1` is the paper's primitive single-field assignment `f←v`, separate from
-  complete assignments π (which are built as sequences of `assign1` via
-  `completeAssignExpr`).
-
-**Implementation status:** Implemented. `NetKAT` inductive at `AST.lean:89-97`
-with all 8 constructors above.
-
-### 3. NetKAT denotational semantics
-
-**Paper location:** printed p. 6, §I-B / "Semantics".
-
-**Mathematical statement:**
-⟦N⟧ ⊆ Packet × Packet, defined compositionally:
-- ⟦0⟧ = ∅
-- ⟦1⟧ = {(σ,σ)}
-- ⟦f=v⟧ = {(σ,σ) | σ(f) = v}
-- ⟦f←v⟧ = {(σ,σ[f↦v])}
-- ⟦α⟧ = product of field tests
-- ⟦π⟧ = product of field assignments
-- ⟦N₁+N₂⟧ = ⟦N₁⟧ ∪ ⟦N₂⟧
-- ⟦N₁;N₂⟧ = ⟦N₁⟧ ∘ ⟦N₂⟧
-- ⟦N*⟧ = ⋃ₖ ⟦N⟧ᵏ  (reflexive-transitive closure over finite domain)
-
-**Assumptions & side conditions:**
-- Finite packet domain ⟹ the reflexive-transitive closure is itself finite.
-- `⟦N*⟧ = id ∧ N` (Kleene star as iteration).
-
-**Required Lean representation:**
-- `Semantics : NetKAT → CtxPkt → CtxPkt → Prop` — relational semantics over concrete packets (`Semantics.lean:61-71`).
-- `eval : NetKAT → CtxPkt → Set CtxPkt` — set-of-outputs form (`Semantics.lean:74`).
-- `StarClosure` inductive — reflexive-transitive closure (`Semantics.lean:51`).
-- All basic semantic identities proven: `drop_empty`, `id_diag`, `union_sem`,
-  `seq_sem`, `fieldTest_sem`, `completeTest_sem`, `assign1_sem`,
-  `completeAssignExpr_sem`, etc.
-
-**Dependencies:** Packet model; NetKAT syntax.
-
-**Proof obligation:**
-- `⟦N*⟧` is well-defined (reflexive-transitive closure over finite domain).
-- Basic identities proven (see list above).
-
-**Ambiguities / open questions:** None significant.
-
-**Implementation status:** Implemented — `Semantics.lean` defines all 8
-clauses; 30+ semantic identity theorems proven with no `sorry`/`axiom`.
-
----
-
-## II. DyNetKAT Syntax
-
-### 4. Process syntax
-
-**Paper location:** printed p. 8, §II, §II-A "Syntax".  Fig. 5.
-
-**Mathematical statement:**
-```
-d ::= ⊥ | N;d | x?N;d | x!N;d | rcfg(x,r);d | d‖d | d⊕d | X
-```
-where `N ∈ NetKAT⁻ᵈᵘᵖ`, `x` ranges over channel names, `r` over NetKAT⁻ᵈᵘᵖ
-(used in rcfg), `X` over a (countably infinite) set of recursive variables.
-
-**Assumptions & side conditions:**
-- `⊥` (deadlock) is the neutral element of `⊕`.
-- `;` binds tighter than `⊕`, `‖`, `| |` — but precedence varies; use explicit
-  grouping in Lean.
-- Channels form a countably infinite set.
-- Recursive variables are uniquely defined (`X ≜ d`).
-
-**Required Lean representation:**
-```lean
-inductive DyNetKAT
-  | deadlock           -- ⊥
-  | nSeq               -- N ; d     (NetKAT policy then continuation)
-  | recv               -- x?N;d     (receive NetKAT policy on channel x)
-  | send               -- x!N;d     (send NetKAT policy on channel x)
-  | rcfg               -- rcfg(x,N);d
-  | parallel           -- d ‖ d
-  | choice             -- d ⊕ d
-  | var                -- X  (recursive variable, indexed by Nat or Symbol)
-```
-With a `Label` type for variables and a `Subst` relation for recursion.
-
-**Dependencies:** NetKAT syntax (N).
-
-**Proof obligation:** None for syntax.
-
-**Ambiguities / open questions:**
-- `rcfg(x,r)` — the paper uses `r` for a NetKAT⁻ᵈᵘᵖ term (same as `N`).
-  The rcfg constant itself takes channel `x` and NetKAT term `r`.
-
-**Implementation status:** Not started.
-
-### 5. Multi-packet configurations
-
-**Paper location:** printed p. 9, §II-B "Operational Semantics".
-
-**Mathematical statement:**
-Configuration: `(d, H, H′)`
-- `d`: current DyNetKAT process term.
-- `H`: pending packet list (front = newest packet to process).
-- `H′`: handled (output) packet list (front = newest handled packet).
-
-The paper writes `σ :: H` and `H′` using cons notation.
-
-**Assumptions & side conditions:**
-- Packet lists are finite.
-- Per-packet consistency: each packet is processed by exactly one NetKAT
-  policy throughout its flight (printed p. 9, §II-B).
-
-**Required Lean representation:**
-```lean
-structure Config where
-  proc : DyNetKAT
-  pending : List Packet   -- H  (front = head)
-  handled : List Packet   -- H' (front = head)
-```
-
-**Dependencies:** Packet model; DyNetKAT syntax.
-
-**Proof obligation:** Per-packet consistency is a design property (assumption),
-not a formal theorem.  The formal correctness result is semantic layering
-(Proposition 1, §III).
-
-**Ambiguities / open questions:**
-- Whether `H` is a list or multiset.  **Paper evidence:** printed p. 9 uses
-  cons notation `σ :: H`, and the configurations `(d, H, H′)` in the
-  transition rules show ordered lists.  **Recommendation:** use `List Packet`
-  with `σ :: H` semantics.
-
-**Implementation status:** Not started.
-
-### 6. Labels and actions
-
-**Paper location:** printed p. 9, §II-B; Fig. 8.
-
-**Mathematical statement:**
-Labels (actions) γ are:
-```
-γ ::= (σ, σ′) | x?r | x!r | rcfg(x, r)
-```
-- `(σ, σ′)`: a packet-flow action — packet σ is transformed into σ′ by a
-  NetKAT policy.
-- `x?r`: receive action (NetKAT policy on channel x).
-- `x!r`: send action (NetKAT policy on channel x).
-- `rcfg(x, r)`: reconfiguration (synchronization of send/receive).
-
-**Assumptions & side conditions:** None.
-
-**Required Lean representation:**
-```lean
-inductive Action where
-  | packet (input output : Packet)
-  | recv (channel : Channel) (policy : NetKAT)
-  | send (channel : Channel) (policy : NetKAT)
-  | rcfg (channel : Channel) (policy : NetKAT)
-```
-
-**Dependencies:** Packet; NetKAT; Channel (countably infinite).
-
-**Proof obligation:** None.
-
-**Ambiguities / open questions:**
-- `r` in `rcfg(x, r)` and `x?r`, `x!r` — is it NetKAT⁻ᵈᵘᵖ or full NetKAT?
-  **Paper evidence:** printed p. 8, §II-A: "x?N", "x!N" use `N ∈ NetKAT⁻ᵈᵘᵖ`.
-  The rcfg action carries the same.  **Recommendation:** use `NetKAT` (the
-  dup-free fragment) throughout DyNetKAT.
-
-**Implementation status:** Not started.
-
----
-
-## III. Operational Semantics
-
-### 7. Small-step labeled transition rules (Fig. 8)
-
-**Paper location:** printed p. 9–10, §II-B, Fig. 8.
-
-**Mathematical statement — transition relation:**
-`(d, H, H′) →γ (d′, H′′, H′′)`
-
-The paper's rules (Fig. 8).  The rule names below follow the appendix convention
-`cpol_*` (seen in the ar5iv appendix output at printed p. 2550+).
-
-**Figure 8 verification (2026-10-18):** the two tentative rules below that
-were pending figure verification — `(cpol_;✗)` (drop) and `(cpol_;_‖)`
-(parallel specialization) — were checked against the `pdftotext -layout`
-extraction of `DyNetKAT.pdf` (Fig. 8, printed p. 9–10): **neither exists**.
-Both entries are corrected in place below.  The figure's complete rule set
-is `(cpolX;)`, `(cpolX)`, `(cpol⊕)`×2, `(cpol‖)`×2, `(cpol?)`, `(cpol!)`,
-`(cpol!?)`, `(cpol?!)` with label grammar
-`γ ::= (σ,σ′) | x!q | x?q | rcfg(x,q)`.
-
-**Rule (cpol_;✓) — packet flows through NetKAT policy:**
-```
-       σ′ ∈ ⟦N⟧(σ)
-  (N;d, σ::H, H′) →(σ,σ′) (d, H, σ′::H′)
-```
-Condition: σ′ ∈ ⟦N⟧(σ), i.e., N maps packet σ to some output σ′.
-The packet σ is removed from the head of `H` and σ′ is pushed to `H′`.
-
-**No drop rule (corrected 2026-10-18, confirmed against Fig. 8):**
-Figure 8 contains **no** `(cpol_;✗)` rule and no drop label.  When
-`⟦N⟧(σ::⟨⟩) = ∅`, the premise `σ′ ∈ ⟦N⟧(σ::⟨⟩)` of `(cpolX;)` has no
-witness, so **no transition fires** and the configuration
-`(N;d, σ::H, H′)` is **stuck** (the packet is *not* consumed; nothing
-changes).  Evidence: the appendix soundness proof of A0 states that since
-`⟦0⟧(σ::⟨⟩) = ∅`, "the term `0;p` does not afford any transition," whence
-`(0;p) ∼ ⊥`.  The journal repo's `Label.drop`/`policyDrop` is a
-journal-extension deviation and must not be carried over.  **Design:**
-no `Action.drop` constructor, no `cpol_seq_bad` Step constructor — the
-drop case is modeled purely as absence of a `Step` witness.
-
-**Rule (cpol_⊕) — choice left/right:**
-```
-  (p, H, H′) →γ (p′, H″, H‴)
-  (p⊕q, H, H′) →γ (p′, H″, H‴)
-```
-(symmetrically for q, with `q′`)
-
-**Rule (cpol_‖) — parallel component step (asynchronous):**
-```
-  (p, H, H′) →γ (p′, H″, H‴)
-  (p‖q, H, H′) →γ (p′‖q, H″, H‴)
-```
-(symmetrically for right component `q → q′`)
-
-**No `(cpol_;_‖)` rule (corrected 2026-10-18, confirmed against Fig. 8):**
-the earlier tentative "NetKAT policy in left of parallel" specialization
-does **not** appear in Figure 8.  A `N;d` operand inside a parallel
-composition is already covered by the general asynchronous rule `(cpol‖)`:
-`(cpolX;)` fires on the sub-configuration `(N;d, σ::H, H′)` and `(cpol‖)`
-lifts that step to `((N;d)‖q, σ::H, H′)`.  No separate constructor is
-needed.
-
-**Rule (cpol_recv) — receive (asynchronous):**
-```
-  (x?N;d, H, H′) →(x?r) (d, H, H′)
-```
-
-**Rule (cpol_send) — send (asynchronous):**
-```
-  (x!N;d, H, H′) →(x!r) (d, H, H′)
-```
-
-**Rule (cpol_sync) — synchronization (synchronous):**
-```
-  (p, H, H′) →(x?r) (p′, H″, H‴)
-  (q, H, H′) →(x!r) (q′, H″, H‴)
-  (p‖q, H, H′) →(rcfg(x,r)) (p′‖q′, H″, H‴)
-```
-(symmetrically: left sends, right receives)
-
-**Assumptions & side conditions:**
-- Transitions preserve per-packet consistency.
-- For synchronization, the send and receive must be on the same channel `x`
-  with the same NetKAT policy `r`.
-
-**Required Lean representation:**
-```lean
-inductive Step : Config → Action → Config → Prop
-  | cpol_seq_ok ...          -- (cpolX;)  — the only history-modifying rule
-  | cpol_choice_l ...        -- (cpol⊕) left
-  | cpol_choice_r ...        -- (cpol⊕) right
-  | cpol_par_l ...           -- (cpol‖) left
-  | cpol_par_r ...           -- (cpol‖) right
-  | cpol_recv ...            -- (cpol?)   — axiom rule, no premises
-  | cpol_send ...            -- (cpol!)   — axiom rule, no premises
-  | cpol_sync_send_recv ...  -- (cpol!?)
-  | cpol_sync_recv_send ...  -- (cpol?!)
-  | cpol_var ...             -- (cpolX)   — recursion unfolding, env X = p
-```
-(No `cpol_seq_bad`: the drop case is a stuck configuration, not a rule.
-Full constructor designs: `docs/PROCESS_SEMANTICS_DESIGN.md` §3–§10.)
-
-**Dependencies:** DyNetKAT syntax; Action type; NetKAT denotational semantics;
-Packet model; Config structure.
-
-**Proof obligation:**
-- Each rule is well-formed.
-- The relation is the least relation closed under the rules.
-
-**Ambiguities / open questions:**
-- Exact handling of `H` / `H′` in synchronization.  (Partially resolved by
-  Fig. 8: the send/receive and synchronization rules leave both lists
-  unchanged; see `docs/PROCESS_SEMANTICS_DESIGN.md` §7–§8.)
-- ~~Exact label for the drop case.~~ **Resolved (2026-10-18):** there is
-  no drop case and no drop label — the configuration is stuck when
-  `⟦N⟧(σ::⟨⟩) = ∅` (see the corrected drop entry above).
-
-**Implementation status:** Not started.  (Critical: all subsequent semantic
-results depend on this.)
-
----
-
-## IV. Extended DyNetKAT Operators
-
-### 8. Restriction operator δ_ℒ(−)
-
-**Paper location:** printed p. 12, §III; Eq. (2).
-
-**Mathematical statement:**
-For ℒ ⊆ {actions of shape `x?N`, `x!N`}, the restriction operator filters
-transitions whose labels are in ℒ:
-```
-  (p, H, H′) →γ (p′, H″, H‴)    γ ∉ ℒ
-  (δ_ℒ(p), H, H′) →γ (δ_ℒ(p′), H″, H‴)
-```
-
-**Assumptions & side conditions:**
-- ℒ ranges over actions `x?N` and `x!N` only.
-
-**Required Lean representation:**
-```lean
-def δ (L : Set Action) (d : DyNetKAT) : DyNetKAT  -- or as a Step rule
-```
-
-**Dependencies:** Step relation; Action type.
-
-**Proof obligation:** δ is a congruence w.r.t. bisimilarity.
-
-**Ambiguities / open questions:** None significant.
-
-**Implementation status:** Not started.
-
-### 9. Projection operator π_n(−)
-
-**Paper location:** printed p. 12, §III; Eq. (3).
-
-**Mathematical statement:**
-π_n captures the first n steps of a DyNetKAT policy:
-```
-  (p, H, H′) →γ (p′, H″, H‴)
-  (π_{n+1}(p), H, H′) →γ (π_n(p′), H″, H‴)
-```
-
-**Assumptions & side conditions:**
-- n ∈ ℕ.
-
-**Required Lean representation:**
-```lean
-def π (n : Nat) (d : DyNetKAT) : DyNetKAT
-```
-Plus the Step rule lifting.
-
-**Dependencies:** Step relation.
-
-**Proof obligation:** π_n is well-defined; AIP soundness proof uses π_n.
-
-**Ambiguities / open questions:** None significant.
-
-**Implementation status:** Not started.
-
-### 10. rcfg constant (synchronization constant)
-
-**Paper location:** printed p. 13, §III-A; Eq. (4).
-
-**Mathematical statement:**
-```
-  (rcfg_{x,z};p, H, H′) →(rcfg(x,z)) (p, H, H′)
-```
-The constant `rcfg(x,r)` represents a synchronization step carrying
-channel `x` and NetKAT policy `r`.
-
-**Required Lean representation:**
-```lean
--- rcfg(x, N) as a built-in constant in the DyNetKAT syntax
-| rcfg : Channel → NetKAT → DyNetKAT → DyNetKAT
--- plus a Step rule:
-| cpol_rcfg ...
-```
-
-**Dependencies:** DyNetKAT syntax; Step relation.
-
-**Proof obligation:** The rcfg constant steps immediately to its continuation.
-
-**Ambiguities / open questions:**
-- The paper introduces rcfg as a syntactic constant `rcfg_{x,z}` and also
-  as an action label `rcfg(x,r)`.  These must be distinguished: the constant
-  is part of the syntax; the label is the transition action.
-**Implementation status:** Not started.
-
-### 11. Left-merge (⌊⌊) and communication-merge (| |)
-
-**Paper location:** printed p. 13, §III-A; Eq. (5).
-
-**Mathematical statement:**
-
-**Left-merge rule (⌊⌊):**
-```
-  (p, H₀, H₁) →γ (p′, H₀′, H₁′)    γ ∈ {(σ,σ′), x!r, x?r, rcfg(x,r)}
-  (p⌊⌊q, H₀, H₁) →γ (p′‖q, H₀′, H₁′)
-```
-
-**Communication-merge rule (| ?!):**
-```
-  (p, H, H′) →(x?r) (p′, H, H′)    (q, H, H′) →(x!r) (q′, H, H′)
-  (p|q, H, H′) →(rcfg(x,r)) (p′‖q′, H, H′)
-```
-
-**Communication-merge rule (| !?):**
-```
-  (p, H, H′) →(x!r) (p′, H, H′)    (q, H, H′) →(x?r) (q′, H, H′)
-  (p|q, H, H′) →(rcfg(x,r)) (p′‖q′, H, H′)
-```
-
-**Assumptions & side conditions:**
-- Left-merge allows any action except the "otherwise" case.
-- Communication-merge fires when one side sends and the other receives on the
-  same channel with the same policy.
-
-**Required Lean representation:**
-Add `leftMerge` and `commMerge` constructors to DyNetKAT, plus Step rules.
-```lean
-inductive DyNetKAT
-  | ...
-  | leftMerge : DyNetKAT → DyNetKAT → DyNetKAT   -- p ⌊⌊ q
-  | commMerge : DyNetKAT → DyNetKAT → DyNetKAT   -- p | q
-```
-
-**Dependencies:** DyNetKAT syntax; Step relation; Action type.
-
-**Proof obligation:** Correctness of A8–A11 (left-merge) and A12–A15
-(communication-merge) axioms.
-
-**Ambiguities / open questions:**
-- Whether `| |` and `⌊⌊` are syntactic sugar or primitive operators.
-  **Paper evidence (printed p. 13):** they appear in the extended syntax
-  (Eq. 6) as primitive constructors of D_e.
-  **Recommendation:** treat them as primitive for the formalization.
-
-**Implementation status:** Not started.
-
-### 12. Full DyNetKAT syntax (extended form, Eq. 6)
-
-**Paper location:** printed p. 14, §III-A; Eq. (6).
-
-**Mathematical statement:**
-```
-N := NetKAT⁻ᵈᵘᵖ
-D_e ::= ⊥ | N;D_e | x?N;D_e | x!N;D_e | rcfg_{x,N};D_e | D_e‖D_e | D_e⊕D_e
-        | δ_ℒ(D_e) | π_n(D_e) | D_e⌊⌊D_e | D_e|D_e | X
-```
-where n ∈ ℕ, ℒ = {c | c ::= x?N | x!N}.
-
-**Required Lean representation:** Combine all constructors above into one
-`inductive DyNetKAT` type, with `Channel : Type := Nat` (or a custom type).
-
-**Dependencies:** All prior sections.
-
-**Proof obligation:** Syntax is well-defined; guardedness (Definition 7) is
-decidable or at least definable.
-
-**Ambiguities / open questions:**
-- Recursion via `X` requires a `recurse` or `fix` construct with environment.
-
-**Implementation status:** Not started.
-
----
-
-## V. Equational Theory (Axioms A0–A15)
-
-### 13. Axioms A0–A15 (Fig. 11)
-
-**Paper location:** printed p. 11, §III-A; Fig. 11 (the full axiom system
-`EDNK_E_DNK`).
-
-**Mathematical statement — all 16 axioms:**
-
-(A0) `⊥;(x!N;d) ≡ ⊥` — deadlock after send is deadlock.
-Wait, let me re-read the exact axioms from the paper text (the ar5iv extraction
-at line 549 showed the exact formulas).  The axioms are:
-
-```
-(A0)  ⊥;p ≡ ⊥                       (deadlock sequencing)
-(A1)  (N₁+N₂);d ≡ N₁;d ⊕ N₂;d         (NetKAT sum to DyNetKAT choice)  [for N₁,N₂ ∈ NetKAT⁻ᵈᵘᵖ]
-(A2)  p ⊕ q ≡ q ⊕ p                  (commutativity)
-(A3)  (p ⊕ q) ⊕ r ≡ p ⊕ (q ⊕ r)        (associativity)
-(A4)  p ⊕ p ≡ p                      (idempotence)
-(A5)  p ⊕ ⊥ ≡ p                       (neutral element)
-(A6)  p ‖ q ≡ q ‖ p                  (parallel commutativity)
-(A7)  p ‖ ⊥ ≡ p                      (parallel deadlock = identity)
-(A8)  p ‖ q ≡ p⌊⌊q ⊕ q⌊⌊p ⊕ p|q       (parallel expansion)
-(A9)  ⊥⌊⌊p ≡ ⊥                        (left-merge with deadlock)
-(A10) (a;p)⌊⌊q ≡ a;(p‖q)             (left-merge prefix)
-        where a ::= (σ,σ′) | x!r | x?r | rcfg(x,r)
-(A11) (p⊕q)⌊⌊r ≡ (p⌊⌊r) ⊕ (q⌊⌊r)      (left-merge distributes over ⊕)
-(A12) (x?N;p) | (x!N;q) ≡ rcfg_{x,N};(p‖q)   (communication pin-points)
-(A13) (p⊕q)|r ≡ (p|r) ⊕ (q|r)        (comm-merge distributes over ⊕)
-(A14) p|q ≡ q|p                      (comm-merge commutativity)
-(A15) p|q ≡ ⊥  [owise]               (communications that don't match yield ⊥)
-```
-
-**Assumptions & side conditions:**
-- A1 requires `N₁, N₂ ∈ NetKAT⁻ᵈᵘᵖ` (the lhs is `z + y` where z,y are NetKAT⁻ᵈᵘᵖ).
-- A10 requires the prefix `a` to be a "complete test or assignment or
-  communication action" (`at ::= α·π | x?z | x!z | rcfg_{x,z}`).
-- A12 requires matching channel and NetKAT policy.
-- A15 has an `[owise]` (otherwise) condition: applies only when neither
-  A12 nor commutativity of | applies.
-
-**Required Lean representation:**
-```lean
-inductive AxEq : DyNetKAT → DyNetKAT → Prop
-  | A0  : AxEq (.seq .deadlock p) .deadlock
-  | A1  : ... -- for NetKAT⁻ᵈᵘᵖ sums
-  | A2  : AxEq (a.union b) (b.union a)
-  -- ... through A15
-```
-And a derivability relation `EDNK ⊢ p ≡ q` (refl/trans/symm/subst + the axioms).
-
-**Dependencies:** DyNetKAT syntax (extended form); NetKAT denotational semantics
-(for A1's correctness proof).
-
-**Proof obligation:**
-- All axioms are sound w.r.t. bisimilarity (Lemma 10).
-- AIP is sound (Lemma 11).
-- E_DNK is ground-complete (Theorem 1).
-
-**Ambiguities / open questions:**
-- A15's `[owise]` is an implicit side condition on the equation.
-  In a formal derivation system, this typically means A15 only applies when
-  the terms do NOT match the LHS pattern of A12 (or can't be reduced to it).
-**Implementation status:** Not started.
-
-### 14. NetKAT axiomatization E_NK
-
-**Paper location:** printed p. 11, §III-A, "including `ENKE_NK`".
-
-**Mathematical statement:**
-The paper includes the NetKAT equational theory `E_NK` as part of `E_DNK`.
-The paper does NOT reproduce E_NK internally (it references [2] / [8]).
-The NetKAT axioms from Anderson et al. [2] are:
-- `0 + p ≡ p`  (or `p + 0 ≡ p`)
-- Associativity/commutativity of `+`
-- `1 · p ≡ p · 1 ≡ p`
-- `(p · q) · r ≡ p · (q · r)`
-- `p* · (p · q) ≡ p* · q`  (left divisibility)
-- `1 + p* · p ≡ p*`
-- And Kleene algebra identities.
-
-**Assumptions & side conditions:**
-- E_NK is the standard NetKAT/NetKAT* Kleene algebra with tests.
-
-**Required Lean representation:**
-A separate `NetKAT/Axioms.lean` or include E_NK axioms in `AxEq`.
-
-**Dependencies:** NetKAT syntax; denotational semantics.
-
-**Proof obligation:**
-- E_NK is sound and complete for NetKAT semantics.
-- Lemma 5: every NetKAT⁻ᵈᵘᵖ term has a normal form `Σ α·π ∈ G`.
-
-**Ambiguities / open questions:**
-- The paper cites `[2]` (Anderson et al., POPL 2014) for the full NetKAT
-  axiomatization.  We must reproduce E_NK from that source, not invent it.
-  **Recommendation:** implement E_NK separately with its own soundness proof,
-  and verify it against the NetKAT paper's axioms.
-**Implementation status:** Not started.
-
-### 15. Normal forms
-
-**Paper location:** printed p. 13–14, §III-A; Definition 6 (DyNetKAT n.f.);
-Lemma 5 (NetKAT⁻ᵈᵘᵖ n.f.); Lemma 9 (DyNetKAT normalization).
-
-**Mathematical statement:**
-
-**NetKAT⁻ᵈᵘᵖ normal form (Lemma 5):**
-Every NetKAT⁻ᵈᵘᵖ term `p` has an n.f. `q = Σ_{α·π ∈ G} α·π` such that
-`E_NK ⊢ p ≡ q`, where `G(p)` is the language model (printed p. 13).
-
-**DyNetKAT normal form (Definition 6):**
-A DyNetKAT policy is in n.f. if it is of shape:
-```
-⊕_{i∈I} (α_i·π_i);d_i  ⊕  ⊕_{j∈J} c_j;d_j  (⊕ ⊥)
-```
-where `d_i, d_j` range over DyNetKAT policies, and
-`c_j ::= x?q | x!q | rcfg(x,q)` with `q ∈ NetKAT⁻ᵈᵘᵖ`.
-
-**DyNetKAT normalization (Lemma 9):**
-`E_DNK` is normalizing for DyNetKAT: for every guarded DyNetKAT policy `p`
-there exists `q` in n.f. such that `E_DNK ⊢ p ≡ q`.
-
-**Proof sketch (printed p. 14):** By Lemma 5 and A1, structural induction.
-Base cases: `⊥`, `N;d`, `c;d`. Induction: `⊕`, `⌊⌊`, `| |`, `‖`, `δ_ℒ`, `π_n`.
-
-**Assumptions & side conditions:**
-- Guardedness (Definition 7) — unguarded recursion is excluded.
-
-**Required Lean representation:**
-```lean
-def isNormalForm : DyNetKAT → Bool  -- or Prop
-def normalize : DyNetAT → DyNetKAT   -- if implementing as algorithm
-```
-
-**Dependencies:** Axiom soundness; Axiom A1.
-
-**Proof obligation:**
-- Every guarded term has an n.f. (Lemma 9).
-- n.f. is unique up to Σ ordering (for ground-completeness).
-
-**Ambiguities / open questions:**
-- The paper says "we assume DyNetKAT policies are guarded" (printed p. 14)
-  for the normalization proof.
-**Implementation status:** Not started.
-
-### 16. Guardedness (Definition 7)
-
-**Paper location:** printed p. 13, §III-A, Definition 7.
-
-**Mathematical statement:**
-A DyNetKAT policy `p` is guarded iff all occurrences of all variables `X` in `p`
-are guarded.  An occurrence of `X` in `p` is guarded if and only if:
-(i) `p` has a subterm `p′;t` such that either `p′` is variable-free, or all
-occurrences of variables in `p′` are guarded, and `X` occurs in `t`; or
-(ii) `p` is of shape `y?X;t`, `y!X;t`, or `rcfg(X,t)`.
-
-**Required Lean representation:**
-```lean
-def IsGuarded : DyNetKAT → Prop
-```
-Decidable if the term is finite (no infinite recursion in syntax tree).
-
-**Dependencies:** DyNetKAT syntax.
-
-**Proof obligation:** Guarded terms are finitely branching (Lemma 8).
-
-**Implementation status:** Not started.
-
-### 17. Branching finiteness (Lemma 8)
-
-**Paper location:** printed p. 13, §III-A, Lemma 8.
-
-**Mathematical statement:**
-All guarded DyNetKAT policies are finitely branching.
-
-**Required Lean representation:**
-```lean
-theorem branching_finite : IsGuarded p → (∀ c s, { s' | Step c s s' } is finite)
-```
-The exact statement needs care — "finitely branching" means each
-configuration has finitely many successors.
-
-**Dependencies:** Guardedness; Step relation.
-
-**Proof obligation:** Prove finiteness of successor set.
-
-**Implementation status:** Not started.
-
-### 18. Bisimilarity (Definition 2)
-
-**Paper location:** printed p. 11, §III, Definition 2.
-
-**Mathematical statement:**
-A relation R over DyNetKAT policies is a bisimulation if for (p,q) ∈ R:
-if `(p, H₀, H₁) →γ (p′, H₀′, H₁′)` then there exists q′ such that
-`(q, H₀, H₁) →γ (q′, H₀′, H₁′)` and `(p′, q′) ∈ R`.
-
-Bisimilarity `p ∼ q` is the largest bisimulation.
-
-**Required Lean representation:**
-```lean
-def Bisimulation (R : DyNetKAT → DyNetKAT → Prop) : Prop := ...
-def Bisimilar : DyNetKAT → DyNetKAT → Prop := ...
--- Coinductive definition, or greatest fixed point.
-```
-
-Lean 4 supports `coinductive` types.  Use coinduction.
-
-**Dependencies:** Step relation (operational semantics).
-
-**Proof obligation:**
-- Bisimilarity is the greatest fixed point / coinductive relation.
-- Bisimilarity is a congruence (Lemma 3).
-
-**Ambiguities / open questions:**
-- The bisimulation is defined over policies (DyNetKAT terms), but the
-  transition rules operate on configurations `(p, H₀, H₁)`.
-  So R ranges over `DyNetKAT → DyNetKAT → Prop`, and the simulation condition
-  quantifies over all `H₀, H₁`.  This is standard.
-**Implementation status:** Not started.
-
-### 19. Semantic layering (Proposition 1)
-
-**Paper location:** printed p. 11, §III-A, Proposition 1.
-
-**Mathematical statement:**
-For `p, q ∈ NetKAT⁻ᵈᵘᵖ` and any DyNetKAT `d`:
-`⟦p⟧ = ⟦q⟧` iff `(p;d) ∼ (q;d)`.
-
-**Required Lean representation:**
-```lean
-theorem semantic_layering :
-  ∀ (p q : NetKAT⁻ᵈᵘᵖ) (d : DyNetKAT),
-    ⟦p⟧ = ⟦q⟧ ↔ Step.* (p;d) ∼ Step.* (q;d)
-```
-
-**Dependencies:** NetKAT denotational semantics; DyNetKAT semantics; bisimilarity.
-
-**Proof obligation:** Prove both directions.
-
-**Implementation status:** Not started.
-
-### 20. Soundness & ground-completeness (Theorem 1)
-
-**Paper location:** printed p. 11, §III-A, Theorem 1; printed p. 15 §III-A1.
-
-**Mathematical statement:**
-`E_DNK` is sound and ground-complete for DyNetKAT bisimilarity.
-- **Soundness:** if `E_DNK ⊢ p ≡ q` then `p ∼ q`.
-- **Ground-completeness:** if `p ∼ q` then `E_DNK ⊢ p ≡ q`.
-
-**Proof decomposition:**
-1. Soundness of E_DNK \ {AIP} (Lemma 10).
-2. Soundness of AIP (Lemma 11).
-3. Completeness: via normalization (Lemma 9) and matching summands
-   (printed p. 16).
-
-**Required Lean representation:**
-```lean
-theorem soundness : E_DNK ⊢ p ≡ q → p ∼ q
-theorem ground_completeness : p ∼ q → E_DNK ⊢ p ≡ q
-```
-
-**Dependencies:** Axioms A0-A15, AIP; normalization; bisimilarity;
-NetKAT completeness (for E_NK).
-
-**Proof obligation:** Full soundness and completeness proofs.
-
-**Ambiguities / open questions:**
-- "Ground-complete" means completeness for ground (variable-free) terms.
-  With recursion, ground terms include those with `recurse` but no free variables.
-**Implementation status:** Not started.
-
----
-
-## VI. Safety Framework
-
-### 21. Safety property syntax (Definition 12)
-
-**Paper location:** printed p. 17, §IV, Definition 12.
-
-**Mathematical statement:**
-Let 𝒜 be an alphabet over letters of shape `α·π` and `rcfg(x,p)`.
-```
-act  ::= α·π | rcfg(x,p)       (where α·π, rcfg(x,p) ∈ 𝒜)
-regexp ::= act | regexp + regexp | regexp · regexp
-prop ::= [regexp]false
-```
-
-**Assumptions & side conditions:**
-- `prop` states that the encoded behavior (regexp) cannot be observed.
-- This is a "safety = something bad never happens" formulation.
-
-**Required Lean representation:**
-```lean
-inductive Action (alphabet)  -- reuse from §6, but alphabet restricted to
-                              -- α·π and rcfg(x,p) only
-inductive Regexp
-  | act : Action → Regexp
-  | plus : Regexp → Regexp → Regexp
-  | seq : Regexp → Regexp → Regexp
-inductive Prop
-  | unsafe : Regexp → Prop   -- [regexp]false
-```
-
-**Dependencies:** NetKAT (for α·π); DyNetKAT rcfg.
-
-**Proof obligation:** The semantic map ⟦−⟧ is well-defined (Definition 14).
-
-**Implementation status:** Not started.
-
-### 22. Head normal form (Definition 13)
-
-**Paper location:** printed p. 17–18, §IV, Definition 13.
-
-**Mathematical statement:**
-`hnf(r)` = sum of words obtained by distributing `·` over `+` in `r`:
-```
-hnf(a) = a                              (a ∈ 𝒜)
-hnf(w) = w                              (w ∈ 𝒜*)
-hnf(r₁ + r₂) = hnf(r₁) + hnf(r₂)
-hnf(r₁·(r₂+r₃)) = hnf(r₁·r₂) + hnf(r₁·r₃)
-hnf((r₁+r₂)·r₃) = hnf(r₁·r₃) + hnf(r₂·r₃)
-hnf(r′·(r₁+r₂)·r″) = hnf(r′·r₁·r″) + hnf(r′·r₂·r″)
-```
-
-**Required Lean representation:**
-```lean
-def hnf : Regexp → Regexp  -- or to a list of words
-```
-
-**Dependencies:** Regexp type.
-
-**Proof obligation:** hnf(r) ≡ r (semantic equivalence).
-
-**Implementation status:** Not started.
-
-### 23. Safety property semantics (Definition 14)
-
-**Paper location:** printed p. 18–19, §IV, Definition 14.
-
-**Mathematical statement:**
-Let Θ encode all possible behaviors over 𝒜:
-```
-Θ ≜ ⊕_{α·π ∈ 𝒜} (α·π;⊥ ⊕ α·π;Θ) ⊕ ⊕_{rcfg(x,p) ∈ 𝒜} (rcfg(x,p);⊥ ⊕ rcfg(x,p);Θ)
-```
-
-Semantic map ⟦−⟧ : Prop → DyNetKAT:
-```
-(c1) ⟦[Σ_{i∈I} w_i]false⟧ ≜
-     ⊕_{w ∈ 𝒜*, |w|<M, ∀i: w_i ⋠ w}  w̄;⊥
-   ⊕ ⊕_{w ∈ 𝒜*, |w|=M, ∀i: w_i ⋠ w}  (w̄;⊥ ⊕ w̄;Θ)
-
-(c2) ⟦[r]false⟧ ≜ ⟦[hnf(r)]false⟧   [otherwise]
-```
-where M = max |w_i|, and w̄ is the DyNetKAT term obtained from w by
-separating all letters with `;`:
-```
-ā = a
-a·w̄ = a;w̄
-```
-
-**Required Lean representation:**
-- `Θ` as a DyNetKAT term (recursive).
-- `w̄ : Word → DyNetKAT`.
-- `⟦prop⟧ : Prop → DyNetKAT`.
-
-**Dependencies:** DyNetKAT syntax (⊕, ;, ⊥, α·π, rcfg); Regexp semantics;
-DyNetKAT normal forms.
-
-**Proof obligation:** ⟦−⟧ is well-defined; Θ is well-defined (guarded recursion).
-
-**Ambiguities / open questions:**
-- Θ is defined via guarded recursion (`rcfg(x,p);Θ`).  Must ensure guardedness.
-**Implementation status:** Not started.
-
-### 24. Trace-equivalence axiomatization E^tr_DNK (Definition 15)
-
-**Paper location:** printed p. 19, §IV, Definition 15.
-
-**Mathematical statement:**
-`E^tr_DNK` = the equational axioms in Fig. 11 (A0–A15, AIP) plus:
-```
-(A16)  p;(q ⊕ r) ≡ p;q ⊕ p;r    (left distributivity of ; over ⊕)
-```
-
-**Required Lean representation:**
-Extend `AxEq` with A16, or define a separate trace-equivalence relation.
-
-**Dependencies:** Axioms A0–A15, AIP.
-
-**Proof obligation:** None beyond adding the axiom.
-
-**Implementation status:** Not started.
-
-### 25. Safe network systems (Definition 16)
-
-**Paper location:** printed p. 19, §IV, Definition 16.
-
-**Mathematical statement:**
-Given safety spec `s` and network implementation `i`:
-```
-Network is safe  iff  E^tr_DNK ⊢ ⟦s⟧ ⊕ i ≡ ⟦s⟧
-```
-i.e., the trace behavior of `i` is included in that of `⟦s⟧`.
-
-**Required Lean representation:**
-```lean
-def IsSafe (s : Prop) (i : DyNetKAT) : Prop :=
-  E^tr_DNK ⊢ ⟦s⟧ ⊕ i ≡ ⟦s⟧
-```
-
-**Dependencies:** Safety semantics; trace-equivalence derivability.
-
-**Proof obligation:** Soundness of safety checking.
-
-**Implementation status:** Not started.
-
-### 26. Extended safety sugars (Definition 17)
-
-**Paper location:** printed p. 20, §IV-A, Definition 17.
-
-**Mathematical statement:**
-Extended actions: `act_e ::= α·π | rcfg(x,p) | ¬act_e`
-Extended regexps: `regexp_e ::= true | act_e | regexp_e + regexp_e
-                        | regexp_e · regexp_e | (regexp_e)^n  (n ≥ 1)`
-Extended prop: `prop_e ::= [regexp_e]false`
-
-Desugaring `ds : Regexp_e → Regexp`:
-- `ds(true) = Σ_{a∈𝒜} a`
-- `ds(¬(α·π)) = Σ_{α_i·π_i ∈ 𝒜, α_i≠α or π_i≠π} α_i·π_i`
-- `ds(¬rcfg(x,p)) = Σ_{rcfg(y,q) ∈ 𝒜, rcfg(y,q)≠rcfg(x,p)} rcfg(y,q)`
-- `ds(r^n) = ds(r · r · ... · r)` (n times)
-- etc.
-
-Semantic map: `⟦[r_e]false⟧ = ⟦[ds(r_e)]false⟧`.
-
-**Required Lean representation:**
-```lean
-inductive RegexpExt
-  | true
-  | act
-  | negAct
-  | plus
-  | seq
-  | starN
-def ds : RegexpExt → Regexp
-```
-
-**Dependencies:** All prior safety sections.
-
-**Proof obligation:** `ds` preserves semantics: `ds(r_e) ≡ r_e` semantically.
-
-**Implementation status:** Not started.
-
----
-
-## VII. Examples and Theorems
-
-### 27. Stateful firewall example (Fig. 1)
-
-**Paper location:** printed p. 3 (Fig. 1), p. 5 (encoding, Fig. 5).
-
-**Mathematical statement:**
-The firewall initially drops packets at `ext`, until a secure connection
-request triggers a reconfiguration.  Encoded as a DyNetKAT policy with
-initial state, a `syn` trigger, and `rcfg` reconfiguration.
-
-**Required Lean representation:** Concrete DyNetKAT terms encoding the example.
-
-**Dependencies:** DyNetKAT syntax; NetKAT policies.
-
-**Proof obligation:** Verify the safety property: packets at `port=ext` cannot
-reach `port=int` before reconfiguration.
-
-**Implementation status:** Not started.
-
-### 28. Distributed controller example (Fig. 2)
-
-**Paper location:** printed p. 4 (Fig. 2), p. 5 (encoding, Fig. 6).
-
-**Mathematical statement:**
-Two controllers `C1`, `C2` independently updating switches.  Interleaved
-updates can cause cross-destination breaches.  Synchronization protocol
-prevents this.
-
-**Required Lean representation:** DyNetKAT terms for `C1`, `C2`, `SDN`.
-
-**Dependencies:** All above.
-
-**Proof obligation:** Verify safety with and without synchronization.
-
-**Implementation status:** Not started.
-
-### 29. Per-packet consistency (design property)
-
-**Paper location:** printed p. 8–9, §I-B / §II-B.
-
-**Mathematical statement:**
-The semantics is designed so that each data-plane packet sees exactly one set
-of flow tables throughout its flight.  This is the key design invariant.
-
-**Paper evidence (existing RESEARCH_NOTES.md):**
-> "The paper's design rationale explicitly says guarded recursion models new
-> flow-table states; Figure 8 advances the process after synchronized
-> rcfg(channel, policy). It does not put a mutable table mapping in (d,H,H')."
-
-**Required Lean representation:** A theorem stating that the operational
-semantics preserves the invariant that a single `d` (process term, encoding
-the table state) governs each packet's processing.
-
-**Dependencies:** Operational semantics; DyNetKAT syntax.
-
-**Proof obligation:** Formalize and prove (or state as a design invariant).
-
-**Ambiguities / open questions:**
-- Per-packet consistency is stated as a design motivation, not a formal
-  theorem with a proof. It emerges from the semantics structure.
-
-**Implementation status:** Not started.
-
-### 30. Restriction & projection equations (semantic)
-
-**Paper location:** printed p. 12, §III; Eq. (2), (3).
-
-**Mathematical statement:**
-The restriction `δ_ℒ(−)` and projection `π_n(−)` are "defined in the standard
-fashion, on top of DyNetKAT normal forms" (printed p. 12).  In process algebra
-[Baeten & Weijland, ref 3], these are standard operators.
-
-The projection equations are explicitly:
-```
-π_0(p) ≡ ⊥
-π_n(⊥) ≡ ⊥
-π_{n+1}(at;p) ≡ at;π_n(p)
-π_n(p⊕q) ≡ π_n(p) ⊕ π_n(q)
-```
-The restriction equations are "standard" but not enumerated; the δ-rule is
-Eq. (2) in §III.
-
-**Required Lean representation:** Operators δ, π_n and their Step-lifting rules.
-
-**Dependencies:** Restriction/projection operators; normal forms.
-
-**Proof obligation:** δ and π axioms are sound (part of E_DNK, though the
-paper says they're "defined in the standard fashion").
-
-**Implementation status:** Not started.
-
-### 31. Completeness of E_NK (external)
-
-**Paper location:** printed p. 13, §III-A, proof of Lemma 5; references [2]
-(Anderson et al., POPL 2014).
-
-**Mathematical statement:**
-E_NK is complete for NetKAT semantics: `⟦p⟧ = ⟦q⟧` iff `E_NK ⊢ p ≡ q`.
-This is the standard NetKAT completeness result from [2].
-
-**Required Lean representation:** The DyNetKAT completeness proof relies on
-this through Lemma 5.
-
-**Proof obligation:**
-- Either cite/assume the NetKAT completeness from [2], or implement it.
-**Recommendation:** Implement a minimal NetKAT completeness proof for the
-dup-free fragment, as it is required for Lemma 5 and ground-completeness.
-
-**Implementation status:** Not started.
-
-
+# DyNetKAT paper conformance inventory
+
+## Sources and edition crosswalk
+
+The mathematical authority is [arXiv:2102.10035v4](https://arxiv.org/pdf/2102.10035v4),
+22 May 2021, 38 pages. The comparison edition is the [Springer FoSSaCS 2022
+chapter](https://link.springer.com/content/pdf/10.1007/978-3-030-99253-8_10.pdf),
+LNCS 13242, pp. 184–204, DOI 10.1007/978-3-030-99253-8_10. The PDF bundled
+with the v1.1 tool is a 22-page conference-style manuscript with its own
+layout and examples. Use the Springer edition for published references.
+Unqualified identifiers below refer to v4. Proposition 1, Lemma 3 and Theorem 1 retain their numbers. The other numbered definitions and lemmas follow the crosswalk.
+
+| Subject | arXiv v4 | Springer chapter |
+|---|---|---|
+| Running examples | §I-A, Figs. 1–2, firewall and distributed controllers | §1 and Fig. 1, firewall |
+| Packets and NetKAT | §II-A, Def. 1, Figs. 3–4 | §2.1, Def. 1, Fig. 2 for syntax and denotation. E_NK is referenced to Anderson et al. [3]. |
+| Process syntax and examples | §II-C Eq. (1), Figs. 5–7 | §2.3 Eq. (1), Fig. 3 for firewall. Distributed-controller encodings are in v4. |
+| Base SOS and example LTSs | §II-D Figs. 8–10 | §2.4 Fig. 4 gives packet, recursion, left choice/interleaving, a combined send/receive rule and both synchronization orientations. Right choice/interleaving are omitted. Fig. 5 is the firewall LTS. |
+| Bisimilarity and layering | §III-A Def. 2, Prop. 1, Proof 1 | §3 Def. 2, Prop. 1, proof sketch |
+| Extended SOS and grammar | Eqs. (2) δ, (3) π, (4) rcfg, (5) merges, (6) grammar | §3 gives extended operators, Eq. (2) is the extended grammar, and the separate formal SOS displays are omitted. |
+| Congruence | Lemma 3, Proof 2 | Lemma 3, explicitly identifies the equivalence with stateless bisimilarity in the cited SOS format |
+| Complete tests/assignments | Def. 4 | Unnumbered in §3 |
+| NetKAT normalization | Lemma 5, Proof 3, Eqs. (7)–(8) | Lemma 4, proof sketch |
+| DyNetKAT normal forms and guardedness | Defs. 6–7 | Defs. 5–6 |
+| Finite branching | Lemma 8 | Unnumbered after Def. 6 |
+| DyNetKAT normalization | Lemma 9, Proof 4 | Lemma 7 |
+| Axioms and soundness | Fig. 11, Lemmas 10–11, Proofs 5–6, Eqs. (9)–(24), Appendix A Eqs. (36)–(129) | Fig. 6, Lemmas 8–9, short sketches. The extended proof appendix and numbered proof equations are omitted. |
+| Soundness and ground-completeness | Theorem 1, Proof 7, Eq. (25) | Theorem 1, §3 proof |
+| Safety syntax, hnf, translation | Defs. 12–14 and 17, §IV–IV-A | Def. 10 folds in sugars, Def. 11 folds in hnf and gives the translation as Eq. (3). The chapter presents one-letter negation by alphabet complement and refers to the longer desugaring definition. |
+| Trace extension and safety | Defs. 15–16, Eqs. (26)–(27); Eq. (28) distributed controllers | Def. 12 combines trace extension and safety, then gives a firewall formula family |
+| Extraction equations | §V Eqs. (29)–(33) | §5, unnumbered equations with the same cases |
+| Extraction queries | Eqs. (34)–(35) are firewall initial zero and post-event **nonzero** | §5 Eqs. (4)–(5) use explicit π_n and **zero in both**, illustrating forbidden flow with all synchronization events. The later positive firewall example uses nonzero after the request, as in v4 (35). |
+| FatTree | §V, Figs. 12–13 | §6, Figs. 7–8, same three property groups and scale |
+
+There are technical issues in the source wording. The [proof ledger](PROOF_OBLIGATIONS.md)
+records source wording and its Lean interpretation. The typed guardedness
+audit below accounts for Definition 7's variable-in-payload clause. Other
+issues include the printed merge and tail label metavariables,
+the repeated term in one hnf equation, Definition 17's negation, and the
+induction for Theorem 1 on recursive continuations. The FoSSaCS chapter
+shortens several arguments and therefore does not resolve all of these.
+
+## Repository evidence
+
+Audited working tree on `history-semantics`, HEAD
+`bc5712a2d3113624afe878c8f14cf1fbe7f43d68`. A read-only remote ref lookup
+confirmed that commit at `origin/history-semantics`. The last commit is the
+graph-head checkpoint. The working tree additionally changes the library
+imports, packet model/evaluator/decisions, process graph, graph safety and
+process-graph regression. Graph moves, normalization, restriction and tail,
+NetKAT axioms, the KATch bridge and their new regression files are untracked.
+Thus statements below about those declarations describe local work. Compare
+`git status --short` and the umbrella imports in
+[DyNetKAT.lean](../lean/DyNetKAT.lean) before using any of those results as
+release evidence.
+
+**Evidence terms.** Implemented means a declaration exists. Proved means a
+Lean theorem exists and its statement was checked at its stated domain.
+Tested means the corresponding check was run on this working tree. Integrated
+means imported by the umbrella library or callable through a named library
+entry point. The executable is a separate entry point. Committed and pushed
+refer to the pinned Git snapshots above.
+
+`lake build DyNetKAT dynetkat` succeeded. All 18 `test_*.lean` files
+checked individually and 16 Python auxiliary tests passed. The KATch
+common-fragment corpus passed 18 differential comparisons. The test files
+exercise history semantics and evaluation, NetKAT decisions and derivations,
+AST head/tail/safety, graph correspondence and head/tail, normalization
+admissibility, the firewall and an infinite derivative family. The executable
+[Main.lean](../lean/DyNetKAT/Main.lean) prints the project name. The current
+verification script builds the library and runs Python tests. Individual Lean
+regressions and backend comparisons are extra invocations. See the [tool
+audit](DYNETIKAT_REFERENCE_AUDIT.md#v11-feature-parity) for original artifact
+evidence.
+
+## NetKAT foundations
+
+| Source | Mathematical item | Working-tree coverage | Remaining |
+|---|---|---|---|
+| Def. 1, §§II-A/C | A packet is a total valuation over finitely many fields, with natural-number values. The calculus uses a finite domain per field. Packet lists have ordered empty/cons constructors. NetKAT observes the head of a history. | `FieldName`, `FieldValueEnum`, `CtxPkt`, `Packet.update` in `Packet`; `History` is nonempty with a head and tail. `Config` uses possibly empty lists independently of NetKAT history inputs. | Arbitrary finite schemas with per-field domains. Clarify the NetKAT domain on which a head is required and DyNetKAT's singleton invocation. |
+| Fig. 3 predicate grammar | False, true, field equality, disjunction, conjunction, negation. | `Predicate` and its evaluator. | General schema and typed elaboration. |
+| Fig. 3 policy grammar and denotation | Tests return the original history or no result. Negation is complement inside the input singleton. Assignment updates only the head field. Choice is set union. Sequencing is Kleisli composition on the same packet history. Star is the union of all finite powers, including identity. Full NetKAT `dup` copies the head into the history. | `NetKAT`, `Semantics`, `HistorySemantics`, `execute`, `executeHistory`; dup-free `eval_correct`, `executeHistory_correct` and `historySemantics_singleton_iff_packetSemantics`. `execute_star_correct` proves unrestricted star closure on `CtxPkt`. | General schema, full supporting history calculus with dup, conservative inclusion of the dup-free fragment. DyNetKAT still uses the dup-free type. |
+| Def. 4 | Complete test α is the product of all field equalities; complete assignment π is the product of all field updates. α and π encode packets; replace all tests by updates or vice versa for conversions. α·π denotes the singleton input/output pair. | `CompleteTest`, `CompleteAssignmentValuation`, `completeTestExpr`, `completeAssignExpr`, `holdsComplete_iff_eq`, `completeTestExpr_correct`, `completeAssignExpr_sem`, `ofSummand_sem` in `NormalForm.lean`, and packet valuation semantics. | General schema, canonical enumeration and the corresponding derivation lemmas. |
+| Fig. 4 E_NK | KA, BA and PA, listed below. | `NetKAT/Axioms.lean` defines an actual `Derives` relation with congruence, refl/sym/trans and elaboration rules. `Derives.sound` and `Derives.historySound` are dup-free, fixed-domain theorems. | Dup-free `CtxPkt` completeness follows from `normalize_derives` and pair-sum extensionality. Full Figure 4, general schemas, and the relationship between full and restricted derivability remain open. |
+| Lemma 5, Eqs. (7)–(8) | Dup-free policies admit a finite sum of complete test/assignment pairs, with derivable equality in E_NK. | Proved for `CtxPkt`: `exists_derives_pairSum` packages executable `normalize`, pair-sum shape, and `normalize_derives` in the existing `Derives` relation. `normalize_history_correct` gives semantic equality. The proof uses finite packet algebra and bounded stabilization. General schemas and the full language-model development remain open. |
+| §V decision queries | Empty packet relation for zero, equality of relations for dup-free equivalence. | `netkatIsZero_correct`, `netkatEquiv_correct` and corresponding history theorems. | General finite schemas and scalable backend with translation and query correctness. |
+
+### Figure 4 axiom inventory
+
+Write `p ≤ q` for `p + q ≡ q`. Each row groups the printed equations by
+family. Lowercase a, b, c denote tests.
+
+| Rules | Equations or implications | Fixed-domain Lean constructors |
+|---|---|---|
+| KA-PLUS-ASSOC, COMM, ZERO, IDEM | Associativity, commutativity, identity 0 and idempotence of + | `plusAssoc`, `plusComm`, `plusZero`, `plusIdem` |
+| KA-SEQ-ASSOC, KA-ONE-SEQ, KA-SEQ-ONE, both zero laws | Associativity of ·, two units 1 and two annihilators 0 | `seqAssoc`, `oneSeq`, `seqOne`, `zeroSeq`, `seqZero` |
+| KA-SEQ-DIST-L/R | Distribute · over + on both sides | `seqDistL`, `seqDistR` |
+| KA-UNROLL-L/R | `1+p·p* ≡ p*` and `1+p*·p ≡ p*` | `unrollL`, `unrollR` |
+| KA-LFP-L/R | `q+p·r ≤ r ⇒ p*·q ≤ r`; `p+q·r ≤ q ⇒ p·r* ≤ q` | `lfpL`, `lfpR`; semantic `starLfpLeft`, `starLfpRight` |
+| BA-PLUS-DIST, PLUS-ONE, EXCL-MID | `a+(b·c) ≡ (a+b)·(a+c)`, `a+1 ≡ 1`, `a+¬a ≡ 1` | `baPlusDist`, `baPlusOne`, `baExclMid` |
+| BA-SEQ-COMM, CONTRA, SEQ-IDEM | Test product commutes, `a·¬a ≡ 0`, `a·a ≡ a` | `baSeqComm`, `baContra`, `baSeqIdem` |
+| PA-MOD-MOD-COMM, PA-MOD-FILTER-COMM | Assignment commutes with assignment or test on another field | `paModModComm`, `paModFilterComm` |
+| PA-MOD-FILTER, PA-FILTER-MOD, PA-MOD-MOD | Matching post-test after write is redundant. Matching write after test is redundant. Two writes to one field retain the last. | `paModFilter`, `paFilterMod`, `paModMod` |
+| PA-CONTRA, PA-MATCH-ALL | Distinct tests on one field multiply to 0. Sum of its tests for all domain values equals 1. | `paContra`, `paMatchAll`; semantic `paContra_sem`, `paMatchAll_sem`. Domain here is {0, 1, 8, 9} at each field. |
+| PA-DUP-FILTER-COMM | `dup·(f=v) ≡ (f=v)·dup` | Open in the full supporting NetKAT layer. This law has no instance in the dup-free grammar. |
+
+The underlying [POPL 2014 NetKAT paper](https://doi.org/10.1145/2535838.2535862)
+establishes full history-model completeness. Lemma 5 cites its language
+model and completeness for dup-free endpoints. The fixed-domain Lean proof
+derives normalization using the existing dup-free rules, with no appeal to
+a conservativity theorem or an external decision procedure.
+[Fixed-domain derivability regressions](../lean/test_netkat_normalization.lean).
+
+## DyNetKAT syntax and SOS
+
+Eq. (1) covers deadlock, NetKAT prefix, receive, send, parallel, choice and
+named variables. Eq. (6) adds reconfiguration prefix, restriction, projection,
+left merge and communication merge. `AST.lean` implements every listed form,
+including finite choice via `choiceOf` and implicit trailing deadlock via
+`policy`. `RecEnv.lookup` gives at most one body per name. Uniqueness and
+closedness of accepted declaration lists are frontend obligations.
+
+In the table, `H` is the pending packet list and `K` is the handled list.
+`Action` implements packet pairs, send, receive and reconfiguration. The
+relations are in `Semantics.lean` and `ProcessGraph.lean`. Packet cases
+use fixed-domain NetKAT history semantics.
+
+| Paper SOS rule | Premise, label and configuration effect | Lean constructor |
+|---|---|---|
+| Fig. 8 deadlock | No transition | No constructor; `deadlock_no_step` |
+| Fig. 8 packet prefix | N maps singleton σ to singleton τ, input σ::H. Emit (σ,τ), continue with D, H, τ::K. Failure or empty pending list enables no packet step. | `cpol_seq_ok` |
+| Fig. 8 variable | X has a unique body and that body can step. Copy the action, successor and both lists. Unfolding itself consumes no action. | `cpol_var` |
+| Fig. 8 choice L/R | Either side can step. Take its label, successor and lists. | `cpol_choice_l/r` |
+| Fig. 8 parallel L/R | Either side can step. Retain the other side in parallel and copy label and lists. | `cpol_par_l/r` |
+| Fig. 8 receive/send | No premise. Emit x?N or x!N, continue with D and the same lists. | `cpol_recv/send` |
+| Fig. 8 synchronization, both orders | Complementary steps with identical channel and payload, both preserving the same lists. Emit rcfg(x,N), continue with both residuals in parallel. | `cpol_sync_recv_send/send_recv` |
+| Eq. (2) restriction | Copy allowed step and wrap successor in the same δ. Only declared send/receive labels can be blocked. Packet and rcfg labels pass. | `cpol_restrict` |
+| Eq. (3) projection | At depth n+1, copy a step and continue under depth n. Depth 0 has no step. | `cpol_project`, `project_zero_no_step` |
+| Eq. (4) rcfg | No premise. Emit rcfg(x,N) and continue with unchanged lists. | `cpol_rcfg` |
+| Eq. (5) left merge | First step of the left operand with its lists and label. Continue with its residual in parallel with the right operand. | `cpol_left_merge` |
+| Eq. (5) communication merge, both orders | Only a matched handshake as in parallel. Both residuals run in parallel. The payload r in the premises determines rcfg(x,r), as in Fig. 8 and A12. | `cpol_comm_merge_recv_send/send_recv` |
+
+The last rule reads the printed `rcfg(x,p)` in Eq. (5) as a metavariable
+error. The same payload appears in both premises and A12. The extended
+grammar's `N;D` is read with an extended continuation, as used by its
+own equations. Per-packet consistency is the design property that a single
+step invokes one NetKAT policy to completion. There is no numbered
+per-packet-consistency theorem. `NetKATBridge` connects the packet rule
+to the evaluator, and `packetTransitions_sound/complete` cover the
+standalone packet-prefix executable.
+
+## Recursion, semantic results and algebra
+
+| Source | Statement and assumptions | Working-tree coverage and gap |
+|---|---|---|
+| §II-C, Fig. 8 | Named recursive equations, one definition per referenced name. Variables inherit a body's steps. | `RecEnv` enforces at most one body. `ClosedDefined.existsUnique_lookup` proves exactly one body for each reachable name. `cpol_var` inherits the looked-up body's transition. |
+| Def. 7 | Every variable occurrence must be guarded. Clause (i) places the occurrence in the continuation of a sequence with a variable-free or itself guarded prefix. Clause (ii) mentions `y?X;t`, `y!X;t` and `rcfg_{X,t}`. | `typedPaperGuarded_iff_guardedOccurrences` proves the typed occurrence-path interpretation. `wellFormed_iff_closedDefined_and_typedPaperGuarded` checks reachable **bodies**. See the typing audit below for the literal clause. |
+| Lemma 8 | Finite branching of guarded policies, including reachable derivatives. | `WellFormed.finite_targets_from` bounds immediate source targets uniformly over actions and packet lists at every reachable `CtxPkt` state, with arbitrary restriction sets and no finite-support hypothesis. The executable `finite_branching_supported` route remains available. |
+| Def. 2 | Symmetric relation on policies. Match every step from every initial list pair with the same action and final lists, and relate the derivatives. Bisimilarity is the largest such relation. | `IsBisimulation`, `Bisimilar`, refl/sym/trans under a shared environment. Graph `GBisimilar` uses a shared graph. `GraphBisimilarBetween` compares two closed graphs. `gbisimilar_iff_bisimilar` and `compileGraph_bisimilar_iff` give a shared-source-environment bridge under correspondence/support. Cross-environment closure and name independence remain open. |
+| Prop. 1 | Equal NetKAT denotations iff `p;d ∼ q;d` for each continuation d. | Singleton history/packet bridge and prefix inversion exist. `Bisimilar.nSeq_left` compares continuations under a **fixed prefix**, leaving the named two-direction layering theorem open. |
+| Lemma 3 | Bisimilarity is a congruence for process operators. | Fixed-environment congruence is proved per constructor in `Bisimulation` for process operands of four prefixes, parallel, choice, both merges, δ and π. Recursive binding congruence and the lifted general-schema result remain open. Payload labels require special care when importing E_NK. |
+| Def. 6 | A finite choice of complete packet prefixes α·π or send, receive and rcfg prefixes, with arbitrary continuations and optional deadlock. | `HeadNormalForm` and `IsDNKNormalForm` represent this algebraic form. `HeadNormalForm.step_iff` recovers an exact head and continuation from a rendered SOS transition. |
+| Lemma 9 | E_DNK derives equality from a guarded policy to a Def. 6 normal form. | Proved for the typed `CtxPkt` domain by `guarded_normalizes` in `DerivesNoAIP`. `WellFormed.normalizes` extends the result to closed entry terms with exposed references, by the fixed-environment unfolding rule. Both retain arbitrary continuations. The syntactic hypothesis is equivalent to `TypedPaperGuarded`. |
+| Lemma 10, Appendix A | Every derivation in E_DNK without AIP implies bisimilarity. Includes A0–A15 and δ/π equations. | `DerivesNoAIP.sound` proves soundness of the typed rules below in a fixed environment. |
+| Lemma 11, Eqs. (20)–(24) | Bisimilarity at every finite projection implies bisimilarity through descending sets of matching successors. | `Derives.aip` uses full derivation premises at every depth and reachable image finiteness at both endpoints. `Derives.sound` supplies premise soundness recursively and invokes `approximation_induction`. `Derives.aip_guarded` supplies image finiteness from `WellFormed`. |
+| Theorem 1, Eq. (25) | Soundness and ground completeness for strong bisimilarity. Proof 7 derives both choice absorptions by matching summands and comparing continuations. | `ground_derives_iff_bisimilar` proves the characterization for variable-free `CtxPkt` processes in any fixed environment. `ground_complete` derives the reverse direction without AIP. Soundness includes nested AIP and has no ground hypothesis. Completeness for arbitrary environment-closed recursive terms remains open. |
+
+### Definition 7 typed guardedness
+
+The §II-C base grammar in Eq. (1) has process forms
+`⊥ | N;D | x?N;D | x!N;D | D∥D | D⊕D | X`. Here `N` is dup-free
+NetKAT, `x` is a channel name, and `X` is a recursive process variable.
+Equation (6) adds `rcfg_{x,N};Dₑ`, `δ_L(Dₑ)`, `π_n(Dₑ)`, and both
+merges. It prints the packet-prefix continuation as `D`; Lean's
+`nSeq` takes the same extended process type as the other continuations.
+The payload sort remains dup-free NetKAT. Lean represents `X` by `DyNetKAT.var : Var → DyNetKAT`. Each of
+`recv`, `send` and `rcfgPrefix` has type
+`Channel → NetKAT → DyNetKAT → DyNetKAT`. The NetKAT AST has no
+process-variable constructor. `Channel` and `Var` both use strings for
+names, so a shared spelling in a channel is a channel name and does not
+denote a recursive occurrence.
+
+Clause (i) talks about the continuation of a sequence with a variable-free
+or already guarded prefix. The packet-policy operand in the typed grammar
+has no process variables. Clause (ii)'s printed `y?X;t` and `y!X;t`
+place a process variable in a NetKAT payload position, and `rcfg_{X,t}`
+places it in a channel position. A reconfiguration payload also has the
+NetKAT sort. These positions cannot contain `DyNetKAT.var`. Figure 5
+shows the well-typed communication pattern with a NetKAT payload and
+recursive calls in the process continuation. The typed interpretation
+counts all four prefix continuation edges and adds no variable form to the
+payload or channel grammar.
+
+`TypedPaperGuarded` excludes any `ProcessVarOccurrence` path whose
+prefix-crossing flag is false. Deadlock has no paths. A variable has an
+unprefixed path. Packet, send, receive and reconfiguration set the flag
+to true. Both operands of choice, parallel and both merges retain their
+flags, as do the operands of restriction and projection. The equivalence
+with `GuardedOccurrences` is proved by constructor induction. This is a
+theorem about the typed reading. The printed ill-sorted clause has no
+literal AST interpretation.
+
+`Defined` tests direct names from `recursiveVars`. `ReachableVar`
+starts with those names and follows occurrences in each looked-up body.
+`RecEnv = Var → Option DyNetKAT` gives at most one body per name.
+`ClosedDefined` supplies existence throughout the reachable closure.
+`WellFormed` adds typed guardedness of each reachable body. Names outside
+the closure may be undefined. The source rule `cpol_var` uses the body
+from lookup and inherits its step with the same action and packet lists.
+The Figure 5 fixture checks guarded bodies for Host and Switch and
+well-formedness of the entry `Host ∥ Switch`, which has unprefixed
+occurrence paths. This is environment-level packaging of guarded equations.
+
+| Result | Lean hypotheses |
+|---|---|
+| Lemma 8, `WellFormed.finite_targets_from` / `WellFormed.imageFiniteFrom` | `WellFormed` at the initial root. No finite support or executable restriction classifier. |
+| Lemma 9, `guarded_normalizes` | `GuardedOccurrences` of the term, equivalently `TypedPaperGuarded`. |
+| Environment-aware normalization, `WellFormed.normalizes` | `WellFormed` at the root, including exposed references. |
+| Executable guarded moves, `guardedMoves_toGraph_source_exact` | `WellFormed`, `FiniteSupport`, correct classifiers at active restriction sites. |
+| Finite-depth projection, `renderProjection_source` | `WellFormed`, `FiniteSupport`, correct restriction classifiers for the root and reachable bodies. |
+| Semantic AIP, `approximation_induction` | `ImageFiniteFrom` at both endpoints. `WellFormed.imageFiniteFrom` supplies it. |
+| Full AIP soundness, `Derives.sound` | A full derivation, whose AIP nodes carry image finiteness. `Derives.aip_guarded` supplies that evidence from `WellFormed` endpoints. |
+| Theorem 1 ground completeness, `ground_complete` | `Ground` on both terms, meaning `recursiveVars = ∅`, and bisimilarity. The soundness direction has no groundness or recursive-environment guardedness premise. |
+
+### Figure 11 and A16
+
+Here `a` may be any dup-free policy prefix or a communication/reconfiguration
+prefix. `at` is a complete α·π or a communication/reconfiguration prefix.
+These are distinct quantifications in the figure. The symbols `⊕`, `∥`,
+`⊳` and `|` stand for choice, parallel, left merge and communication merge.
+
+| Axiom | Equation or rule | Lean evidence or obligation |
+|---|---|---|
+| A0 | `0;p ≡ ⊥` | `DerivesNoAIP.a0`. `a0_sound` by empty NetKAT history semantics. |
+| A1 | `(z+y);p ≡ z;p ⊕ y;p` | `DerivesNoAIP.a1`. `a1_sound` by union of history relations and exact packet-step reconstruction. |
+| A2 | `p⊕q ≡ q⊕p` | `DerivesNoAIP.a2`. `a2_sound` by choice inversion. |
+| A3 | `(p⊕q)⊕r ≡ p⊕(q⊕r)` | `DerivesNoAIP.a3`. `a3_sound` by choice inversion. |
+| A4 | `p⊕p ≡ p` | `DerivesNoAIP.a4`. `a4_sound` by choice inversion. |
+| A5 | `p⊕⊥ ≡ p` | `DerivesNoAIP.a5`. `a5_sound` by choice inversion and deadlock. |
+| A6 | `p∥q ≡ q∥p` | `DerivesNoAIP.a6`. `a6_sound` by coinduction, swapping operands and synchronization orientations. |
+| A7 | `p∥⊥ ≡ p` | `DerivesNoAIP.a7`. `a7_sound` by coinduction on the surviving component. |
+| A8 | `p∥q ≡ p⊳q ⊕ q⊳p ⊕ p\|q` | `DerivesNoAIP.a8`. `a8_sound` matches the SOS cases, using A6 for the right interleaving target. |
+| A9 | `⊥⊳p ≡ ⊥` | `DerivesNoAIP.a9`. `a9_sound` by inversion of the left premise. |
+| A10 | `(a;p)⊳q ≡ a;(p∥q)` | `DerivesNoAIP.a10`. `a10_sound` uses prefix inversion for all four `MoveLabel` cases. |
+| A11 | `(p⊕q)⊳r ≡ (p⊳r)⊕(q⊳r)` | `DerivesNoAIP.a11`. `a11_sound` by choice and left-merge inversion. |
+| A12 | `(x?z;p)\|(x!z;q) ≡ rcfg(x,z);(p∥q)` | `DerivesNoAIP.a12`. `a12_sound` uses the same syntactic channel and payload. `a12_reverse` derives the reverse orientation via A14 and A6. |
+| A13 | `(p⊕q)\|r ≡ (p\|r)⊕(q\|r)` | `DerivesNoAIP.a13`. `a13_sound` distributes the left choice through both synchronization rules. |
+| A14 | `p\|q ≡ q\|p` | `DerivesNoAIP.a14`. `a14_sound` swaps both synchronization orientations and uses A6 for targets. |
+| A15 | `p\|q ≡ ⊥` [otherwise] | `DerivesNoAIP.a15`. `a15_sound` proves deadlock from `CommMismatch`: Appendix A (96)–(100) and the deadlock operand case. The complementary mismatch requires unequal channels or unequal syntactic payloads. Swap operands with A14. |
+| δ⊥, δ;, δ;⊥, δ⊕ | δ preserves deadlock; passes an allowed prefix with restricted continuation; maps a forbidden prefix to deadlock; distributes over choice. | `restrictDeadlock`, `restrictAllowed`, `restrictBlocked`, `restrictChoice`. The prefix rules require `AtomicPrefix` and the corresponding `PrefixBlocked` test. Soundness reuses the restriction SOS theorems. |
+| Π0, Π⊥, Π;, Π⊕ | π₀ is deadlock; every π of deadlock is deadlock; a prefix consumes one from positive depth; projection distributes over choice. | `projectZero`, `projectDeadlock`, `projectPrefix`, `projectChoice`. The prefix rule requires `AtomicPrefix` at successor depth. Soundness reuses the projection SOS theorems. |
+| AIP | If `π_n(p) ≡ π_n(q)` for all n, derive `p ≡ q`. | `Derives.aip`, with `ImageFiniteFrom` at each endpoint and full `Derives` premises for every n. `WellFormed.imageFiniteFrom` supplies the side condition on the guarded source domain. |
+| A16, Eq. (26) | `a;(q⊕r) ≡ a;q ⊕ a;r` in the trace extension. Here a is a well-typed prefix. | Open. Establish trace soundness separately from strong bisimilarity. |
+
+The Fig. 11 reference to E_NK is represented by `DerivesNoAIP.netkat`, which imports a `NetKAT.Derives` proof only at a packet prefix. `DerivesNoAIP.unfold` gives equational use of the named definitions surrounding Figure 11. It requires a successful lookup in the fixed recursive environment, following the variable SOS, and is separate from the printed Figure 11 axiom list. For instance,
+`z ≡ z+0` at the NetKAT level can replace a packet prefix by Prop. 1.
+Substituting it into a send prefix would change the action label under the
+current and printed syntactic payload matching. See the [proof
+ledger](PROOF_OBLIGATIONS.md#algebra-and-completeness).
+
+## Safety-property theory
+
+| Source | Mathematical item | Current coverage |
+|---|---|---|
+| Def. 12 | Alphabet 𝒜 consists of complete packet-transform letters α·π and rcfg(x,p). Base expressions have a letter, union and concatenation; `[r]false` forbids an execution starting with a word in the language of r. | Packet and rcfg actions exist. No safety alphabet, regexp or formula calculus. |
+| Def. 13 | A word is a nonempty sequence over 𝒜. Prefix includes equality. `hnf` produces a finite sum of words using two-sided distributivity. | Open. Distinct from the process `head` extractor. |
+| Def. 14 | Put W = hnf(r) and M = max word length in W. Encode a word by action-prefixing its letters. The guarded universal process is the choice over a ∈ 𝒜 of `a;⊥ ⊕ a;Θ`. The translation is the choice of `w;⊥` for each word shorter than M having no W-prefix and `w;⊥ ⊕ w;Θ` for each such word of length M. For other r, first take hnf. | Open. Specify finite alphabet, empty sums/epsilon and the trace set of the translated process. |
+| Def. 15 | E_DNK^tr extends Fig. 11 by A16. | Open. |
+| Def. 16, Eq. (27) | A network i is safe if E_DNK^tr derives `⟦s⟧⊕i ≡ ⟦s⟧`. Text characterizes this as trace inclusion. | Open. Need trace semantics, translation and both characterization directions under stated assumptions. |
+| Def. 17 | Add true (any single letter), negated actions and finite n-fold repetition with n≥1. Desugar true as the sum of 𝒜, negated packet/rcfg actions as the printed sums over unequal letters of the same kind, n-fold repetition as concatenation, and recurse through union and product. Interpret extended formulas by desugaring. | Open. Mixed alphabet complement, nested negation and the zero-length convention in Eq. (28) need explicit treatment. |
+| Eq. (28), §V positive dual | Distributed controller excludes the S2→H4 packet action after arbitrary length-n prefixes for every n. Positive `⟨r⟩true` is phrased as inclusion of witness behavior in i. | Open. The two firewall queries alone are a separate extraction workflow. |
+| §V queries | Dup-free reachability/non-reachability test the NetKAT composition against zero. Waypointing uses the inclusion equation in the tool audit. The intended correctness requires relating extracted policies to reachable configurations and scope of the bounded verdict. | The firewall predicates (34) and (35) have executable checks and specification theorems on supported inputs. No waypoint translation or general safety decision theorem. |
+
+## Head and tail
+
+| Input D | head(D) | tail(D,R) |
+|---|---|---|
+| ⊥ | 0 | ⊥ |
+| N;Q | N + head(Q) | tail(Q,R) |
+| Q⊕S | head(Q) + head(S) | tail(Q,R)⊕tail(S,R) |
+| rcfg(x,N);Q with (x,N) ∈ R | 0 | Q ⊕ tail(Q,R) |
+| rcfg(x,N);Q with (x,N) ∉ R | 0 | ⊥ |
+
+Eqs. (29)–(33) apply after normalization and removal of unilateral
+communication. Parallel, merges, variables, δ and π have no raw head/tail
+equations. The tool unfolds only as needed by finite π and then extracts.
+The matching branch of (32) uses N for event membership, consistent with
+(33) and the v1.1 rewrite. Head can traverse several packet prefixes before
+an event. Tail can cross packet prefixes and selected events, keeps each
+matching continuation, and stops at the first event outside R along a
+branch. Nested calls can select ordered updates. A selected event at the
+last step can leave a deadlocked continuation.
+
+| Lean layer | Actual theorem boundary | Additional assumptions and remaining bridge |
+|---|---|---|
+| AST `SafetyHead`, `TailExtraction` | `head_spec`, `tail_spec_iff`, `tail_domain_iff`, `tail_head_spec`; `tail_step_suffix` and `suffix_step_tail` for the supported AST setting. | Constructor fragment; the full tail support predicate requires communication-free and variable-free terms. Domain can be query-dependent. |
+| `ProcessGraph` | `compileGraph_eq_some_iff` requires `FiniteSupport`; `compileGraph_corr` and `graph_step_iff` preserve raw transitions, including parallel, synchronization, merges, δ and π. | Supplied finite transitively closed support with defined variables. A finite graph of definitions can describe infinitely many residual terms. |
+| `GraphRestriction` | `preprocessGraph_bisimulation` on successful preprocessing, comparing with the original graph under an outer block on send/receive. | Structural sequential preprocessor. General parallel must preserve possible handshakes before blocking unilateral actions. |
+| `GraphHead` | `graphHead_supported_some`, `graphHead_sound`, `graphHead_complete`, `graphHead_spec_iff` characterize the inductive head relation. | Finite closed graph and supported syntax in the head region. References are followed by finite traversal and visited-node tracking. |
+| `GraphTail` | `graphTail_domain_iff`, `graphTail_bridge`, `graphTail_spec_iff_of_domain`, `graphTailSpec_toGProc_iff` for variable-free source comparison. Tail adds fresh labels for transformed references and retains the original labels needed by selected continuations. | Exact query domain `GraphTailDomain G R`; `GraphTailSupported` is a sufficient all-sets domain. The bridge equates **head of tail** with a relational specification. Nested tail, presentation independence and correspondence to the original projected SOS are additional obligations. |
+| `GraphNormalization` | `exists_exactNormalization_iff` for finite restricted derivatives, `exists_checkedNormalization_iff` adds admissibility, and `normalizeGraph_correct` establishes graph bisimilarity and extractor support. | Caller supplies a derivative table. Boolean validation also requires restriction-free derivative syntax and one checked reference order with supported one-step rows. The certificate path is separate from finite-depth rendering. |
+| `FiniteProjection` | `renderProjection_source` proves exact executable finite projection on guarded, finitely supported `CtxPkt` inputs with correct executable membership at restriction sites. `renderProjection_restricted` compares with an outer restriction of the projection. | General packet schemas, head/tail consumer proofs, and algebraic derivability remain open. |
+| `SafetyCheck` and compiled graph entry points | `safetyCheckGraph_correct` yields the two verdicts against `GraphHeadSpec` and `GraphTailSpec` on their domains. `compileNormalizeAndSafetyCheckGraph_correct` adds source/graph correspondence and restricted graph bisimilarity on successful compilation and normalization. | The extraction specifications in that theorem are over the rendered graph. A source trace theorem, nested dynamic queries, full safety derivability, parser and general-domain backend remain open. |
+
+The firewall and distributed controllers in Figs. 5–7 and the illustrated
+traces in Figs. 9–10 are validation targets. The local firewall regression
+uses a hand-supplied certificate and the two Eq. (34)–(35) queries. The
+full v1.1 JSON fixtures and FatTree results are tracked in the [feature
+matrix](DYNETIKAT_REFERENCE_AUDIT.md#v11-feature-parity).

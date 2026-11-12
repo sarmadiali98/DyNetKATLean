@@ -2,7 +2,7 @@
 
 **Audit type:** Research and documentation only. No code modifications.
 **Repository audited:** `/Users/ali/Desktop/DyNetKAT` (read-only reference)
-**Official repository:** https://github.com/hcantunc/DyNetiKAT
+**Official repository:** [University of Twente GitLab](https://gitlab.utwente.nl/fmt/dynetikat). The historical audit below used the matching GitHub copy.
 **Examined Git revision:** `1c6bd422377853378c7516a7875009fcfb5ba881` (HEAD of `master` as of 2026-10-17)
 **Release tag:** `v1.1` (points to the same commit `1c6bd42`)
 **Commit date:** 2021-10-09
@@ -18,14 +18,14 @@
 | License | MIT (University of Konstanz, 2021) |
 | Implementation language | Python 3 (glue/orchestration) + Maude (rewriting backend) |
 | NetKAT backend | External: `netkat-idd` (`katbv`) or `netkat-automata` — **not bundled in this repo** |
-| Paper bundled | `paper.pdf` (PDF of the DyNetKAT FoSSaCS 2022 paper) |
+| Paper bundled | `paper.pdf` (conference-style manuscript bundled by the tool) |
 | Architecture | Two-stage pipeline: (1) preprocessing/equational rewriting via Maude, (2) property checking via NetKAT decision procedure |
 
-**Key architectural fact for our project:** DyNetiKAT is a **verification tool**, not a
-formal prover. It uses external solvers (Maude for equational rewriting, NetKAT-idd/automata
-for equivalence checking). Our Lean project must achieve the same **functional parity**
-but cannot depend on these external backends (Maude, KATch, external NetKAT solvers are
-explicitly disallowed per the project decision).
+The prototype performs analysis by invoking Maude and a NetKAT decision
+procedure. The [current roadmap](../PLAN.md) specifies the Lean trust
+boundary and the use of external tools for reference runs or checked
+certificates. See the [current feature parity matrix](#v11-feature-parity)
+for the re-audited revision and workflow.
 
 ---
 
@@ -39,7 +39,7 @@ DyNetiKAT/
 ├── install.sh                # Dependency installation script
 ├── run_test.sh               # Example: run stateful firewall test
 ├── run_fattree.sh            # Example: run FatTree experiments
-├── paper.pdf                 # DyNetKAT FoSSaCS 2022 paper (bundled)
+├── paper.pdf                 # Conference-style manuscript (bundled)
 ├── src/
 │   ├── maude/
 │   │   ├── dnk.maude         # Main Maude module: DyNetKAT axioms + head/tail operators
@@ -685,5 +685,90 @@ throughout its flight — an assumption from [16] (Reitblatt et al.).
 | `run_test.sh` | Example invocation for stateful firewall |
 | `run_fattree.sh` | Example invocation for FatTree experiments |
 | `install.sh` | Dependency installation script |
-| `paper.pdf` | DyNetKAT FoSSaCS 2022 paper (PDF) — source for paper text references |
+| `paper.pdf` | Conference-style manuscript bundled in v1.1 |
 
+
+## v1.1 feature parity
+
+This table is the current parity ledger. It uses the immutable
+[University of Twente GitLab v1.1 checkout](https://gitlab.utwente.nl/fmt/dynetikat/-/tree/1c6bd422377853378c7516a7875009fcfb5ba881).
+The tag and default branch resolve to `1c6bd422377853378c7516a7875009fcfb5ba881`,
+with Git tree `b90170418efdee4842cd2acab6a03f68b9a82d6a`. The GitHub copy
+has the same tree. The earlier audit above is historical. The actual
+Python entry point, Maude modules, adapters, JSON fixtures and scripts
+supply the evidence below. The bundled `paper.pdf` is a conference-style
+manuscript. The [conformance inventory](PAPER_CONFORMANCE.md) uses Springer
+as the published edition. [Pinned GitHub mirror](https://github.com/hcantunc/DyNetiKAT/commit/1c6bd422377853378c7516a7875009fcfb5ba881).
+
+| Original tool capability | Original input or output behavior | Current Lean implementation | Missing work | Required correctness theorem | Regression or benchmark needed |
+|---|---|---|---|---|---|
+| Program text | `program` is a DyNetKAT term string. Maude `DNA` accepts `bot`, quoted NetKAT prefix with `;`, `x ! "N"`, `x ? "N"`, `\|\|`, `o+`, names and `rcfg(x,"N")`. It declares `\|\|<`, `\|`, `delta{H}(D)` and `pi{n}(D)` as well. Prefix binds tighter than parallel/merge, then choice. Quoting and associativity affect the accepted form. | Typed AST and SOS. | Parser, precedence and type diagnostics for the artifact syntax. | Parse/elaborate to the intended AST and SOS. | Parse all fixtures; ambiguous-looking terms and mixed operators. |
+| Recursive declarations | `recursive_variables` maps names to body strings, generating Recursive symbols and `getRecPol(name)` equations. | `RecEnv`, `WellFormed`, graph compile with caller-supplied support. | Frontend lookup, compute support, validate duplicates, undefined names and guardedness. | D2, D6 in proof ledger. | Single declaration, self/mutual recursion, invalid references, growing parallel. |
+| Channels | `channels` is a list of names declared as Maude Channel constants. | Strings and typed labels. | Parse/validate declarations and preserve label identity. | Valid declared channel names map injectively; lookup and matching preserve pairs. | Undeclared/duplicate channel, equal/unequal payloads. |
+| NetKAT text | `zero`, `one`, equality, `~`, `<-`, `+`, `.`, `*`, parentheses. Program prefixes/payloads usually carry quoted strings; the backend parses and evaluates these expressions. | Fixed-domain AST, exact evaluator and zero/equivalence. | Parse the dialect over a general schema and elaborate predicates; cover fields `sw`, `pt`, `src`, `dst`, `typ` in the fixtures. | N1–N6, especially translation of negation, typing, assignment, exact star. | Precedence, multiple writes, nested star, broad domains. |
+| Ingress/egress | `in_packets` and `out_packets` map the same IDs to NetKAT predicate strings. Can specify conjunctions of multiple fields. | Caller supplies two NetKAT operands to `reachabilityPolicy`. | Typed packet-predicate input and validated pair association. | Parsed predicates and pair keys preserve the intended composed relation. | Both firewall directions; FatTree source/destination/type filters. |
+| Positive reachability | Type `r`, expectation `!0`. Given extracted N, requires `in · N · out` nonempty. | `checkCondition35_correct` and graph post-event nonzero. | Positive test on any supported query expression and pair. | Nonempty iff an input/output witness exists in the selected policy. | Positive/negative initial and post-event cases. |
+| Non-reachability | Type `r`, expectation `=0`. Requires the same relation to be empty. | `checkCondition34_correct` and graph initial zero. | Negative test on arbitrary supported query expressions. | Empty iff no witness exists in the selected policy. | Firewall initial isolation and SSH at each FatTree update. |
+| Waypointing | Type `w`, third tuple item a waypoint predicate. Compare `A + B ≡ B`, with A and B below. | Relation equivalence primitive. | Typed waypoint expression and original verdict; path semantics for stronger claims. | Equivalence iff A⊆B. Establish exact conditions for an all-path reading. | Bypass and waypoint paths with identical endpoints, no reachable endpoints, star and non-star forms. |
+| Dynamic property expressions | `@Program` is replaced by the projected/restricted program. Properties include `head(@Program)`, `head(tail(@Program,R))` and nested tails with rcfg event sets. | Graph head/tail and a two-query firewall API. | Query AST, parser, nested tail process semantics, arbitrary chosen event sets and property kinds. | S5–S8, including preservation of repeated tail and original SOS at the chosen depth. | Ordered four-update FatTree selectors, matched/unmatched events and no event. |
+| Projection and unfolding | Fourth tuple item is a natural transition depth. `decide` constructs `delta{H}(pi{n}(program))`; Maude unfolds on demand for positive projection where rewriting needs an active recursive body. Zero depth returns bot. | π in AST/SOS; step and trace cutoff theorems. Certificate-based normalizer for a different executable domain. | General executable finite-depth route and sound rewrite/operational bridge. | Exact π_n finite execution, termination on guarded inputs and preservation of all packet and synchronization effects. | Depth 0/1, increasing depths, mutual recursion, growing parallel, matched event at cutoff. |
+| Restriction and preprocessing | `preprocess.maude` tags communication and packet prefixes in recursive bodies. Python collects channel/payload pairs, adds both !/? forms, checks tagged NetKAT prefixes for zero and replaces proven-empty prefixes with `zero`. Maude reduces `zero;P` to bot and applies δ. | AST and graph restriction, finite table renderer blocks all unilateral sends/receives, evaluator can test zero. | Collect from the complete program including direct root occurrences, handle nested δ and retain valid handshakes, checked zero elimination. | Equivalent to source restriction and exact prefix elimination; artifact set agrees with block-all where it covers every exposed label. | Direct root communication, nested restriction, zero prefix before a productive continuation. |
+| Multiple properties and packet pairs | Iterates `in_packets` keys with property entries and schedules each tuple, identified by pair key and zero-based index. | Single library call with a fixed pair and two outcomes. | Batch input and general verdict list. | Each emitted result equals its independent query on the corresponding pair. | Both firewall keys, multiple queries and a missing key diagnostic. |
+| JSON / preprocessed form | Keys `module_name`, `program`, `recursive_variables`, `channels`, `in_packets`, `out_packets`, `properties`; query tuples `[type, expression, expectationOrWaypoint, depth]`. Preprocessing adds `comm`, preserves the rewritten declarations and writes `output/<module>_preprocessed.json`. | No JSON loader. | Compatibility reader, validation and checked reusable input or cache. | Parser/elaborator sound and complete for valid documented files; cached output equivalent to recomputation. | Raw and preprocessed fixtures, invalid types, invalid depth and malformed terms. |
+| CLI and backend | `dnk.py <maude> <netkat> <input.json>`; `-h`, `-t/--threads` (default Pool size), `-p/--preprocessed`, `-v/--netkat-version` (`netkat-idd` default or `netkat-automata`), `-s/--time-stats`. IDD uses `katbv equiv` with files; automata writes a comparison file and passes that filename to its executable. The backend response is parsed as a Boolean. | Executable prints project name. | Usable frontend with help, worker control, reusable preprocessing and timing. External binary paths and old backend switches are implementation-specific; define any compatibility mapping. | CLI options have documented, semantics-preserving effects. | Help, fixtures, invalid args and explicit preprocessing mode. |
+| Parallel checking | A multiprocessing pool checks properties and is also used for independent zero checks in preprocessing. Results are collected by key after join. | No worker dispatch. | Parallel independent queries with deterministic identity and bounded worker count. | Worker scheduling and caching preserve verdicts and key association. | Serial/parallel equality, memory and overhead at multiple worker counts. |
+| Output and timing | Per packet/property satisfied, violated or error. Optional total wall time, preprocessing wall time, and **maximum** per-query NetKAT duration. Intermediate Maude/input files are implementation details. | Typed library results include extraction failure; no analysis CLI output. | Human-readable verdicts, distinct errors, stable records and separate timings. | Reported verdicts reflect the checked property and failures are never reported as mathematical decisions. | Mixed batch, errors, timing accounting, deterministic output. |
+| Benchmarks | `run_test.sh` invokes the firewall JSON; controller generator and two JSON fixtures; `benchmarks/fattree.py` produces six topologies and per-group/combined files; `run_fattree.sh` runs those 24 combinations with timing. | Hand-built firewall and domain regressions. | Reproduce original fixture runs, controller variants and all FatTree scales. | Generator/fixture interpretation and S9 regression obligations. | Both firewall directions, all FatTree update prefixes, final waypoint, 6–16 pods. |
+| Full paper safety language | The prototype exposes reachability/waypoint expressions and the dynamic selectors. The paper also defines trace formulas with union, concatenation, negated actions, true and finite repetition. | Firewall checks on supported inputs. | Full Definitions 12–17 and a verified usable interface to them. | Desugaring, hnf, translation, trace inclusion and exact bounded verdicts. | Forbidden prefixes, partial alphabets, positive witnesses and mixed packet/rcfg words. |
+
+### Query and artifact details
+
+For a starred network `N=(p·t)*`, the intended waypoint comparison uses
+`A = in·N·out` and
+`B = in·(¬out·p·t)*·w·(¬in·p·t)*·out`. The Python function
+`insert_inside_network` tests whether the printed term contains `*` and
+splices the predicate just inside its first opening parenthesis. Without a
+star it prepends the predicate to N. It also strips parentheses from ingress
+and egress text when building these negated predicates. Those string
+operations are only justified on the intended shape. Specify the typed
+formula on valid inputs, test all generated expressions and report any
+differences for other inputs. Endpoint relation inclusion can hold when
+one bypass path and one waypoint path connect the same pair of packets.
+A path-universal claim requires an additional path observation or a
+hypothesis that excludes such ambiguity.
+
+The Maude labels on the rewrite equations are implementation-local. For
+example, Maude's tagged A0 distributes NetKAT choice and its zero rule is
+untagged. Use Fig. 11 identifiers for mathematical claims. The prototype
+rewrites strings and uses an `owise` rule for communication merge plus
+sort-sensitive on-demand unfolding. These are artifact behaviors, and
+general guarded projection needs the SOS proof in the
+[proof ledger](PROOF_OBLIGATIONS.md#finite-depth-projection).
+
+Source inspection also exposes edge cases for the compatibility tests.
+`preprocess.py` handles a singleton recursive declaration with
+`recursive_variables.keys[0]`, which is invalid for a Python dict.
+`dynetkat.py` can return `None` from a failed worker while
+`report_results` unpacks each result as a pair. The IDD adapter's
+`max(digits)` requires at least one number in the comparison.
+Zero-prefix replacement is a string substitution across a defining body.
+A repeated quoted term can occur both as a packet prefix and as a
+communication payload. A typed rewrite should change only the packet
+prefix, preserving synchronization and the literal event identity.
+Accept valid singleton specifications and constant-only policies and
+report explicit errors. These findings come from source inspection.
+
+The FatTree generator uses shortest-path forwarding, four ordered
+flow-table updates and eight reachability queries (two property groups,
+each checked after one through four updates), plus one final waypoint
+query. Their DyNetKAT projection depths are 2, 3, 4 and 5. The 1,344 count
+at 16 pods includes 1,024 ToR endpoints (named hosts in the generator),
+256 aggregation nodes and 64 core nodes. Paper timings average ten runs
+and distinguish preprocessing from checking. Use separate solver,
+projection/extraction, total wall time and peak-memory measurements and
+record whether preprocessing was reused. The checked-in scripts show how
+to generate and run the baseline. A smoke test using NetworkX 3.4.2
+generated the 6-pod model with 99 nodes, 17 recursive definitions and
+nine queries. The 16-pod topology constructor produced 1,344 nodes.
+Running the original Maude/NetKAT pipeline and collecting comparable
+benchmark results remain Phase 9 work.

@@ -19,6 +19,7 @@ import DyNetKAT.DyNetKAT.Action
 import DyNetKAT.DyNetKAT.Config
 import DyNetKAT.DyNetKAT.RecEnv
 import DyNetKAT.DyNetKAT.Definedness
+import DyNetKAT.DyNetKAT.TypedGuardedness
 import DyNetKAT.DyNetKAT.Semantics
 import DyNetKAT.DyNetKAT.NetKATBridge
 import DyNetKAT.DyNetKAT.Executable
@@ -26,9 +27,20 @@ import DyNetKAT.DyNetKAT.Bisimulation
 import DyNetKAT.DyNetKAT.SafetyHead
 import DyNetKAT.DyNetKAT.RestrictionProjection
 import DyNetKAT.DyNetKAT.ProcessGraph
+import DyNetKAT.DyNetKAT.GraphRestriction
 import DyNetKAT.DyNetKAT.GraphHead
 import DyNetKAT.DyNetKAT.TailExtraction
+import DyNetKAT.DyNetKAT.GraphTail
 import DyNetKAT.DyNetKAT.SafetyCheck
+import DyNetKAT.DyNetKAT.GraphNormalization
+import DyNetKAT.DyNetKAT.FiniteProjection
+import DyNetKAT.DyNetKAT.MemoProjection
+import DyNetKAT.DyNetKAT.FiniteBranching
+import DyNetKAT.DyNetKAT.Equations
+import DyNetKAT.DyNetKAT.EquationsAIP
+import DyNetKAT.DyNetKAT.HeadNormalForm
+import DyNetKAT.DyNetKAT.GroundCompleteness
+import DyNetKAT.DyNetKAT.DependencySCC
 import DyNetKAT.Basic
 
 namespace DyNetKAT

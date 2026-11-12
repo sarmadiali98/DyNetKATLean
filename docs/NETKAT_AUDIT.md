@@ -1,4 +1,91 @@
-# NETKAT_AUDIT.md — Audit of NetKAT Phase 1.5 Implementation
+# NetKAT foundations and decision-procedure audit
+
+## Current scope and roadmap
+
+The source is [arXiv:2102.10035v4](https://arxiv.org/pdf/2102.10035v4),
+especially Defs. 1 and 4, Figs. 3–4 and Lemma 5. The
+[conformance inventory](PAPER_CONFORMANCE.md) gives the edition crosswalk
+and the [proof ledger](PROOF_OBLIGATIONS.md#netkat-foundations) gives the
+theorem targets. The dated Task 2N/2R notes below record earlier findings.
+
+| Dimension | Current evidence | Release requirement |
+|---|---|---|
+| Mathematical model | Generic uniform-codomain `Packet` utilities. `CtxPkt` and the policy AST use `tpSrc`, `tpDst`, `swId`, `port`, each with values 0, 1, 8 and 9. `ctxPkt_card` proves cardinality 256. The history relation and SOS use this instance. | Finite field schema with a finite value domain per field, typed field tests and updates, packet and history semantics and proved complete tests/assignments for every schema. |
+| Evaluation and decision | `eval_correct`, `execute_star_correct`, `netkatIsZero_correct`, `netkatEquiv_correct` and their history bridges. Exact star on the current universe uses a cardinality argument and fixpoint detection. | Same exactness for all finite schemas. Bound the finite evaluator by a proved stabilization measure. NetKAT star remains independent of the DyNetKAT projection depth. |
+| Algebra | `Derives` and soundness for the fixed dup-free system. Executable `normalize` produces the finite pair sum of every dup-free `CtxPkt` term, including star, with proved semantic equality. Pair-sum extensionality and star elimination from derivable stabilization are kernel checked. | `normalize_derives_starFree` and `normalize_derives` prove normalization in the existing equational system. `exists_derives_pairSum` closes Lemma 5 on `CtxPkt`. Full Figure 4 and general finite schemas remain separate. |
+| Mathematical KATch correspondence | `KatchPacket` in `KATch.lean` has integer values and the same four fields. `katchSemantics_encode` proves that execution from an encoded packet stays in the image and corresponds to Lean output. `netkatEquiv_katch_restricted` and `netkatIsZero_katch_restricted` quantify over that image. | General-domain translation and zero/equivalence theorems for the common dup-free fragment. Identify the executable backend parser and query semantics and account for values outside the image. |
+| Functional query coverage | Fixed-domain relation decisions and the initial/post-event firewall query. | General-domain reachability, non-reachability and waypoint inclusion, in the original dynamic pipeline and as standalone NetKAT decisions. Verify the original backend encodings as separate comparisons. |
+| Scalability | Small finite regression universe and differential corpus. | Complete the original FatTree cases through 1,344 switches with measurements of time and memory and baseline comparisons. |
+
+### Finite schemas and exact closure
+
+Use a schema-indexed valuation `(f : Field) → Value f`, with computable
+enumeration, decidable equality and nonempty finite domains. Keep the
+current four-field instance for regression and prove a compatibility
+bridge. Validate literal values against the schema during parsing. If an
+adapter derives domains from source constants, it must account for all
+unmentioned values observable by negated tests, identity, PA-MATCH-ALL
+or later input constraints. An exact abstraction can group indistinguishable
+values only with a proof that tests, writes, star, zero and equivalence
+respect the abstraction, including preservation of unchanged values.
+
+Use the explicit evaluator as a reference. For a fixed input, the
+reached-output set grows monotonically and can grow only finitely many
+times. A simple finite path bound or the equivalent least-fixed-point
+invariant yields exact reflexive-transitive closure. Nested star follows
+by structural correctness for the inner policy. Completeness of E_NK is
+a separate derivability statement. One route to connect the full and
+dup-free systems is erasure of dup to identity on proof terms. The
+image of PA-DUP-FILTER-COMM follows from the two unit laws. Prove the
+erasure preserves all other inference rules and fixes dup-free endpoints.
+
+### Backend correspondence and scale
+
+DyNetiKAT v1.1 calls `netkat-idd` by default and also contains an
+adapter for `netkat-automata`. Its IDD adapter derives a common
+bit width for a comparison from numeric literals and encodes them
+in binary. KATch is the separate PLDI 2024 symbolic verifier used
+for differential checks in this repository. Backend domain defaults,
+negation, bit widths and identity on unmentioned fields must match
+the intended finite input universe. In particular, four-value
+PA-MATCH-ALL equals identity in Lean and differs from unguarded identity
+over arbitrary integer ports. The Lean `KatchSemantics` model is a
+semantic bridge, with executable agreement checked on sample inputs.
+
+The working-tree differential corpus ran against the local KATch
+checkout at `1af6d337bd45d3d95a32efd89b32fbdd76ee7efa`. All 18 assertions
+matched, including the comparison with the restricted-domain guard
+removed. This exercises a finite corpus. General compiler/backend
+correspondence and scalable parity remain open.
+[KATch paper and methods](https://arxiv.org/abs/2404.04760).
+
+Enumerating input packets costs at least the product of field-domain sizes
+for a total-domain scan. Materializing all complete test/assignment pairs
+can cost the square of that product. At 16 pods the FatTree source
+uses switch/location, port, source, destination and traffic-type fields.
+Several have large domains. Even the switch count alone exceeds any
+current field domain. The complete-pair normal form is useful for the
+algebraic proof and as a small-domain oracle. Benchmark implementation
+choices before relying on enumeration.
+
+Evaluate a verified symbolic backend for the dup-free fragment, using
+shared decision diagrams or symbolic packet relations with identity,
+test, assignment, Boolean union, composition, exact fixed-point closure
+and relation emptiness/equality. Prove denotation of each operation and
+termination of closure, then compare with the finite oracle and reference
+backends. Also evaluate a certificate architecture in which a search
+engine produces a witness or a closed symbolic relation and Lean checks
+it. Positive reachability needs a genuine path witness. Zero,
+equivalence and waypoint inclusion need coverage or invariant
+certificates sufficient to justify universal claims. A star certificate
+needs both reachability and closure evidence for exactness. Specify
+completeness on the supported query class and keep the checker, parser
+and translation in the trusted proof chain. Benchmark both approaches
+at increasing topology sizes and record certificate size and generation
+and checking costs where applicable. The performance gate is measured
+end-to-end behavior on the original workloads.
+
+## Historical implementation audit
 
 **Audit date:** 2026-10-16 (Phase 1.5) / 2026-10-17 (Task 2N)
 **Repository:** `/Users/ali/Desktop/DyNetKAT-Lean`
@@ -517,9 +604,54 @@ distinction.
 
 ---
 
-## 8. Next Task
+## 8. Historical follow-up
 
-**Implement Lemma 5 (normal forms)** — the remaining Phase 1 deliverable.
-Requires adding the `[Fintype CtxPkt]` instance (star termination / finite A and Π).
-This is out of scope for Task 2R-L per the task restrictions ("Do not begin the
-`Fintype CtxPkt` task").
+Task 2R-L deferred the finite instance and Lemma 5. The finite instance now
+exists. The current roadmap above records the remaining general-schema,
+derivability and scalability obligations.
+
+## Executable common fragment and KATch domain
+
+| Lean syntax | Evaluator | Zero and equivalence | Use in the safety pipeline |
+|---|---|---|---|
+| `drop` | Empty output set | Supported | Empty head contribution and zero comparison |
+| `id` | Input singleton | Supported | Accepted as a policy or query operand |
+| `test` | Predicate on the input packet | Supported | Ingress and egress tests, plus tests in supplied policies |
+| `completeTest` | Equality of all four fields | Supported | Accepted in supplied policies and in normal-form summands |
+| `assign1` | Update one field | Supported | Accepted in supplied policies and in complete-assignment expressions |
+| `union` | Union of output sets | Supported | Graph head unions the collected policies |
+| `seq` | Relational composition | Supported | Composes ingress, extracted head and egress |
+| `star` | Reflexive-transitive closure | Supported | Accepted in all supplied policy positions |
+
+The `test` row covers `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, and
+`pNot`. Preprocessing preserves the NetKAT prefix labels it retains. Head
+adds unions and drop, tail carries the original labels into the continuation,
+and the safety queries add composition. All of these are in the verified
+finite evaluator's domain.
+
+`eval_correct` identifies the executable output set with the denotation.
+`execute_star_eq_boundedStar` proves that early stopping at a fixed point
+gives the same result as the iteration used in the cardinality proof.
+`execute_star_correct` identifies that result with unbounded closure.
+`netkatIsZero_history_correct` and `netkatEquiv_history_correct` lift
+the decisions to histories over the same packet universe.
+
+`katchSemantics_encode` embeds the four-field packets into integer-valued
+packets, with values (0, 1, 8, 9) at each field. The embedding preserves
+tests and assignments, then union, sequencing, and star. Every execution
+from an encoded packet stays inside the image, including intermediate
+packets. `netkatEquiv_katch_restricted` and `netkatIsZero_katch_restricted`
+characterize the two queries on this image. `completeTestExpr_correct`
+justifies translation of a complete test to four primitive tests.
+
+The common fragment is dup-free standard NetKAT with negation on tests.
+KATch's queries apply to the corresponding trace semantics. Without
+duplication the only observable output of a run is the final packet.
+An input guard requiring each field to be in the four-value domain
+gives the restricted query even when KATch permits other values.
+For example, the sum of four port tests is identity in the restricted
+domain and fails to match identity on unrestricted integer packets.
+The Lean statements concern the semantics of the queries. The
+[differential corpus](../lean/test_katch_differential.lean) exercises the
+published KATch implementation independently.
+[KATch paper](https://arxiv.org/abs/2404.04760).
