@@ -55,6 +55,7 @@ inductive BackendCandidate where
 
 inductive BackendMethod where
   | checkedRelation
+  | checkedEquational
   | checkedCounterexample
   | exactFallback
   deriving DecidableEq, Repr

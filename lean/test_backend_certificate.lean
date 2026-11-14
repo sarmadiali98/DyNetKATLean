@@ -63,29 +63,57 @@ private def repeatedFirewall : Nat → NetKAT
   | 0 => firewall
   | n + 1 => .seq (.union .id .drop) (repeatedFirewall n)
 
+private def positive : NetKAT := .star (repeatedFirewall 96)
+private def common : NetKAT := .star firewall
+private def negative : NetKAT := .seq ingress (.seq (.star firewall) (.fieldTest .port .v1))
+
+#guard checkEquationalCertificate positive common common
+#guard !(checkEquationalCertificate positive common .id)
+#guard (decideWithEquationalCertificate positive common .id).method == .exactFallback
+
+-- Packet-policy equations leave communication payload syntax intact.
+example : DyNetKAT.DyNetKAT.Action.send "update" (.union .id .drop) ≠
+    DyNetKAT.DyNetKAT.Action.send "update" .id := by
+  intro h
+  exact NetKAT.noConfusion (DyNetKAT.DyNetKAT.Action.send.inj h).2
+
 private def benchmark : IO Unit := do
-  let p := repeatedFirewall 96
-  let q := NetKAT.star .drop
-  let start ← IO.monoMsNow
-  let checked := decideWithBackend p q
-    (decodeBackendCandidate "{\"kind\":\"counterexample\",\"input\":[8,1,0,0]}")
-  unless checked.method == .checkedCounterexample do throw (IO.userError "witness rejected")
-  IO.println s!"one-input certificate: {(← IO.monoMsNow) - start} ms"
-  let start ← IO.monoMsNow
-  let exact := decideWithBackend p q none
-  if exact.equivalent then throw (IO.userError "unexpected equivalence")
-  IO.println s!"exact inequivalence fallback: {(← IO.monoMsNow) - start} ms"
-  let start ← IO.monoMsNow
-  unless netkatEquiv p firewall do throw (IO.userError "unexpected inequivalence")
-  IO.println s!"exact equivalence: {(← IO.monoMsNow) - start} ms"
-  let start ← IO.monoMsNow
-  unless checkBackendEquivalent p firewall firewallRows do throw (IO.userError "relation rejected")
-  IO.println s!"common relation check: {(← IO.monoMsNow) - start} ms"
+  let start ← IO.monoNanosNow
+  let candidate := reduceEquational positive
+  unless decide (candidate = common) do throw (IO.userError "unexpected candidate")
+  IO.println s!"candidate generation: {(← IO.monoNanosNow) - start} ns"
+  let start ← IO.monoNanosNow
+  unless checkEquationalCertificate positive common candidate do
+    throw (IO.userError "equational certificate rejected")
+  IO.println s!"equational check: {(← IO.monoNanosNow) - start} ns"
+  let start ← IO.monoNanosNow
+  unless netkatEquiv positive common do throw (IO.userError "unexpected inequivalence")
+  IO.println s!"exact equivalence: {(← IO.monoNanosNow) - start} ns"
+  let start ← IO.monoNanosNow
+  let rows : BackendRelation := fun p => insert p (firewallRows p)
+  unless checkBackendEquivalent positive common rows do throw (IO.userError "relation rejected")
+  IO.println s!"common relation check: {(← IO.monoNanosNow) - start} ns"
 
 /-- The optional backend round trip uses the same original policies on replay. -/
 def main (args : List String) : IO Unit := do
   match args with
   | [] => benchmark
+  | ["emit-live", "negative"] =>
+    IO.println s!"left = {KatchExport.policy negative}"
+    IO.println "right = ⊥"
+  | ["emit-live", "positive"] =>
+    IO.println s!"left = {KatchExport.policy positive}"
+    IO.println s!"right = {KatchExport.policy common}"
+  | ["replay-live", "positive", hint] =>
+    let result := if hint == "equational" then
+        decideWithEquationalCertificate positive common common
+      else decideWithBackend positive common none
+    IO.println s!"{repr result.method}: equivalent = {result.equivalent}"
+  | ["replay-live", "negative", file] =>
+    let candidate ← if file == "-" then pure none
+      else pure (decodeBackendCandidate (← IO.FS.readFile file))
+    let result := decideWithBackend negative .drop candidate
+    IO.println s!"{repr result.method}: equivalent = {result.equivalent}"
   | ["emit-witness"] => IO.println (KatchExport.counterexampleQuery firewall .drop)
   | ["emit-row"] => IO.println (KatchExport.relationRowQuery wirePolicy
       (fun | .tpSrc => .v8 | .tpDst => .v1 | .swId => .v0 | .port => .v9))
@@ -97,7 +125,7 @@ def main (args : List String) : IO Unit := do
     let result := decideWithBackend wirePolicy (.union wirePolicy .drop)
       (decodeBackendCandidate (← IO.FS.readFile file))
     IO.println s!"{repr result.method}: equivalent = {result.equivalent}"
-  | _ => throw (IO.userError "expected emit-witness, emit-row, check-witness FILE, or check-relation FILE")
+  | _ => throw (IO.userError "expected emit-live CASE, replay-live CASE CANDIDATE, emit-witness, emit-row, check-witness FILE, or check-relation FILE")
 
 example {env : DyNetKAT.DyNetKAT.RecEnv} (rest : DyNetKAT.DyNetKAT.DyNetKAT)
     (h : (decideWithBackend firewall (.union .drop firewall) (some (.commonRelation firewallRows))).equivalent = true) :
@@ -125,3 +153,10 @@ example {env : DyNetKAT.DyNetKAT.RecEnv} (rest : DyNetKAT.DyNetKAT.DyNetKAT)
 /-- info: 'DyNetKAT.NetKAT.decideWithBackend_derives' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms decideWithBackend_derives
+
+/-- info: 'DyNetKAT.NetKAT.checkEquationalCertificate_sound' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms checkEquationalCertificate_sound
+/-- info: 'DyNetKAT.NetKAT.decideWithEquationalCertificate_correct' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms decideWithEquationalCertificate_correct

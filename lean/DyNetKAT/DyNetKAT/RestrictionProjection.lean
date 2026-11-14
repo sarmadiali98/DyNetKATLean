@@ -1124,18 +1124,6 @@ theorem not_bisimilar_project_depths (env : RecEnv) :
 -- §5 Computable preprocessing towards `head` (§V, PDF p. 14)
 ------------------------------------------------------------------------
 
--- Decidable equality on `CtxPkt` is the global instance from
--- `DyNetKAT.NetKAT.Decision` (repo convention: no second global instance).
--- `CompleteTest` is a `def`-alias of `CtxPkt`, so its decidable equality is
--- the existing `instDecEqCtxPkt` (instance search does not unfold `def`s,
--- hence the explicit registration, mirroring `Fintype CompleteTest` in
--- `NetKAT/Packet.lean`).  Decidable equality on `NetKAT` and on
--- `CommunicationAction` is derived here for the `Finset` membership tests
--- of `restrictElim` (and is not registered anywhere else in the project).
-instance : DecidableEq CompleteTest := instDecEqCtxPkt
-
-deriving instance DecidableEq for NetKAT
-
 deriving instance DecidableEq for CommunicationAction
 
 /-- The communication actions syntactically occurring in a process

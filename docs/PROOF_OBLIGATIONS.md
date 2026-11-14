@@ -392,3 +392,11 @@ translation.
   NKPL formatting, backend computation, and conversion to candidate
   JSON carry no proof authority. The [backend audit](NETKAT_AUDIT.md)
   records the live replay and performance gaps.
+
+`checkEquationalCertificate_sound` validates a proposed common reduced
+term through `E_NK` identity and zero laws and congruence, including
+star congruence. `decideWithEquationalCertificate_correct` covers both
+accepted candidates and fallback, without changing payload equality.
+The optional KATch driver uses guarded assertions as candidate hints.
+Its backend status has no semantic authority. Live replay against the
+pinned executable remains an external verification gate.

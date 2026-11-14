@@ -55,6 +55,11 @@ instance instDecEqCtxPkt : DecidableEq CtxPkt := by
     · intro h f hf
       exact congrFun h f)
 
+-- Complete tests reuse packet equality. Policy equality is syntactic.
+instance : DecidableEq CompleteTest := instDecEqCtxPkt
+
+deriving instance DecidableEq for NetKAT
+
 ------------------------------------------------------------------------
 -- The equivalence checker
 ------------------------------------------------------------------------

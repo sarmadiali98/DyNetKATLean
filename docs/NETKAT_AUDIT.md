@@ -719,3 +719,64 @@ The benchmark measures the Lean validation and fallback paths only.
 A negative witness requires two evaluations on one input, and ordinary
 inequivalence may itself stop early. Positive comparison validates every
 input for both policies and currently offers no verified speedup.
+
+### Optional KATch driver and equational checking
+
+The historical KATch revision is
+`1af6d337bd45d3d95a32efd89b32fbdd76ee7efa`. The
+[upstream artifact README](https://github.com/julesjacobs/KATch)
+documents `katch run FILE`, assertions and Graphviz output, and identifies
+`Runner.scala`, `SPP.scala`, `Bisim.scala` and `Viz.scala` as the
+interpreter, symbolic policy, bisimulation and visualization components.
+The pinned implementation source and a runnable installation were
+unavailable in this verification environment. The pinned runner's
+exit-status conventions and any internal serialization hooks therefore
+remain unverified. No stable machine-readable proof export was identified.
+A direct symbolic import would need a producer for those objects and a
+proof that its serialized objects denote the original policy.
+
+Build Lean and install KATch separately, following the artifact README.
+Use the historical revision when reproducing the earlier differential
+run. Pass a host launcher that accepts `run FILE` and can read the file.
+A container launcher must expose that file to the container.
+
+```sh
+(cd lean && lake build DyNetKAT)
+python3 scripts/katch_replay.py both --katch katch --require-backend
+(cd lean && lake env lean --run test_backend_certificate.lean)
+```
+
+Instead of depending on pretty-printed packet sets or Graphviz syntax,
+the driver probes guarded NKPL assertions. It self-tests one passing and
+one failing assertion and requires opposite exit results on complementary
+probes. A launcher with an incompatible exit protocol falls back.
+For the negative star/firewall example it narrows a field at a time and
+replays the nominated concrete input with Lean. For the larger positive
+star pair it uses the backend status solely to nominate an equational
+certificate for the original terms. The driver uses a timeout across
+all KATch probes for a case. Missing executables, inconsistent replies,
+invalid UTF-8, timeouts, and rejected evidence have exact fallback when
+Lean is available. Lean process failure yields operational unknown.
+
+`EquationalCertificate.lean` checks a proposed common term after
+eliminating sequential identities and additive zeros, including under
+star. The certificate is a single NetKAT term supplied as a typed Lean
+value. The demo supplies its own common term when the backend hint
+arrives. KATch does not produce this term. The checker uses existing
+`E_NK` derivations and syntactic equality, with work driven by policy
+syntax rather than the size of the packet universe. The checker is
+incomplete and intentionally small. Complete normal-form relation
+checking remains exhaustive. General symbolic partitions, diagrams,
+and automata would require coverage and term-correspondence proofs
+before they could replace this reference check.
+
+On the firewall-derived star pair with 96 redundant compositions, one
+Lean process measured 0.25 ms to generate the common term, 0.09 ms to
+check it, 200 ms for exact equivalence and 223 ms for exhaustive shared
+relation checking. These are fixture timings, excluding startup and
+KATch. The optional runner reports candidate generation and Lean replay
+wall time separately. Protocol tests use a subprocess double and
+exercise genuine Lean replay. Live KATch positive and negative replay
+remains unverified here. The equational fragment provides a measured
+positive fast path independent of KATch, with no claim of general
+symbolic backend certification.

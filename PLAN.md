@@ -268,3 +268,11 @@ NKPL exporter and JSON interchange are outside the semantic proof.
 A live KATch adapter and timing comparison against a symbolic certificate
 format remain open. The current positive checker still evaluates both
 policies on every input.
+
+The optional KATch driver nominates distinguishing inputs through
+guarded assertions and uses a positive assertion to trigger equational
+replay on a supported fixture. The small, proved equational checker
+avoids packet enumeration in its rewrite fragment. Verify live replay
+against the pinned KATch executable and identify exportable symbolic
+evidence for broader positive cases before claiming scalable backend
+certification. General packet schemas remain a separate phase.

@@ -12,6 +12,7 @@ import DyNetKAT.NetKAT.HistoryEvaluator
 import DyNetKAT.NetKAT.Decision
 import DyNetKAT.NetKAT.KATch
 import DyNetKAT.NetKAT.BackendCertificate
+import DyNetKAT.NetKAT.EquationalCertificate
 import DyNetKAT.NetKAT.Axioms
 import DyNetKAT.NetKAT.NormalForm
 import DyNetKAT.NetKAT.Normalization
