@@ -374,3 +374,21 @@ translation.
   closure gives all-depth concrete coverage, forward simulation gives
   all-depth overapproximation, and strong quotients give exact finite
   behavioral models.
+
+### Fixed-domain backend validation
+
+- `checkBackendRelation_sound` checks complete output sets against
+  `execute_correct`. Its accepted rows agree with both
+  `netkatNormalForm` and `normalize`. Star uses the evaluator's existing
+  finite stabilization proof.
+- `checkBackendEquivalent_sound` validates a common relation for both
+  policies. `checkBackendCounterexample_sound` validates a single
+  distinguishing input by comparing its complete output sets.
+- `decideWithBackend_correct` reduces every accepted or fallback
+  decision to existing packet equivalence. The history and derivation
+  bridges serve packet-prefix consumers. Communication payloads still
+  use literal syntax.
+- Integer-packet semantic correspondence is in `KATch.lean`.
+  NKPL formatting, backend computation, and conversion to candidate
+  JSON carry no proof authority. The [backend audit](NETKAT_AUDIT.md)
+  records the live replay and performance gaps.

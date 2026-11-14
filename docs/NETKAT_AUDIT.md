@@ -655,3 +655,67 @@ The Lean statements concern the semantics of the queries. The
 [differential corpus](../lean/test_katch_differential.lean) exercises the
 published KATch implementation independently.
 [KATch paper](https://arxiv.org/abs/2404.04760).
+
+### Checked backend interchange on CtxPkt
+
+The existing differential test generated NKPL assertions from
+`netkatEquiv` and compared them with KATch in a separate run. There was
+no production subprocess adapter, cached certificate store, or
+proof-replay interchange. The pinned differential run described above
+is historical. The published NKPL interface supports equivalence and
+inequivalence assertions, symbolic packet sets through `forward` and
+`backward`, and Graphviz visualization. The paper documents printing
+counterexample input sets with backward flow over symmetric difference.
+The published interface reviewed here provides no documented canonical
+proof-certificate format for those commands. See the [artifact README](https://github.com/julesjacobs/KATch) and [paper](https://arxiv.org/abs/2404.04760).
+
+`KatchExport` reuses the existing corpus printer. The supported
+fragment is the complete current dup-free AST, including Boolean tests,
+complete tests, assignments, union, composition, and star.
+`katchSemantics_encode` establishes the mathematical translation from
+the four-field `CtxPkt` domain into integer-field packet relations. NKPL
+formatting and the backend parser are outside this theorem.
+
+`BackendCertificate.lean` accepts these JSON candidate shapes:
+
+```json
+{"kind":"counterexample","input":[8,1,0,0]}
+{"kind":"relation","pairs":[[[8,1,0,9],[0,1,0,9]]]}
+```
+
+Each line above is a separate JSON document. Packets list source,
+destination, switch, and port, with values in 0, 1, 8, and 9. Relation
+pairs list input then output. Omitted pairs denote absence and
+duplicates denote the same edge. Invalid JSON, tags, packet lengths and
+out-of-domain values fail decoding. Candidate acceptance independently
+checks the original Lean policies. A backend Boolean answer is never
+used as evidence.
+
+The optional replay entry point is available from `lean/`:
+
+```sh
+lake env lean --run test_backend_certificate.lean emit-witness > witness.nkpl
+lake env lean --run test_backend_certificate.lean emit-row > row.nkpl
+katch run witness.nkpl
+katch run row.nkpl
+lake env lean --run test_backend_certificate.lean check-witness witness.json
+lake env lean --run test_backend_certificate.lean check-relation relation.json
+lake env lean --run test_backend_certificate.lean
+```
+
+For witness replay, choose a concrete in-domain input from the printed
+symbolic set and write the first JSON shape. For relation replay, extract
+the output set of the singleton-input query. The emitted example policy
+begins with a complete test, so all other input rows are empty.
+For general policies a full relation requires all input rows. Conversion
+of symbolic output to JSON is manual at this checkpoint. It is outside
+the proof boundary. Timeout, unavailability and conversion failure
+can be passed as an absent candidate to `decideWithBackend` for exact
+fallback. A rejected candidate uses the same fallback.
+
+The replay tests use independent fixtures in the interchange format.
+No live KATch run was available in the verification environment.
+The benchmark measures the Lean validation and fallback paths only.
+A negative witness requires two evaluations on one input, and ordinary
+inequivalence may itself stop early. Positive comparison validates every
+input for both policies and currently offers no verified speedup.

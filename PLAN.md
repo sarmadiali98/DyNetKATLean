@@ -258,3 +258,13 @@ use a checked finite bisimulation, a strong quotient, or a direct proof.
 Future work includes candidate inference, executable query-specific
 property checkers, CLI reporting, and the KATch, general-packet and
 tool-parity phases.
+
+### Checked NetKAT backend candidates
+
+The fixed-domain checker accepts a proposed shared packet relation or a
+distinguishing input, validates it against the exact evaluator, and
+otherwise falls back to the existing decision procedure. The optional
+NKPL exporter and JSON interchange are outside the semantic proof.
+A live KATch adapter and timing comparison against a symbolic certificate
+format remain open. The current positive checker still evaluates both
+policies on every input.

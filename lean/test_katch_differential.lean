@@ -5,34 +5,7 @@ import DyNetKAT
    Run the KATch reference on common.nkpl. Each expected comparison is
    computed by Lean and checked by the reference implementation. -/
 open DyNetKAT.NetKAT
-
-private def field : FieldName → String
-  | .tpSrc => "src"
-  | .tpDst => "dst"
-  | .swId => "sw"
-  | .port => "port"
-
-private def atom (f : FieldName) (op : String) (v : FieldValueEnum) : String :=
-  s!"@{field f}{op}{katchValue v}"
-
-private def predicate : Predicate → String
-  | .pFalse => "⊥"
-  | .pTrue => "⊤"
-  | .pFieldEq ⟨f, v⟩ => atom f "=" v
-  | .pAnd p q => s!"({predicate p} ⋅ {predicate q})"
-  | .pOr p q => s!"({predicate p} ∪ {predicate q})"
-  | .pNot p => s!"(⊤ ∖ {predicate p})"
-
-private def policy : NetKAT → String
-  | .drop => "⊥"
-  | .id => "⊤"
-  | .test p => predicate p
-  | .completeTest α =>
-      String.intercalate " ⋅ " (NetKAT.fieldEnum.map fun f => atom f "=" (α f))
-  | .assign1 f v => atom f "←" v
-  | .union p q => s!"({policy p} ∪ {policy q})"
-  | .seq p q => s!"({policy p} ⋅ {policy q})"
-  | .star p => s!"({policy p})⋆"
+open DyNetKAT.NetKAT.KatchExport
 
 private def src := NetKAT.fieldTest .tpSrc .v8
 private def setPort := NetKAT.assign1 .port .v1
@@ -63,8 +36,6 @@ private def corpus : List (String × NetKAT × NetKAT) :=
   , ("star unrolls right", .union .id (.seq (.star path) path), .star path) ]
 
 def main : IO Unit := do
-  let domain := String.intercalate " ⋅ "
-    (NetKAT.fieldEnum.map fun f => s!"({policy (matchAll f)})")
   IO.println s!"domain = {domain}"
   for (name, p, q) in corpus do
     let op := if netkatEquiv p q then "≡" else "≢"

@@ -154,4 +154,51 @@ theorem netkatIsZero_katch_restricted (p : NetKAT) :
   rw [netkatIsZero, netkatEquiv_katch_restricted]
   simp only [katchSemantics, iff_false]
 
+/- Text export is untrusted. `katchSemantics_encode` proves the mathematical
+interpretation on the finite input domain, and certificate acceptance checks
+the original Lean policy independently of this printer. -/
+namespace KatchExport
+
+private def field : FieldName → String
+  | .tpSrc => "src"
+  | .tpDst => "dst"
+  | .swId => "sw"
+  | .port => "port"
+
+private def atom (f : FieldName) (op : String) (v : FieldValueEnum) : String :=
+  s!"@{field f}{op}{katchValue v}"
+
+private def predicate : Predicate → String
+  | .pFalse => "⊥"
+  | .pTrue => "⊤"
+  | .pFieldEq ⟨f, v⟩ => atom f "=" v
+  | .pAnd p q => s!"({predicate p} ⋅ {predicate q})"
+  | .pOr p q => s!"({predicate p} ∪ {predicate q})"
+  | .pNot p => s!"(⊤ ∖ {predicate p})"
+
+def policy : NetKAT → String
+  | .drop => "⊥"
+  | .id => "⊤"
+  | .test p => predicate p
+  | .completeTest α =>
+      String.intercalate " ⋅ " (NetKAT.fieldEnum.map fun f => atom f "=" (α f))
+  | .assign1 f v => atom f "←" v
+  | .union p q => s!"({policy p} ∪ {policy q})"
+  | .seq p q => s!"({policy p} ⋅ {policy q})"
+  | .star p => s!"({policy p})⋆"
+
+def domain : String :=
+  String.intercalate " ⋅ " (NetKAT.fieldEnum.map fun f =>
+    "(" ++ String.intercalate " ∪ " ([.v0, .v1, .v8, .v9].map (atom f "=")) ++ ")")
+
+/-- Use the printed symbolic input set to propose a concrete packet witness. -/
+def counterexampleQuery (p q : NetKAT) : String :=
+  s!"print (backward (({domain} ⋅ ({policy p})) ⊕ ({domain} ⋅ ({policy q}))))"
+
+/-- Restrict input to one packet and ask for its symbolic output set. -/
+def relationRowQuery (p : NetKAT) (input : CtxPkt) : String :=
+  s!"print (forward (({policy (.completeTest input)}) ⋅ ({policy p})))"
+
+end KatchExport
+
 end DyNetKAT.NetKAT
