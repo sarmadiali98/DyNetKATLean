@@ -399,4 +399,9 @@ star congruence. `decideWithEquationalCertificate_correct` covers both
 accepted candidates and fallback, without changing payload equality.
 The optional KATch driver uses guarded assertions as candidate hints.
 Its backend status has no semantic authority. Live replay against the
-pinned executable remains an external verification gate.
+pinned executable remains an external verification gate. The
+[source protocol audit](NETKAT_AUDIT.md#optional-katch-driver-and-equational-checking)
+documents the launcher fix and the unavailable build dependencies.
+Replaying a future symbolic certificate would require checking both
+the connection from the original terms to the exported automata and
+the symbolic bisimulation obligations.

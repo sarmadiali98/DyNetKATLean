@@ -31,7 +31,8 @@ def run(command, deadline, cwd=None):
     try:
         result = subprocess.run(command, cwd=cwd, capture_output=True,
                                 timeout=remaining)
-        return result.returncode, result.stdout.decode("utf-8")
+        return (result.returncode, result.stdout.decode("utf-8"),
+                result.stderr.decode("utf-8"))
     except FileNotFoundError as exc:
         raise BackendFailure("unavailable") from exc
     except subprocess.TimeoutExpired as exc:
@@ -73,40 +74,46 @@ def propose(assertion, case):
 def backend_candidate(command, policy, case, directory, timeout):
     deadline = time.monotonic() + timeout
     path = directory / "probe.nkpl"
+    (directory / "results").mkdir(exist_ok=True)
 
-    def invoke(text):
-        path.write_text(text + "\n", encoding="utf-8")
-        return run([*command, "run", str(path)], deadline)
+    def invoke(prefix, statement):
+        path.write_text(prefix + statement + "\n", encoding="utf-8")
+        code, stdout, stderr = run([*command, "run", str(path)], deadline, directory)
+        line = prefix.count("\n") + 1
+        location = f"{path}:{line}"
+        stdout_lines = stdout.splitlines()
+        passed = f"\x1b[32mCheck passed in {location}\x1b[0m"
+        failed = (f'Exception in thread "main" java.lang.Throwable: '
+                  f'\x1b[31m!!! Check failed in {location} !!!\x1b[0m')
+        if code == 0 and not stderr.strip() and stdout_lines.count(passed) == 1:
+            return True
+        # The historical shell wrapper can mask Java's status with its cleanup.
+        if code in (0, 1) and stderr.splitlines()[:1] == [failed] and passed not in stdout_lines:
+            return False
+        raise BackendFailure("unexpected KATch assertion response")
 
-    # Check the launcher protocol against both a passing and a failing
-    # assertion before interpreting any exit codes. Do not assume a stable
-    # textual format or interpret an error as a policy verdict.
-    good, _ = invoke("check ⊤ ≡ ⊤")
-    bad, _ = invoke("check ⊤ ≡ ⊥")
-    if good != 0 or bad <= 0:
-        raise BackendFailure("unsupported assertion exit protocol")
+    if not invoke("", "check ⊤ ≡ ⊤") or invoke("", "check ⊤ ≡ ⊥"):
+        raise BackendFailure("unsupported assertion protocol")
 
     def assertion(statement):
-        # Require complementary results, so two process failures cannot
-        # masquerade as a successful branch of the search.
+        # Complementary assertions must return opposite answers.
         if " ≢ " in statement:
             opposite = statement.replace(" ≢ ", " ≡ ", 1)
         else:
             opposite = statement.replace(" ≡ ", " ≢ ", 1)
-        code, _ = invoke(policy + "\n" + statement)
-        inverse, _ = invoke(policy + "\n" + opposite)
-        if (code, inverse) == (good, bad):
-            return True
-        if (code, inverse) == (bad, good):
-            return False
-        raise BackendFailure("inconsistent KATch assertion results")
+        prefix = policy.rstrip("\n") + "\n" if policy else ""
+        result = invoke(prefix, statement)
+        if invoke(prefix, opposite) == result:
+            raise BackendFailure("inconsistent KATch assertion results")
+        return result
 
     return propose(assertion, case)
 
 
 def replay(case, command, timeout, lean_timeout):
-    code, policy = run([*LEAN, "emit-live", case], time.monotonic() + lean_timeout,
-                       ROOT / "lean")
+    overall_start = time.monotonic()
+    code, policy, _ = run([*LEAN, "emit-live", case], overall_start + lean_timeout,
+                          ROOT / "lean")
     if code != 0:
         raise BackendFailure("Lean policy export failed")
     with tempfile.TemporaryDirectory(prefix="katch-replay-") as tmp:
@@ -126,8 +133,8 @@ def replay(case, command, timeout, lean_timeout):
             argument = candidate or "-"
 
         started = time.monotonic()
-        code, output = run([*LEAN, "replay-live", case, argument],
-                           started + lean_timeout, ROOT / "lean")
+        code, output, _ = run([*LEAN, "replay-live", case, argument],
+                              started + lean_timeout, ROOT / "lean")
         verdict = REPLAY.fullmatch(output.strip())
         if code != 0 or verdict is None:
             raise BackendFailure("invalid Lean replay response")
@@ -139,8 +146,10 @@ def replay(case, command, timeout, lean_timeout):
             "method": method,
             "equivalent": equivalence == "true",
             "backend": reason,
+            "candidate": candidate,
             "candidate_ms": round(candidate_ms, 3),
             "lean_replay_ms": round((time.monotonic() - started) * 1000, 3),
+            "total_ms": round((time.monotonic() - overall_start) * 1000, 3),
         }
 
 
@@ -161,11 +170,12 @@ def main():
     parser.add_argument("--katch", default="katch",
                         help="KATch launcher, accepting 'run FILE'")
     args = parser.parse_args()
+    launcher = str(Path(args.katch).resolve()) if "/" in args.katch else args.katch
     cases = ("positive", "negative") if args.case == "both" else (args.case,)
     status = 0
     for case in cases:
         try:
-            result = replay(case, [args.katch], args.timeout, args.lean_timeout)
+            result = replay(case, [launcher], args.timeout, args.lean_timeout)
         except BackendFailure as exc:
             result = {"case": case, "method": "unknown", "reason": str(exc)}
             status = 1

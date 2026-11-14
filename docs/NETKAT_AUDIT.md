@@ -722,41 +722,89 @@ input for both policies and currently offers no verified speedup.
 
 ### Optional KATch driver and equational checking
 
-The historical KATch revision is
-`1af6d337bd45d3d95a32efd89b32fbdd76ee7efa`. The
-[upstream artifact README](https://github.com/julesjacobs/KATch)
-documents `katch run FILE`, assertions and Graphviz output, and identifies
-`Runner.scala`, `SPP.scala`, `Bisim.scala` and `Viz.scala` as the
-interpreter, symbolic policy, bisimulation and visualization components.
-The pinned implementation source and a runnable installation were
-unavailable in this verification environment. The pinned runner's
-exit-status conventions and any internal serialization hooks therefore
-remain unverified. No stable machine-readable proof export was identified.
-A direct symbolic import would need a producer for those objects and a
-proof that its serialized objects denote the original policy.
+The [pinned KATch source](https://github.com/julesjacobs/KATch/tree/1af6d337bd45d3d95a32efd89b32fbdd76ee7efa)
+was inspected from the archive for revision
+`1af6d337bd45d3d95a32efd89b32fbdd76ee7efa`. It declares Scala 3.3.1,
+sbt 1.9.6, sbt-assembly 0.15.0, and FastParse 3.0.2. The historical
+Dockerfile uses OpenJDK 8. The local OpenJDK 17 build with writable
+temporary sbt directories stopped during sbt 1.9.6 dependency retrieval
+because outbound sockets were unavailable. No assembly or live replay
+was produced in that environment.
 
-Build Lean and install KATch separately, following the artifact README.
-Use the historical revision when reproducing the earlier differential
-run. Pass a host launcher that accepts `run FILE` and can read the file.
-A container launcher must expose that file to the container.
+`Main.scala` dispatches `run FILE` to `Runner.runTopLevel`, which reads
+one statement per line and writes timing files under the working
+directory's `results/`. `Runner.scala` emits an ANSI-colored,
+path-and-line-specific pass on stdout. On a failed assertion it throws
+a `Throwable` with a different path-and-line-specific message and
+summarized operands. Processing stops at the first failure. Parse
+errors, missing files, undefined variables and the bisimulation
+iteration limit use separate exceptions. The upstream shell launcher
+runs cleanup after Java, so its final exit status can mask a JVM failure.
+
+To reproduce, clone [upstream](https://github.com/julesjacobs/KATch)
+outside this repository, check out the exact revision in detached mode,
+verify it with `git rev-parse HEAD`, and run `sbt -batch assembly`.
+Use a launcher with an absolute JAR path that preserves the JVM exit
+status. The driver provides an isolated working directory with
+`results/` and passes an absolute NKPL path. A container launcher must
+expose both to the container.
+
+```sh
+# In an executable launcher script, substitute the assembled JAR path.
+exec java -Dfile.encoding=UTF-8 -Xss10m -jar /path/to/KATch-assembly-0.1.0-SNAPSHOT.jar "$@"
+```
 
 ```sh
 (cd lean && lake build DyNetKAT)
-python3 scripts/katch_replay.py both --katch katch --require-backend
+python3 scripts/katch_replay.py both --katch /path/to/pinned-launcher --require-backend
 (cd lean && lake env lean --run test_backend_certificate.lean)
 ```
 
-Instead of depending on pretty-printed packet sets or Graphviz syntax,
-the driver probes guarded NKPL assertions. It self-tests one passing and
-one failing assertion and requires opposite exit results on complementary
-probes. A launcher with an incompatible exit protocol falls back.
-For the negative star/firewall example it narrows a field at a time and
-replays the nominated concrete input with Lean. For the larger positive
-star pair it uses the backend status solely to nominate an equational
-certificate for the original terms. The driver uses a timeout across
-all KATch probes for a case. Missing executables, inconsistent replies,
-invalid UTF-8, timeouts, and rejected evidence have exact fallback when
-Lean is available. Lean process failure yields operational unknown.
+For a direct protocol check, run the launcher from a scratch directory
+with `results/` present. Use separate files for `check ⊤ ≡ ⊤`,
+`check ⊤ ≡ ⊥`, `check ⊤ ≡`, and `check undefined ≡ ⊤`, and invoke
+another absent `.nkpl` path. Capture stdout, stderr and exit status
+separately. Run a two-line file containing the passing assertion then
+the failing assertion to verify line numbers and early termination.
+Use `--timeout 0.001` on the replay driver to exercise the operational
+deadline. Run the existing differential corpus to exercise the printer,
+including Boolean tests and complete packet tests, and the row exporter
+to exercise the concrete-input query:
+
+```sh
+# Run from the DyNetKAT-Lean checkout.
+scratch=$(mktemp -d)
+mkdir "$scratch/results"
+(cd lean && lake env lean --run test_katch_differential.lean) > "$scratch/common.nkpl"
+(cd lean && lake env lean --run test_backend_certificate.lean emit-row) > "$scratch/row.nkpl"
+(cd "$scratch" && /path/to/pinned-launcher run common.nkpl row.nkpl)
+```
+
+The driver calibrates one passing and one failing assertion using the
+pinned source's messages and requires opposite results on complementary
+probes. It declines unrecognized output and process failures and uses
+exact Lean fallback when available. A failed Lean process yields
+operational unknown. The firewall/star search performs a domain probe,
+two narrowing probes per field, and a final concrete-packet probe. Each
+uses the assertion and its complement, for 22 launcher calls including
+calibration. Lean checks the nominated input. The larger positive star
+pair uses four launcher calls including calibration. Its hint triggers
+the existing Lean common-term check.
+
+`Bisim.bisimPrim` uses a local work queue and maps residual pairs to
+processed symbolic packet sets. It returns a Boolean and discards those
+structures. The CLI's failed assertion reports operands without a
+counterexample. `Bisim.forward` and `Bisim.backward` return symbolic
+sets internally, but the CLI's display truncates their pretty-printed
+form. `Bisim.ε` and `Bisim.δ` expose immediate symbolic packet
+transformations and labeled derivatives. `Viz.scala` emits automaton
+and per-label decision diagrams for one policy, with generated labels
+and no source-term correspondence or bisimulation certificate.
+An upstream exporter could expose the residual-pair map on successful
+completion and serialize the SP/SPP nodes and derivatives. Lean would
+still need to check their correspondence to the original terms and the
+symbolic bisimulation obligations. That proof layer is beyond a small
+launcher change. There is no certificate export in the pinned CLI.
 
 `EquationalCertificate.lean` checks a proposed common term after
 eliminating sequential identities and additive zeros, including under
@@ -771,12 +819,21 @@ and automata would require coverage and term-correspondence proofs
 before they could replace this reference check.
 
 On the firewall-derived star pair with 96 redundant compositions, one
-Lean process measured 0.25 ms to generate the common term, 0.09 ms to
-check it, 200 ms for exact equivalence and 223 ms for exhaustive shared
-relation checking. These are fixture timings, excluding startup and
-KATch. The optional runner reports candidate generation and Lean replay
-wall time separately. Protocol tests use a subprocess double and
+Lean process measured 0.24 ms to generate the common term, 0.08 ms to
+check it, 205 ms for exact equivalence and 228 ms for exhaustive shared
+relation checking. On the negative firewall/star fixture, JSON witness
+decoding and checking took 0.75 ms and exact inequivalence took 0.37 ms.
+These are fixture timings, excluding startup and KATch. The optional
+runner reports candidate, backend probe wall time,
+Lean replay wall time, and total round-trip time. Protocol tests use a subprocess double and
 exercise genuine Lean replay. Live KATch positive and negative replay
 remains unverified here. The equational fragment provides a measured
 positive fast path independent of KATch, with no claim of general
 symbolic backend certification.
+
+The proof boundary consists of the Lean semantics,
+`katchSemantics_encode`, the relation, witness and equational checkers,
+and their soundness proofs. The KATch executable, textual serializer,
+subprocess and output parser, candidate generation and performance
+measurements carry no proof authority. Communication labels retain
+literal payload syntax.

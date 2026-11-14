@@ -93,6 +93,14 @@ private def benchmark : IO Unit := do
   let rows : BackendRelation := fun p => insert p (firewallRows p)
   unless checkBackendEquivalent positive common rows do throw (IO.userError "relation rejected")
   IO.println s!"common relation check: {(← IO.monoNanosNow) - start} ns"
+  let start ← IO.monoNanosNow
+  let witness := decodeBackendCandidate "{\"kind\":\"counterexample\",\"input\":[0,0,0,0]}"
+  unless (decideWithBackend negative .drop witness).method == .checkedCounterexample do
+    throw (IO.userError "witness rejected")
+  IO.println s!"witness decoding and check: {(← IO.monoNanosNow) - start} ns"
+  let start ← IO.monoNanosNow
+  if netkatEquiv negative .drop then throw (IO.userError "unexpected equivalence")
+  IO.println s!"exact inequivalence: {(← IO.monoNanosNow) - start} ns"
 
 /-- The optional backend round trip uses the same original policies on replay. -/
 def main (args : List String) : IO Unit := do
