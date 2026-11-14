@@ -30,6 +30,44 @@ private def graph : ProcessGraph where
     | .inr 0 | .inr 1 | .inr 2 | .inr (_ + 3) | .inl _ =>
       simp [body, gprocRefs, a, Finset.union_subset_iff]
 
+-- Keep both same-observation successors, including the deadlocking branch.
+private def nondeterministicTable : AbstractTable 2 :=
+  ⟨0, fun i => if i = 0 then [(.visible (.rcfg "a" .id), 1), (.visible (.rcfg "a" .id), 0)] else []⟩
+
+private theorem nondeterministicExact :
+    MovesExact graph (.ref x) [(.visible (.rcfg "a" .id), .deadlock),
+      (.visible (.rcfg "a" .id), .ref x)] :=
+  guardedMoves_exact (by rfl)
+
+private def nondeterministicQuotient :
+    BisimulationQuotient graph (.ref x) nondeterministicTable where
+  represents i p := p = (if i = 0 then .ref x else .deadlock)
+  initial := rfl
+  forward := by
+    rintro i p q pt hl act pt' hl' rfl hs
+    by_cases hi : i = 0
+    · subst i
+      change GStep graph ⟨.ref x, pt, hl⟩ act ⟨q, pt', hl'⟩ at hs
+      obtain ⟨l, hm, hr⟩ := (nondeterministicExact pt hl act q pt' hl').mp hs
+      simp only [List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hm
+      rcases hm with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      · exact ⟨1, ⟨_, by simp [nondeterministicTable], hr⟩, rfl⟩
+      · exact ⟨0, ⟨_, by simp [nondeterministicTable], hr⟩, rfl⟩
+    · simp only [if_neg hi] at hs
+      cases hs
+  backward := by
+    rintro i j p pt hl act pt' hl' rfl ⟨l, hm, hr⟩
+    by_cases hi : i = 0
+    · subst i
+      change (l, j) ∈ [(.visible (.rcfg "a" .id), 1), (.visible (.rcfg "a" .id), 0)] at hm
+      simp only [List.mem_cons, List.not_mem_nil, or_false, Prod.mk.injEq] at hm
+      rcases hm with ⟨rfl, rfl⟩ | ⟨rfl, rfl⟩
+      · exact ⟨.deadlock, (nondeterministicExact pt hl act _ pt' hl').mpr
+          ⟨_, by simp, hr⟩, rfl⟩
+      · exact ⟨.ref x, (nondeterministicExact pt hl act _ pt' hl').mpr
+          ⟨_, by simp, hr⟩, rfl⟩
+    · simp [nondeterministicTable, hi] at hm
+
 private def checks : RestrictionChecks := fun _ _ => false
 
 private theorem supported : ProjectionSupport graph (fun _ => checks) (fun _ => True) := by

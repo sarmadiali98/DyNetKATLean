@@ -242,6 +242,14 @@ finite projection for the requested depth under its existing hypotheses.
 
 Finite bisimulation discovery tries all matching symbolic alternatives in
 the product of two concrete closures and checks the resulting relation.
-Future work on finite quotients requires a separately proved abstraction
-relation, including preservation of actions and packet-list effects across
-related states.
+Use explicit finite abstract tables when concrete closure is unavailable.
+Forward certificates transfer all-depth state properties. Strong quotient
+certificates also certify each abstract transition in reverse and relate
+the root to the rendered DyNetKAT model. Exact finite projection remains
+available when no suitable certificate has been supplied.
+
+The spawning fixture admits a finite forward abstraction, and the
+unspent blocker count rules out every finite strong quotient. A minimal
+variant that spawns deadlocks has infinitely many concrete derivatives
+and a one-state strong quotient. Production strategy selection and
+automated candidate inference remain future work.

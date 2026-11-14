@@ -222,4 +222,132 @@ theorem spawn_no_valid_closure (rows : ClosureCandidate graph) :
   rintro _ _ ⟨pt, hl, a, pt', hl', _, hs⟩
   exact ⟨pt, hl, a, pt', hl', hs⟩
 
+-- Spent components remain as deadlocks. The index counts unspent blockers.
+private inductive SpawnResidual : Nat → GProc → Prop
+  | root : SpawnResidual 0 graph.root
+  | live : SpawnResidual n p → SpawnResidual (n + 1) (.parallel p blocker)
+  | spent : SpawnResidual n p → SpawnResidual n (.parallel p .deadlock)
+
+private theorem SpawnResidual.step {n p} (h : SpawnResidual n p) {pt hl a q pt' hl'}
+    (hs : GStep graph ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩) :
+    pt' = pt ∧ hl' = hl ∧
+      ((a = .rcfg "a" .id ∧ SpawnResidual (n + 1) q) ∨
+       (a = .rcfg "b" .id ∧ ∃ k, n = k + 1 ∧ SpawnResidual k q)) := by
+  induction h generalizing pt hl a q pt' hl' with
+  | root =>
+    change GStep graph ⟨.ref (varNode "X"), pt, hl⟩ a ⟨q, pt', hl'⟩ at hs
+    have hh := gstep_ref_inv hs
+    have label : graph.label (varNode "X") = .rcfgPrefix "a" .id (.parallel graph.root blocker) := by
+      simp [graph, spawnEnv, toGProc, blocker]
+      rfl
+    rw [label] at hh
+    cases hh
+    exact ⟨rfl, rfl, Or.inl ⟨rfl, .live .root⟩⟩
+  | live h ih =>
+    cases hs with
+    | par_l _ _ _ _ _ _ _ _ hs =>
+      obtain ⟨rfl, rfl, ⟨rfl, hq⟩ | ⟨rfl, k, rfl, hq⟩⟩ := ih hs
+      · exact ⟨rfl, rfl, Or.inl ⟨rfl, .live hq⟩⟩
+      · exact ⟨rfl, rfl, Or.inr ⟨rfl, _, rfl, .live hq⟩⟩
+    | par_r _ _ _ _ _ _ _ _ hs =>
+      cases hs
+      exact ⟨rfl, rfl, Or.inr ⟨rfl, _, rfl, .spent h⟩⟩
+    | sync_recv_send _ _ _ _ _ _ _ _ hs _ => obtain ⟨_, _, ⟨he, _⟩ | ⟨he, _⟩⟩ := ih hs <;> cases he
+    | sync_send_recv _ _ _ _ _ _ _ _ hs _ => obtain ⟨_, _, ⟨he, _⟩ | ⟨he, _⟩⟩ := ih hs <;> cases he
+  | spent _ ih =>
+    cases hs with
+    | par_l _ _ _ _ _ _ _ _ hs =>
+      obtain ⟨rfl, rfl, ⟨rfl, hq⟩ | ⟨rfl, k, rfl, hq⟩⟩ := ih hs
+      · exact ⟨rfl, rfl, Or.inl ⟨rfl, .spent hq⟩⟩
+      · exact ⟨rfl, rfl, Or.inr ⟨rfl, _, rfl, .spent hq⟩⟩
+    | par_r _ _ _ _ _ _ _ _ hs => cases hs
+    | sync_recv_send _ _ _ _ _ _ _ _ _ hs => cases hs
+    | sync_send_recv _ _ _ _ _ _ _ _ _ hs => cases hs
+
+private theorem SpawnResidual.consume {n p} (h : SpawnResidual n p) (hp : 0 < n) :
+    ∃ q, GStep graph ⟨p, [], []⟩ (.rcfg "b" .id) ⟨q, [], []⟩ ∧
+      SpawnResidual (n - 1) q := by
+  induction h with
+  | root => omega
+  | live h => exact ⟨_, .par_r _ _ _ _ _ _ _ _ (.rcfg _ _ _ _ _), .spent h⟩
+  | spent h ih =>
+    obtain ⟨q, hs, hq⟩ := ih hp
+    exact ⟨_, .par_l _ _ _ _ _ _ _ _ hs, .spent hq⟩
+
+private theorem SpawnResidual.bisim_count {n m p q} (hp : SpawnResidual n p)
+    (hq : SpawnResidual m q) (hb : GBisimilar graph p q) : n = m := by
+  have le {n m p q} (hp : SpawnResidual n p) (hq : SpawnResidual m q)
+      (hb : GBisimilar graph p q) : n ≤ m := by
+    induction n generalizing m p q with
+    | zero => omega
+    | succ n ih =>
+      obtain ⟨p', hs, hp'⟩ := hp.consume (by omega)
+      obtain ⟨q', ht, hb'⟩ := (gbisimilar_isGBisimulation graph).2 p q hb [] [] _ p' [] [] hs
+      obtain ⟨_, _, ⟨he, _⟩ | ⟨_, k, rfl, hq'⟩⟩ := hq.step ht
+      · exact (show Action.rcfg "b" .id ≠ .rcfg "a" .id by intro h; have := Action.rcfg.inj h; simp at this) he |>.elim
+      · have := ih hp' hq' hb'
+        omega
+  exact Nat.le_antisymm (le hp hq hb) (le hq hp (hb.symm graph))
+
+private theorem spawnResidual (n : Nat) : SpawnResidual n (spawnState n) := by
+  induction n with
+  | zero => exact .root
+  | succ _ ih => exact .live ih
+
+theorem spawn_bisimilar_only_if_equal_count {j k : Nat}
+    (h : GBisimilar graph (spawnState j) (spawnState k)) : j = k :=
+  (spawnResidual j).bisim_count (spawnResidual k) h
+
+theorem spawn_no_finite_quotient {n} (T : AbstractTable n) :
+    IsEmpty (BisimulationQuotient graph graph.root T) := by
+  classical
+  constructor
+  intro cert
+  have covered (k : Nat) : ∃ i, T.Reaches i ∧ cert.represents i (spawnState k) :=
+    cert.toSimulationAbstraction.allReachable
+      ((spawnReach k).mono (by rintro _ _ ⟨pt, hl, a, pt', hl', _, hs⟩
+                               exact ⟨pt, hl, a, pt', hl', hs⟩))
+  let index (k : Nat) := (covered k).choose
+  apply not_injective_infinite_finite index
+  intro j k he
+  have hj := (covered j).choose_spec.2
+  have hk := (covered k).choose_spec.2
+  change index j = index k at he
+  change cert.represents (index k) (spawnState k) at hk
+  rw [← he] at hk
+  exact spawn_bisimilar_only_if_equal_count (cert.sameClass hj hk)
+
+private def spawnTable : AbstractTable 2 :=
+  ⟨0, fun i => if i = 0 then [(.visible (.rcfg "a" .id), 0), (.visible (.rcfg "b" .id), 0)]
+               else []⟩
+
+private def spawnSimulation : SimulationAbstraction graph graph.root spawnTable where
+  represents i p := i = 0 ∧ ∃ n, SpawnResidual n p
+  initial := ⟨rfl, 0, .root⟩
+  forward := by
+    rintro i p q pt hl a pt' hl' ⟨rfl, n, hr⟩ hs
+    obtain ⟨rfl, rfl, ⟨rfl, hq⟩ | ⟨rfl, k, _, hq⟩⟩ := hr.step hs
+    · exact ⟨0, ⟨_, by simp [spawnTable], .rcfg⟩, rfl, _, hq⟩
+    · exact ⟨0, ⟨_, by simp [spawnTable], .rcfg⟩, rfl, k, hq⟩
+
+theorem spawn_all_depth_no_packet_or_communication {p}
+    (reach : Relation.ReflTransGen (ConcreteStep graph) graph.root p) :
+    ∀ {pt hl a q pt' hl'}, GStep graph ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩ →
+      pt' = pt ∧ hl' = hl ∧ (a = .rcfg "a" .id ∨ a = .rcfg "b" .id) := by
+  apply spawnSimulation.liftProperty (Inv := fun i => i = 0) ?_ ?_ reach
+  · intro i h
+    induction h with
+    | refl => rfl
+    | tail _ hs ih =>
+      obtain ⟨pt, hl, a, pt', hl', l, hm, _⟩ := hs
+      rw [ih] at hm
+      simp [spawnTable] at hm
+      rcases hm with h | h <;> exact h.2
+  · rintro _ _ _ ⟨_, n, hr⟩ _ _ _ _ _ _ hs
+    obtain ⟨hp, hh, ha | hb⟩ := hr.step hs
+    exacts [⟨hp, hh, Or.inl ha.1⟩, ⟨hp, hh, Or.inr hb.1⟩]
+
+#print axioms spawn_no_finite_quotient
+#print axioms spawn_all_depth_no_packet_or_communication
+
 end DyNetKAT.DyNetKAT.InfiniteDerivativesTests

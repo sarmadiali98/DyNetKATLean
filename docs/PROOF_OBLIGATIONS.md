@@ -311,3 +311,34 @@ translation.
   still apply. Spawning hits the four-state limit, is independently proved
   to admit no valid finite closure, and retains exact finite projection at
   every requested depth.
+
+### Finite simulation abstractions and strong quotients
+
+- `AbstractTable` uses `Fin n` nodes and executable lists of labeled
+  successors. Its edges use `MoveLabel.Realizes` with the original action,
+  input and output packets, and both pending and handled lists.
+  Communication payload syntax remains literal.
+- A user or heuristic supplies the table and a relation over graph
+  residuals. `SimulationAbstraction` requires root representation and
+  forward matching. `allReachable` and `liftProperty` apply at any depth.
+  `coversSource` transfers source executions through `Corr`.
+- `BisimulationQuotient` additionally requires backward matching for each
+  represented residual. `sourceModel` uses `IsBisimulation2` with an
+  executable finite model environment. When the original environment
+  implements the table as well, `bisimilar` gives the existing
+  same-environment `Bisimilar` theorem directly.
+- Spawning residuals contain unspent reconfiguration prefixes and spent
+  deadlocks. Action `a` adds an unspent blocker and `b` consumes one.
+  Synchronization is impossible in that family. Matching successive
+  `b` steps forces bisimilar residuals to have equal blocker counts.
+  All counts are reachable, so a finite strong quotient is impossible.
+  The forward abstraction allows both labels at one reachable abstract
+  node and proves absence of packet, send and receive steps at every depth.
+- The deadlock-spawning variant has distinct reachable syntax after each
+  tick. Its one-node quotient proves source `Bisimilar` to a finite tick
+  loop. A separate restriction example certifies a deadlock with an
+  arbitrary blocked set without comparing sets.
+- Existing finite concrete closure remains the preferred certificate for
+  finite concrete derivatives. Exact projection supplies bounded analysis
+  under its existing hypotheses. No automatic quotient inference is
+  required by the proof-carrying API.
