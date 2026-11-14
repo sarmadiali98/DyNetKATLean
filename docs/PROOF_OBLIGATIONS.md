@@ -342,3 +342,35 @@ translation.
   finite concrete derivatives. Exact projection supplies bounded analysis
   under its existing hypotheses. No automatic quotient inference is
   required by the proof-carrying API.
+
+### Certified recursive strategy selection
+
+- `AnalysisRequest` distinguishes explicit bounded inspection, all-depth
+  state properties, and exact finite models. `analyzeCompiledSource` uses
+  exact projection directly for explicit bounded requests. For the other
+  requests it selects ground unfolding on acyclic dependencies before
+  attempting concrete closure on cyclic dependencies.
+- `AnalysisResult` retains the underlying ground derivation, closure,
+  forward simulation, strong quotient, or exact depth-indexed projection
+  proof. Concrete closure takes priority over supplied models. A strong
+  quotient serves either unbounded request and a forward simulation serves
+  an all-depth property request. If neither applies, the requested depth
+  permits projection. Results retain the concrete discovery failure when
+  taking a fallback route.
+- `proveStateProperty` requires evidence on represented states before
+  returning an all-depth property proof. A bounded model yields an unknown
+  all-depth property verdict even if a property callback is supplied.
+  Selection of the ground route exposes the derivation for separate
+  ground analysis.
+- `analyzeEquivalence` can use a checked reconfiguration mismatch,
+  finite concrete bisimulation, or supplied exact pair evidence. Its
+  positive evidence implies the existing `Bisimilar`, and an executable
+  negative result carries a literal action witness and a proof of
+  non-bisimilarity. Discovery failure is semantically neutral.
+- `AnalysisGuarantee` exposes depth and table or certificate sizes for
+  reporting. The abstract size counts declared nodes, including unreachable
+  nodes. Model availability and a verdict about a particular query are
+  distinct. Projection guarantees exact bounded behavior, concrete
+  closure gives all-depth concrete coverage, forward simulation gives
+  all-depth overapproximation, and strong quotients give exact finite
+  behavioral models.

@@ -177,4 +177,89 @@ example : discoverClosure loopSupport .structural ⟨1, 1, 0⟩
 #print axioms analyzeRecursive_ground
 #print axioms analyzeRecursive_closure
 
+
+private def strategyEnv : RecEnv :=
+  (RecEnv.empty.define "X" (.choice (.rcfgPrefix "a" .id .deadlock)
+    (.rcfgPrefix "a" .id (.var "X")))).define "Y" (.choice
+      (.rcfgPrefix "a" .id (.var "Z")) (.rcfgPrefix "a" .id .deadlock))
+    |>.define "Z" (.choice (.rcfgPrefix "a" .id (.var "Y")) (.rcfgPrefix "a" .id .deadlock))
+
+private def strategyRoot : DyNetKAT := .choice (.var "X") (.var "Y")
+private def strategyNames : Finset Var := {"X", "Y", "Z"}
+private theorem strategyFinite : FiniteSupport strategyEnv strategyRoot strategyNames := by
+  refine ⟨by simp [strategyRoot, strategyNames, recursiveVars, Finset.union_subset_iff], ?_⟩
+  intro v hv
+  simp [strategyNames] at hv
+  rcases hv with rfl | rfl | rfl <;>
+    exact ⟨_, rfl, by simp [recursiveVars, strategyNames, Finset.union_subset_iff]⟩
+
+private def strategyGraph := toGraph strategyEnv strategyRoot strategyNames strategyFinite
+
+private theorem strategySupported : ProjectionSupport strategyGraph (fun _ => checks)
+    (fun i => i = varNode "X" ∨ i = varNode "Y" ∨ i = varNode "Z") := by
+  have label (v : Var) (hv : v ∈ strategyNames) :=
+    toGraph_label_varNode strategyFinite hv
+  constructor
+  · rintro i (rfl | rfl | rfl) j hj
+    all_goals
+      rw [strategyGraph, label _ (by simp [strategyNames])] at hj
+      simp [strategyEnv, RecEnv.lookup, RecEnv.define, toGProc, gprocRefs] at hj
+      subst j
+      simp
+  · rintro i (rfl | rfl | rfl)
+    all_goals
+      rw [strategyGraph, label _ (by simp [strategyNames])]
+      exact ⟨⟨trivial, trivial⟩, ⟨trivial, trivial⟩⟩
+
+private theorem strategyCorr (p : DyNetKAT) (h : recursiveVars p ⊆ strategyNames) :
+    Corr strategyGraph strategyEnv p (toGProc p) :=
+  toGraph_corr_of_subset _ _ _ strategyFinite p h
+
+private def mutualStrategy :=
+  analyzeResidual strategySupported
+    (state := ⟨toGProc (.var "Y"), checks⟩) ⟨by simp [toGProc, gprocRefs], trivial⟩
+    (strategyCorr (.var "Y") (by simp [strategyNames])) .structural ⟨8, 16, 8⟩ (.allDepth none)
+
+#guard mutualStrategy.guarantee == .finiteClosure 3
+
+private def equivalentStrategy :=
+  analyzeEquivalence strategySupported
+    (left := ⟨toGProc (.var "X"), checks⟩) (right := ⟨toGProc (.var "Y"), checks⟩)
+    ⟨by simp [toGProc, gprocRefs], trivial⟩ ⟨by simp [toGProc, gprocRefs], trivial⟩
+    (strategyCorr (.var "X") (by simp [strategyNames]))
+    (strategyCorr (.var "Y") (by simp [strategyNames])) .structural ⟨8, 16, 8⟩ 32 32
+
+#guard (match equivalentStrategy.guarantee with
+  | .finiteBisimulation _ => true
+  | _ => false)
+
+private def mismatchStrategy :=
+  analyzeEquivalence strategySupported
+    (left := ⟨toGProc (.var "X"), checks⟩) (right := ⟨.deadlock, checks⟩)
+    ⟨by simp [toGProc, gprocRefs], trivial⟩ ⟨by simp [gprocRefs], trivial⟩
+    (strategyCorr (.var "X") (by simp [strategyNames]))
+    (corr_deadlock_intro strategyGraph strategyEnv) .structural ⟨8, 16, 8⟩ 32 32
+    (some ("a", .id))
+
+#guard mismatchStrategy.guarantee == .distinguishingWitness
+
+private def exhaustedEquivalence (supplied : Option (SuppliedEquivalence strategyEnv
+    (.var "X") (.var "X"))) :=
+  analyzeEquivalence strategySupported
+    (left := ⟨toGProc (.var "X"), checks⟩) (right := ⟨toGProc (.var "X"), checks⟩)
+    ⟨by simp [toGProc, gprocRefs], trivial⟩ ⟨by simp [toGProc, gprocRefs], trivial⟩
+    (strategyCorr (.var "X") (by simp [strategyNames]))
+    (strategyCorr (.var "X") (by simp [strategyNames])) .structural ⟨0, 0, 0⟩ 0 0 none supplied
+
+#guard (exhaustedEquivalence none).guarantee == .unknown
+#guard (exhaustedEquivalence (some (.direct (Bisimilar.refl _ _)))).guarantee ==
+  .directEquivalence
+
+#print axioms boundedAnalysis
+#print axioms analyzeResidual
+#print axioms AnalysisResult.proveStateProperty
+#print axioms AnalysisResult.quotientModel
+#print axioms EquivalenceResult.proof?
+#print axioms analyzeEquivalence
+
 end DyNetKAT.DyNetKAT.FiniteCertificateTests

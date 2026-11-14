@@ -104,4 +104,39 @@ example : analyzeRecursive chainFinite .structural noClosureAttempt = .ground :=
 example : ∃ q, Ground q ∧ DerivesNoAIP chainEnv (.var "X") q :=
   analyzeRecursive_ground (hs := chainFinite) (id := .structural) (attempt := noClosureAttempt) rfl
 
+
+private theorem noRec : FiniteSupport RecEnv.empty .deadlock ∅ := ⟨by simp, by simp⟩
+
+#guard (analyzeSource noRec (fun () => .unknown .unknown)).guarantee == .ground
+#guard (analyzeSource chainFinite (fun () => .unknown .resourceLimit)).guarantee == .ground
+
+private def loopChecks : RestrictionChecks := fun _ _ => false
+private def loopGraph := toGraph (loopEnv true) (.var "X") _ (loopFinite true)
+
+private theorem loopLabel :
+    loopGraph.label (varNode "X") = .rcfgPrefix "tick" .id (.ref (varNode "X")) := by
+  rw [loopGraph, toGraph_label_varNode (loopFinite true) (by simp)]
+  rfl
+
+private theorem loopSupported : ProjectionSupport loopGraph (fun _ => loopChecks)
+    (fun i => i = varNode "X") := by
+  constructor
+  · rintro i rfl j hj
+    simpa [loopLabel, gprocRefs] using hj
+  · rintro i rfl
+    rw [loopLabel]
+    exact ⟨trivial, trivial⟩
+
+private def loopResult (limit : Nat) :=
+  analyzeCompiledSource (loopFinite true) loopChecks loopSupported ⟨by simp [toGProc, gprocRefs],
+    trivial⟩ .structural ⟨limit, 2, 2⟩ (.allDepth none)
+
+#guard (loopResult 1).guarantee == .finiteClosure 1
+#guard (loopResult 0).guarantee == .unknown
+#guard (loopResult 0).closureFailure == some .resourceLimit
+
+#print axioms analyzeSource_acyclic
+#print axioms analyzeCompiledSource
+#print axioms AnalysisResult.groundModel
+
 end DyNetKAT.DyNetKAT.DependencySCCTests

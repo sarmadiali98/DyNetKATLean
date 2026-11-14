@@ -586,4 +586,42 @@ private theorem restrictedValid : firewallProjectionState.Valid (ProjectionLive 
 example : discoverClosure concreteSupport .structural ⟨16, 64, 16⟩
     firewallProjectionState restrictedValid = .error .cannotIdentifyState := rfl
 
+
+private def firewallStrategy :=
+  analyzeCompiledSource rawSupported firewallChecks concreteSupport concreteRootValid
+    .structural ⟨16, 64, 16⟩ (.allDepth none)
+
+#guard firewallStrategy.guarantee == .finiteClosure 2
+
+private def firewallModeVerdict :=
+  firewallStrategy.proveStateProperty (Safe := fun p => p = closedState ∨ p = openState)
+    (fun rows =>
+      if h : rows.all (fun r => sameProcess r.proc closedState || sameProcess r.proc openState) then
+        some ⟨by
+          rintro p ⟨r, hr, rfl⟩
+          rcases Bool.or_eq_true_iff.mp (List.all_eq_true.mp h r hr) with h | h
+          · exact Or.inl (sameProcess_sound h)
+          · exact Or.inr (sameProcess_sound h)⟩
+      else none)
+    (fun _ => none)
+
+#guard (match firewallModeVerdict with
+  | .provedAllDepth (.finiteClosure 2) _ => true
+  | _ => false)
+
+private def restrictedFirewallStrategy :=
+  analyzeResidual concreteSupport restrictedValid
+    (corr_restrict_intro (L := Set.univ) (toGraph_corr rawFirewall rawInit _ rawSupported))
+    .structural ⟨16, 64, 16⟩ (.allDepth (some 2))
+
+#guard restrictedFirewallStrategy.guarantee == .boundedProjection 2
+#guard (restrictedFirewallStrategy.projection? 2).isSome
+#guard !(restrictedFirewallStrategy.projection? 3).isSome
+#guard restrictedFirewallStrategy.closureFailure == some .cannotIdentifyState
+
+#guard (match restrictedFirewallStrategy.proveStateProperty (Safe := fun _ => True)
+    (fun _ => some ⟨by simp⟩) (fun _ => some ⟨by simp⟩) with
+  | .unknown (.boundedProjection 2) (some .cannotIdentifyState) => true
+  | _ => false)
+
 end DyNetKAT.DyNetKAT.GraphSafetyTests

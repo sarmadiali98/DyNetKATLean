@@ -251,5 +251,10 @@ available when no suitable certificate has been supplied.
 The spawning fixture admits a finite forward abstraction, and the
 unspent blocker count rules out every finite strong quotient. A minimal
 variant that spawns deadlocks has infinitely many concrete derivatives
-and a one-state strong quotient. Production strategy selection and
-automated candidate inference remain future work.
+and a one-state strong quotient. The certified strategy API selects
+routes for bounded inspection, all-depth state properties, and exact
+models. Pairwise equivalence can
+use a checked finite bisimulation, a strong quotient, or a direct proof.
+Future work includes candidate inference, executable query-specific
+property checkers, CLI reporting, and the KATch, general-packet and
+tool-parity phases.

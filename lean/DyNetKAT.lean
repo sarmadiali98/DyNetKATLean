@@ -37,6 +37,7 @@ import DyNetKAT.DyNetKAT.FiniteProjection
 import DyNetKAT.DyNetKAT.MemoProjection
 import DyNetKAT.DyNetKAT.FiniteBisimulation
 import DyNetKAT.DyNetKAT.FiniteAbstraction
+import DyNetKAT.DyNetKAT.AnalysisStrategy
 import DyNetKAT.DyNetKAT.FiniteBranching
 import DyNetKAT.DyNetKAT.Equations
 import DyNetKAT.DyNetKAT.EquationsAIP

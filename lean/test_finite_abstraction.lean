@@ -209,4 +209,27 @@ def opaqueRestriction (L : Set CommunicationAction) :
 #print axioms infinite_concrete_one_state_quotient
 #print axioms growing_source_bisimilar_to_one_state
 
+
+private def quotientChecks : RestrictionChecks := fun _ _ => false
+
+private theorem quotientSupport : ProjectionSupport growing (fun _ => quotientChecks)
+    (fun i => i = node) := by
+  constructor
+  · rintro i rfl j hj
+    simpa [growing_label, grow, root, gprocRefs] using hj
+  · rintro i rfl
+    rw [growing_label]
+    exact ⟨trivial, ⟨trivial, trivial⟩⟩
+
+private def quotientStrategy :=
+  analyzeCompiledSource growSupport quotientChecks quotientSupport
+    ⟨by simp [growSource, node, toGProc, gprocRefs], trivial⟩ .structural ⟨3, 8, 8⟩
+    (.exactModel none) (some (.quotient table quotient))
+
+#guard quotientStrategy.guarantee == .strongQuotient 1
+
+example : ∃ R, IsBisimulation2 commonEnv table.environment R ∧
+    R growSource (table.process table.initial) :=
+  AnalysisResult.quotientModel quotient (toGraph_corr commonEnv growSource _ growSupport)
+
 end DyNetKAT.DyNetKAT.FiniteAbstractionTests

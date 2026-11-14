@@ -350,4 +350,32 @@ theorem spawn_all_depth_no_packet_or_communication {p}
 #print axioms spawn_no_finite_quotient
 #print axioms spawn_all_depth_no_packet_or_communication
 
+
+private def spawnStrategy (request : AnalysisRequest) :=
+  analyzeCompiledSource spawnSupported checks
+    (toGraph_projectionSupport spawnSupported spawnWellFormed (fun _ => checks)
+      (fun x b hx hb => spawnBodyChecks x b hx hb))
+    (toGProc_projectionValid (env := spawnEnv) (root := .var "X") trivial)
+    .structural ⟨4, 32, 8⟩ request (some (.simulation spawnTable spawnSimulation))
+
+#guard (spawnStrategy (.allDepth none)).guarantee == .simulationAbstraction 2
+#guard (spawnStrategy (.bounded 2)).guarantee == .boundedProjection 2
+#guard (spawnStrategy (.exactModel (some 2))).guarantee == .boundedProjection 2
+#guard (spawnStrategy (.exactModel (some 2))).closureFailure == some .resourceLimit
+#guard (spawnStrategy (.exactModel none)).guarantee == .unknown
+
+private def spawnPropertyResult :
+    StatePropertyVerdict graph graph.root
+      (fun p => ∀ {pt hl a q pt' hl'}, GStep graph ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩ →
+        pt' = pt ∧ hl' = hl ∧ (a = .rcfg "a" .id ∨ a = .rcfg "b" .id)) := by
+  exact match spawnStrategy (.allDepth none) with
+  | .simulation _ _ _ =>
+    .provedAllDepth (.simulationAbstraction 2)
+      (fun _ reach => spawn_all_depth_no_packet_or_communication reach)
+  | result => .unknown result.guarantee result.closureFailure
+
+#guard (match spawnPropertyResult with
+  | .provedAllDepth (.simulationAbstraction 2) _ => true
+  | _ => false)
+
 end DyNetKAT.DyNetKAT.InfiniteDerivativesTests

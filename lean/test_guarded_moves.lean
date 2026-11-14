@@ -265,4 +265,12 @@ private def hostClosure :=
   | .ok rows => rows.length == 4 && (rows.map fun r => r.moves.length).sum == 10
   | .error _ => false)
 
+
+private def hostStrategy :=
+  analyzeCompiledSource supported closureChecks closureSupport
+    (toGProc_projectionValid (env := env) (root := root) ⟨trivial, trivial⟩)
+    .structural ⟨8, 32, 8⟩ (.allDepth none)
+
+#guard hostStrategy.guarantee == .finiteClosure 4
+
 end DyNetKAT.DyNetKAT.GuardedMovesTests
