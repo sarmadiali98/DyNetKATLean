@@ -20,6 +20,14 @@ lines = pathlib.Path(filename).read_text().splitlines()
 statement = lines[-1]
 location = f"{filename}:{len(lines)}"
 def respond(passed, masked=False):
+    if mode in ('jvm-warning', 'jvm-warning-with-error'):
+        print("WARNING: A terminally deprecated method in sun.misc.Unsafe has been called",
+              "WARNING: sun.misc.Unsafe::objectFieldOffset has been called by scala.runtime.LazyVals$ (file:/example.jar)",
+              "WARNING: Please consider reporting this to the maintainers of class scala.runtime.LazyVals$",
+              "WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release",
+              sep='\\n', file=sys.stderr)
+        if mode == 'jvm-warning-with-error':
+            print("unexpected error", file=sys.stderr)
     if passed:
         print(f"\\x1b[32mCheck passed in {location}\\x1b[0m")
         sys.exit(0)
@@ -28,8 +36,10 @@ def respond(passed, masked=False):
     sys.exit(0 if masked else 1)
 if mode == 'timeout':
     time.sleep(10)
+with open("probes.log", "a", encoding="utf-8") as log:
+    print(statement, file=log)
 if statement == 'check ⊤ ≡ ⊤': respond(True)
-if statement == 'check ⊤ ≡ ⊥': respond(False, mode == 'masked')
+if statement == 'check ⊤ ≢ ⊤': respond(False, mode == 'masked')
 if mode == 'crash': sys.exit(17)
 if mode == 'signal': os.kill(os.getpid(), signal.SIGTERM)
 if mode == 'parse':
@@ -44,6 +54,9 @@ if mode == 'malformed':
 if mode == 'ambiguous': respond(True)
 if mode == 'wrong-line':
     location = f"{filename}:999"
+    respond(True)
+if mode == 'wrong-path':
+    location = f"other.nkpl:{len(lines)}"
     respond(True)
 # Nominate the first packet (all zero), or an equivalent pair.
 respond((' ≢ ' in statement) == (mode == 'negative'), mode == 'masked')
@@ -65,9 +78,17 @@ def test_probe_candidate(tmp_path, case, expected):
                                      case, tmp_path, 5) == expected
 
 
-def test_wrapper_masks_assertion_exit_status(tmp_path):
-    assert adapter.backend_candidate(command(tmp_path, "masked"), "", "positive",
+@pytest.mark.parametrize("mode", ["masked", "jvm-warning"])
+def test_known_launcher_diagnostics(tmp_path, mode):
+    assert adapter.backend_candidate(command(tmp_path, mode), "", "positive",
                                      tmp_path, 5) == "equational"
+
+
+def test_preflight_emits_distinct_complementary_programs(tmp_path):
+    adapter.backend_candidate(command(tmp_path, "positive"), "left = ⊤\nright = ⊤",
+                              "positive", tmp_path, 5)
+    probes = (tmp_path / "probes.log").read_text(encoding="utf-8").splitlines()
+    assert probes[:2] == ["check ⊤ ≡ ⊤", "check ⊤ ≢ ⊤"]
 
 
 @pytest.mark.parametrize("mode, reason", [
@@ -76,6 +97,8 @@ def test_wrapper_masks_assertion_exit_status(tmp_path):
     ("parse", "unexpected"),
     ("missing-file", "unexpected"),
     ("wrong-line", "unexpected"),
+    ("wrong-path", "unexpected"),
+    ("jvm-warning-with-error", "unexpected"),
     ("malformed", "unreadable"),
     ("ambiguous", "inconsistent"),
     ("timeout", "timeout"),

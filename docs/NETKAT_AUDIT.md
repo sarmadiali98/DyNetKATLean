@@ -713,9 +713,8 @@ the proof boundary. Timeout, unavailability and conversion failure
 can be passed as an absent candidate to `decideWithBackend` for exact
 fallback. A rejected candidate uses the same fallback.
 
-The replay tests use independent fixtures in the interchange format.
-No live KATch run was available in the verification environment.
-The benchmark measures the Lean validation and fallback paths only.
+The relation replay tests use independent fixtures in the interchange
+format. The benchmark measures the Lean validation and fallback paths.
 A negative witness requires two evaluations on one input, and ordinary
 inequivalence may itself stop early. Positive comparison validates every
 input for both policies and currently offers no verified speedup.
@@ -728,8 +727,9 @@ was inspected from the archive for revision
 sbt 1.9.6, sbt-assembly 0.15.0, and FastParse 3.0.2. The historical
 Dockerfile uses OpenJDK 8. The local OpenJDK 17 build with writable
 temporary sbt directories stopped during sbt 1.9.6 dependency retrieval
-because outbound sockets were unavailable. No assembly or live replay
-was produced in that environment.
+because outbound sockets were unavailable. A subsequently built assembly
+from the pinned checkout was used for live replay through a direct-JAR
+launcher under OpenJDK 25.0.5.0.3.
 
 `Main.scala` dispatches `run FILE` to `Runner.runTopLevel`, which reads
 one statement per line and writes timing files under the working
@@ -780,9 +780,12 @@ mkdir "$scratch/results"
 (cd "$scratch" && /path/to/pinned-launcher run common.nkpl row.nkpl)
 ```
 
-The driver calibrates one passing and one failing assertion using the
-pinned source's messages and requires opposite results on complementary
-probes. It declines unrecognized output and process failures and uses
+The driver calibrates with `check ⊤ ≡ ⊤` and its complement
+`check ⊤ ≢ ⊤`. It validates the exact path, line, and diagnostic and
+requires opposite results on complementary probes. The local JVM emits
+a four-line Scala `LazyVals` warning on startup. The parser consumes
+only that recognized leading block and validates the remaining stderr.
+It declines unrecognized output and process failures and uses
 exact Lean fallback when available. A failed Lean process yields
 operational unknown. The firewall/star search performs a domain probe,
 two narrowing probes per field, and a final concrete-packet probe. Each
@@ -826,10 +829,16 @@ decoding and checking took 0.75 ms and exact inequivalence took 0.37 ms.
 These are fixture timings, excluding startup and KATch. The optional
 runner reports candidate, backend probe wall time,
 Lean replay wall time, and total round-trip time. Protocol tests use a subprocess double and
-exercise genuine Lean replay. Live KATch positive and negative replay
-remains unverified here. The equational fragment provides a measured
-positive fast path independent of KATch, with no claim of general
-symbolic backend certification.
+exercise genuine Lean replay. The real pinned launcher also passed
+`both --require-backend` with both star fixtures and neither case
+using fallback. The positive hint selected the locally supplied
+common term `(@port=0 ⋅ @port←1)⋆`. The negative probes retained
+the lower half at each split and nominated `[0,0,0,0]` in field order
+`src,dst,sw,port`. Lean returned `checkedEquational` and
+`checkedCounterexample`, respectively. In one run, positive probe,
+Lean replay and total times were 1.41 s, 2.60 s and 6.59 s. Negative
+times were 7.40 s, 2.68 s and 12.67 s. Probe times include JVM startup
+for each invocation. Total time includes Lean policy export.
 
 The proof boundary consists of the Lean semantics,
 `katchSemantics_encode`, the relation, witness and equational checkers,

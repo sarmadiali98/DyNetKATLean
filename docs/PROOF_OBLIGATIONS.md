@@ -391,17 +391,17 @@ translation.
 - Integer-packet semantic correspondence is in `KATch.lean`.
   NKPL formatting, backend computation, and conversion to candidate
   JSON carry no proof authority. The [backend audit](NETKAT_AUDIT.md)
-  records the live replay and performance gaps.
+  records the verified live replay and its timings.
 
 `checkEquationalCertificate_sound` validates a proposed common reduced
 term through `E_NK` identity and zero laws and congruence, including
 star congruence. `decideWithEquationalCertificate_correct` covers both
 accepted candidates and fallback, without changing payload equality.
 The optional KATch driver uses guarded assertions as candidate hints.
-Its backend status has no semantic authority. Live replay against the
-pinned executable remains an external verification gate. The
+Its backend status has no semantic authority. Both live paths passed
+against the pinned executable using Lean to certify the result. The
 [source protocol audit](NETKAT_AUDIT.md#optional-katch-driver-and-equational-checking)
-documents the launcher fix and the unavailable build dependencies.
+documents the launcher, protocol and replay outcomes.
 Replaying a future symbolic certificate would require checking both
 the connection from the original terms to the exported automata and
 the symbolic bisimulation obligations.

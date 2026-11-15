@@ -18,6 +18,13 @@ DOMAIN = " ⋅ ".join("(" + " ∪ ".join(f"@{f}={v}" for v in VALUES) + ")" for 
 REPLAY = re.compile(r"DyNetKAT\.NetKAT\.BackendMethod\."
                     r"(checkedCounterexample|checkedEquational|exactFallback): "
                     r"equivalent = (true|false)")
+SCALA_UNSAFE_WARNING = re.compile(
+    r"WARNING: A terminally deprecated method in sun\.misc\.Unsafe has been called\n"
+    r"WARNING: sun\.misc\.Unsafe::objectFieldOffset has been called by "
+    r"scala\.runtime\.LazyVals\$ \([^\n]+\)\n"
+    r"WARNING: Please consider reporting this to the maintainers of class scala\.runtime\.LazyVals\$\n"
+    r"WARNING: sun\.misc\.Unsafe::objectFieldOffset will be removed in a future release\n"
+)
 
 
 class BackendFailure(Exception):
@@ -43,6 +50,12 @@ def run(command, deadline, cwd=None):
 
 def query(guard, operator):
     return f"check (({guard}) ⋅ left) {operator} (({guard}) ⋅ right)"
+
+
+def complement(statement):
+    if " ≢ " in statement:
+        return statement.replace(" ≢ ", " ≡ ", 1)
+    return statement.replace(" ≡ ", " ≢ ", 1)
 
 
 def packet_guard(packet):
@@ -79,6 +92,10 @@ def backend_candidate(command, policy, case, directory, timeout):
     def invoke(prefix, statement):
         path.write_text(prefix + statement + "\n", encoding="utf-8")
         code, stdout, stderr = run([*command, "run", str(path)], deadline, directory)
+        # Recent JVMs emit this Scala startup warning before any diagnostic.
+        startup_warning = SCALA_UNSAFE_WARNING.match(stderr)
+        if startup_warning:
+            stderr = stderr[startup_warning.end():]
         line = prefix.count("\n") + 1
         location = f"{path}:{line}"
         stdout_lines = stdout.splitlines()
@@ -92,18 +109,15 @@ def backend_candidate(command, policy, case, directory, timeout):
             return False
         raise BackendFailure("unexpected KATch assertion response")
 
-    if not invoke("", "check ⊤ ≡ ⊤") or invoke("", "check ⊤ ≡ ⊥"):
+    known_pass = "check ⊤ ≡ ⊤"
+    if not invoke("", known_pass) or invoke("", complement(known_pass)):
         raise BackendFailure("unsupported assertion protocol")
 
     def assertion(statement):
         # Complementary assertions must return opposite answers.
-        if " ≢ " in statement:
-            opposite = statement.replace(" ≢ ", " ≡ ", 1)
-        else:
-            opposite = statement.replace(" ≡ ", " ≢ ", 1)
         prefix = policy.rstrip("\n") + "\n" if policy else ""
         result = invoke(prefix, statement)
-        if invoke(prefix, opposite) == result:
+        if invoke(prefix, complement(statement)) == result:
             raise BackendFailure("inconsistent KATch assertion results")
         return result
 

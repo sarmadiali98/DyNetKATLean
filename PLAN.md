@@ -265,16 +265,14 @@ The fixed-domain checker accepts a proposed shared packet relation or a
 distinguishing input, validates it against the exact evaluator, and
 otherwise falls back to the existing decision procedure. The optional
 NKPL exporter and JSON interchange are outside the semantic proof.
-A live KATch adapter and timing comparison against a symbolic certificate
-format remain open. The current positive checker still evaluates both
-policies on every input.
+The finite-relation checker still evaluates both policies on every input.
 
 The optional KATch driver nominates distinguishing inputs through
 guarded assertions and uses a positive assertion to trigger equational
 replay on a supported fixture. The small, proved equational checker
 avoids packet enumeration in its rewrite fragment. The pinned source
 audit identified a masked Java exit status in the upstream shell launcher.
-The driver now checks the assertion messages and isolates KATch output
-files. Live replay still requires a built pinned executable. The pinned
-CLI discards its internal bisimulation worklist and has no certificate
-export. General packet schemas remain a separate phase.
+The driver checks complementary assertion messages and isolates KATch
+output files. Both live replay paths passed against the pinned executable.
+The pinned CLI discards its internal bisimulation worklist and has no
+compact proof export. General packet schemas remain a separate phase.
