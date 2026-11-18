@@ -28,6 +28,13 @@ forms, and solver models are internal helper syntax.
 The [semantic-domain audit](docs/PAPER_CONFORMANCE.md#source-grammar-and-sos-residual-closure)
 lists the source constructors, reachability conditions and classified examples.
 
+KATLean supplies the Mathlib-based algebra beneath the NetKAT layer.
+It proves the KA/test laws and dup-free packet laws and connects the
+current AST, evaluator and `Derives` to a packet-relation model.
+Import `KATLean` for the algebra or `DyNetKAT.NetKAT.KATLean` for the
+current NetKAT bridge. See [KATLEAN.md](docs/KATLEAN.md) for Figure 4
+coverage and remaining history/general-schema work.
+
 ## Structure
 
 ```

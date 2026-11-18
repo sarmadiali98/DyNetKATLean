@@ -226,9 +226,14 @@ paper-core. Certified simulation and quotients are optional tools for
 reachable residuals. Acyclic aliases in defining equations and synthetic
 graph-only regressions belong to the internal proof and test infrastructure.
 
-The conformance review must precede KATLean. Keep KATLean to the Mathlib
-Kleene algebra, Boolean tests and packet laws needed by NetKAT, E_NK and
-E_DNK. KATch remains the optional backend with Lean candidate validation.
+The first [KATLean foundation](docs/KATLEAN.md) is implemented using the
+pinned Mathlib KA, an injective Boolean-test embedding and generic packet
+lookup/update laws. The CtxPkt interpretation agrees with the evaluator,
+and every existing NetKAT derivation preserves its interpretation.
+`normalize_katInterp` connects the current Lemma 5 result to that algebra.
+The next foundation work is deliberate theorem reuse in Derives soundness
+and general-schema bridges. Full history/dup coverage remains open.
+KATch remains the optional backend with Lean candidate validation.
 
 ### Recursive analysis and concrete certificates
 

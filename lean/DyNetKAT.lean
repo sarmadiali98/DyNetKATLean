@@ -16,6 +16,7 @@ import DyNetKAT.NetKAT.EquationalCertificate
 import DyNetKAT.NetKAT.Axioms
 import DyNetKAT.NetKAT.NormalForm
 import DyNetKAT.NetKAT.Normalization
+import DyNetKAT.NetKAT.KATLean
 import DyNetKAT.DyNetKAT.AST
 import DyNetKAT.DyNetKAT.Action
 import DyNetKAT.DyNetKAT.Config

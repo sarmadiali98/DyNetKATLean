@@ -12,3 +12,6 @@ root = "DyNetKAT.Main"
 name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4"
 rev = "v4.19.0"
+
+[[lean_lib]]
+name = "KATLean"

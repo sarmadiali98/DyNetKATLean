@@ -85,6 +85,12 @@ evidence.
 | Lemma 5, Eqs. (7)–(8) | Dup-free policies admit a finite sum of complete test/assignment pairs, with derivable equality in E_NK. | Proved for `CtxPkt`: `exists_derives_pairSum` packages executable `normalize`, pair-sum shape, and `normalize_derives` in the existing `Derives` relation. `normalize_history_correct` gives semantic equality. The proof uses finite packet algebra and bounded stabilization. General schemas and the full language-model development remain open. |
 | §V decision queries | Empty packet relation for zero, equality of relations for dup-free equivalence. | `netkatIsZero_correct`, `netkatEquiv_correct` and corresponding history theorems. | General finite schemas and scalable backend with translation and query correctness. |
 
+The [KATLean foundation table](KATLEAN.md#ka-conformance-and-inequalities)
+adds an algebraic account of all Figure 4 KA laws, the six BA laws and
+the seven dup-free PA laws. `Derives.katSound` interprets the existing
+fixed-domain derivations in this algebra. PA-DUP-FILTER-COMM remains
+open in a full history model.
+
 ### Figure 4 axiom inventory
 
 Write `p ≤ q` for `p + q ≡ q`. Each row groups the printed equations by

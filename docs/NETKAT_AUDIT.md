@@ -17,6 +17,20 @@ theorem targets. The dated Task 2N/2R notes below record earlier findings.
 | Functional query coverage | Fixed-domain relation decisions and the initial/post-event firewall query. | General-domain reachability, non-reachability and waypoint inclusion, in the original dynamic pipeline and as standalone NetKAT decisions. Verify the original backend encodings as separate comparisons. |
 | Scalability | Small finite regression universe and differential corpus. | Complete the original FatTree cases through 1,344 switches with measurements of time and memory and baseline comparisons. |
 
+### KATLean algebra bridge
+
+[KATLEAN.md](KATLEAN.md) records the pinned Mathlib classes and every
+Figure 4 axiom. `KATLean` is an independent Lean library target with
+KA wrappers, Boolean tests and a packet-relation model. The generic
+packet interface permits dependent field values and proves the seven
+dup-free PA laws. `ctxPacketModel` instantiates it using the existing
+packet API. `katInterp_correct` and `execute_katInterp` connect all
+current AST operations, including star, to the same evaluator semantics.
+`Derives.katSound` and `normalize_katInterp` connect existing
+derivations and Lemma 5. The fixed-domain syntax and evaluator remain
+the concrete integration target. Full history/dup and general-schema
+normalization are still release requirements.
+
 ### Finite schemas and exact closure
 
 Use a schema-indexed valuation `(f : Field) → Value f`, with computable

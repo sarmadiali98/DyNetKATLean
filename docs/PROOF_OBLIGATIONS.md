@@ -18,6 +18,23 @@ the detailed recursive tail analysis and the original design alternatives.
 | N5 Fig. 4 completeness and Lemma 5 | Lemma 5 is proved for dup-free `CtxPkt` policies by `exists_derives_pairSum`. `normalize_derives_starFree` uses the finite packet partition, Boolean test and assignment expansions, and complete-branch multiplication. `starFree_complete` and the bounded stabilization argument lift it to arbitrary star, yielding `normalize_derives`. Full history ground completeness, the general finite-schema result, and the language-model construction of Eq. (7) remain separate. |
 | N6 Query/backend correctness | Prove interpretation-preserving translation for declared field names, values, input guard, and every term constructor in the common dup-free fragment. Establish zero/equivalence against the mathematical query semantics, and prove symbolic evaluator correctness or certificate checker soundness, suitable completeness and termination. See the [domain and backend audit](NETKAT_AUDIT.md). |
 
+### KATLean foundation
+
+The [KATLean conformance table](KATLEAN.md) maps each Figure 4 law.
+Mathlib supplies `IdemSemiring`, `KleeneAlgebra`, the addition-induced
+order and star induction. KATLean derives the paper unfold equations
+and both equation/inequality induction formulations. Its Boolean
+embedding proves all six BA laws. Its dependent-field packet interface
+proves all seven dup-free PA laws, including finite-value exhaustiveness.
+
+`katInterp_correct`, `execute_katInterp` and `Derives.katSound`
+connect the current AST, evaluator and derivations to that model.
+`normalize_katInterp` is the existing Lemma 5 derivation interpreted
+in KATLean. The initial soundness bridge reuses `Derives.sound`.
+Refactoring that proof to use the KATLean law families remains separate.
+N4 still requires a history/dup model for PA-DUP-FILTER-COMM.
+N1–N5 general-schema and full-history requirements remain open.
+
 ## SOS, recursion and bisimulation
 
 | Obligation | Required statement and dependencies |
