@@ -1,12 +1,32 @@
 # DyNetKAT-Lean
 
+## Symbolic native KAT status
+
+The public native solver now uses canonical reduced ordered Boolean decision
+trees and satisfiable symbolic derivative regions. Boolean truth-assignment
+enumeration is removed from its core path. KATch and exhaustive `CtxPkt`
+enumeration are not used by native correctness. The old explicit-valuation
+implementation is a separately imported regression oracle only.
+
+`Equational.algebraic_sound` proves pure KAT derivations valid in all abstract
+KATLean models; `Equational.solver_positive` proves derivations are accepted.
+`nativeEquational_derives` maps pure KAT proofs into existing NetKAT `Derives`.
+The reverse solver-positive → algebraic derivation/all-model validity theorem
+is **still open**. This update does not complete the requested algebraic
+completeness milestone, and the solver is **not ready to replace NetKAT
+equivalence**. Packet frontend work remains deferred.
+
+See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the exact theorem chain, Boolean invariants and remaining
+completeness proof. Existing concrete NetKAT normalization and decisions remain
+unchanged; no migration away from their enumeration is claimed here.
+
 ### Native KAT decision layer
 
 `import KATLean.Native` provides a verified partial-derivative equivalence
 engine for generic KAT guarded languages and all KATLean relational models.
 Its soundness and completeness proofs use no `CtxPkt` enumeration or KATch.
-Boolean guards are formulas; the first version enumerates abstract truth
-assignments, with exponential cost in the primitive-test alphabet.
+Boolean guards are canonical decision trees; the solver explores satisfiable
+symbolic regions instead of abstract truth assignments.
 See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the exact theorem scope and tests.
 
 The target is KATLean → native equivalence → symbolic dup-free NetKAT E_NK

@@ -1,5 +1,25 @@
 # DyNetKAT-Lean roadmap
 
+## Symbolic native KAT status
+
+The public native solver now uses canonical reduced ordered Boolean decision
+trees and satisfiable symbolic derivative regions. Boolean truth-assignment
+enumeration is removed from its core path. KATch and exhaustive `CtxPkt`
+enumeration are not used by native correctness. The old explicit-valuation
+implementation is a separately imported regression oracle only.
+
+`Equational.algebraic_sound` proves pure KAT derivations valid in all abstract
+KATLean models; `Equational.solver_positive` proves derivations are accepted.
+`nativeEquational_derives` maps pure KAT proofs into existing NetKAT `Derives`.
+The reverse solver-positive → algebraic derivation/all-model validity theorem
+is **still open**. This update does not complete the requested algebraic
+completeness milestone, and the solver is **not ready to replace NetKAT
+equivalence**. Packet frontend work remains deferred.
+
+See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the exact theorem chain, Boolean invariants and remaining
+completeness proof. Existing concrete NetKAT normalization and decisions remain
+unchanged; no migration away from their enumeration is claimed here.
+
 ## Native equivalence priority
 
 The next core path is KATLean → verified native equivalence → symbolic dup-free
@@ -7,8 +27,9 @@ NetKAT E_NK → E_DNK. The generic guarded-language/all-relational-model decisio
 layer is implemented with finite partial derivatives, soundness and completeness.
 [Design and enumeration audit](docs/NATIVE_KAT.md).
 
-The next mathematical milestone is the packet-aware symbolic frontend and its
-semantic/Derives bridge. Then replace concrete enumeration in core decisions and
+The next mathematical milestone is the missing relational-to-algebraic
+completeness theorem. The packet-aware symbolic frontend and its semantic/Derives
+bridge must wait for that proof. Then replace concrete enumeration in core decisions and
 fixed-model proof infrastructure. Existing finite packet evaluators stay as
 concrete/regression tools; existing C/D uses are not yet removed. Abstract KAT
 axiomatic completeness, executable witnesses and Boolean sharing remain explicit

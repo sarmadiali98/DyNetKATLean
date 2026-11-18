@@ -1,5 +1,25 @@
 # Proof obligations for paper and tool coverage
 
+## Symbolic native KAT status
+
+The public native solver now uses canonical reduced ordered Boolean decision
+trees and satisfiable symbolic derivative regions. Boolean truth-assignment
+enumeration is removed from its core path. KATch and exhaustive `CtxPkt`
+enumeration are not used by native correctness. The old explicit-valuation
+implementation is a separately imported regression oracle only.
+
+`Equational.algebraic_sound` proves pure KAT derivations valid in all abstract
+KATLean models; `Equational.solver_positive` proves derivations are accepted.
+`nativeEquational_derives` maps pure KAT proofs into existing NetKAT `Derives`.
+The reverse solver-positive → algebraic derivation/all-model validity theorem
+is **still open**. This update does not complete the requested algebraic
+completeness milestone, and the solver is **not ready to replace NetKAT
+equivalence**. Packet frontend work remains deferred.
+
+See [NATIVE_KAT.md](NATIVE_KAT.md) for the exact theorem chain, Boolean invariants and remaining
+completeness proof. Existing concrete NetKAT normalization and decisions remain
+unchanged; no migration away from their enumeration is claimed here.
+
 ## Native symbolic equivalence obligations
 
 | Obligation | Status |
@@ -10,8 +30,8 @@
 | Executable generic language soundness/completeness | `decideLanguageEquiv_correct` |
 | Exact KATLean relational-model correspondence | `interp_iff_accept`, `guarded_model_correct`, `relational_iff_language` |
 | Complete decision for all relational KAT models | `decideEquiv_correct` |
-| Equality in all arbitrary abstract KATs / axiomatic completeness | Open; not assumed |
-| Symbolic packet constraints, updates, AST and Derives bridge | Open next milestone |
+| Equality in all arbitrary abstract KATs / axiomatic completeness | Derivation-to-abstract-validity and derivation-to-solver proved; reverse still open, not assumed |
+| Symbolic packet constraints, updates, AST and Derives bridge | Deferred until generic algebraic completeness is proved |
 | Remove legacy core concrete-enumeration C/D uses | Open; see [audit](NATIVE_KAT.md#existing-packet-enumeration-audit) |
 | Executable inequivalence witness | Existence proved; extraction open |
 

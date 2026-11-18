@@ -1,4 +1,5 @@
 import KATLean.Native
+import DyNetKAT.NetKAT.NativeEquations
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Insert
