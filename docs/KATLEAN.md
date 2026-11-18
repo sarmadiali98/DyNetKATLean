@@ -21,11 +21,15 @@ relations. All generic algebra uses the existing classes.
 | `lean/KATLean/Relation.lean` | Relational Mathlib KA instance and Boolean packet-set tests |
 | `lean/KATLean/NetKAT/Packet.lean` | Field-indexed packet interface and the dup-free packet laws |
 | `lean/KATLean.lean` | Public algebra import surface |
-| `lean/DyNetKAT/NetKAT/KATLean.lean` | CtxPkt instance, AST interpretation, evaluator and derivation bridges |
+| `lean/DyNetKAT/NetKAT/Interpretation.lean` | CtxPkt instance, AST interpretation and evaluator correctness, below Derives |
+| `lean/DyNetKAT/NetKAT/Axioms.lean` | Existing Derives and its KATLean rule induction |
+| `lean/DyNetKAT/NetKAT/KATLean.lean` | Compatibility import surface and normalization interpretation theorem |
 | `lean/test_katlean.lean` | Generic and concrete law tests and axiom audit |
+| `lean/test_katlean_derives.lean` | Derivation regressions, proof dependency checks, packet-prefix import and payload boundary |
 
-`import KATLean` depends only on Mathlib. The bridge imports the existing
-NetKAT normalization modules. Neither path imports DyNetKAT process
+`import KATLean` depends only on Mathlib. The lower interpretation imports
+the existing NetKAT decision/evaluator modules. The compatibility surface also imports
+normalization. Neither path imports DyNetKAT process
 semantics, KATch, or its certificate/replay adapters. The `DyNetKAT` umbrella
 imports the bridge. The core import closure excludes `KATch`,
 `BackendCertificate`, `EquationalCertificate` and `Experimental`.
@@ -167,20 +171,30 @@ Mathlib reflexive-transitive closure. `execute_katInterp` proves that
 the evaluator returns a supported finite set containing exactly the
 related output packets.
 
-`Derives.katSound` proves equality of interpretations for every existing
-`Derives` proof. This first bridge uses the already verified
-`Derives.sound` theorem and interpretation correctness. The existing
-rule induction and normalization proof remain in place.
-`normalize_katInterp` applies the bridge to `normalize_derives`, so
-the current Lemma 5 result has algebraic validity in KATLean.
+`Derives.katSound`, defined in `Axioms.lean`, proves equality of
+interpretations by induction on all 40 constructors. The KA cases call
+Mathlib laws on the KATLean relation algebra and KATLean's unfold and
+induction theorems. The BA cases call the Boolean embedding laws and
+all six KAT laws. The seven packet cases call `ctxPacketModel`'s
+KATLean packet theorems. Congruence uses equality, including complement
+congruence obtained through the injective test embedding.
 
-Later refactoring can route the KA cases through Mathlib and the two
-induction wrappers, BA cases through `KAT`, and packet cases through
-`PacketModel`. Predicate and complete-test elaboration rules still
-require their interpretation lemmas. Replacing the existing soundness
-proof with those cases is separate work. Abstract KATLean validity
-alone does not establish syntactic derivability or completeness for a
-general packet schema.
+`Derives.sound` now follows from `Derives.katSound` and
+`katInterp_eq_iff`. Its semantic theorem statement is preserved.
+`Derives.historySound` continues to transfer that result through the
+existing dup-free history correspondence.
+
+The import order is Mathlib, KATLean, `Interpretation`, `Axioms`,
+normalization, then the `NetKAT.KATLean` compatibility surface.
+`Interpretation` imports no derivation or normalization module. It
+proves its semantic bridge by AST induction. This gives an acyclic
+foundation for the derivation induction.
+
+`normalize_katInterp` applies `Derives.katSound` to the existing
+`normalize_derives` theorem. Lemma 5's derivation is interpreted in the
+same algebra. The normalization algorithm and supported fragment keep
+their existing definitions. Algebraic validity alone does not establish
+syntactic derivability or general-schema completeness.
 
 ## DyNetKAT integration
 
@@ -216,9 +230,88 @@ packet and bridge results. Direct module checks and the full project
 suite accompany the checkpoint.
 
 Remaining core work includes general-schema AST/evaluator/normalization
-bridges and deliberate reuse of KATLean laws inside the existing Derives
-soundness proof. The packet interface supports dependent values, while
+bridges. The packet interface supports dependent values, while
 the existing executable AST and Lemma 5 theorem remain on CtxPkt.
 
 The full history/dup model and PA-DUP-FILTER-COMM remain optional
 supporting NetKAT extensions, outside the current DyNetKAT release scope.
+
+## Derives rule audit
+
+The baseline proof path below records the audit before refactoring. A means pure
+KA, B means Boolean/test algebra, C means packet algebra, D means structural
+or congruence, and E means normalization-specific syntax elaboration. There
+are no additional rule families. All algebraic cases now use the declarations
+in the final theorem column directly.
+The complete-test expansion keeps its syntax-specific bridge.
+
+| Derives rule | Class and source | Baseline proof path | Available theorem / direct reuse | Reuse |
+|---|---|---|---|---|
+| `refl` | D, Equality reflexivity | Semantic iff reflexivity | `Eq.refl` | Direct |
+| `symm` | D, Equality symmetry | Semantic iff symmetry | `Eq.symm` | Direct |
+| `trans` | D, Equality transitivity | Semantic iff transitivity | `Eq.trans` | Direct |
+| `unionCongr` | D, Union congruence | Pointwise disjunction | `congrArg₂ on KATLean addition` | Direct |
+| `seqCongr` | D, Composition congruence | Existential composition | `congrArg₂ on KATLean multiplication` | Direct |
+| `starCongr` | D, Star congruence | Local StarClosure.map induction | `congrArg on Mathlib KStar` | Direct |
+| `notCongr` | D, Complement congruence on tests | Compare diagonal semantics | `Rel.tests.injective and Boolean complement` | Direct |
+| `testFalse` | B, Test zero embedding | Predicate evaluator simplification | `Rel.tests.map_bot` | Direct |
+| `testTrue` | B, Test one embedding | Predicate evaluator simplification | `Rel.tests.map_top` | Direct |
+| `testOr` | B, Join embedding | Predicate evaluator simplification | `Rel.tests.map_sup` | Direct |
+| `testAnd` | B, Meet embedding | Existential test composition | `Rel.tests.map_inf` | Direct |
+| `completeTestExpand` | E, Complete-test syntax elaboration | completeTestExpr_correct | `Keep syntax-specific semantic bridge` | Syntax-specific bridge |
+| `plusAssoc` | A, KA-PLUS-ASSOC | union_assoc | `add_assoc in KATLean.Rel` | Direct |
+| `plusComm` | A, KA-PLUS-COMM | union_comm | `add_comm in KATLean.Rel` | Direct |
+| `plusZero` | A, KA-PLUS-ZERO | Semantic simplification | `add_zero in KATLean.Rel` | Direct |
+| `plusIdem` | A, KA-PLUS-IDEM | union_idem | `add_idem in KATLean.Rel` | Direct |
+| `seqAssoc` | A, KA-SEQ-ASSOC | Existential reassociation | `mul_assoc in KATLean.Rel` | Direct |
+| `oneSeq` | A, KA-ONE-SEQ | seq_id_left | `one_mul in KATLean.Rel` | Direct |
+| `seqOne` | A, KA-SEQ-ONE | seq_id_right | `mul_one in KATLean.Rel` | Direct |
+| `seqDistL` | A, KA-SEQ-DIST-L | seq_distrib_left | `mul_add in KATLean.Rel` | Direct |
+| `seqDistR` | A, KA-SEQ-DIST-R | seq_distrib_right | `add_mul in KATLean.Rel` | Direct |
+| `zeroSeq` | A, KA-ZERO-SEQ, left | seq_drop_left | `zero_mul in KATLean.Rel` | Direct |
+| `seqZero` | A, KA-ZERO-SEQ, right | seq_drop_right | `mul_zero in KATLean.Rel` | Direct |
+| `unrollL` | A, KA-UNROLL-L | Local StarClosure cases | `KATLean.star_unfold_left` | Direct |
+| `unrollR` | A, KA-UNROLL-R | Local StarClosure.snoc/last | `KATLean.star_unfold_right` | Direct |
+| `lfpL` | A, KA-LFP-L | starLfpLeft closure induction | `KATLean.star_induction_left_add` | Direct |
+| `lfpR` | A, KA-LFP-R | starLfpRight closure induction | `KATLean.star_induction_right_add` | Direct |
+| `baPlusDist` | B, BA-PLUS-DIST | Semantic simplification and aesop | `KAT.plus_distrib` | Direct |
+| `baPlusOne` | B, BA-PLUS-ONE | Semantic simplification | `KAT.plus_one` | Direct |
+| `baExclMid` | B, BA-EXCL-MID | Boolean evaluator case split | `KAT.excluded_middle` | Direct |
+| `baSeqComm` | B, BA-SEQ-COMM | Semantic conjunction commutation | `KAT.test_commute` | Direct |
+| `baContra` | B, BA-CONTRA | Semantic simplification | `KAT.contradiction` | Direct |
+| `baSeqIdem` | B, BA-SEQ-IDEM | Semantic simplification | `KAT.test_idempotent` | Direct |
+| `paModModComm` | C, PA-MOD-MOD-COMM | assign_comm_diff and semantic simplification | `PacketModel.assign_commute` | Direct |
+| `paModFilterComm` | C, PA-MOD-FILTER-COMM | Lookup/update case reasoning | `PacketModel.assign_filter_commute` | Direct |
+| `paModFilter` | C, PA-MOD-FILTER | assign_test_same_field | `PacketModel.assign_filter` | Direct |
+| `paFilterMod` | C, PA-FILTER-MOD | Local update_same_of_eq | `PacketModel.filter_assign` | Direct |
+| `paModMod` | C, PA-MOD-MOD | Packet.update_update_same | `PacketModel.overwrite` | Direct |
+| `paContra` | C, PA-CONTRA | paContra_sem | `PacketModel.filter_contradiction` | Direct |
+| `paMatchAll` | C, PA-MATCH-ALL | paMatchAll_sem finite value cases | `PacketModel.match_all plus syntax-to-sum bridge` | Direct |
+
+
+
+## Duplication and dependency audit
+
+| Baseline duplication | Disposition |
+|---|---|
+| Local `StarClosure.map`, `snoc`, `last` in Axioms | Removed after equality congruence and KATLean unfold reuse |
+| Semantic case proofs for 15 KA, six BA and seven PA laws | Replaced by the rule induction in `Derives.katSound` |
+| `starLfpLeft`, `starLfpRight` | Kept as public compatibility wrappers around KATLean inequality induction |
+| `paContra_sem`, `paMatchAll_sem` | Kept as public compatibility wrappers through KATLean-backed soundness |
+| Private `update_same_of_eq` in Axioms | Removed after `PacketModel.filter_assign` reuse |
+| Complete-test expansion | Kept as syntax-specific elaboration using `completeTestExpr_correct` |
+| PA-MATCH-ALL list | Kept as syntax-specific elaboration. `matchAll_katInterp` identifies its four-value list with the finite KATLean sum |
+| Low-level semantic identities in Semantics | Kept for compatibility and independent evaluator/interpretation correctness. Derives algebraic cases bypass these proofs |
+| `Below`, finite-sum and Boolean normalization derivations | Kept because they construct syntactic Derives proofs. Equality in one model does not replace those proof terms |
+| `normalize_correct` and normal-form membership proofs | Kept as construction-specific semantic proofs supporting normalization/completeness. Derived normalization soundness also follows through `normalize_derives` and the new soundness chain |
+
+The focused regression inspects Lean proof-body constants. It requires
+the 11 inherited semiring laws, four KATLean star theorems, four test
+embedding laws, six KAT laws and all seven packet laws in
+`Derives.katSound`. It rejects a dependency on `Derives.sound` in that
+proof and checks the reverse soundness dependency. It also checks
+`normalize_katInterp` and the E_DNK `Equations.netkat_sound` import chain.
+The axiom audit covers semantic/algebraic soundness, representative law
+families, normalization and the packet-prefix theorem. Remaining
+independent reasoning is confined to syntax elaboration, normalization
+construction and the lower semantic/evaluator layer listed above.

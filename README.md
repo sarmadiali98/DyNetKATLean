@@ -30,7 +30,9 @@ lists the source constructors, reachability conditions and classified examples.
 
 KATLean supplies the Mathlib-based algebra beneath the NetKAT layer.
 It proves the KA/test laws and dup-free packet laws and connects the
-current AST, evaluator and `Derives` to a packet-relation model.
+current AST and evaluator to a packet-relation model. `Derives` justifies
+its KA, Boolean and packet laws directly through KATLean. Its semantic
+soundness, Lemma 5 and the E_DNK packet-prefix import follow that proof chain.
 Import `KATLean` for the algebra or `DyNetKAT.NetKAT.KATLean` for the
 current NetKAT bridge. See [KATLEAN.md](docs/KATLEAN.md) for Figure 4
 coverage, general-schema work and the optional full NetKAT history/dup extension.

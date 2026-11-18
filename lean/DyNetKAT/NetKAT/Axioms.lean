@@ -1,4 +1,4 @@
-import DyNetKAT.NetKAT.Decision
+import DyNetKAT.NetKAT.Interpretation
 
 namespace DyNetKAT.NetKAT
 
@@ -62,168 +62,106 @@ inductive Derives : NetKAT → NetKAT → Prop
       Derives (NetKAT.fieldTest f v ⨟ NetKAT.fieldTest f w) .drop
   | paMatchAll (f) : Derives (matchAll f) .id
 
-private theorem StarClosure.map {P Q : CtxPkt → CtxPkt → Prop}
-    (h : ∀ σ τ, P σ τ → Q σ τ) {σ τ} (hp : StarClosure P σ τ) :
-    StarClosure Q σ τ := by
-  induction hp with
-  | refl => exact .refl _
-  | step hp _ ih => exact .step (h _ _ hp) ih
+/-- The syntax-level PA-MATCH-ALL list denotes the finite algebraic sum. -/
+theorem matchAll_katInterp (f : FieldName) :
+    katInterp (matchAll f) = ∑ v : FieldValueEnum, ctxPacketModel.filter f v := by
+  have values : (Finset.univ : Finset FieldValueEnum) = {.v0, .v1, .v8, .v9} := by
+    ext v
+    cases v <;> simp
+  rw [values]
+  simp [matchAll, katInterp, NetKAT.fieldTest, predicateInterp,
+    KATLean.Rel.tests, KATLean.NetKAT.PacketModel.filter]
 
-private theorem StarClosure.snoc {P : CtxPkt → CtxPkt → Prop}
-    {σ ρ τ} (h : StarClosure P σ ρ) (last : P ρ τ) : StarClosure P σ τ := by
-  induction h with
-  | refl => exact .step last (.refl _)
-  | step first _ ih => exact .step first (ih last)
+/-- Rule-by-rule algebraic soundness in KATLean. This proof does not use
+Derives.sound. Mathlib's KA laws act on the KATLean relation instance. -/
+theorem Derives.katSound {p q : NetKAT} (proof : Derives p q) :
+    katInterp p = katInterp q := by
+  induction proof with
+  | refl => rfl
+  | symm _ ih => exact ih.symm
+  | trans _ _ ihp ihq => exact ihp.trans ihq
+  | unionCongr _ _ ihp ihq => exact congrArg₂ (· + ·) ihp ihq
+  | seqCongr _ _ ihp ihq => exact congrArg₂ (· * ·) ihp ihq
+  | starCongr _ ih => exact congrArg KStar.kstar ih
+  | notCongr _ ih =>
+    exact congrArg (fun test : Set CtxPkt => KATLean.Rel.tests.embed testᶜ)
+      (KATLean.Rel.tests.injective ih)
+  | testFalse => exact KATLean.Rel.tests.map_bot
+  | testTrue => exact KATLean.Rel.tests.map_top
+  | testOr a b => exact KATLean.Rel.tests.map_sup (predicateInterp a) (predicateInterp b)
+  | testAnd a b => exact KATLean.Rel.tests.map_inf (predicateInterp a) (predicateInterp b)
+  | completeTestExpand alpha =>
+    apply katInterp_eq_iff.mpr
+    exact fun x y => (completeTestExpr_correct alpha x y).symm
+  | plusAssoc p q r => exact (add_assoc (katInterp p) (katInterp q) (katInterp r)).symm
+  | plusComm p q => exact add_comm (katInterp p) (katInterp q)
+  | plusZero p => exact add_zero (katInterp p)
+  | plusIdem p => exact add_idem (katInterp p)
+  | seqAssoc p q r => exact (mul_assoc (katInterp p) (katInterp q) (katInterp r)).symm
+  | oneSeq p => exact one_mul (katInterp p)
+  | seqOne p => exact mul_one (katInterp p)
+  | seqDistL p q r => exact mul_add (katInterp p) (katInterp q) (katInterp r)
+  | seqDistR p q r => exact add_mul (katInterp p) (katInterp q) (katInterp r)
+  | zeroSeq p => exact zero_mul (katInterp p)
+  | seqZero p => exact mul_zero (katInterp p)
+  | unrollL p => exact KATLean.star_unfold_left (katInterp p)
+  | unrollR p => exact KATLean.star_unfold_right (katInterp p)
+  | lfpL _ ih => exact KATLean.star_induction_left_add ih
+  | lfpR _ ih => exact KATLean.star_induction_right_add ih
+  | baPlusDist a b c =>
+    exact KATLean.Rel.tests.plus_distrib (predicateInterp a) (predicateInterp b) (predicateInterp c)
+  | baPlusOne a => exact KATLean.Rel.tests.plus_one (predicateInterp a)
+  | baExclMid a => exact KATLean.Rel.tests.excluded_middle (predicateInterp a)
+  | baSeqComm a b => exact KATLean.Rel.tests.test_commute (predicateInterp a) (predicateInterp b)
+  | baContra a => exact KATLean.Rel.tests.contradiction (predicateInterp a)
+  | baSeqIdem a => exact KATLean.Rel.tests.test_idempotent (predicateInterp a)
+  | paModModComm f g v w different => exact ctxPacketModel.assign_commute f g v w different
+  | paModFilterComm f g v w different => exact ctxPacketModel.assign_filter_commute f g v w different
+  | paModFilter f v => exact ctxPacketModel.assign_filter f v
+  | paFilterMod f v => exact ctxPacketModel.filter_assign f v
+  | paModMod f v w => exact ctxPacketModel.overwrite f v w
+  | paContra f v w different => exact ctxPacketModel.filter_contradiction f v w different
+  | paMatchAll f => exact (matchAll_katInterp f).trans (ctxPacketModel.match_all f)
 
-private theorem StarClosure.last {P : CtxPkt → CtxPkt → Prop}
-    {σ τ} (h : StarClosure P σ τ) : σ = τ ∨ ∃ ρ, StarClosure P σ ρ ∧ P ρ τ := by
-  induction h with
-  | refl => exact Or.inl rfl
-  | step first _ ih =>
-      rcases ih with rfl | ⟨ρ, h, last⟩
-      · exact Or.inr ⟨_, .refl _, first⟩
-      · exact Or.inr ⟨ρ, .step first h, last⟩
+/-- Every derivation is sound for the existing finite packet semantics,
+by algebraic soundness in KATLean and interpretation correctness. -/
+theorem Derives.sound (h : Derives p q) : ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ :=
+  katInterp_eq_iff.mp h.katSound
 
-/-- KA-LFP-L, where inclusion is the relational interpretation of KAT order. -/
+/-- Compatibility wrapper for the paper's left induction rule. -/
 theorem starLfpLeft {p q r : NetKAT}
     (h : ∀ σ τ, Semantics (q ⊕ (p ⨟ r)) σ τ → Semantics r σ τ) :
     ∀ σ τ, Semantics (.star p ⨟ q) σ τ → Semantics r σ τ := by
-  rintro σ τ ⟨ρ, hStar, hq⟩
-  change StarClosure (Semantics p) σ ρ at hStar
-  induction hStar with
-  | refl => exact h _ _ (Or.inl hq)
-  | step hp _ ih => exact h _ _ (Or.inr ⟨_, hp, ih hq⟩)
+  have stable : katInterp q + katInterp p * katInterp r ≤ katInterp r :=
+    KATLean.Rel.le_iff.mpr (fun x y step => (katInterp_correct r x y).mpr
+      (h x y ((katInterp_correct _ x y).mp step)))
+  have bound := KATLean.star_induction_left stable
+  intro x y step
+  exact (katInterp_correct r x y).mp
+    (KATLean.Rel.le_iff.mp bound x y ((katInterp_correct _ x y).mpr step))
 
-/-- KA-LFP-R, where inclusion is the relational interpretation of KAT order. -/
+/-- Compatibility wrapper for the paper's right induction rule. -/
 theorem starLfpRight {p q r : NetKAT}
     (h : ∀ σ τ, Semantics (p ⊕ (q ⨟ r)) σ τ → Semantics q σ τ) :
     ∀ σ τ, Semantics (p ⨟ .star r) σ τ → Semantics q σ τ := by
-  rintro σ τ ⟨ρ, hp, hStar⟩
-  change StarClosure (Semantics r) ρ τ at hStar
-  have hq := h σ ρ (Or.inl hp)
-  clear hp
-  induction hStar with
-  | refl => exact hq
-  | step hr _ ih => exact ih (h _ _ (Or.inr ⟨_, hq, hr⟩))
+  have stable : katInterp p + katInterp q * katInterp r ≤ katInterp q :=
+    KATLean.Rel.le_iff.mpr (fun x y step => (katInterp_correct q x y).mpr
+      (h x y ((katInterp_correct _ x y).mp step)))
+  have bound := KATLean.star_induction_right stable
+  intro x y step
+  exact (katInterp_correct q x y).mp
+    (KATLean.Rel.le_iff.mp bound x y ((katInterp_correct _ x y).mpr step))
 
+/-- Compatibility wrapper for PA-CONTRA. -/
 theorem paContra_sem (f : FieldName) {v w : FieldValueEnum} (h : v ≠ w) (σ τ : CtxPkt) :
     ¬ Semantics (NetKAT.fieldTest f v ⨟ NetKAT.fieldTest f w) σ τ := by
-  simp only [seq_sem, fieldTest_sem]
-  rintro ⟨ρ, ⟨hv, rfl⟩, hw, _⟩
-  exact h (hv.symm.trans hw)
+  have equivalent := (Derives.paContra f v w h).sound σ τ
+  exact fun step => (equivalent.mp step).elim
 
+/-- Compatibility wrapper for the finite syntax-level PA-MATCH-ALL sum. -/
 theorem paMatchAll_sem (f : FieldName) (σ τ : CtxPkt) :
-    Semantics (matchAll f) σ τ ↔ σ = τ := by
-  simp only [matchAll, List.foldr_cons, List.foldr_nil, union_sem, fieldTest_sem,
-    sem_drop_false, or_false]
-  cases σ f <;> simp [eq_comm]
-
-private theorem update_same_of_eq {σ : CtxPkt} {f : FieldName} {v : FieldValueEnum}
-    (h : σ f = v) : Packet.update σ f v = σ := by
-  funext g
-  by_cases hg : g = f
-  · subst g
-    simp [Packet.update, h]
-  · simp [Packet.update, Ne.symm hg]
-
-/-- Every derivation is sound for the project's finite packet semantics. -/
-theorem Derives.sound (h : Derives p q) : ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ := by
-  induction h with
-  | refl => intros; rfl
-  | symm _ ih => exact fun σ τ => (ih σ τ).symm
-  | trans _ _ ih₁ ih₂ => exact fun σ τ => (ih₁ σ τ).trans (ih₂ σ τ)
-  | unionCongr _ _ ih₁ ih₂ => simp only [union_sem, ih₁, ih₂, implies_true]
-  | seqCongr _ _ ih₁ ih₂ => simp only [seq_sem, ih₁, ih₂, implies_true]
-  | starCongr _ ih =>
-      exact fun _ _ => ⟨StarClosure.map (fun σ τ => (ih σ τ).mp),
-        StarClosure.map (fun σ τ => (ih σ τ).mpr)⟩
-  | notCongr _ ih =>
-      intro σ τ
-      have hh := ih σ σ
-      simp only [Semantics, and_true] at hh
-      simp only [notTest_sem, hh]
-  | testFalse => simp [Semantics, Predicate.holds, Predicate.eval]
-  | testTrue => simp [Semantics, Predicate.holds, Predicate.eval]
-  | testOr => simp [Semantics, Predicate.holds, Predicate.eval, or_and_right]
-  | testAnd => simp [Semantics, Predicate.holds, Predicate.eval, and_assoc]
-  | completeTestExpand α => exact fun σ τ => (completeTestExpr_correct α σ τ).symm
-  | plusAssoc p q r => exact fun σ τ => (union_assoc p q r σ τ).symm
-  | plusComm p q => exact union_comm p q
-  | plusZero => simp [Semantics]
-  | plusIdem p => exact union_idem p
-  | seqAssoc =>
-      intro σ τ
-      simp only [seq_sem]
-      constructor
-      · rintro ⟨ρ, hp, κ, hq, hr⟩
-        exact ⟨κ, ⟨ρ, hp, hq⟩, hr⟩
-      · rintro ⟨κ, ⟨ρ, hp, hq⟩, hr⟩
-        exact ⟨ρ, hp, κ, hq, hr⟩
-  | oneSeq p => exact seq_id_left p
-  | seqOne p => exact seq_id_right p
-  | seqDistL p q r => exact seq_distrib_left p q r
-  | seqDistR p q r => exact seq_distrib_right p q r
-  | zeroSeq p => simpa only [sem_drop_false, iff_false] using seq_drop_left p
-  | seqZero p => simpa only [sem_drop_false, iff_false] using seq_drop_right p
-  | unrollL p =>
-      intro σ τ
-      constructor
-      · rintro (rfl | ⟨ρ, hp, hs⟩)
-        · exact .refl _
-        · exact .step hp hs
-      · intro hs
-        change StarClosure (Semantics p) σ τ at hs
-        cases hs with
-        | refl => exact Or.inl rfl
-        | step hp hs => exact Or.inr ⟨_, hp, hs⟩
-  | unrollR p =>
-      intro σ τ
-      constructor
-      · rintro (rfl | ⟨ρ, hs, hp⟩)
-        · exact .refl _
-        · exact StarClosure.snoc hs hp
-      · exact StarClosure.last
-  | lfpL _ ih =>
-      intro σ τ
-      exact ⟨fun h => h.elim (starLfpLeft (fun _ _ h => (ih _ _).mp (Or.inl h)) σ τ) id,
-        Or.inr⟩
-  | lfpR _ ih =>
-      intro σ τ
-      exact ⟨fun h => h.elim (starLfpRight (fun _ _ h => (ih _ _).mp (Or.inl h)) σ τ) id,
-        Or.inr⟩
-  | baPlusDist =>
-      intro σ τ
-      simp only [Semantics, ← or_and_right, exists_eq_left, and_assoc]
-      aesop
-  | baPlusOne => simp [Semantics]
-  | baExclMid a =>
-      intro σ τ
-      cases hEval : a.eval σ <;> simp [Semantics, Predicate.holds, Predicate.eval, hEval]
-  | baSeqComm => simp [Semantics, and_left_comm, and_assoc]
-  | baContra => simp [Semantics, Predicate.holds, Predicate.eval]
-  | baSeqIdem => simp [Semantics, and_assoc]
-  | paModModComm f g v w h =>
-      simp [seq_sem, assign1_sem, assign_comm_diff f g v w h]
-  | paModFilterComm f g v w h =>
-      intro σ τ
-      simp only [seq_sem, assign1_sem, fieldTest_sem]
-      constructor
-      · rintro ⟨ρ, rfl, htest, rfl⟩
-        exact ⟨σ, ⟨by simpa [Packet.update, h] using htest, rfl⟩, rfl⟩
-      · rintro ⟨ρ, ⟨htest, rfl⟩, rfl⟩
-        exact ⟨_, rfl, by simpa [Packet.update, h] using htest, rfl⟩
-  | paModFilter => simp [seq_sem, assign1_sem, fieldTest_sem, assign_test_same_field]
-  | paFilterMod =>
-      intro σ τ
-      simp only [seq_sem, fieldTest_sem, assign1_sem]
-      constructor
-      · rintro ⟨ρ, ⟨h, rfl⟩, rfl⟩
-        exact ⟨h, update_same_of_eq h⟩
-      · rintro ⟨h, rfl⟩
-        exact ⟨_, ⟨h, rfl⟩, (update_same_of_eq h).symm⟩
-  | paModMod => simp [seq_sem, assign1_sem, Packet.update_update_same]
-  | paContra f v w h => exact fun σ τ => iff_false_intro (paContra_sem f h σ τ)
-  | paMatchAll f => exact paMatchAll_sem f
+    Semantics (matchAll f) σ τ ↔ σ = τ :=
+  (Derives.paMatchAll f).sound σ τ
 
 theorem Derives.historySound (h : Derives p q) :
     ∀ σ τ, HistorySemantics p σ τ ↔ HistorySemantics q σ τ :=

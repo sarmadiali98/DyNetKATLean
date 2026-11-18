@@ -104,7 +104,10 @@ evidence.
 The [KATLean foundation table](KATLEAN.md#ka-conformance-and-inequalities)
 adds an algebraic account of all Figure 4 KA laws, the six BA laws and
 the seven dup-free PA laws. `Derives.katSound` interprets the existing
-fixed-domain derivations in this algebra. PA-DUP-FILTER-COMM remains
+fixed-domain derivations by direct rule induction in this algebra.
+`Derives.sound` then transfers the equality through `katInterp_correct`.
+The [rule audit](KATLEAN.md#derives-rule-audit) records all 40 constructors
+and their proof sources. PA-DUP-FILTER-COMM remains
 open in an optional full NetKAT history model.
 
 ### Figure 4 axiom inventory

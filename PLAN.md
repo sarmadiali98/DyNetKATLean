@@ -246,9 +246,11 @@ pinned Mathlib KA, an injective Boolean-test embedding and generic packet
 lookup/update laws. The CtxPkt interpretation agrees with the evaluator,
 and every existing NetKAT derivation preserves its interpretation.
 `normalize_katInterp` connects the current Lemma 5 result to that algebra.
-The next foundation work is deliberate theorem reuse in Derives soundness
-and general-schema bridges. Full NetKAT history/dup coverage is an optional
-supporting extension.
+The derivation layer now uses KATLean directly for all 15 KA rules, six BA
+laws, four test embeddings and seven packet laws. Semantic soundness follows
+from that interpretation equality, and Lemma 5 and E_DNK consume this proof
+chain. The remaining foundation work concerns general-schema bridges.
+Full NetKAT history/dup coverage is an optional supporting extension.
 
 ### Recursive analysis and concrete certificates
 

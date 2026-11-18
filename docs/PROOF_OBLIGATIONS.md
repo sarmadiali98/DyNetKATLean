@@ -38,8 +38,12 @@ proves all seven dup-free PA laws, including finite-value exhaustiveness.
 `katInterp_correct`, `execute_katInterp` and `Derives.katSound`
 connect the current AST, evaluator and derivations to that model.
 `normalize_katInterp` is the existing Lemma 5 derivation interpreted
-in KATLean. The initial soundness bridge reuses `Derives.sound`.
-Refactoring that proof to use the KATLean law families remains separate.
+in KATLean. `Derives.katSound` now justifies each algebraic constructor
+directly from KATLean and its Mathlib instances. `Derives.sound` follows
+from that algebraic induction and the independently proved interpretation
+bridge. The [40-rule audit](KATLEAN.md#derives-rule-audit) records each
+constructor and the [duplication audit](KATLEAN.md#duplication-and-dependency-audit)
+records retained syntax and compatibility lemmas.
 N1–N5 general-schema requirements remain open. A history/dup model for
 PA-DUP-FILTER-COMM is optional supporting work outside current DyNetKAT
 completion.
