@@ -121,7 +121,7 @@ def proveStateProperty {G root env source} {Safe : GProc → Prop}
 
 end AnalysisResult
 
-def boundedAnalysis {G env source bodyChecks live} {state : CheckedResidual}
+def Internal.boundedAnalysis {G env source bodyChecks live} {state : CheckedResidual}
     (support : ProjectionSupport G bodyChecks live) (valid : state.Valid live)
     (corr : Corr G env source state.proc) (depth : Nat) (reason : Option DiscoveryFailure := none) :
     AnalysisResult G state.proc env source :=
@@ -131,13 +131,13 @@ def boundedAnalysis {G env source bodyChecks live} {state : CheckedResidual}
 
 /-- Run discovery for an already compiled residual. Explicit bounded requests
 use projection directly. A simulation candidate serves only all-depth properties. -/
-def analyzeResidual {G env source bodyChecks live} {state : CheckedResidual}
+def Internal.analyzeResidual {G env source bodyChecks live} {state : CheckedResidual}
     (support : ProjectionSupport G bodyChecks live) (valid : state.Valid live)
     (corr : Corr G env source state.proc) (id : ConcreteIdentity) (limits : ClosureLimits)
     (request : AnalysisRequest) (model : Option (SuppliedModel G state.proc) := none) :
     AnalysisResult G state.proc env source :=
   match request with
-  | .bounded depth => boundedAnalysis support valid corr depth
+  | .bounded depth => Internal.boundedAnalysis support valid corr depth
   | .allDepth depth | .exactModel depth =>
     match h : discoverClosure support id limits state valid with
     | .ok rows => .closure rows (discoverClosure_sound h)
@@ -147,12 +147,12 @@ def analyzeResidual {G env source bodyChecks live} {state : CheckedResidual}
       | .allDepth _, some (.simulation table cert) => .simulation table cert reason
       | _, _ =>
         match depth with
-        | some n => boundedAnalysis support valid corr n (some reason)
+        | some n => Internal.boundedAnalysis support valid corr n (some reason)
         | none => .unknown reason
 
 /-- Check dependency metadata before evaluating a residual-analysis thunk.
 The thunk can carry the guardedness and classifier evidence for cyclic analysis. -/
-def analyzeSource {env root S} (hs : FiniteSupport env root S)
+def Internal.analyzeSource {env root S} (hs : FiniteSupport env root S)
     (otherwise : Unit → AnalysisResult (toGraph env root S hs) (toGProc root) env root) :
     AnalysisResult (toGraph env root S hs) (toGProc root) env root :=
   if acyclic : (DependencyGraph.build env root S hs).cyclicSccs = ∅ then
@@ -160,12 +160,12 @@ def analyzeSource {env root S} (hs : FiniteSupport env root S)
       ((DependencyGraph.cyclicSccs_eq_empty_iff _).mp acyclic))
   else otherwise ()
 
-theorem analyzeSource_acyclic {env root S} (hs : FiniteSupport env root S) {otherwise}
+theorem Internal.analyzeSource_acyclic {env root S} (hs : FiniteSupport env root S) {otherwise}
     (h : (DependencyGraph.build env root S hs).cyclicSccs = ∅) :
-    (analyzeSource hs otherwise).guarantee = .ground := by
-  simp [analyzeSource, h, AnalysisResult.guarantee]
+    (Internal.analyzeSource hs otherwise).guarantee = .ground := by
+  simp [Internal.analyzeSource, h, AnalysisResult.guarantee]
 
-def analyzeCompiledSource {env root S bodyChecks live} (hs : FiniteSupport env root S)
+def Internal.analyzeCompiledSource {env root S bodyChecks live} (hs : FiniteSupport env root S)
     (checks : RestrictionChecks)
     (support : ProjectionSupport (toGraph env root S hs) bodyChecks live)
     (valid : (CheckedResidual.mk (toGProc root) checks).Valid live)
@@ -173,10 +173,10 @@ def analyzeCompiledSource {env root S bodyChecks live} (hs : FiniteSupport env r
     (model : Option (SuppliedModel (toGraph env root S hs) (toGProc root)) := none) :
     AnalysisResult (toGraph env root S hs) (toGProc root) env root :=
   let run := fun () =>
-    analyzeResidual support valid (toGraph_corr env root S hs) id limits request model
+    Internal.analyzeResidual support valid (toGraph_corr env root S hs) id limits request model
   match request with
   | .bounded _ => run ()
-  | _ => analyzeSource hs run
+  | _ => Internal.analyzeSource hs run
 
 /-- Pairwise equivalence has a distinct result type. In particular its
 constructors cannot accept a bounded projection or a forward simulation. -/
@@ -214,7 +214,7 @@ inductive SuppliedEquivalence (env : RecEnv) (p q : DyNetKAT) where
 
 /-- Optional checked mismatch first, followed by finite concrete search.
 If the search is inconclusive, use supplied exact evidence for the pair. -/
-def analyzeEquivalence {G env p q bodyChecks live} {left right : CheckedResidual}
+def Internal.analyzeEquivalence {G env p q bodyChecks live} {left right : CheckedResidual}
     (support : ProjectionSupport G bodyChecks live)
     (lv : left.Valid live) (rv : right.Valid live)
     (lc : Corr G env p left.proc) (rc : Corr G env q right.proc)

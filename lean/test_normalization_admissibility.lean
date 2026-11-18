@@ -115,7 +115,7 @@ theorem productive_cycle_no_checked_certificate :
 #guard !(checkNormalization productiveCycle productiveCandidate)
 #guard (normalizeCertifiedGraph silentCandidate silentExact).nodes.card == 1
 #guard (normalizeCertifiedGraph productiveCandidate productiveExact).nodes.card == 1
-#guard (safetyCheckCertifiedGraph productiveCandidate productiveExact {("tick", .id)} .id .id) ==
+#guard (Internal.safetyCheckCertifiedGraph productiveCandidate productiveExact {("tick", .id)} .id .id) ==
   ⟨.isZero true, .nonzero false⟩
 
 private def nested (L M : Set CommunicationAction) : GProc :=

@@ -99,7 +99,7 @@ example : ¬ WellFormed (loopEnv false) (.var "X") := by
 private def noClosureAttempt {G : ProcessGraph} (_ : Unit) :
     Except DiscoveryFailure (ClosureCandidate G) := .error .resourceLimit
 
-example : analyzeRecursive chainFinite .structural noClosureAttempt = .ground := rfl
+example : Internal.analyzeRecursive chainFinite .structural noClosureAttempt = .ground := rfl
 
 example : ∃ q, Ground q ∧ DerivesNoAIP chainEnv (.var "X") q :=
   analyzeRecursive_ground (hs := chainFinite) (id := .structural) (attempt := noClosureAttempt) rfl
@@ -107,8 +107,8 @@ example : ∃ q, Ground q ∧ DerivesNoAIP chainEnv (.var "X") q :=
 
 private theorem noRec : FiniteSupport RecEnv.empty .deadlock ∅ := ⟨by simp, by simp⟩
 
-#guard (analyzeSource noRec (fun () => .unknown .unknown)).guarantee == .ground
-#guard (analyzeSource chainFinite (fun () => .unknown .resourceLimit)).guarantee == .ground
+#guard (Internal.analyzeSource noRec (fun () => .unknown .unknown)).guarantee == .ground
+#guard (Internal.analyzeSource chainFinite (fun () => .unknown .resourceLimit)).guarantee == .ground
 
 private def loopChecks : RestrictionChecks := fun _ _ => false
 private def loopGraph := toGraph (loopEnv true) (.var "X") _ (loopFinite true)
@@ -128,15 +128,15 @@ private theorem loopSupported : ProjectionSupport loopGraph (fun _ => loopChecks
     exact ⟨trivial, trivial⟩
 
 private def loopResult (limit : Nat) :=
-  analyzeCompiledSource (loopFinite true) loopChecks loopSupported ⟨by simp [toGProc, gprocRefs],
+  Internal.analyzeCompiledSource (loopFinite true) loopChecks loopSupported ⟨by simp [toGProc, gprocRefs],
     trivial⟩ .structural ⟨limit, 2, 2⟩ (.allDepth none)
 
 #guard (loopResult 1).guarantee == .finiteClosure 1
 #guard (loopResult 0).guarantee == .unknown
 #guard (loopResult 0).closureFailure == some .resourceLimit
 
-#print axioms analyzeSource_acyclic
-#print axioms analyzeCompiledSource
+#print axioms Internal.analyzeSource_acyclic
+#print axioms Internal.analyzeCompiledSource
 #print axioms AnalysisResult.groundModel
 
 end DyNetKAT.DyNetKAT.DependencySCCTests

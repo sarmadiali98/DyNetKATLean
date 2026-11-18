@@ -228,7 +228,7 @@ inductive RecursiveAnalysis (G : ProcessGraph) where
   | finiteClosure (rows : ClosureCandidate G)
   | projection (reason : DiscoveryFailure)
 
-def analyzeRecursive {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+def Internal.analyzeRecursive {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
     (hs : FiniteSupport env root S) (id : ConcreteIdentity)
     (attempt : Unit → Except DiscoveryFailure (ClosureCandidate (toGraph env root S hs))) :
     RecursiveAnalysis (toGraph env root S hs) :=
@@ -241,9 +241,9 @@ def analyzeRecursive {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
     | .error reason => .projection reason
 
 theorem analyzeRecursive_ground {env root S hs id attempt}
-    (h : analyzeRecursive (env := env) (root := root) (S := S) hs id attempt = .ground) :
+    (h : Internal.analyzeRecursive (env := env) (root := root) (S := S) hs id attempt = .ground) :
     ∃ q, Ground q ∧ DerivesNoAIP env root q := by
-  unfold analyzeRecursive at h
+  unfold Internal.analyzeRecursive at h
   split at h
   · exact DependencyGraph.acyclic_unfolds_ground hs
       ((DependencyGraph.cyclicSccs_eq_empty_iff _).mp (by assumption))
@@ -252,10 +252,10 @@ theorem analyzeRecursive_ground {env root S hs id attempt}
     · contradiction
 
 theorem analyzeRecursive_closure {env root S hs id attempt rows}
-    (h : analyzeRecursive (env := env) (root := root) (S := S) hs id attempt =
+    (h : Internal.analyzeRecursive (env := env) (root := root) (S := S) hs id attempt =
         .finiteClosure rows) :
     ValidClosure (toGraph env root S hs).root rows := by
-  unfold analyzeRecursive at h
+  unfold Internal.analyzeRecursive at h
   split at h
   · cases h
   · split at h

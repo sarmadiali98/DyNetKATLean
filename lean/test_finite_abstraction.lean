@@ -28,6 +28,14 @@ private theorem growSupport : FiniteSupport commonEnv growSource {AbstractTable.
   obtain rfl := Finset.mem_singleton.mp hx
   exact ⟨_, rfl, by simp [recursiveVars, growSource]⟩
 
+private theorem growAdmissible : PaperAdmissible true commonEnv growSource := by
+  apply (paperAdmissible_iff true _ _).2
+  refine ⟨trivial, fun x hx => ?_⟩
+  obtain rfl := Finset.mem_singleton.mp
+    (reachableVars_subset_of_finiteSupport commonEnv growSource _ growSupport x hx)
+  refine ⟨_, ⟨rfl, by simp [PaperSyntax], fun _ h => by cases h⟩, ?_⟩
+  exact fun _ other => RecEnv.lookup_unique other.1 rfl
+
 private def growing : ProcessGraph := toGraph commonEnv growSource _ growSupport
 
 private theorem growing_label : growing.label node = .rcfgPrefix "tick" .id (grow 1) := by
@@ -221,9 +229,14 @@ private theorem quotientSupport : ProjectionSupport growing (fun _ => quotientCh
     rw [growing_label]
     exact ⟨trivial, ⟨trivial, trivial⟩⟩
 
+private def growProgram : Program true commonEnv := ⟨growSource, growAdmissible⟩
+private def compiledGrow : growProgram.Compiled := ⟨_, growSupport⟩
+
 private def quotientStrategy :=
-  analyzeCompiledSource growSupport quotientChecks quotientSupport
-    ⟨by simp [growSource, node, toGProc, gprocRefs], trivial⟩ .structural ⟨3, 8, 8⟩
+  compiledGrow.analyze quotientChecks quotientSupport
+    (show (CheckedResidual.mk (toGProc growSource) quotientChecks).Valid _ from
+      ⟨by simp [growSource, node, toGProc, gprocRefs], trivial⟩)
+    .structural ⟨3, 8, 8⟩
     (.exactModel none) (some (.quotient table quotient))
 
 #guard quotientStrategy.guarantee == .strongQuotient 1

@@ -29,6 +29,31 @@ the detailed recursive tail analysis and the original design alternatives.
 | D5 Lemma 3 | Lift process-context congruence through every constructor and well-scoped recursive bindings where substitution is claimed. Prove name invariance and graph/closed-source bisimilarity, including comparisons across independently compiled environments. The current constructor lemmas work in one fixed environment. Prove the stronger closure result with explicit relation and scope. |
 | D6 Compilation | For a finite parsed declaration map compute support, reject unresolved and duplicate names, and prove `compileGraph` accepts a support for every valid finite input. Prove both directions of step and residual correspondence for the full SOS and any optimized graph representation. Existing `Corr` and step correspondence apply after support is supplied. |
 
+### Grammar boundary and preservation
+
+`paperAdmissible_iff` characterizes the two printed grammars and the
+unique, guarded reachable definitions. `Step.preserves_paperAdmissible`
+checks each SOS rule, reusing `Step.reachableVar_mono` and
+`Step.preserves_wellFormed`. `Steps.preserves_paperAdmissible` and
+`PaperAdmissible.reachable` cover the existing trace and stateless
+reachability relations. `GSteps.preserves_paperAdmissible` transfers
+closure through `Corr`. These results cover `CtxPkt` and precede the
+finite-support, restriction-classifier and certificate obligations of
+executable analysis. See the [fixture audit](PAPER_CONFORMANCE.md#source-grammar-and-sos-residual-closure).
+
+### Public theorem and operation scope
+
+| Area | Classification and paper-facing entry |
+|---|---|
+| Formation and recursion | `PaperSyntax` is A (syntax formation). `paperAdmissible_iff` and `Program` are C (paper-semantic API). Raw `RecEnv` construction is B (internal raw representation). |
+| SOS and executable transitions | `Step`, `GStep`, `checkedMoves` and exactness lemmas are B (raw syntax theorems with their stated hypotheses). `Program.Compiled.State.moves_exact` and `State.successor` are C (reachable-residual theorems). |
+| Finite branching and AIP | `WellFormed.finite_targets_from` and `approximation_induction` are B (internal theorems over their own hypotheses). `Program.Residual.finite_targets` and `Program.approximation` are C. AIP uses extended projections as observations. |
+| Graph correspondence | `Corr`, `toGraph_corr` and step transfer are B. `Program.Compiled.corr` starts with a program and `source_reachable` recovers a reachable residual. |
+| Projection, closure, bisimulation and strategy | The raw renderers, certificate checkers, discovery functions and `Internal.analyze…` functions are B. `Program.Compiled.analyze` and `State.analyze` supply the domain for one-root analyses. `Program.equivalence` and `State.equivalence` check both input endpoints. Rendered terms are models. |
+| Normalization and ground completeness | `Derives`, `WellFormed.normalizes` and `ground_derives_iff_bisimilar` are B. `Program.normalizes` and `Program.ground_complete` are C, with an admissible source or two admissible ground operands. Normal form witnesses are algebraic models. |
+| Safety and query evaluation | Raw head, tail, restricted graph preprocessing and executable safety helpers are B. `Program.Compiled.safety` and `safety_correct` are C. Successful preprocessing remains an independent hypothesis of the legacy head/tail query theorem. |
+| Abstract certificates | Generic table and certificate checking is B. The public strategy takes an admitted source or reachable residual and restricts candidate relations to reachable states. Graph-only experiments and analysis of unguarded defining aliases are D (outside DyNetKAT). |
+
 ### Guardedness and representability
 
 Definition 7's clause (i) places an occurrence in the continuation of a
@@ -342,6 +367,12 @@ translation.
   finite concrete derivatives. Exact projection supplies bounded analysis
   under its existing hypotheses. No automatic quotient inference is
   required by the proof-carrying API.
+
+Simulation and strong quotient checking are certified tool extensions
+that apply to some admitted Eq. (6) programs. The proofs above distinguish
+infinite syntax from the existence of a finite exact behavioral model.
+Paper-core finite projection and local branching still apply to the
+admitted examples with infinite growth.
 
 ### Certified recursive strategy selection
 

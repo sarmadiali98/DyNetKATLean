@@ -267,7 +267,7 @@ private def hostClosure :=
 
 
 private def hostStrategy :=
-  analyzeCompiledSource supported closureChecks closureSupport
+  Internal.analyzeCompiledSource supported closureChecks closureSupport
     (toGProc_projectionValid (env := env) (root := root) ⟨trivial, trivial⟩)
     .structural ⟨8, 32, 8⟩ (.allDepth none)
 

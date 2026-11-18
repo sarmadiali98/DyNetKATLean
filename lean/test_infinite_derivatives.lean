@@ -101,6 +101,34 @@ private theorem spawnWellFormed : WellFormed spawnEnv (.var "X") := by
     rw [body x hx]
     exact ⟨_, rfl, trivial⟩
 
+private theorem spawnPaperAdmissible : PaperAdmissible true spawnEnv (.var "X") := by
+  refine ⟨spawnWellFormed, trivial, ?_⟩
+  intro x body hx lookup
+  obtain rfl := Finset.mem_singleton.mp
+    (reachableVars_subset_of_finiteSupport spawnEnv _ _ spawnSupported x hx)
+  have definition := RecEnv.lookup_unique lookup
+    (show spawnEnv.lookup "X" = some _ from rfl)
+  simpa [definition, PaperSyntax]
+
+example : ¬ BaseAdmissible spawnEnv (.var "X") := by
+  intro base
+  have body := base.2.2 "X" _ (.direct (by simp)) (show spawnEnv.lookup "X" = some _ from rfl)
+  simp [PaperSyntax] at body
+
+example (n : Nat) : ∃ p, PaperAdmissible true spawnEnv p ∧ Corr graph spawnEnv p (spawnState n) := by
+  have trace (start count : Nat) : ∃ actions,
+      GSteps graph ⟨spawnState start, [], []⟩ actions ⟨spawnState (start + count), [], []⟩ := by
+    induction count generalizing start with
+    | zero => exact ⟨[], .nil _⟩
+    | succ count ih =>
+      obtain ⟨actions, tail⟩ := ih (start + 1)
+      rw [show start + 1 + count = start + (count + 1) by omega] at tail
+      exact ⟨_ :: actions, .cons _ _ _ _ _ (spawnStep start) tail⟩
+  obtain ⟨actions, steps⟩ := trace 0 n
+  rw [Nat.zero_add] at steps
+  exact steps.preserves_paperAdmissible (toGraph_corr spawnEnv _ _ spawnSupported)
+    spawnPaperAdmissible
+
 -- Environment closure and guardedness do not make the spawning root ground.
 example : WellFormed spawnEnv (.var "X") ∧ ¬ Ground (.var "X") :=
   ⟨spawnWellFormed, by simp [Ground]⟩
@@ -351,8 +379,11 @@ theorem spawn_all_depth_no_packet_or_communication {p}
 #print axioms spawn_all_depth_no_packet_or_communication
 
 
+private def spawnProgram : Program true spawnEnv := ⟨.var "X", spawnPaperAdmissible⟩
+private def compiledSpawn : spawnProgram.Compiled := ⟨_, spawnSupported⟩
+
 private def spawnStrategy (request : AnalysisRequest) :=
-  analyzeCompiledSource spawnSupported checks
+  compiledSpawn.analyze checks
     (toGraph_projectionSupport spawnSupported spawnWellFormed (fun _ => checks)
       (fun x b hx hb => spawnBodyChecks x b hx hb))
     (toGProc_projectionValid (env := spawnEnv) (root := .var "X") trivial)

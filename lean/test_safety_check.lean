@@ -187,27 +187,27 @@ import DyNetKAT
  -- `tail` fails on recursive variables: `none`, not `some true`.
  #eval c35notEvaluable ingressP egressP Rsec (.var "Switch")           -- true
  -- Preprocessing failure yields `preprocessFailure` on both conditions.
- #eval safetyCheck RecEnv.empty (.var "Switch") Rsec ingressP egressP ==
+ #eval Internal.safetyCheck RecEnv.empty (.var "Switch") Rsec ingressP egressP ==
          ⟨Cond34Result.preprocessFailure, Cond35Result.preprocessFailure⟩  -- true
 
  ------------------------------------------------------------------------
  -- Full pipeline verdicts on the fixtures (executable level).
  ------------------------------------------------------------------------
 
- #eval safetyCheck RecEnv.empty firewallInit Rsec ingressP egressP
+ #eval Internal.safetyCheck RecEnv.empty firewallInit Rsec ingressP egressP
  -- { initialCondition := Cond34Result.isZero true,
  --   postReconfigurationCondition := Cond35Result.nonzero true }
 
- #eval safetyCheck RecEnv.empty firewallBad34 Rsec ingressP egressP ==
+ #eval Internal.safetyCheck RecEnv.empty firewallBad34 Rsec ingressP egressP ==
          ⟨Cond34Result.isZero false, Cond35Result.nonzero true⟩        -- true
 
- #eval safetyCheck RecEnv.empty firewallBad35 Rsec ingressP egressP ==
+ #eval Internal.safetyCheck RecEnv.empty firewallBad35 Rsec ingressP egressP ==
          ⟨Cond34Result.isZero true, Cond35Result.nonzero false⟩        -- true
 
  -- The paper's combined claim holds exactly on the correct fixture.
- #eval (safetyCheck RecEnv.empty firewallInit Rsec ingressP egressP).bothHold    -- true
- #eval (safetyCheck RecEnv.empty firewallBad34 Rsec ingressP egressP).bothHold   -- false
- #eval (safetyCheck RecEnv.empty firewallBad35 Rsec ingressP egressP).bothHold   -- false
+ #eval (Internal.safetyCheck RecEnv.empty firewallInit Rsec ingressP egressP).bothHold    -- true
+ #eval (Internal.safetyCheck RecEnv.empty firewallBad34 Rsec ingressP egressP).bothHold   -- false
+ #eval (Internal.safetyCheck RecEnv.empty firewallBad35 Rsec ingressP egressP).bothHold   -- false
 
  ------------------------------------------------------------------------
  -- Propositional checks: applications of the machine-checked theorems.
@@ -219,7 +219,7 @@ import DyNetKAT
      ∃ q Q H₁ H₂,
        preprocess RecEnv.empty firewallInit = some q ∧ head q = some H₁ ∧
        tail Rsec q = some Q ∧ head Q = some H₂ ∧
-       safetyCheck RecEnv.empty firewallInit Rsec ingressP egressP =
+       Internal.safetyCheck RecEnv.empty firewallInit Rsec ingressP egressP =
          ⟨Cond34Result.isZero (netkatIsZero (reachabilityPolicy ingressP H₁ egressP)),
           Cond35Result.nonzero
             (!netkatIsZero (reachabilityPolicy ingressP H₂ egressP))⟩ :=
@@ -281,7 +281,7 @@ example :
    simp
 
  -- Preprocessing failure is reported, never interpreted as a verdict.
- example : safetyCheck RecEnv.empty (.var "Switch") Rsec ingressP egressP =
+ example : Internal.safetyCheck RecEnv.empty (.var "Switch") Rsec ingressP egressP =
      ⟨Cond34Result.preprocessFailure, Cond35Result.preprocessFailure⟩ :=
    safetyCheck_preprocessFailure RecEnv.empty (.var "Switch") Rsec ingressP
      egressP rfl

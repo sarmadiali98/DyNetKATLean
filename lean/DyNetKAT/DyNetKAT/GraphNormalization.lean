@@ -1001,16 +1001,16 @@ theorem normalizeCertifiedGraph_correct {n : Nat} {G : ProcessGraph}
   ⟨h.derivativeClosure, h.bisimilar, sequentialGraph_supported C⟩
 
 /-- Run the existing safety checker on a proof-checked table. -/
-def safetyCheckCertifiedGraph {n : Nat} {G : ProcessGraph}
+def Internal.safetyCheckCertifiedGraph {n : Nat} {G : ProcessGraph}
     (C : NormalizationCandidate n) (h : NormalizationExact G C)
     (R : ReconfigSet) (ingress egress : NetKAT) : SafetyCheckResult :=
-  safetyCheckGraph (normalizeCertifiedGraph C h) R ingress egress
+  Internal.safetyCheckGraph (normalizeCertifiedGraph C h) R ingress egress
 
 theorem safetyCheckCertifiedGraph_correct {n : Nat} {G : ProcessGraph}
     {C : NormalizationCandidate n} (h : NormalizationExact G C)
     (R : ReconfigSet) (ingress egress : NetKAT) :
     let Q := normalizeCertifiedGraph C h
-    let result := safetyCheckCertifiedGraph C h R ingress egress
+    let result := Internal.safetyCheckCertifiedGraph C h R ingress egress
     GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root ∧
       (result.initialCondition = .isZero true ↔
         ¬ flowVia ingress egress (GraphHeadSpec Q Q.root)) ∧
@@ -1050,15 +1050,15 @@ theorem normalizeGraph_correct {n : Nat} {G Q : ProcessGraph} {C : Normalization
   · contradiction
 
 /-- Normalize and check (34) and (35) using the environment-free graph checker. -/
-def normalizeAndSafetyCheckGraph {n : Nat} (G : ProcessGraph) (C : NormalizationCandidate n)
+def Internal.normalizeAndSafetyCheckGraph {n : Nat} (G : ProcessGraph) (C : NormalizationCandidate n)
     (R : ReconfigSet) (ingress egress : NetKAT) : Except NormalizationError SafetyCheckResult :=
-  (normalizeGraph G C).map fun Q => safetyCheckGraph Q R ingress egress
+  (normalizeGraph G C).map fun Q => Internal.safetyCheckGraph Q R ingress egress
 
 theorem normalizeAndSafetyCheckGraph_correct {n : Nat} {G Q : ProcessGraph}
     {C : NormalizationCandidate n} (h : normalizeGraph G C = .ok Q)
     (R : ReconfigSet) (ingress egress : NetKAT) :
     GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root ∧
-      ∃ result, normalizeAndSafetyCheckGraph G C R ingress egress = .ok result ∧
+      ∃ result, Internal.normalizeAndSafetyCheckGraph G C R ingress egress = .ok result ∧
         (result.initialCondition = .isZero true ↔
           ¬ flowVia ingress egress (GraphHeadSpec Q Q.root)) ∧
         (result.postReconfigurationCondition = .nonzero true ↔
@@ -1066,23 +1066,23 @@ theorem normalizeAndSafetyCheckGraph_correct {n : Nat} {G Q : ProcessGraph}
   obtain ⟨_, hBisim, hHead, hTail⟩ := normalizeGraph_correct h
   obtain ⟨_, _, _, _, _, _, hInitial, hPost⟩ :=
     safetyCheckGraph_correct Q R ingress egress hHead (graphTailSupported_implies_domain hTail)
-  exact ⟨hBisim, _, by simp [normalizeAndSafetyCheckGraph, h, Except.map], hInitial, hPost⟩
+  exact ⟨hBisim, _, by simp [Internal.normalizeAndSafetyCheckGraph, h, Except.map], hInitial, hPost⟩
 
 /-- Frontend for raw terms. The certificate describes derivatives of
     the compiled graph with its canonical reference identifiers. -/
-def compileNormalizeAndSafetyCheckGraph {n : Nat} (env : RecEnv) (p : DyNetKAT)
+def Internal.compileNormalizeAndSafetyCheckGraph {n : Nat} (env : RecEnv) (p : DyNetKAT)
     (support : Finset Var) (C : NormalizationCandidate n) (R : ReconfigSet)
     (ingress egress : NetKAT) : Except NormalizationError SafetyCheckResult :=
   match compileGraph env p support with
   | none => .error .compilationFailed
-  | some G => normalizeAndSafetyCheckGraph G C R ingress egress
+  | some G => Internal.normalizeAndSafetyCheckGraph G C R ingress egress
 
-theorem compileNormalizeAndSafetyCheckGraph_correct {n : Nat} {env : RecEnv}
+theorem Internal.compileNormalizeAndSafetyCheckGraph_correct {n : Nat} {env : RecEnv}
     {p : DyNetKAT} {support : Finset Var} {G Q : ProcessGraph}
     {C : NormalizationCandidate n} (hCompile : compileGraph env p support = some G)
     (hNormalize : normalizeGraph G C = .ok Q) (R : ReconfigSet) (ingress egress : NetKAT) :
     Corr G env p G.root ∧ GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root ∧
-      ∃ result, compileNormalizeAndSafetyCheckGraph env p support C R ingress egress = .ok result ∧
+      ∃ result, Internal.compileNormalizeAndSafetyCheckGraph env p support C R ingress egress = .ok result ∧
         (result.initialCondition = .isZero true ↔
           ¬ flowVia ingress egress (GraphHeadSpec Q Q.root)) ∧
         (result.postReconfigurationCondition = .nonzero true ↔
@@ -1090,6 +1090,6 @@ theorem compileNormalizeAndSafetyCheckGraph_correct {n : Nat} {env : RecEnv}
   obtain ⟨hBisim, result, hResult, hInitial, hPost⟩ :=
     normalizeAndSafetyCheckGraph_correct hNormalize R ingress egress
   exact ⟨compileGraph_corr hCompile, hBisim, result,
-    by simpa only [compileNormalizeAndSafetyCheckGraph, hCompile] using hResult, hInitial, hPost⟩
+    by simpa only [Internal.compileNormalizeAndSafetyCheckGraph, hCompile] using hResult, hInitial, hPost⟩
 
 end DyNetKAT.DyNetKAT

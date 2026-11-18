@@ -772,3 +772,14 @@ generated the 6-pod model with 99 nodes, 17 recursive definitions and
 nine queries. The 16-pod topology constructor produced 1,344 nodes.
 Running the original Maude/NetKAT pipeline and collecting comparable
 benchmark results remain Phase 9 work.
+
+
+### Frontend semantic boundary
+
+The Lean executable currently prints the project name. A future DyNetKAT
+parser must elaborate a paper source grammar and validate unique, defined
+and guarded reachable declarations before constructing `Program`. Split
+frontend validation errors from unsupported analysis or missing finite
+support. Parse an analysis depth as a query parameter. Auxiliary graph
+nodes, certificate tables and rendered head/tail models are internal
+helper syntax.

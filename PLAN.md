@@ -217,18 +217,18 @@ benchmark methodology and results.
 
 ## Next implementation milestone
 
-Prove exact one-step enumeration for closed guarded definitions and use it to
-render `π_n` into a finite sequential term or graph at any user-selected depth.
-Start with the current packet instance, with the schema boundary explicit so
-Phase 1 can proceed independently. The milestone passes when the renderer is
-total on the stated guarded domain, matches the original SOS in both
-directions with identical labels and packet-list effects, and computes
-projected versions of the parallel spawning example and original firewall
-without a supplied derivative certificate. Cover depth zero, a synchronization
-at the cutoff, mutual recursion, nested restriction and both merge operators.
-The statement and proof order are specified in
-[PROOF_OBLIGATIONS.md](docs/PROOF_OBLIGATIONS.md#finite-depth-projection).
+Paper-facing analysis starts with `Program`, which checks the paper
+source grammar and guarded reachable declarations. Its `Residual` type
+requires an SOS path. `Program.Compiled` builds its graph from the admitted
+source, and compiled residuals carry correspondence and graph reachability.
+Finite branching, AIP, finite projection and the safety reduction remain
+paper-core. Certified simulation and quotients are optional tools for
+reachable residuals. Acyclic aliases in defining equations and synthetic
+graph-only regressions belong to the internal proof and test infrastructure.
 
+The conformance review must precede KATLean. Keep KATLean to the Mathlib
+Kleene algebra, Boolean tests and packet laws needed by NetKAT, E_NK and
+E_DNK. KATch remains the optional backend with Lean candidate validation.
 
 ### Recursive analysis and concrete certificates
 

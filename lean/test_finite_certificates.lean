@@ -216,14 +216,14 @@ private theorem strategyCorr (p : DyNetKAT) (h : recursiveVars p ⊆ strategyNam
   toGraph_corr_of_subset _ _ _ strategyFinite p h
 
 private def mutualStrategy :=
-  analyzeResidual strategySupported
+  Internal.analyzeResidual strategySupported
     (state := ⟨toGProc (.var "Y"), checks⟩) ⟨by simp [toGProc, gprocRefs], trivial⟩
     (strategyCorr (.var "Y") (by simp [strategyNames])) .structural ⟨8, 16, 8⟩ (.allDepth none)
 
 #guard mutualStrategy.guarantee == .finiteClosure 3
 
 private def equivalentStrategy :=
-  analyzeEquivalence strategySupported
+  Internal.analyzeEquivalence strategySupported
     (left := ⟨toGProc (.var "X"), checks⟩) (right := ⟨toGProc (.var "Y"), checks⟩)
     ⟨by simp [toGProc, gprocRefs], trivial⟩ ⟨by simp [toGProc, gprocRefs], trivial⟩
     (strategyCorr (.var "X") (by simp [strategyNames]))
@@ -234,7 +234,7 @@ private def equivalentStrategy :=
   | _ => false)
 
 private def mismatchStrategy :=
-  analyzeEquivalence strategySupported
+  Internal.analyzeEquivalence strategySupported
     (left := ⟨toGProc (.var "X"), checks⟩) (right := ⟨.deadlock, checks⟩)
     ⟨by simp [toGProc, gprocRefs], trivial⟩ ⟨by simp [gprocRefs], trivial⟩
     (strategyCorr (.var "X") (by simp [strategyNames]))
@@ -245,7 +245,7 @@ private def mismatchStrategy :=
 
 private def exhaustedEquivalence (supplied : Option (SuppliedEquivalence strategyEnv
     (.var "X") (.var "X"))) :=
-  analyzeEquivalence strategySupported
+  Internal.analyzeEquivalence strategySupported
     (left := ⟨toGProc (.var "X"), checks⟩) (right := ⟨toGProc (.var "X"), checks⟩)
     ⟨by simp [toGProc, gprocRefs], trivial⟩ ⟨by simp [toGProc, gprocRefs], trivial⟩
     (strategyCorr (.var "X") (by simp [strategyNames]))
@@ -255,11 +255,11 @@ private def exhaustedEquivalence (supplied : Option (SuppliedEquivalence strateg
 #guard (exhaustedEquivalence (some (.direct (Bisimilar.refl _ _)))).guarantee ==
   .directEquivalence
 
-#print axioms boundedAnalysis
-#print axioms analyzeResidual
+#print axioms Internal.boundedAnalysis
+#print axioms Internal.analyzeResidual
 #print axioms AnalysisResult.proveStateProperty
 #print axioms AnalysisResult.quotientModel
 #print axioms EquivalenceResult.proof?
-#print axioms analyzeEquivalence
+#print axioms Internal.analyzeEquivalence
 
 end DyNetKAT.DyNetKAT.FiniteCertificateTests

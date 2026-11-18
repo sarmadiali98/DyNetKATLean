@@ -26,8 +26,34 @@ private def support : Finset Var := {"closed", "open"}
 private def req : ReconfigSet := {("secConReq", .id)}
 private def wrong : ReconfigSet := {("secConReq", .drop)}
 
+private theorem modeSupport : FiniteSupport firewall (.var "closed") support := by
+  refine ⟨by simp [support], ?_⟩
+  intro x hx
+  simp only [support, Finset.mem_insert, Finset.mem_singleton] at hx
+  rcases hx with rfl | rfl
+  · exact ⟨closedBody, rfl, by simp [closedBody, recursiveVars, support, Finset.union_subset_iff]⟩
+  · exact ⟨openBody, rfl, by simp [openBody, recursiveVars, support, Finset.union_subset_iff]⟩
+
+private def normalizedFirewall : Program true firewall := ⟨.var "closed", by
+  apply (paperAdmissible_iff true _ _).2
+  refine ⟨trivial, fun x hx => ?_⟩
+  have mem := reachableVars_subset_of_finiteSupport firewall _ _ modeSupport x hx
+  simp only [support, Finset.mem_insert, Finset.mem_singleton] at mem
+  rcases mem with rfl | rfl
+  · refine ⟨closedBody, ⟨rfl, by simp [closedBody, PaperSyntax], ?_⟩,
+      fun _ h => RecEnv.lookup_unique h.1 rfl⟩
+    exact (typedPaperGuarded_iff_guardedOccurrences _).2 ⟨trivial, trivial⟩
+  · refine ⟨openBody, ⟨rfl, by simp [openBody, PaperSyntax], ?_⟩,
+      fun _ h => RecEnv.lookup_unique h.1 rfl⟩
+    exact (typedPaperGuarded_iff_guardedOccurrences _).2 ⟨trivial, trivial⟩⟩
+
+private def compiledModes : normalizedFirewall.Compiled := ⟨_, modeSupport⟩
+
+#guard (compiledModes.safety req enter leave).bothHold
+#guard (compiledModes.safety wrong enter leave).postReconfigurationCondition == .nonzero false
+
 private def check (R : ReconfigSet) (S : Finset Var) :=
-  compileAndSafetyCheckGraph firewall (.var "closed") S R enter leave
+  Internal.compileAndSafetyCheckGraph firewall (.var "closed") S R enter leave
 
 #guard match check req support with
   | .ok result => result.bothHold
@@ -55,13 +81,13 @@ private def check (R : ReconfigSet) (S : Finset Var) :=
 
 private def unsupported : DyNetKAT := .parallel .deadlock .deadlock
 
-#guard match compileAndSafetyCheckGraph RecEnv.empty unsupported ∅ req enter leave with
+#guard match Internal.compileAndSafetyCheckGraph RecEnv.empty unsupported ∅ req enter leave with
   | .ok ⟨.preprocessFailure, .preprocessFailure⟩ => true
   | _ => false
 
 #guard match compileGraph RecEnv.empty unsupported ∅ with
   | some G =>
-      safetyCheckGraph G req enter leave == ⟨.headFailure, .tailFailure⟩
+      Internal.safetyCheckGraph G req enter leave == ⟨.headFailure, .tailFailure⟩
   | _ => false
 
 -- A solo send is blocked under δ, including one in a recursive label.
@@ -69,7 +95,7 @@ private def sendingBody : DyNetKAT :=
   .choice (.send "ctrl" .id (.nSeq allow (.var "S")))
     (.rcfgPrefix "secConReq" .id (.nSeq allow (.var "S")))
 
-#guard match compileAndSafetyCheckGraph (RecEnv.empty.define "S" sendingBody)
+#guard match Internal.compileAndSafetyCheckGraph (RecEnv.empty.define "S" sendingBody)
     (.var "S") {"S"} req enter leave with
   | .ok ⟨.isZero true, .nonzero true⟩ => true
   | _ => false
@@ -78,7 +104,7 @@ private def loop : DyNetKAT :=
   .choice (.nSeq allow (.var "X")) (.rcfgPrefix "a" .id (.var "X"))
 
 -- The same recursive label contributes the initial and post-event policies.
-#guard match compileAndSafetyCheckGraph (RecEnv.empty.define "X" loop)
+#guard match Internal.compileAndSafetyCheckGraph (RecEnv.empty.define "X" loop)
     (.var "X") {"X"} {("a", .id)} enter leave with
   | .ok ⟨.isZero false, .nonzero true⟩ => true
   | _ => false
@@ -229,6 +255,19 @@ private theorem firewallProjectionWellFormed : WellFormed rawFirewall rawInit :=
   · intro x hx
     obtain ⟨b, he, hg, _⟩ := firewallProjectionBodies x hx
     exact ⟨b, he, hg⟩
+
+private theorem rawAdmissible : BaseAdmissible rawFirewall rawInit := by
+  refine ⟨firewallProjectionWellFormed, ⟨trivial, trivial⟩, ?_⟩
+  intro x body hx lookup
+  have mem := reachableVars_subset_of_finiteSupport rawFirewall rawInit rawSupport rawSupported x hx
+  simp only [rawSupport, Finset.mem_insert, Finset.mem_singleton] at mem
+  rcases mem with rfl | rfl | rfl
+  · rw [RecEnv.lookup_unique lookup (show rawFirewall.lookup "Host" = some rawHost from rfl)]
+    simp [rawHost, PaperSyntax]
+  · rw [RecEnv.lookup_unique lookup (show rawFirewall.lookup "Switch" = some rawClosed from rfl)]
+    simp [rawClosed, PaperSyntax]
+  · rw [RecEnv.lookup_unique lookup (show rawFirewall.lookup "SwitchOpen" = some rawOpen from rfl)]
+    simp [rawOpen, PaperSyntax]
 
 private def firewallDependencies :=
   DependencyGraph.build rawFirewall rawInit rawSupport rawSupported
@@ -420,7 +459,7 @@ example (i : Fin 2) :
   (checkNormalization_sound rawCertificateAccepted).reachesTrace i
 
 private def rawCheck (R : ReconfigSet) :=
-  compileNormalizeAndSafetyCheckGraph rawFirewall rawInit rawSupport rawFirewallCandidate R enter leave
+  Internal.compileNormalizeAndSafetyCheckGraph rawFirewall rawInit rawSupport rawFirewallCandidate R enter leave
 
 private def verdictsAgree (R : ReconfigSet) : Bool :=
   match rawCheck R, check R support with
@@ -493,7 +532,7 @@ private def packetParallelCandidate : NormalizationCandidate 3 where
 #print axioms NormalizationExact.reachesTrace
 #print axioms normalizeGraph_correct
 #print axioms normalizeAndSafetyCheckGraph_correct
-#print axioms compileNormalizeAndSafetyCheckGraph_correct
+#print axioms Internal.compileNormalizeAndSafetyCheckGraph_correct
 #print axioms GraphMatches.traces
 #print axioms graphBisimilarBetween_same
 
@@ -519,7 +558,7 @@ private def packetParallelCandidate : NormalizationCandidate 3 where
 #print axioms preprocessGraph_bisimulation
 #print axioms preprocessGraph_supported
 #print axioms safetyCheckRestrictedGraph_correct
-#print axioms compileAndSafetyCheckGraph_correct
+#print axioms Internal.compileAndSafetyCheckGraph_correct
 #print axioms execute_correct
 #print axioms ctxPkt_card
 #print axioms eval_correct
@@ -587,8 +626,19 @@ example : discoverClosure concreteSupport .structural ⟨16, 64, 16⟩
     firewallProjectionState restrictedValid = .error .cannotIdentifyState := rfl
 
 
+private def rawProgram : Program false rawFirewall := ⟨rawInit, rawAdmissible⟩
+private def compiledFirewall : rawProgram.Compiled := ⟨_, rawSupported⟩
+
+-- The raw parallel source is admitted. The legacy head/tail extractor
+-- still needs its normalization precondition.
+#guard (compiledFirewall.safety req enter leave).initialCondition == .preprocessFailure
+
+#guard match compiledFirewall.normalizedSafety rawFirewallCandidate req enter leave with
+  | .ok result => result.bothHold
+  | .error _ => false
+
 private def firewallStrategy :=
-  analyzeCompiledSource rawSupported firewallChecks concreteSupport concreteRootValid
+  compiledFirewall.analyze firewallChecks concreteSupport concreteRootValid
     .structural ⟨16, 64, 16⟩ (.allDepth none)
 
 #guard firewallStrategy.guarantee == .finiteClosure 2
@@ -610,7 +660,7 @@ private def firewallModeVerdict :=
   | _ => false)
 
 private def restrictedFirewallStrategy :=
-  analyzeResidual concreteSupport restrictedValid
+  Internal.analyzeResidual concreteSupport restrictedValid
     (corr_restrict_intro (L := Set.univ) (toGraph_corr rawFirewall rawInit _ rawSupported))
     .structural ⟨16, 64, 16⟩ (.allDepth (some 2))
 

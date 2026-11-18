@@ -141,9 +141,10 @@ use fixed-domain NetKAT history semantics.
 | Eq. (5) communication merge, both orders | Only a matched handshake as in parallel. Both residuals run in parallel. The payload r in the premises determines rcfg(x,r), as in Fig. 8 and A12. | `cpol_comm_merge_recv_send/send_recv` |
 
 The last rule reads the printed `rcfg(x,p)` in Eq. (5) as a metavariable
-error. The same payload appears in both premises and A12. The extended
-grammar's `N;D` is read with an extended continuation, as used by its
-own equations. Per-packet consistency is the design property that a single
+error. The same payload appears in both premises and A12. The uniform Lean AST reads the extended
+grammar's `N;D` with an extended continuation, as used by its equations.
+`PaperSyntax true` separately checks the printed continuation sort.
+Per-packet consistency is the design property that a single
 step invokes one NetKAT policy to completion. There is no numbered
 per-packet-consistency theorem. `NetKATBridge` connects the packet rule
 to the evaluator, and `packetTransitions_sound/complete` cover the
@@ -210,6 +211,109 @@ from lookup and inherits its step with the same action and packet lists.
 The Figure 5 fixture checks guarded bodies for Host and Switch and
 well-formedness of the entry `Host ∥ Switch`, which has unprefixed
 occurrence paths. This is environment-level packaging of guarded equations.
+
+### Source grammar and SOS residual closure
+
+`PaperSyntax false` recognizes Eq. (1). `PaperSyntax true` recognizes the
+printed Eq. (6), including the Eq. (1) continuation immediately below a
+packet prefix. The FoSSaCS Eq. (2) repeats that sort. The repository also
+supports the uniform extended grammar in which a packet prefix can have an
+extended continuation. For example, A10 permits a packet prefix with a parallel
+continuation and Definition 6 gives packet heads policy continuations.
+`WellFormed` operates over that uniform AST. The literal-sort theorems and
+the uniform-AST theorem both use the same SOS.
+
+`paperAdmissible_iff` checks the entry's grammar and a unique,
+syntactically admitted, typed-guarded body for every reachable name.
+The firewall's `Init` names a composite entry, with its component names
+resolved by their guarded equations. This entry convention follows Fig. 5.
+The Eq. (1) and Eq. (6) residuals stay in their respective grammars
+(`Step.preserves_paperAdmissible`). The defining equations keep their
+guardedness while a residual can expose reference occurrences. The
+algebraic head normal form of Definition 6 describes a representation of
+available actions, with arbitrary policy continuations. The SOS uses
+ordinary process terms as residuals.
+
+`Steps.preserves_paperAdmissible` covers finite traces with consistent
+packet lists. `PaperAdmissible.reachable` covers the stateless
+`ProcessStep` reachability used for bisimulation and AIP, where each
+edge can choose packet lists independently. `GSteps.preserves_paperAdmissible`
+transfers to a source representative under the existing `Corr`.
+The source theorems need no finite-support hypothesis.
+
+A source grammar is a formation judgment. An admissible program also
+satisfies the recursive declaration conditions. A reachable residual has
+a finite SOS path from a particular admitted entry. The reachability lift
+admits the empty path and preserves the fragment and environment. A raw
+Lean AST with the right constructor shape can still fail the recursive
+declaration or reachability condition.
+
+| Raw Lean AST constructor | Paper source formation | SOS residual and public construction |
+|---|---|---|
+| `deadlock` | Eq. (1), Eq. (6) | Can be an entry, exposed continuation or retained operand. No outgoing step. |
+| `nSeq` | Both, with a dup-free packet policy and Eq. (1) continuation | The step exposes the continuation. A residual can contain a packet prefix inherited from its source or a defining body. An immediate extended-only continuation under `nSeq` is rejected even in printed Eq. (6). |
+| `recv`, `send` | Both, with channel and dup-free payload. Continuation in the chosen fragment | A step exposes the continuation. A synchronized step retains both continuations in parallel. |
+| `parallel` | Both, with two terms in the chosen fragment | Interleaving, synchronization and merge rules produce parallel terms. An exposed reference operand is allowed at an entry or in a residual. An exposed occurrence in a defining body still needs an enclosing prefix. |
+| `choice` | Both, with two terms in the chosen fragment | A choice step takes the selected branch's residual. Choice may survive in a continuation or retained operand. |
+| `var` | Both, with a unique guarded reachable definition | The variable inherits a step of its body. A prefix can expose a variable and does not unfold it as a separate action. |
+| `rcfgPrefix` | Eq. (6), with channel, dup-free payload and extended continuation | A step exposes the continuation. Synchronization can emit the same label from Eq. (1) without creating a reconfiguration prefix. |
+| `restrict` | Eq. (6), with a set of communication labels and an extended operand | A step retains the wrapper around the residual. |
+| `project` | Eq. (6), with a natural depth and an extended operand | A step retains the wrapper with one less unit of depth. Depth zero has no outgoing step. |
+| `leftMerge`, `commMerge` | Eq. (6), with two extended operands | A merge step creates a parallel residual. A merge can occur in an inherited term. |
+| `GProc.ref`, auxiliary node IDs, checked rows and generated model tables | Internal helper syntax | No direct paper source constructor. Compiled states require source correspondence and an SOS reachability witness. |
+
+All source constructors in the table can be constructed through `Program`
+with proof of admissibility. The selected grammar has no constructor
+reserved solely for residuals. The authoritative API exposes reachable
+states as `Program.Residual` and `Program.Compiled.State`. Packet-list
+traces enter via `Program.afterTrace`. Symbolic enumeration returns an exact
+row, and a realization of an edge yields a state with both reachability
+proofs through `State.successor`.
+
+| Fixture | Grammar and residual classification |
+|---|---|
+| Author example `X ≜ (a!1;⊥) ∥ X` | Eq. (1) raw syntax. Rejected as a program in either grammar by `rejects_unguarded_parallel`. The path to the right-hand `X` never passes through a prefix. |
+| Original spawning `X ≜ rcfg(a,1);(X ∥ rcfg(b,1);⊥)` | Admitted by printed Eq. (6). The reconfiguration prefix puts it outside Eq. (1). Each `spawnState n` corresponds to a legitimate residual of this source. Existing regressions give infinitely many derivatives, no finite strong quotient and a checked forward abstraction for a specific property. |
+| Deadlock-spawning in `test_finite_abstraction.lean` | Admitted by Eq. (6), using `rcfg(tick,1);(X ∥ ⊥)`. The `grow n` graph states are reachable from its compiled source. They are syntactically distinct and admit a one-state strong quotient. |
+| Send-only deadlock-spawning in `test_paper_domain.lean` | Admitted by Eq. (1), using `a!1;(X ∥ ⊥)`. `base_admissible_infinite_derivatives` proves there are infinitely many admissible SOS residuals even with empty packet lists and one defining equation. |
+| Mutual recursion | The packet-prefix pair in `test_graph_head.lean` and the send/receive pair in `test_paper_domain.lean` use Eq. (1). The reconfiguration-prefix mutual strategy in `test_finite_certificates.lean` uses Eq. (6) and has a checked finite concrete closure. |
+| Firewall | The Fig. 5 source fixture `rawInit` is Eq. (1), with `Host`, `Switch` and `SwitchOpen` declarations. Its externally restricted and projected versions use Eq. (6). The two-mode normalized safety fixture uses Eq. (6) reconfiguration prefixes. |
+| Infinite name chain `infEnv` | Admitted by the Eq. (1) grammar and local guarded-equation discipline. It models infinitely many declarations and has no finite support for graph compilation. A finite declaration file is a separate executable input condition. |
+| Administrative aliases and synthetic graph certificates | An entry alias such as the firewall's expanded `Init` is permitted. A reachable unprefixed alias stored as a recursive equation fails Definition 7. Analysis of such raw environments, or abstract graph tables without a source correspondence, is a generalization. |
+
+The author feedback excludes the exposed recursive operand in
+`(a!1;⊥) ∥ X`. Equation (1) explicitly allows a parallel continuation and
+Definition 7 guards occurrences beneath a prefix. Hence `a!1;(X ∥ ⊥)`
+passes both checks. The corresponding Eq. (6) reconfiguration prefix
+also guards its continuation. Neither printed rule imposes a fixed
+parallel width or a flat tail-call grammar. Infinite reachability on
+these fixtures follows from the constructor and step proofs.
+
+The abstraction fixture audit also covers the following cases.
+
+- The original spawning forward simulation represents reachable
+  mixtures of live blockers and spent deadlocks. A sequence of spawn
+  steps creates the desired number of positions, and blocker actions
+  consume any chosen positions. Its abstract looping table permits
+  extra traces for overapproximation.
+- The one-state deadlock-spawning quotient represents precisely the
+  reachable `grow n` family. The missing-edge, wrong-target and invented-edge
+  tests are negative certificate tests for that admitted source.
+- The identity loop, opaque restricted graph and deliberately incorrect
+  payload or packet tables are internal certificate-and-label tests.
+  The restricted deadlock's shape is permitted as an Eq. (6) source,
+  while its synthetic graph fixture supplies no paper program provenance.
+- A candidate supplied to the public strategy is intersected with
+  graph states reachable from the analyzed entry or residual. An
+  auxiliary abstract state or an unrealizable symbolic row target
+  does not become a concrete residual.
+
+Lemma 8 gives local finite branching. The two growth fixtures establish a
+separate fact about the size of the transitive closure. Exact finite-depth
+projection remains a paper-core route. Finite concrete closures, simulation
+and strong quotients are certified tool extensions for all-depth analysis
+of admitted programs when the corresponding certificates exist. They also
+apply beyond the paper domain under their own hypotheses.
 
 | Result | Lean hypotheses |
 |---|---|

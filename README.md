@@ -15,6 +15,19 @@ See the [roadmap](PLAN.md) for current coverage, the finite-depth projection
 workstream and the release criteria. The journal extension on log extraction,
 causality and bounded schedules is outside the paper scope.
 
+### Verified language boundary
+
+The raw Lean AST provides syntax for the SOS and proof infrastructure.
+`Program` admits entries in the paper source grammar with closed, guarded
+recursive declarations. `Program.Residual` additionally carries an SOS path
+from its admitted source. Compiled states carry both source and graph
+reachability. Use the APIs in `Program.lean` for transitions, projection,
+discovery, equivalence and safety queries. Raw graph tables, head and tail
+forms, and solver models are internal helper syntax.
+
+The [semantic-domain audit](docs/PAPER_CONFORMANCE.md#source-grammar-and-sos-residual-closure)
+lists the source constructors, reachability conditions and classified examples.
+
 ## Structure
 
 ```

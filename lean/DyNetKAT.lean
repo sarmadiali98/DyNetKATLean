@@ -29,6 +29,7 @@ import DyNetKAT.DyNetKAT.Bisimulation
 import DyNetKAT.DyNetKAT.SafetyHead
 import DyNetKAT.DyNetKAT.RestrictionProjection
 import DyNetKAT.DyNetKAT.ProcessGraph
+import DyNetKAT.DyNetKAT.PaperDomain
 import DyNetKAT.DyNetKAT.GraphRestriction
 import DyNetKAT.DyNetKAT.GraphHead
 import DyNetKAT.DyNetKAT.TailExtraction
@@ -40,6 +41,7 @@ import DyNetKAT.DyNetKAT.MemoProjection
 import DyNetKAT.DyNetKAT.FiniteBisimulation
 import DyNetKAT.DyNetKAT.FiniteAbstraction
 import DyNetKAT.DyNetKAT.AnalysisStrategy
+import DyNetKAT.DyNetKAT.Program
 import DyNetKAT.DyNetKAT.FiniteBranching
 import DyNetKAT.DyNetKAT.Equations
 import DyNetKAT.DyNetKAT.EquationsAIP
