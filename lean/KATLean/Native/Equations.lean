@@ -87,8 +87,7 @@ theorem Equational.algebraic_sound {p q : Expr T A} (proof : Equational p q) :
 theorem AlgebraicallyEquivalent.relational {p q : Expr T A} (h : AlgebraicallyEquivalent p q) :
     RelationalEquivalent p q := fun P actions tests => h (Rel P) (Set P) Rel.tests actions tests
 
-/-- This is the proved direction only. Relational-to-algebraic completeness
-is a remaining obligation; it is deliberately not postulated here. -/
+/-- Sound derivations are accepted by the symbolic solver. -/
 theorem Equational.solver_positive [BooleanAlphabet T] [Encodable T] [Encodable A]
     [Fintype A] [DecidableEq T] [DecidableEq A] {p q : Expr T A} (h : Equational p q) :
     decideEquiv p q = true := decideEquiv_complete p q h.algebraic_sound.relational

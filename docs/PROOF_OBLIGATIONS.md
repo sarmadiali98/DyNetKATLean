@@ -1,24 +1,20 @@
 # Proof obligations for paper and tool coverage
 
-## Symbolic native KAT status
+## Symbolic native KAT
 
-The public native solver now uses canonical reduced ordered Boolean decision
-trees and satisfiable symbolic derivative regions. Boolean truth-assignment
-enumeration is removed from its core path. KATch and exhaustive `CtxPkt`
-enumeration are not used by native correctness. The old explicit-valuation
-implementation is a separately imported regression oracle only.
+`KATLean.Native` decides the pure KAT equational theory using reduced ordered
+Boolean decision trees and symbolic partial derivatives.
+`decideEquiv_iff_equational` characterizes derivability from the KAT rules and
+`decideEquiv_iff_algebraicallyEquivalent` characterizes equality in every
+abstract KATLean model. `nativeSolver_derives` yields a NetKAT derivation
+under any substitution of primitive actions and tests.
 
-`Equational.algebraic_sound` proves pure KAT derivations valid in all abstract
-KATLean models; `Equational.solver_positive` proves derivations are accepted.
-`nativeEquational_derives` maps pure KAT proofs into existing NetKAT `Derives`.
-The reverse solver-positive → algebraic derivation/all-model validity theorem
-is **still open**. This update does not complete the requested algebraic
-completeness milestone, and the solver is **not ready to replace NetKAT
-equivalence**. Packet frontend work remains deferred.
+The decision and its completeness proof use symbolic guards. KATch, concrete
+packet enumeration and truth-assignment enumeration are outside this proof
+and decision path. The packet-aware NetKAT frontend and the migration of
+concrete NetKAT core decisions remain separate milestones.
 
-See [NATIVE_KAT.md](NATIVE_KAT.md) for the exact theorem chain, Boolean invariants and remaining
-completeness proof. Existing concrete NetKAT normalization and decisions remain
-unchanged; no migration away from their enumeration is claimed here.
+See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 
 ## Native symbolic equivalence obligations
 
@@ -30,8 +26,8 @@ unchanged; no migration away from their enumeration is claimed here.
 | Executable generic language soundness/completeness | `decideLanguageEquiv_correct` |
 | Exact KATLean relational-model correspondence | `interp_iff_accept`, `guarded_model_correct`, `relational_iff_language` |
 | Complete decision for all relational KAT models | `decideEquiv_correct` |
-| Equality in all arbitrary abstract KATs / axiomatic completeness | Derivation-to-abstract-validity and derivation-to-solver proved; reverse still open, not assumed |
-| Symbolic packet constraints, updates, AST and Derives bridge | Deferred until generic algebraic completeness is proved |
+| Equality in all arbitrary abstract KATs / axiomatic completeness | Proved by `algebraicallyEquivalent_iff_equational` and `decideEquiv_iff_algebraicallyEquivalent` |
+| Symbolic packet constraints, updates, AST and Derives bridge | Next milestone. The pure-KAT substitution bridge is proved by `nativeSolver_derives` |
 | Remove legacy core concrete-enumeration C/D uses | Open; see [audit](NATIVE_KAT.md#existing-packet-enumeration-audit) |
 | Executable inequivalence witness | Existence proved; extraction open |
 

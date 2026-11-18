@@ -102,6 +102,22 @@ run_cmd do
     if env.contains name then
       throwError "optional backend leaked into core imports"
 
+open KATLean.Native in
+example (actions : Fin 2 → NetKAT) (tests : Fin 1 → Predicate) :
+    Derives
+      (nativeEmbed actions tests (.star (.star (.action 0))))
+      (nativeEmbed actions tests (.star (.action 0))) :=
+  nativeSolver_derives (by decide) actions tests
+
+open KATLean.Native in
+example (tests : Fin 1 → Predicate) :
+    Derives (nativeEmbed (fun _ : Fin 2 => NetKAT.id) tests (.action 0))
+      (nativeEmbed (fun _ : Fin 2 => NetKAT.id) tests (.action 1)) ∧
+    decideEquiv (T := Fin 1) (A := Fin 2) (.action 0) (.action 1) = false :=
+  ⟨.refl _, by decide⟩
+
+#print axioms nativeSolver_derives
+#print axioms nativeEquational_derives
 #print axioms Derives.sound
 #print axioms Derives.katSound
 #print axioms assoc_algebra

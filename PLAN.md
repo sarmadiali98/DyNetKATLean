@@ -1,39 +1,33 @@
 # DyNetKAT-Lean roadmap
 
-## Symbolic native KAT status
+## Symbolic native KAT
 
-The public native solver now uses canonical reduced ordered Boolean decision
-trees and satisfiable symbolic derivative regions. Boolean truth-assignment
-enumeration is removed from its core path. KATch and exhaustive `CtxPkt`
-enumeration are not used by native correctness. The old explicit-valuation
-implementation is a separately imported regression oracle only.
+`KATLean.Native` decides the pure KAT equational theory using reduced ordered
+Boolean decision trees and symbolic partial derivatives.
+`decideEquiv_iff_equational` characterizes derivability from the KAT rules and
+`decideEquiv_iff_algebraicallyEquivalent` characterizes equality in every
+abstract KATLean model. `nativeSolver_derives` yields a NetKAT derivation
+under any substitution of primitive actions and tests.
 
-`Equational.algebraic_sound` proves pure KAT derivations valid in all abstract
-KATLean models; `Equational.solver_positive` proves derivations are accepted.
-`nativeEquational_derives` maps pure KAT proofs into existing NetKAT `Derives`.
-The reverse solver-positive → algebraic derivation/all-model validity theorem
-is **still open**. This update does not complete the requested algebraic
-completeness milestone, and the solver is **not ready to replace NetKAT
-equivalence**. Packet frontend work remains deferred.
+The decision and its completeness proof use symbolic guards. KATch, concrete
+packet enumeration and truth-assignment enumeration are outside this proof
+and decision path. The packet-aware NetKAT frontend and the migration of
+concrete NetKAT core decisions remain separate milestones.
 
-See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the exact theorem chain, Boolean invariants and remaining
-completeness proof. Existing concrete NetKAT normalization and decisions remain
-unchanged; no migration away from their enumeration is claimed here.
+See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the theorem chain and proof construction.
 
 ## Native equivalence priority
 
-The next core path is KATLean → verified native equivalence → symbolic dup-free
-NetKAT E_NK → E_DNK. The generic guarded-language/all-relational-model decision
-layer is implemented with finite partial derivatives, soundness and completeness.
-[Design and enumeration audit](docs/NATIVE_KAT.md).
+The core path is KATLean → verified native equivalence → symbolic dup-free
+NetKAT → E_NK → E_DNK. Native pure-KAT algebraic completeness now uses finite
+partial-derivative systems and the existing symbolic search.
 
-The next mathematical milestone is the missing relational-to-algebraic
-completeness theorem. The packet-aware symbolic frontend and its semantic/Derives
-bridge must wait for that proof. Then replace concrete enumeration in core decisions and
-fixed-model proof infrastructure. Existing finite packet evaluators stay as
-concrete/regression tools; existing C/D uses are not yet removed. Abstract KAT
-axiomatic completeness, executable witnesses and Boolean sharing remain explicit
-gaps. KATch is unused and optional; no backend milestone is required.
+The next mathematical milestone is a packet-aware symbolic frontend with
+verified field constraints and assignments. Prove semantic preservation and
+packet-aware completeness, then connect its results to NetKAT derivations.
+Replacing the legacy core decision and normalization dependencies follows that
+bridge. Executable witnesses and Boolean-tree sharing remain separate work.
+[Design and enumeration audit](docs/NATIVE_KAT.md).
 
 ## Objective and sources
 

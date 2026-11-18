@@ -1,70 +1,66 @@
-# Native KAT equivalence: first certified layer
+# Native KAT equivalence and algebraic completeness
 
 ## Status and exact scope
 
-Current development baseline: `69cc3a6 add verified native relational KAT equivalence solver`.
+Current development baseline: `123fb24 replace native KAT valuation enumeration with symbolic guards`.
 `import KATLean.Native` exposes an executable, sound-and-complete decision
-procedure for guarded-string equivalence and equivalence in **all relational
-KATLean models**, over finite primitive-test and action alphabets. The native
-proof imports Mathlib and KATLean only. It never imports `CtxPkt`, its evaluator,
-NetKAT Derives, or any external backend.
+procedure for the pure KAT equational theory over the native solver's finite
+alphabets. It also decides guarded-string language equality, equality in all
+relational KATLean models, and equality in all abstract KATLean models.
 
-This is a generic KAT semantic decision layer, not yet a packet-aware NetKAT
-solver. Equality in every arbitrary abstract `KAT K B`, or syntactic derivability
-from KA/BA axioms, has not been proved equivalent to guarded-language equality
-here. The classical KAT equational completeness theorem remains an explicit
-additional obligation if that stronger interface is wanted. No such theorem is
-assumed by the implementation.
+### Theorem dependencies
 
-The existing NetKAT equivalence, normalization and analysis routes are preserved.
-They still use the concrete finite packet model. Replacing those routes requires
-the deferred packet-specific milestone, after algebraic completeness; this checkpoint does not claim their
-independence from packet enumeration.
+```mermaid
+flowchart TD
+  E["Pure KAT derivability"] <-->|"Soundness and syntactic quotient"| A["All abstract KAT models"]
+  A -->|"Relational instances"| R["All relational models"]
+  R <-->|"Faithful trace model"| L["Guarded-language equality"]
+  L <-->|"Symbolic search correctness"| S["Solver accepts"]
+  S -->|"Weighted derivative systems"| A
+  E -->|"Substitution"| N["NetKAT Derives"]
+```
 
-## Symbolic guards and exact completeness audit
-
-This update removes Boolean truth-assignment enumeration from the public native
-solver. It **does not close the algebraic completeness gap**. It is a verified
-symbolic relational-solver sub-milestone, not completion of the requested generic
-algebraic solver milestone. Do not start the NetKAT packet frontend yet.
-
-| Meaning | Formal status |
+| Meaning | Definition and theorem |
 |---|---|
-| Equality in one concrete relation model | Consequence of relational equivalence; its converse is false in general |
-| Equality in all KATLean relational models | `RelationalEquivalent` |
-| Guarded-string language equality | `LanguageEquivalent`; `relational_iff_language` proves equivalence with all-relational equality |
-| Derivability from pure KAT equations | Independent inductive `Equational`; 15 KA, 6 BA, 4 test embeddings and structural/congruence rules |
-| Validity in all abstract KATLean KATs | `AlgebraicallyEquivalent` |
-| Equational derivation → all abstract models | `Equational.algebraic_sound`, by direct KATLean/Mathlib law reuse |
-| All abstract models → all relational models | `AlgebraicallyEquivalent.relational` |
-| Equational derivation → symbolic solver positive | `Equational.solver_positive` |
-| Pure KAT derivation → existing NetKAT Derives | `nativeEquational_derives`, by syntactic substitution, no normalization/oracle |
-| Solver positive / language equality → pure KAT derivation | **Open** |
-| Solver positive / language equality → all abstract KAT validity | **Open** |
+| Equality in every relational model | `RelationalEquivalent` quantifies over state types, action relations and test sets. `relational_iff_language` uses the existing `Expr.interp Rel.tests` and a faithful trace model. |
+| Equality of accepted guarded strings | `LanguageEquivalent` quantifies over initial atoms and words. `language_to_equational` derives a pure KAT proof. |
+| Validity in every abstract KATLean model | `AlgebraicallyEquivalent` quantifies over `KAT K B` and interpretations of primitive names. `algebraicallyEquivalent_iff_equational` characterizes this validity. |
+| Derivability from pure KAT rules | `Equational` is inductive. Its 15 KA laws, six BA laws, four test-embedding laws and congruence rules are sound by `Equational.algebraic_sound`. |
+| Symbolic solver acceptance | `decideEquiv_iff_equational` and `decideEquiv_iff_algebraicallyEquivalent` connect the existing Boolean decision to both algebraic notions. |
+| Substitution into NetKAT | `nativeSolver_derives` composes completeness with `nativeEquational_derives`. Two distinct actions may collapse under a NetKAT substitution, so the reverse implication fails in general. |
 
-`Equational` is not defined using solver acceptance or relational validity.
-No completeness implication is inserted as an axiom, constructor or hypothesis.
-The NetKAT substitution bridge maps actions to arbitrary policies and tests to
-predicates; it is not the deferred packet-aware frontend in the other direction.
-NetKAT packet equations cannot be added to generic KAT without their hypotheses.
+### Construction
 
-### Completeness construction audit
+The proof uses finite weighted affine systems over an arbitrary KAT. This route
+reuses the native continuation bound, partial derivatives and reached symbolic
+pair graph. It needs neither a separate translation to regular expressions nor
+a second determinization.
 
-The installed Mathlib v4.19.0 supplies KA axioms and automata semantics, but no
-KA/KAT equational completeness theorem or matrix-star KA instance usable here.
-The existing finite-packet normalization theorem is neither a generic KAT
-completeness proof nor an acceptable replacement for that proof.
+1. `derivativeEquation_interp` shows that interpreting continuations gives a
+   fixed point. `interp_le_derivativeEquation` proves leastness by syntax
+   induction with an arbitrary right boundary. In the star case it uses
+   Kleene star induction and the fact that every nullable test lies below one.
+2. `FiniteSystem.solve_spec` eliminates one variable at a time. The pivot
+   contributes its coefficient's star and is substituted into the remaining
+   equations. `FiniteSystem.solve_intertwines` uses the left and right
+   least-solution laws to show that rectangular incidence matrices transport
+   solutions between finite systems.
+3. The reachable pair graph gives one weighted system. Reified symbolic BDD
+   labels on each pair transition agree with the two partial-derivative
+   projections. `Test.interp_eq_of_eval` proves the needed test identities
+   in arbitrary Boolean algebras by prime-ideal separation. It reasons with a
+   separating valuation as a proof witness and constructs no valuation table.
+   Both projections intertwine with the pair graph. Solver acceptance gives
+   identical output guards at all reached pairs, so the two projections have
+   equal least solutions at the initial singleton pair.
+4. `TermModel` quotients the program and test sorts by derivability. Its
+   Kleene algebra and Boolean embedding use the existing pure KAT rules.
+   Interpreting syntax at the quotient generators reflects universal equality
+   into `Equational`. No rule was added to the proof system.
 
-The [formal Coq completeness module](https://perso.ens-lyon.fr/damien.pous/ra/html/RelationAlgebra.kat_completeness.html)
-reduces KAT to guarded expressions and then uses a separately formalized KA
-completeness theorem. Its implementation is not a Lean theorem. The
-[development notes](https://perso.ens-lyon.fr/damien.pous/ra/)
-also report that tying algebraic completeness directly to the optimized decision
-algorithm complicated the proof. Two viable Lean routes remain: formalize
-finite-system elimination/KA completeness and then guarded-expression reduction,
-or establish an algebraic finite-automaton simulation theorem. Neither is proved
-in this checkpoint. The latter may reuse our finite continuation closure, but
-semantic bisimulation by itself does not justify abstract algebraic equality.
+A standard source for guarded-string completeness is
+[Kozen and Smith, *Kleene Algebra with Tests: Completeness and Decidability*](https://ecommons.cornell.edu/entities/publication/3640eb22-7e95-4649-96d4-c60085ce6e75).
+The native proof uses the finite symbolic pair system above.
 
 ### Canonical Boolean representation
 
@@ -210,6 +206,12 @@ implemented.
 | `Decision.lean` | Symbolic pair search, guarded-language soundness and completeness |
 | `Explicit.lean` | Old valuation enumeration, regression-only import |
 | `Equations.lean` | Pure KAT axioms, abstract soundness and derivation-to-solver theorem |
+| `TermModel.lean` | Syntactic quotient model and reflection into derivability |
+| `TestAlgebra.lean` | Boolean interpretation of symbolic labels and reflection into arbitrary Boolean algebras |
+| `DerivativeAlgebra.lean`, `DerivativeLabels.lean` | Algebraic partial-derivative equations, leastness and finite labels |
+| `FiniteSystem.lean`, `FiniteSimulation.lean` | Finite affine elimination and transport of least solutions |
+| `SymbolicSimulation.lean` | The weighted reachable pair system and its projections |
+| `Completeness.lean` | Guarded-language, relational, solver and algebraic completeness interfaces |
 | `Model.lean` | Arbitrary KATLean relational interpretation correspondence |
 | `Correctness.lean` | Faithful trace model, final relational correctness and witness existence |
 
@@ -253,18 +255,16 @@ uses and does not yet meet the long-term no-enumeration architecture.
 
 ## Next obligations
 
-1. **Close the generic algebraic completeness gap before packet work.** Prove
-   relational/guarded-language equality implies `Equational`, or abstract KAT
-   validity with a proved derivation bridge. No such result is available yet.
-2. Verified packet constraints and updates using KATLean packet laws, without
-   enumerating packet valuations. Opaque generic actions cannot establish
-   assignment overwrite or field commutation.
-3. Existing NetKAT AST frontend with semantic preservation and complete
-   packet-aware equivalence, then a solver-to-Derives/E_NK bridge.
-4. Replace legacy core C/D uses; retain concrete evaluation as regression/model
-   tooling. Preserve Program/Residual and literal communication-payload boundaries.
-5. Add executable counterexamples, DAG sharing and a frontier worklist after
-   correctness; benchmark independently of elaboration.
+1. Verify symbolic packet constraints and field updates using KATLean packet
+   laws. Generic KAT action variables cannot express assignment overwrite or
+   field commutation.
+2. Add a semantics-preserving frontend for the existing dup-free NetKAT AST
+   and prove packet-aware completeness and its NetKAT Derives/E_NK bridge.
+3. Migrate legacy core C/D uses and retain concrete evaluation for regressions
+   and concrete model checks. Preserve Program/Residual and literal
+   communication-payload boundaries.
+4. Add executable counterexamples, DAG sharing and a frontier worklist as
+   separate milestones.
 
 KATch is experimental only and unused. No DyNetKAT SOS rule, admission predicate,
 communication payload rule, or existing normalization algorithm changes here.
@@ -309,13 +309,12 @@ that path. Boolean apply short-circuits constant operands, and compact token
 codes replace whole-tree natural-number pairing codes in state ordering.
 The final large-guard regression passes without a timeout or semantic cutoff.
 
-The axiom audit covers Boolean canonicity, compilation and SAT, symbolic
+The prior symbolic checkpoint audited Boolean canonicity, compilation and SAT, symbolic
 regions, finite search, relational soundness/completeness, abstract soundness
 of pure equations and the existing Derives embedding. Only standard Lean
-axioms occur; `nativeEquational_derives` uses no axioms. There is no axiom-audited
-algebraic completeness theorem because that theorem has not been proved.
+axioms occur; `nativeEquational_derives` uses no axioms. That checkpoint preceded algebraic completeness.
 
-## Verified symbolic sub-milestone
+## Historical symbolic-guard checkpoint
 
 Baseline: `69cc3a6`. Verification completed:
 
@@ -328,9 +327,6 @@ Baseline: `69cc3a6`. Verification completed:
 - Focused Boolean, large-alphabet, differential, dependency-body and axiom
   regressions: passed.
 
-This is a commit-sized symbolic Boolean sub-milestone. It is **not** the full
-requested algebraic-completeness checkpoint. Suggested message:
+This prior checkpoint introduced symbolic guards. Its commit message was
 `replace native KAT valuation enumeration with symbolic guards`.
-The native solver is not yet ready to become the NetKAT equivalence engine.
-No packet-aware frontend, concrete evaluator replacement, SOS modification,
-commit or push was performed; `output/` was not modified.
+The packet-aware frontend remains a separate milestone.

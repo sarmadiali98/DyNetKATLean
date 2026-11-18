@@ -76,7 +76,10 @@ private theorem mem_successors (pair : StatePair T A) (atom : Atom T) (action : 
     (transition pair.1 atom action, transition pair.2 atom action) ∈ successors pair :=
   (mem_successors_iff _ _).mpr ⟨atom, action, rfl⟩
 
-theorem explored_closed (p q : Expr T A) : expand (explored p q) = explored p q := by
+private theorem carrier_supported (p q : Expr T A) :
+    let carrier := (support p).powerset ×ˢ (support q).powerset
+    ({initial p q} : Finset (StatePair T A)) ⊆ carrier ∧
+      ∀ visited, visited ⊆ carrier → expand visited ⊆ carrier := by
   let carrier := (support p).powerset ×ˢ (support q).powerset
   have supported : ({initial p q} : Finset (StatePair T A)) ⊆ carrier := by
     intro pair member
@@ -92,10 +95,21 @@ theorem explored_closed (p q : Expr T A) : expand (explored p q) = explored p q 
     exact Finset.mem_product.mpr
       ⟨Finset.mem_powerset.mpr (transition_supported p (Finset.mem_powerset.mp sourceSupported.1) atom action),
        Finset.mem_powerset.mpr (transition_supported q (Finset.mem_powerset.mp sourceSupported.2) atom action)⟩
-  apply saturate_closed expand carrier grows preserves _ _ supported
-  simp [carrier, pairBound, Finset.card_product, Finset.card_powerset, pow_add]
+  exact ⟨supported, preserves⟩
 
-private theorem successor_explored {p q : Expr T A} {pair : StatePair T A}
+theorem explored_supported (p q : Expr T A) {pair : StatePair T A} (h : pair ∈ explored p q) :
+    pair.1 ⊆ support p ∧ pair.2 ⊆ support q := by
+  obtain ⟨hstart, hstep⟩ := carrier_supported p q
+  have hm := saturate_invariant expand _ hstep _ _ hstart h
+  obtain ⟨hp, hq⟩ := Finset.mem_product.mp hm
+  exact ⟨Finset.mem_powerset.mp hp, Finset.mem_powerset.mp hq⟩
+
+theorem explored_closed (p q : Expr T A) : expand (explored p q) = explored p q := by
+  obtain ⟨hstart, hstep⟩ := carrier_supported p q
+  apply saturate_closed expand _ grows hstep _ _ hstart
+  simp [pairBound, Finset.card_product, Finset.card_powerset, pow_add]
+
+theorem successor_explored {p q : Expr T A} {pair : StatePair T A}
     (member : pair ∈ explored p q) (atom : Atom T) (action : A) :
     (transition pair.1 atom action, transition pair.2 atom action) ∈ explored p q := by
   rw [← explored_closed p q]

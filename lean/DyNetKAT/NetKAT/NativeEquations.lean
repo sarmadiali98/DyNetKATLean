@@ -1,4 +1,4 @@
-import KATLean.Native.Equations
+import KATLean.Native.Completeness
 import DyNetKAT.NetKAT.Axioms
 
 namespace DyNetKAT.NetKAT
@@ -60,5 +60,12 @@ theorem nativeEquational_derives {p q : KATLean.Native.Expr T A}
   | baSeqComm a b => exact .baSeqComm _ _
   | baContra a => exact .baContra _
   | baSeqIdem a => exact .baSeqIdem _
+
+/-- Solver acceptance yields an E_NK derivation under any KAT substitution. -/
+theorem nativeSolver_derives [KATLean.Native.BooleanAlphabet T] [Encodable T] [Encodable A]
+    [Fintype A] [DecidableEq T] [DecidableEq A] {p q : KATLean.Native.Expr T A}
+    (h : KATLean.Native.decideEquiv p q = true) (actions : A → NetKAT) (tests : T → Predicate) :
+    Derives (nativeEmbed actions tests p) (nativeEmbed actions tests q) :=
+  nativeEquational_derives ((KATLean.Native.decideEquiv_iff_equational p q).mp h) actions tests
 
 end DyNetKAT.NetKAT
