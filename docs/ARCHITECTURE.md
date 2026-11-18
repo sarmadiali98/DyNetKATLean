@@ -1,13 +1,40 @@
 # Architecture — DyNetKAT Lean Formalization
 
-## Overview
+## Current architecture
 
-Lean 4 is the trusted semantic core.  Python is an untrusted adapter for
-auxiliary scripts and experiments only.
+The paper-facing core follows DyNetKAT source grammar, the `Program` /
+reachable `Residual` semantic boundary, SOS semantics, KATLean, dup-free
+NetKAT E_NK, DyNetKAT E_DNK and certified analysis. Mathlib provides the KA
+classes; KATLean supplies Boolean tests, packet laws and the algebraic
+interpretation connected to the current AST, evaluator and Derives.
+
+| Import surface | Scope |
+|---|---|
+| `KATLean` | Algebra and packet model, with Mathlib dependencies |
+| `DyNetKAT.NetKAT.KATLean` | Current NetKAT AST/evaluator/Derives bridge |
+| `DyNetKAT` | Core formalization and admitted-program analysis |
+| `DyNetKAT.Experimental` | Core plus optional KATch comparison and candidate-checking modules |
+
+The core import closure excludes KATch, backend certificates, equational
+certificates and JSON candidate formats. Python subprocess replay is an
+optional experiment. KATch is an untrusted external comparison point and
+possible future accelerator, with no release, completeness or theorem
+prerequisite. The full NetKAT history/dup extension is outside current
+DyNetKAT scope. Dup-free history correspondence remains supporting evidence
+for the SOS packet rule.
+
+See [KATLEAN.md](KATLEAN.md) for the axiom mapping and
+[NETKAT_AUDIT.md](NETKAT_AUDIT.md#dependency-audit) for import evidence.
+
+## Historical design sketch
+
+The initial layout and design notes below predate the current module
+organization. Use the import surfaces above and current proof ledger for
+implementation and completion status.
 
 ```
 lean/
-├── DyNetKAT.lean          -- library root (imports all modules)
+├── DyNetKAT.lean          -- initial library-root sketch
 ├── DyNetKAT/
 │   ├── Basic.lean         -- foundational types, Fintype setup
 │   ├── NetKAT/

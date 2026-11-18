@@ -1,4 +1,4 @@
-import DyNetKAT
+import DyNetKAT.Experimental
 
 open DyNetKAT.NetKAT
 
@@ -168,3 +168,19 @@ example {env : DyNetKAT.DyNetKAT.RecEnv} (rest : DyNetKAT.DyNetKAT.DyNetKAT)
 /-- info: 'DyNetKAT.NetKAT.decideWithEquationalCertificate_correct' depends on axioms: [propext, Classical.choice, Quot.sound] -/
 #guard_msgs in
 #print axioms decideWithEquationalCertificate_correct
+
+/-- info: 'DyNetKAT.NetKAT.katchSemantics_encode' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms katchSemantics_encode
+
+/-- info: 'DyNetKAT.NetKAT.katchPacket_range_iff' depends on axioms: [propext, Quot.sound] -/
+#guard_msgs in
+#print axioms katchPacket_range_iff
+
+/-- info: 'DyNetKAT.NetKAT.netkatEquiv_katch_restricted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms netkatEquiv_katch_restricted
+
+/-- info: 'DyNetKAT.NetKAT.netkatIsZero_katch_restricted' depends on axioms: [propext, Classical.choice, Quot.sound] -/
+#guard_msgs in
+#print axioms netkatIsZero_katch_restricted

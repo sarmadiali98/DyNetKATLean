@@ -7,16 +7,24 @@ Statements labeled as targets below are open. The dependencies refer to the
 [roadmap](../PLAN.md). The [S6C audit](S6C_TAIL_EXTRACTION_AUDIT.md) preserves
 the detailed recursive tail analysis and the original design alternatives.
 
+## Core formalization path
+
+The source grammar and `Program` / reachable `Residual` boundary determine
+the SOS domain. KATLean over Mathlib KA supplies the algebra for dup-free
+NetKAT E_NK; E_DNK and certified analysis build on the existing connected
+NetKAT proofs. KATch has no core proof obligation or completion gate.
+Backend experiments are tracked under optional tooling below.
+
 ## NetKAT foundations
 
 | Obligation | Required statement and dependencies |
 |---|---|
 | N1 Packet model, Defs. 1 and 4 | Over a finite type of fields and a nonempty finite domain for each field, packet valuations are total, tests are decidable and updates affect precisely the specified field. Complete tests recognize one packet, complete assignments overwrite all fields, the conversions are inverses, and the paired term α·π relates precisely (σ_α,σ_π). Covers heterogeneous and singleton field domains. Explain the empty field product. |
-| N2 Fig. 3 denotation | Give all relational and history clauses. Prove that dup-free history outputs have the original tail, and that their possible heads are exactly the relational outputs. Consequently singleton observations suffice for all histories in this fragment. Include full history semantics for dup in the supporting NetKAT theory. |
+| N2 Fig. 3 denotation | Give the dup-free relational clauses and their history correspondence. Prove that dup-free history outputs have the original tail, and that their possible heads are exactly the relational outputs. Consequently singleton observations suffice for all histories in this fragment. Full history semantics with dup is an optional supporting extension. |
 | N3 Evaluation | Prove exact finite evaluation for every constructor on a general schema. For star, executable closure iff an arbitrary finite execution exists. Prove stabilization/termination from the finite domain, including nested stars. Lift zero and equivalence in both directions to the history denotation where applicable. `eval_correct`, `execute_star_correct` and the decision theorems currently cover the fixed model. |
-| N4 Fig. 4 E_NK soundness | Inductive derivations for all printed laws and well-sorted equational reasoning, with a proof for each constructor. Prove both least-fixpoint rules, PA-MATCH-ALL over the declared domain, and PA-DUP-FILTER-COMM in full history semantics. Lift fixed-domain `Derives.sound/historySound` for the restricted system. |
-| N5 Fig. 4 completeness and Lemma 5 | Lemma 5 is proved for dup-free `CtxPkt` policies by `exists_derives_pairSum`. `normalize_derives_starFree` uses the finite packet partition, Boolean test and assignment expansions, and complete-branch multiplication. `starFree_complete` and the bounded stabilization argument lift it to arbitrary star, yielding `normalize_derives`. Full history ground completeness, the general finite-schema result, and the language-model construction of Eq. (7) remain separate. |
-| N6 Query/backend correctness | Prove interpretation-preserving translation for declared field names, values, input guard, and every term constructor in the common dup-free fragment. Establish zero/equivalence against the mathematical query semantics, and prove symbolic evaluator correctness or certificate checker soundness, suitable completeness and termination. See the [domain and backend audit](NETKAT_AUDIT.md). |
+| N4 Fig. 4 E_NK soundness | Inductive derivations for the dup-free printed laws and well-sorted equational reasoning, with a proof for each constructor. Prove both least-fixpoint rules and PA-MATCH-ALL over the declared domain. PA-DUP-FILTER-COMM belongs to the optional full NetKAT extension. Lift fixed-domain `Derives.sound/historySound` for the restricted system. |
+| N5 Fig. 4 completeness and Lemma 5 | Lemma 5 is proved for dup-free `CtxPkt` policies by `exists_derives_pairSum`. `normalize_derives_starFree` uses the finite packet partition, Boolean test and assignment expansions, and complete-branch multiplication. `starFree_complete` and the bounded stabilization argument lift it to arbitrary star, yielding `normalize_derives`. The general finite-schema result and dup-free language-model construction remain core work. Full history ground completeness belongs to the optional full NetKAT extension. |
+| N6 Query correctness | Prove interpretation-preserving elaboration for declared field names, values, input guard, and every term constructor in the dup-free fragment. Establish zero/equivalence against the mathematical query semantics with a proved Lean evaluator, including completeness and termination. See the [query and experimental-tooling audit](NETKAT_AUDIT.md). |
 
 ### KATLean foundation
 
@@ -32,8 +40,9 @@ connect the current AST, evaluator and derivations to that model.
 `normalize_katInterp` is the existing Lemma 5 derivation interpreted
 in KATLean. The initial soundness bridge reuses `Derives.sound`.
 Refactoring that proof to use the KATLean law families remains separate.
-N4 still requires a history/dup model for PA-DUP-FILTER-COMM.
-N1–N5 general-schema and full-history requirements remain open.
+N1–N5 general-schema requirements remain open. A history/dup model for
+PA-DUP-FILTER-COMM is optional supporting work outside current DyNetKAT
+completion.
 
 ## SOS, recursion and bisimulation
 
@@ -422,6 +431,14 @@ admitted examples with infinite growth.
   closure gives all-depth concrete coverage, forward simulation gives
   all-depth overapproximation, and strong quotients give exact finite
   behavioral models.
+
+## Optional / experimental tooling
+
+These modules support external comparisons and possible future acceleration.
+Their validation obligations apply only to those experiments. Core E_NK,
+E_DNK, completeness, normalization and certified analysis use KATLean and
+the existing Lean evaluator without a backend premise. Core imports exclude
+the optional modules. Use `DyNetKAT.Experimental` for their exports.
 
 ### Fixed-domain backend validation
 

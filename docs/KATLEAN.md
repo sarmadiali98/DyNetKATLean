@@ -14,8 +14,6 @@ in `lean/lake-manifest.json` is
 `KleeneAlgebra`. The implementation instantiates those classes for packet
 relations. All generic algebra uses the existing classes.
 
-
-
 | Module | Responsibility |
 |---|---|
 | `lean/KATLean/Kleene.lean` | Paper order, unfold equations and both induction formulations |
@@ -29,7 +27,15 @@ relations. All generic algebra uses the existing classes.
 `import KATLean` depends only on Mathlib. The bridge imports the existing
 NetKAT normalization modules. Neither path imports DyNetKAT process
 semantics, KATch, or its certificate/replay adapters. The `DyNetKAT` umbrella
-imports the bridge. Existing process modules keep their current imports.
+imports the bridge. The core import closure excludes `KATch`,
+`BackendCertificate`, `EquationalCertificate` and `Experimental`.
+
+The paper-facing architecture runs from the source grammar through
+`Program` / reachable `Residual`, SOS, KATLean, dup-free NetKAT E_NK,
+E_DNK and certified analysis. The algebraic proof path is NetKAT interpreted
+in KATLean and validated by Lean theorems. Full NetKAT with `dup` and its
+history-changing semantics is outside current DyNetKAT scope. Existing
+dup-free history lemmas support the packet/SOS correspondence.
 
 ## KA conformance and inequalities
 
@@ -176,7 +182,7 @@ proof with those cases is separate work. Abstract KATLean validity
 alone does not establish syntactic derivability or completeness for a
 general packet schema.
 
-## DyNetKAT and KATch
+## DyNetKAT integration
 
 KATLean equations concern packet-policy meanings. They provide a checked
 algebraic interpretation of E_NK under the current E_DNK packet-prefix
@@ -184,15 +190,20 @@ import boundary. Public process APIs still require `Program` and
 reachable `Residual` evidence. Observable send, receive and
 reconfiguration payloads retain their syntactic equality condition.
 
-| Component | Role |
-|---|---|
-| KATLean | Mathlib-based algebra, Boolean tests, packet laws and Lean proofs |
-| Existing NetKAT evaluator and Derives | Fixed-domain evaluation, derivations and Lemma 5 normalization, connected to KATLean |
-| KATch | Optional external optimized computation |
-| Lean certificate/replay checking | Validates external candidates before producing trusted results |
+## Optional / experimental tooling
 
-KATLean performs no external computation. The KATch path retains its
-current untrusted candidate boundary and exact Lean fallback.
+KATch is an external comparison point and possible future accelerator.
+It is untrusted and carries no premise of a core theorem. The existing
+replay and certificate modules are exposed by
+`DyNetKAT.Experimental`. They import the core algebra and evaluator;
+the core has no reverse import. KATLean, E_NK, E_DNK, normalization,
+completeness, certified analysis and release criteria stand independently
+of those modules or the external executable.
+
+The optional experiments may ask KATch for candidate evidence. Their
+Lean checkers validate that evidence using the existing proved evaluator
+or derivations. Experimental results and performance measurements are
+recorded separately in the [NetKAT audit](NETKAT_AUDIT.md#optional--experimental-tooling).
 
 ## Verification and remaining work
 
@@ -204,8 +215,10 @@ normalization validity. It prints axioms for the induction, embedding,
 packet and bridge results. Direct module checks and the full project
 suite accompany the checkpoint.
 
-Remaining mathematical work includes the full history/dup model and
-PA-DUP-FILTER-COMM, general-schema AST/evaluator/normalization bridges,
-and deliberate reuse of KATLean laws inside the existing Derives
+Remaining core work includes general-schema AST/evaluator/normalization
+bridges and deliberate reuse of KATLean laws inside the existing Derives
 soundness proof. The packet interface supports dependent values, while
 the existing executable AST and Lemma 5 theorem remain on CtxPkt.
+
+The full history/dup model and PA-DUP-FILTER-COMM remain optional
+supporting NetKAT extensions, outside the current DyNetKAT release scope.

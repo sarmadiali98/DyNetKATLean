@@ -1,4 +1,4 @@
-import DyNetKAT
+import DyNetKAT.Experimental
 
 /- Generate the differential corpus with
    lake env lean --run test_katch_differential.lean > common.nkpl

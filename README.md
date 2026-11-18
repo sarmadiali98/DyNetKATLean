@@ -33,7 +33,12 @@ It proves the KA/test laws and dup-free packet laws and connects the
 current AST, evaluator and `Derives` to a packet-relation model.
 Import `KATLean` for the algebra or `DyNetKAT.NetKAT.KATLean` for the
 current NetKAT bridge. See [KATLEAN.md](docs/KATLEAN.md) for Figure 4
-coverage and remaining history/general-schema work.
+coverage, general-schema work and the optional full NetKAT history/dup extension.
+
+The core formalization follows the source grammar, `Program` / reachable
+`Residual` boundary, SOS semantics, KATLean, dup-free E_NK, E_DNK and
+certified analysis. KATch is an optional experiment and comparison point.
+Core theorems and project completion use the Lean algebra and evaluator.
 
 ## Structure
 
@@ -141,5 +146,34 @@ original parallel firewall and its two-state certificate. The
 [admissibility regressions](lean/test_normalization_admissibility.lean)
 cover silent and productive cycles and nested restriction sets.
 
-The [NetKAT audit](docs/NETKAT_AUDIT.md) records the supported fragment and
-the 256-packet restriction for comparisons with KATch.
+## Optional / experimental tooling
+
+`import DyNetKAT` exposes the core formalization. To use the former
+backend exports, use `import DyNetKAT.Experimental` or import
+`DyNetKAT.NetKAT.KATch`, `BackendCertificate` or `EquationalCertificate`
+explicitly. Their existing declaration names and APIs are preserved.
+
+KATch is an optional, untrusted external experiment, comparison point
+and possible future accelerator. The replay driver, candidate checkers,
+equational checker and tests remain available. Their proof obligations
+belong to those experiments. Project completion, E_NK/E_DNK, normalization,
+completeness and certified analysis require no KATch installation.
+The [NetKAT audit](docs/NETKAT_AUDIT.md#optional--experimental-tooling)
+records the common fragment, finite-domain restrictions and replay results.
+
+
+Build the optional Lean exports before running backend fixtures or the full
+Lean regression sweep on a fresh checkout.
+
+```bash
+cd lean
+lake build DyNetKAT.Experimental
+for f in test_*.lean; do
+  lake env lean "$f" || exit 1
+done
+```
+
+Core-only verification uses `lake build DyNetKAT`. Python replay integration
+tests skip when the optional Lean target has not been built. The full suite
+with that target built exercises the preserved replay infrastructure using
+subprocess doubles and needs no KATch installation.

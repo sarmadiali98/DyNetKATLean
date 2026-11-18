@@ -570,10 +570,6 @@ private def packetParallelCandidate : NormalizationCandidate 3 where
 #print axioms netkatEquiv_history_correct
 #print axioms netkatIsZero_history_correct
 #print axioms completeTestExpr_correct
-#print axioms katchSemantics_encode
-#print axioms katchPacket_range_iff
-#print axioms netkatEquiv_katch_restricted
-#print axioms netkatIsZero_katch_restricted
 
 
 private theorem concreteSupport :

@@ -16,9 +16,24 @@ development on logs, causal analysis and schedules lies outside this scope.
 [PROOF_OBLIGATIONS.md](docs/PROOF_OBLIGATIONS.md) is the proof ledger.
 [DYNETIKAT_REFERENCE_AUDIT.md](docs/DYNETIKAT_REFERENCE_AUDIT.md#v11-feature-parity)
 is the tool feature ledger. [NETKAT_AUDIT.md](docs/NETKAT_AUDIT.md) records the
-packet model and backend scope. The [S6C audit](docs/S6C_TAIL_EXTRACTION_AUDIT.md)
+packet model and optional backend experiments. The [S6C audit](docs/S6C_TAIL_EXTRACTION_AUDIT.md)
 and other specialist notes retain their historical findings. Use the current
 ledgers for status and paper references.
+
+## Core formalization architecture
+
+The paper-facing path starts with the source grammar and the
+`Program` / reachable `Residual` boundary, then follows the SOS semantics,
+KATLean, dup-free NetKAT E_NK, DyNetKAT E_DNK and certified analysis.
+Mathlib supplies the KA structure used by KATLean. The NetKAT evaluator,
+Derives and normalization results are connected to that algebra by Lean
+theorems. The dependency diagram below records proof workstreams within
+this architecture.
+
+KATch belongs to optional experimental tooling. Its availability is not a
+premise of any core theorem, analysis route or completion condition.
+`import DyNetKAT` exposes the core. `import DyNetKAT.Experimental`
+adds the preserved backend comparison and candidate-checking exports.
 
 ## Dependencies
 
@@ -57,14 +72,14 @@ statements and executing the original artifact baseline in Phase 9.
 
 Parameterize the finite field schema and each field's value type. Preserve a
 fixed-domain instance for existing regressions. Prove complete tests and
-assignments, relational and history correspondence, exact star, and exact
-zero and equivalence. Complete Figure 4 and its soundness and completeness
-proofs, including Lemma 5 for the dup-free calculus. Model full NetKAT and
-`dup` in the supporting foundation for the literal Figure 4 target. Keep
-DyNetKAT prefixes and payloads dup-free. Build a proved finite reference
-evaluator and investigate a verified symbolic backend or certificate checker
-against the FatTree workload. The [NetKAT audit](docs/NETKAT_AUDIT.md) gives
-the backend proof and measurement gates.
+assignments, dup-free relational/history correspondence, exact star, and
+exact zero and equivalence. Complete the dup-free Figure 4 soundness and
+completeness proofs, including Lemma 5, using KATLean over Mathlib KA.
+DyNetKAT prefixes and payloads use the dup-free calculus. Full NetKAT
+with `dup` and its history-changing semantics is a supporting extension
+outside current DyNetKAT completion. Build a proved reference evaluator
+and measure its behavior on the FatTree workload. The
+[NetKAT audit](docs/NETKAT_AUDIT.md) gives the query proof and measurement gates.
 
 ### Phase 2 — Complete DyNetKAT language and SOS
 
@@ -194,7 +209,7 @@ benchmark methodology and results.
 1. Every relevant paper definition and rule has a Lean representation and
    every claimed result has an imported machine-checked theorem matching
    the audited statement and assumptions.
-2. E_NK and E_DNK have sound and ground-complete derivability, including the
+2. Dup-free E_NK and E_DNK have sound and ground-complete derivability, including the
    dup-free normalization corollary, exact A15 side conditions and guarded
    AIP. Any necessary correction to a literal printed claim has a recorded
    counterexample or source justification and an explicit corrected theorem.
@@ -232,8 +247,8 @@ lookup/update laws. The CtxPkt interpretation agrees with the evaluator,
 and every existing NetKAT derivation preserves its interpretation.
 `normalize_katInterp` connects the current Lemma 5 result to that algebra.
 The next foundation work is deliberate theorem reuse in Derives soundness
-and general-schema bridges. Full history/dup coverage remains open.
-KATch remains the optional backend with Lean candidate validation.
+and general-schema bridges. Full NetKAT history/dup coverage is an optional
+supporting extension.
 
 ### Recursive analysis and concrete certificates
 
@@ -261,8 +276,16 @@ routes for bounded inspection, all-depth state properties, and exact
 models. Pairwise equivalence can
 use a checked finite bisimulation, a strong quotient, or a direct proof.
 Future work includes candidate inference, executable query-specific
-property checkers, CLI reporting, and the KATch, general-packet and
-tool-parity phases.
+property checkers, CLI reporting, general packet schemas and tool parity.
+
+## Optional / experimental tooling
+
+KATch is an external comparison point and possible future accelerator.
+These experiments have their own validation obligations. They are outside
+the core semantics, E_NK, E_DNK, completeness, normalization, certified
+analysis and release criteria. Core proofs use NetKAT interpreted through
+KATLean. Backend availability and successful live replay are optional
+experiment prerequisites.
 
 ### Checked NetKAT backend candidates
 

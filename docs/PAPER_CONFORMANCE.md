@@ -40,7 +40,23 @@ the repeated term in one hnf equation, Definition 17's negation, and the
 induction for Theorem 1 on recursive continuations. The FoSSaCS chapter
 shortens several arguments and therefore does not resolve all of these.
 
-## Repository evidence
+## Core scope and import boundary
+
+The paper-facing architecture follows the source grammar, `Program` /
+reachable `Residual`, SOS, KATLean over Mathlib KA, dup-free NetKAT E_NK,
+DyNetKAT E_DNK and certified analysis. `import DyNetKAT` exposes that core.
+Its transitive source imports exclude KATch comparison and backend
+certificate modules. `import DyNetKAT.Experimental` adds the preserved
+optional exports. KATch supports external experiments, comparisons and
+possible future acceleration. Core theorems and release criteria have no
+KATch availability or replay requirement.
+
+Full NetKAT with `dup` and its history-changing semantics is a supporting
+extension outside current DyNetKAT scope. Existing dup-free history lemmas
+still justify the packet-policy invocation in the SOS. Open full NetKAT
+items in the inventory below are extension coverage gaps.
+
+## Historical repository evidence
 
 Audited working tree on `history-semantics`, HEAD
 `bc5712a2d3113624afe878c8f14cf1fbe7f43d68`. A read-only remote ref lookup
@@ -83,13 +99,13 @@ evidence.
 | Def. 4 | Complete test α is the product of all field equalities; complete assignment π is the product of all field updates. α and π encode packets; replace all tests by updates or vice versa for conversions. α·π denotes the singleton input/output pair. | `CompleteTest`, `CompleteAssignmentValuation`, `completeTestExpr`, `completeAssignExpr`, `holdsComplete_iff_eq`, `completeTestExpr_correct`, `completeAssignExpr_sem`, `ofSummand_sem` in `NormalForm.lean`, and packet valuation semantics. | General schema, canonical enumeration and the corresponding derivation lemmas. |
 | Fig. 4 E_NK | KA, BA and PA, listed below. | `NetKAT/Axioms.lean` defines an actual `Derives` relation with congruence, refl/sym/trans and elaboration rules. `Derives.sound` and `Derives.historySound` are dup-free, fixed-domain theorems. | Dup-free `CtxPkt` completeness follows from `normalize_derives` and pair-sum extensionality. Full Figure 4, general schemas, and the relationship between full and restricted derivability remain open. |
 | Lemma 5, Eqs. (7)–(8) | Dup-free policies admit a finite sum of complete test/assignment pairs, with derivable equality in E_NK. | Proved for `CtxPkt`: `exists_derives_pairSum` packages executable `normalize`, pair-sum shape, and `normalize_derives` in the existing `Derives` relation. `normalize_history_correct` gives semantic equality. The proof uses finite packet algebra and bounded stabilization. General schemas and the full language-model development remain open. |
-| §V decision queries | Empty packet relation for zero, equality of relations for dup-free equivalence. | `netkatIsZero_correct`, `netkatEquiv_correct` and corresponding history theorems. | General finite schemas and scalable backend with translation and query correctness. |
+| §V decision queries | Empty packet relation for zero, equality of relations for dup-free equivalence. | `netkatIsZero_correct`, `netkatEquiv_correct` and corresponding history theorems. | General finite schemas and scalable Lean evaluation with elaboration and query correctness. |
 
 The [KATLean foundation table](KATLEAN.md#ka-conformance-and-inequalities)
 adds an algebraic account of all Figure 4 KA laws, the six BA laws and
 the seven dup-free PA laws. `Derives.katSound` interprets the existing
 fixed-domain derivations in this algebra. PA-DUP-FILTER-COMM remains
-open in a full history model.
+open in an optional full NetKAT history model.
 
 ### Figure 4 axiom inventory
 
@@ -410,7 +426,7 @@ last step can leave a deadlocked continuation.
 | `GraphTail` | `graphTail_domain_iff`, `graphTail_bridge`, `graphTail_spec_iff_of_domain`, `graphTailSpec_toGProc_iff` for variable-free source comparison. Tail adds fresh labels for transformed references and retains the original labels needed by selected continuations. | Exact query domain `GraphTailDomain G R`; `GraphTailSupported` is a sufficient all-sets domain. The bridge equates **head of tail** with a relational specification. Nested tail, presentation independence and correspondence to the original projected SOS are additional obligations. |
 | `GraphNormalization` | `exists_exactNormalization_iff` for finite restricted derivatives, `exists_checkedNormalization_iff` adds admissibility, and `normalizeGraph_correct` establishes graph bisimilarity and extractor support. | Caller supplies a derivative table. Boolean validation also requires restriction-free derivative syntax and one checked reference order with supported one-step rows. The certificate path is separate from finite-depth rendering. |
 | `FiniteProjection` | `renderProjection_source` proves exact executable finite projection on guarded, finitely supported `CtxPkt` inputs with correct executable membership at restriction sites. `renderProjection_restricted` compares with an outer restriction of the projection. | General packet schemas, head/tail consumer proofs, and algebraic derivability remain open. |
-| `SafetyCheck` and compiled graph entry points | `safetyCheckGraph_correct` yields the two verdicts against `GraphHeadSpec` and `GraphTailSpec` on their domains. `compileNormalizeAndSafetyCheckGraph_correct` adds source/graph correspondence and restricted graph bisimilarity on successful compilation and normalization. | The extraction specifications in that theorem are over the rendered graph. A source trace theorem, nested dynamic queries, full safety derivability, parser and general-domain backend remain open. |
+| `SafetyCheck` and compiled graph entry points | `safetyCheckGraph_correct` yields the two verdicts against `GraphHeadSpec` and `GraphTailSpec` on their domains. `compileNormalizeAndSafetyCheckGraph_correct` adds source/graph correspondence and restricted graph bisimilarity on successful compilation and normalization. | The extraction specifications in that theorem are over the rendered graph. A source trace theorem, nested dynamic queries, full safety derivability, parser and general-domain query evaluation remain open. |
 
 The firewall and distributed controllers in Figs. 5–7 and the illustrated
 traces in Figs. 9–10 are validation targets. The local firewall regression
