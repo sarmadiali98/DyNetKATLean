@@ -2,7 +2,7 @@
 
 ## Status and exact scope
 
-Baseline: `2e9d206 make KATLean the foundation of NetKAT derivations`.
+Current development baseline: `69cc3a6 add verified native relational KAT equivalence solver`.
 `import KATLean.Native` exposes an executable, sound-and-complete decision
 procedure for guarded-string equivalence and equivalence in **all relational
 KATLean models**, over finite primitive-test and action alphabets. The native
@@ -18,8 +18,102 @@ assumed by the implementation.
 
 The existing NetKAT equivalence, normalization and analysis routes are preserved.
 They still use the concrete finite packet model. Replacing those routes requires
-the next, packet-specific milestone; this checkpoint does not claim their
+the deferred packet-specific milestone, after algebraic completeness; this checkpoint does not claim their
 independence from packet enumeration.
+
+## Symbolic guards and exact completeness audit
+
+This update removes Boolean truth-assignment enumeration from the public native
+solver. It **does not close the algebraic completeness gap**. It is a verified
+symbolic relational-solver sub-milestone, not completion of the requested generic
+algebraic solver milestone. Do not start the NetKAT packet frontend yet.
+
+| Meaning | Formal status |
+|---|---|
+| Equality in one concrete relation model | Consequence of relational equivalence; its converse is false in general |
+| Equality in all KATLean relational models | `RelationalEquivalent` |
+| Guarded-string language equality | `LanguageEquivalent`; `relational_iff_language` proves equivalence with all-relational equality |
+| Derivability from pure KAT equations | Independent inductive `Equational`; 15 KA, 6 BA, 4 test embeddings and structural/congruence rules |
+| Validity in all abstract KATLean KATs | `AlgebraicallyEquivalent` |
+| Equational derivation → all abstract models | `Equational.algebraic_sound`, by direct KATLean/Mathlib law reuse |
+| All abstract models → all relational models | `AlgebraicallyEquivalent.relational` |
+| Equational derivation → symbolic solver positive | `Equational.solver_positive` |
+| Pure KAT derivation → existing NetKAT Derives | `nativeEquational_derives`, by syntactic substitution, no normalization/oracle |
+| Solver positive / language equality → pure KAT derivation | **Open** |
+| Solver positive / language equality → all abstract KAT validity | **Open** |
+
+`Equational` is not defined using solver acceptance or relational validity.
+No completeness implication is inserted as an axiom, constructor or hypothesis.
+The NetKAT substitution bridge maps actions to arbitrary policies and tests to
+predicates; it is not the deferred packet-aware frontend in the other direction.
+NetKAT packet equations cannot be added to generic KAT without their hypotheses.
+
+### Completeness construction audit
+
+The installed Mathlib v4.19.0 supplies KA axioms and automata semantics, but no
+KA/KAT equational completeness theorem or matrix-star KA instance usable here.
+The existing finite-packet normalization theorem is neither a generic KAT
+completeness proof nor an acceptable replacement for that proof.
+
+The [formal Coq completeness module](https://perso.ens-lyon.fr/damien.pous/ra/html/RelationAlgebra.kat_completeness.html)
+reduces KAT to guarded expressions and then uses a separately formalized KA
+completeness theorem. Its implementation is not a Lean theorem. The
+[development notes](https://perso.ens-lyon.fr/damien.pous/ra/)
+also report that tying algebraic completeness directly to the optimized decision
+algorithm complicated the proof. Two viable Lean routes remain: formalize
+finite-system elimination/KA completeness and then guarded-expression reduction,
+or establish an algebraic finite-automaton simulation theorem. Neither is proved
+in this checkpoint. The latter may reuse our finite continuation closure, but
+semantic bisimulation by itself does not justify abstract algebraic equality.
+
+### Canonical Boolean representation
+
+`Boolean.Diagram n` is a pure ordered decision tree. The index fixes variable
+order: a node consumes the first variable and its children have index `n`;
+`skip` ignores a variable without duplicating a subtree. Constants are leaves.
+`Reduced` excludes equal node branches and skips above constant leaves. Smart
+constructors preserve reduction. `canonical` proves that reduced trees with the
+same Boolean function are equal. `Guard` carries the reduction proof.
+
+`apply_correct`, `compile_correct` and `sat_correct` prove Boolean-operation,
+test-compilation and satisfiability semantics. Satisfiability traverses the tree;
+it does not enumerate assignments. Equality compares canonical trees. Implication
+is unsatisfiability of conjunction with a negation. No unique table, DAG sharing
+or sophisticated BDD package is assumed. Worst-case tree size can still be
+exponential, as for Boolean decision diagrams generally.
+
+`BooleanAlphabet T` supplies an executable numbering into `Fin n`; `Fin n` has a
+standard instance. Public solver APIs now require this numbering and `Encodable`
+primitive alphabets, rather than a `Fintype T` valuation universe. Actions still
+form a finite alphabet. The expression/test syntax itself is unchanged.
+
+### Symbolic derivatives and search
+
+`derivativeRegions_correct` proves that guarded regions represent the old
+one-step derivatives exactly. `Covers` requires both soundness of every region
+and coverage of every valuation. Overlaps are allowed, but soundness forces
+identical successors wherever two guards overlap. `combine` intersects guards
+symbolically and discards unsatisfiable intersections using diagram SAT.
+`transitionRegions_correct` lifts this property to subset states.
+
+`sameOutput` compares canonical output guards. `successors` ranges over actions
+and satisfiable symbolic regions, never over `T → Bool`. `mem_successors_iff`
+relates these regions to semantic transitions. Thus the existing support-based
+finite bound is reused; `explored_closed` proves search saturation. Relational
+soundness and completeness, including `decideEquiv_correct`, remain proved.
+`inequivalent_witness` still gives existence, not executable path extraction.
+
+The old valuation-based implementation is retained in `Native/Explicit.lean`,
+namespace `KATLean.Native.Explicit`, solely as a regression oracle. It is not
+imported by `KATLean.Native` or the DyNetKAT core. Differential testing is not used
+in the new correctness proof. `Ordering.lean` supplies compact injective syntax
+codes for executable ordering; structural insertion sort preserves kernel
+reduction for `by decide` proof examples.
+
+**KATch:** not used by the core. **CtxPkt exhaustive enumeration:** not used by
+the native solver. **Boolean valuation enumeration:** removed from the core
+native solver. Existing concrete NetKAT C/D dependencies listed below remain;
+no packet migration is claimed.
 
 ## Construction audit and choice
 
@@ -35,7 +129,7 @@ finite derivative closure.
 | Brzozowski derivatives | Requires a finite quotient or normalization modulo union laws | Not selected for the first layer |
 | Antimirov partial derivatives | Finite syntactic continuations can be proved closed structurally; subset states handle nondeterminism | Selected |
 | Thompson epsilon automata | Viable, but guarded epsilon transitions add a compiler and epsilon-closure correctness proof | Deferred |
-| Symbolic BDD automata | Can avoid enumerating truth assignments, but require a verified Boolean canonicalization layer | Future performance work |
+| Symbolic decision diagrams | Avoid truth-assignment enumeration; require canonical Boolean operations and SAT proofs | Implemented as pure ordered reduced trees; DAG sharing deferred |
 | Existing Mathlib automata | Useful infrastructure; adapting Set-based states and guarded fusion still requires executable finiteness proofs | Small dedicated Finset layer used |
 
 References: [Pous, *Kleene Algebra with Tests and Coq Tools for While Programs*](https://arxiv.org/abs/1302.1737)
@@ -60,13 +154,10 @@ atom, and star admits any finite number of iterations. Empty iterations are
 allowed. These words record generic KAT action traces, not NetKAT packet histories
 or a new DyNetKAT process language.
 
-`nullable` returns a Boolean formula. Guards remain formulas throughout
-construction; this first implementation compares outputs and computes successors
-over all abstract truth assignments. Cost is exponential in the number of
-primitive tests. It does **not** enumerate concrete packets. There is no BDD
-canonicalization, formula semantic hashing, or support-minimized alphabet yet.
-The finite type supplied as `T` should contain the relevant primitive tests;
-unused tests still increase the cost.
+`nullable` returns a Boolean formula. Guards compile to canonical reduced ordered decision trees. Unused variables
+are skipped. Operations, semantic equality and SAT are symbolic, without
+generating abstract truth assignments or concrete packet valuations. Tree
+sharing and support-minimized numbering are not yet implemented.
 
 ## Derivatives, termination and decision
 
@@ -113,7 +204,12 @@ implemented.
 | `Derivatives.lean` | Partial derivatives, correctness, finite continuation closure |
 | `Automaton.lean` | Subset states, outputs, transitions, support finiteness |
 | `Search.lean` | Finite saturation and its cardinality-bound proof |
-| `Decision.lean` | Executable pair search, guarded-language soundness and completeness |
+| `Boolean.lean` | Canonical reduced ordered Boolean diagrams, operations and SAT |
+| `Ordering.lean` | Compact injective syntax codes and executable ordering support |
+| `Symbolic.lean` | Covered symbolic derivative regions and output guards |
+| `Decision.lean` | Symbolic pair search, guarded-language soundness and completeness |
+| `Explicit.lean` | Old valuation enumeration, regression-only import |
+| `Equations.lean` | Pure KAT axioms, abstract soundness and derivation-to-solver theorem |
 | `Model.lean` | Arbitrary KATLean relational interpretation correspondence |
 | `Correctness.lean` | Faithful trace model, final relational correctness and witness existence |
 
@@ -129,8 +225,8 @@ use only standard Lean axioms (`propext`, `Classical.choice`, `Quot.sound`), wit
 no proof holes or new axioms.
 
 For `(a+b)* = a* (b a*)*` the regression reports supports of size 2 and 2,
-and 2 explored state pairs, over 2 actions and 2 abstract truth assignments.
-One local full focused-test Lean invocation took 8.82 seconds and about 1.25 GiB
+and 2 explored state pairs. Actions are finite; guards are now symbolic.
+At the prior explicit-valuation checkpoint, one full focused-test Lean invocation took 8.82 seconds and about 1.25 GiB
 peak RSS; this includes elaboration, kernel proofs, import and axiom audits, and
 is not a solver-only benchmark. No scalability claim follows from it.
 
@@ -157,22 +253,23 @@ uses and does not yet meet the long-term no-enumeration architecture.
 
 ## Next obligations
 
-1. Verified packet constraints and updates using KATLean packet laws, without
-   enumerating packet valuations. Opaque generic actions alone cannot establish
+1. **Close the generic algebraic completeness gap before packet work.** Prove
+   relational/guarded-language equality implies `Equational`, or abstract KAT
+   validity with a proved derivation bridge. No such result is available yet.
+2. Verified packet constraints and updates using KATLean packet laws, without
+   enumerating packet valuations. Opaque generic actions cannot establish
    assignment overwrite or field commutation.
-2. Existing NetKAT AST frontend with semantic preservation and complete
-   packet-aware equivalence, then a Derives/E_NK bridge.
-3. Replace legacy core C/D uses; retain concrete evaluation as regression/model
-   tooling. Preserve the Program/Residual and literal communication-payload boundaries.
-4. If needed, formalize abstract KAT equational completeness; the present final
-   theorem quantifies relational KATLean models explicitly.
-5. Add executable counterexamples, Boolean sharing and a frontier worklist after
+3. Existing NetKAT AST frontend with semantic preservation and complete
+   packet-aware equivalence, then a solver-to-Derives/E_NK bridge.
+4. Replace legacy core C/D uses; retain concrete evaluation as regression/model
+   tooling. Preserve Program/Residual and literal communication-payload boundaries.
+5. Add executable counterexamples, DAG sharing and a frontier worklist after
    correctness; benchmark independently of elaboration.
 
 KATch is experimental only and unused. No DyNetKAT SOS rule, admission predicate,
 communication payload rule, or existing normalization algorithm changes here.
 
-## Checkpoint verification
+## Prior checkpoint verification (69cc3a6)
 
 - `lake build DyNetKAT`: passed.
 - All 37 `test_*.lean` files: passed, including existing normalization,
@@ -185,3 +282,55 @@ communication payload rule, or existing normalization algorithm changes here.
   `sorry`, `admit`, external oracle or packet enumeration enters native correctness.
 
 No commit or push was made. The existing `output/` directory was not modified.
+
+## Symbolic checkpoint performance sanity
+
+The focused regression includes 144 differential comparisons against the old
+explicit solver over a two-test alphabet. This oracle is imported by the test
+only and does not occur in symbolic correctness. A separate native-only test
+checks that neither the oracle nor packet/backend declarations are imported,
+and inspects the proof/algorithm bodies for their intended dependencies.
+
+| Example | Expression nodes including test syntax | Support sizes | Explored subset states (left/right) | State pairs | Initial guard regions across actions | Output guard nodes (left/right) | One solver invocation |
+|---|---:|---|---|---:|---:|---|---:|
+| Distributivity | 12 | 3 / 4 | 4 / 4 | 4 | 2 | 1 / 1 | 7.64 ms |
+| Star denesting | 12 | 2 / 2 | 2 / 2 | 2 | 2 | 1 / 1 | 2.36 ms |
+| Distribution through a conjunction of 64 tests | 397 | 2 / 2 | 3 / 3 | 3 | 2 | 129 / 129 | 380 ms |
+
+These are single `#eval` sanity runs, not comparative benchmarks. The clock
+covers the decision call; metrics are calculated afterward. Concurrent checks
+and VM/compiler effects can change timings. A conjunction over 64 tests has
+`2^64` possible valuations, but its compiled diagram has 129 nodes. The tests
+verify that size and check equivalent/inequivalent policies using it.
+
+During development, higher-order recursion for indexed variable construction
+caused severe slowdowns on large indices. Direct first-order recursion fixes
+that path. Boolean apply short-circuits constant operands, and compact token
+codes replace whole-tree natural-number pairing codes in state ordering.
+The final large-guard regression passes without a timeout or semantic cutoff.
+
+The axiom audit covers Boolean canonicity, compilation and SAT, symbolic
+regions, finite search, relational soundness/completeness, abstract soundness
+of pure equations and the existing Derives embedding. Only standard Lean
+axioms occur; `nativeEquational_derives` uses no axioms. There is no axiom-audited
+algebraic completeness theorem because that theorem has not been proved.
+
+## Verified symbolic sub-milestone
+
+Baseline: `69cc3a6`. Verification completed:
+
+- `lake build DyNetKAT`: passed.
+- All 38 `test_*.lean` files: passed.
+- Direct compilation of all nine new/changed native and derivation-bridge
+  modules: passed.
+- `scripts/verify.sh`: passed, including all 35 Python tests.
+- `git diff --check`: passed.
+- Focused Boolean, large-alphabet, differential, dependency-body and axiom
+  regressions: passed.
+
+This is a commit-sized symbolic Boolean sub-milestone. It is **not** the full
+requested algebraic-completeness checkpoint. Suggested message:
+`replace native KAT valuation enumeration with symbolic guards`.
+The native solver is not yet ready to become the NetKAT equivalence engine.
+No packet-aware frontend, concrete evaluator replacement, SOS modification,
+commit or push was performed; `output/` was not modified.

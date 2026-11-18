@@ -1,15 +1,39 @@
-import KATLean.Native.Automaton
+import KATLean.Native.Symbolic
 import KATLean.Native.Search
 
 namespace KATLean.Native
 
-variable {T A : Type} [Fintype T] [Fintype A] [DecidableEq T] [DecidableEq A]
+variable {T A : Type} [BooleanAlphabet T] [Encodable T] [Encodable A] [Fintype A] [DecidableEq T] [DecidableEq A]
 
 abbrev StatePair (T A : Type) := State T A × State T A
 
+def pairRegions (pair : StatePair T A) (a : A) : Regions T (StatePair T A) :=
+  combine Prod.mk (transitionRegions pair.1 a) (transitionRegions pair.2 a)
+
+omit [Fintype A] in
+theorem pairRegions_correct (pair : StatePair T A) (a : A) :
+    Covers (pairRegions pair a) (fun v => (transition pair.1 v a, transition pair.2 v a)) :=
+  covers_combine _ (transitionRegions_correct _ _) (transitionRegions_correct _ _)
+
 def successors (pair : StatePair T A) : Finset (StatePair T A) :=
-  Finset.univ.biUnion (fun atom : Atom T => Finset.univ.image (fun action : A =>
-    (transition pair.1 atom action, transition pair.2 atom action)))
+  Finset.univ.biUnion (fun a : A => ((pairRegions pair a).map Prod.snd).toFinset)
+
+theorem mem_successors_iff (pair target : StatePair T A) : target ∈ successors pair ↔
+    ∃ atom action, target = (transition pair.1 atom action, transition pair.2 atom action) := by
+  constructor
+  · intro member
+    obtain ⟨a, _, region⟩ := Finset.mem_biUnion.mp member
+    obtain ⟨⟨g, state⟩, member, same⟩ := List.mem_map.mp (List.mem_toFinset.mp region)
+    have sat : Boolean.sat g.1 = true := by
+      obtain ⟨l, x, r, y, _, _, sat, eq, _⟩ := (mem_combine _ _ _ _ _).mp member
+      simpa [eq] using sat
+    obtain ⟨v, accepted⟩ := (Boolean.sat_correct _).mp sat
+    have accepted' : Boolean.eval g.1 (encodeAtom (decodeAtom v)) = true := by simpa using accepted
+    exact ⟨decodeAtom v, a, same ▸ (pairRegions_correct pair a).1 g state member _ accepted'⟩
+  · rintro ⟨atom, action, rfl⟩
+    obtain ⟨g, member, _⟩ := (pairRegions_correct pair action).2 atom
+    exact Finset.mem_biUnion.mpr ⟨action, Finset.mem_univ _, List.mem_toFinset.mpr
+      (List.mem_map.mpr ⟨(g, _), member, rfl⟩)⟩
 
 def expand (visited : Finset (StatePair T A)) : Finset (StatePair T A) :=
   visited ∪ visited.biUnion successors
@@ -23,10 +47,23 @@ def pairBound (p q : Expr T A) : Nat := 2 ^ ((support p).card + (support q).card
 def explored (p q : Expr T A) : Finset (StatePair T A) :=
   saturate expand (pairBound p q) {initial p q}
 
-/-- Exact comparison of propositional outputs over abstract test atoms.
-This finite Boolean alphabet is independent of any concrete packet model. -/
+/-- Canonical symbolic output comparison, without truth-assignment enumeration. -/
 def sameOutput (pair : StatePair T A) : Bool :=
-  decide (∀ atom : Atom T, output pair.1 atom = output pair.2 atom)
+  decide (outputGuard pair.1 = outputGuard pair.2)
+
+omit [Fintype A] [DecidableEq T] [DecidableEq A] in
+theorem sameOutput_correct (pair : StatePair T A) : sameOutput pair = true ↔
+    ∀ atom, output pair.1 atom = output pair.2 atom := by
+  rw [sameOutput, decide_eq_true_eq]
+  constructor
+  · intro h atom
+    rw [← outputGuard_correct, ← outputGuard_correct, h]
+  · intro h
+    apply Boolean.guard_ext _ _ |>.mpr
+    intro v
+    have eq := h (decodeAtom v)
+    rw [← outputGuard_correct, ← outputGuard_correct] at eq
+    simpa using eq
 
 /-- Complete guarded-language decision. Universal abstract KAT algebraic
 completeness is a separate theorem and is not assumed here. -/
@@ -37,10 +74,9 @@ private theorem grows (visited : Finset (StatePair T A)) : visited ⊆ expand vi
 
 private theorem mem_successors (pair : StatePair T A) (atom : Atom T) (action : A) :
     (transition pair.1 atom action, transition pair.2 atom action) ∈ successors pair :=
-  Finset.mem_biUnion.mpr ⟨atom, Finset.mem_univ _, Finset.mem_image.mpr
-    ⟨action, Finset.mem_univ _, rfl⟩⟩
+  (mem_successors_iff _ _).mpr ⟨atom, action, rfl⟩
 
-private theorem explored_closed (p q : Expr T A) : expand (explored p q) = explored p q := by
+theorem explored_closed (p q : Expr T A) : expand (explored p q) = explored p q := by
   let carrier := (support p).powerset ×ˢ (support q).powerset
   have supported : ({initial p q} : Finset (StatePair T A)) ⊆ carrier := by
     intro pair member
@@ -51,8 +87,7 @@ private theorem explored_closed (p q : Expr T A) : expand (explored p q) = explo
     apply Finset.union_subset h
     intro pair member
     obtain ⟨source, hs, hm⟩ := Finset.mem_biUnion.mp member
-    obtain ⟨atom, _, hm⟩ := Finset.mem_biUnion.mp hm
-    obtain ⟨action, _, rfl⟩ := Finset.mem_image.mp hm
+    obtain ⟨atom, action, rfl⟩ := (mem_successors_iff source pair).mp hm
     have sourceSupported := Finset.mem_product.mp (h hs)
     exact Finset.mem_product.mpr
       ⟨Finset.mem_powerset.mpr (transition_supported p (Finset.mem_powerset.mp sourceSupported.1) atom action),
@@ -69,7 +104,7 @@ private theorem successor_explored {p q : Expr T A} {pair : StatePair T A}
 private def PairEquivalent (pair : StatePair T A) : Prop :=
   ∀ atom word, StateAccept pair.1 atom word ↔ StateAccept pair.2 atom word
 
-omit [Fintype T] [Fintype A] in
+omit [BooleanAlphabet T] [Encodable T] [Encodable A] [Fintype A] in
 private theorem equivalent_successor {pair : StatePair T A} (h : PairEquivalent pair)
     (atom : Atom T) (action : A) :
     PairEquivalent (transition pair.1 atom action, transition pair.2 atom action) := by
@@ -86,7 +121,7 @@ theorem decideLanguageEquiv_sound (p q : Expr T A) (checked : decideLanguageEqui
     induction word with
     | nil =>
       intro pair member atom
-      have equal := of_decide_eq_true (outputs pair member) atom
+      have equal := (sameOutput_correct pair).mp (outputs pair member) atom
       rw [← output_correct, ← output_correct, equal]
     | cons first rest ih =>
       intro pair member atom
@@ -106,15 +141,14 @@ theorem decideLanguageEquiv_complete (p q : Expr T A) (equivalent : LanguageEqui
       rcases Finset.mem_union.mp member with old | added
       · exact inv pair old
       · obtain ⟨source, hs, hm⟩ := Finset.mem_biUnion.mp added
-        obtain ⟨atom, _, hm⟩ := Finset.mem_biUnion.mp hm
-        obtain ⟨action, _, rfl⟩ := Finset.mem_image.mp hm
+        obtain ⟨atom, action, rfl⟩ := (mem_successors_iff source pair).mp hm
         exact equivalent_successor (inv source hs) atom action
     · intro pair member
       obtain rfl := Finset.mem_singleton.mp member
       simpa [PairEquivalent, initial, StateAccept] using equivalent
   apply decide_eq_true
   intro pair member
-  apply decide_eq_true
+  apply (sameOutput_correct pair).mpr
   intro atom
   apply Bool.eq_iff_iff.mpr
   rw [output_correct, output_correct]

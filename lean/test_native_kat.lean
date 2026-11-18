@@ -57,9 +57,24 @@ open Lean in
 run_cmd do
   let env ← getEnv
   for forbidden in [`DyNetKAT.NetKAT.CtxPkt, `DyNetKAT.NetKAT.netkatEquiv,
-      `DyNetKAT.NetKAT.execute, `DyNetKAT.NetKAT.katchSemantics] do
+      `DyNetKAT.NetKAT.execute, `DyNetKAT.NetKAT.katchSemantics,
+      `KATLean.Native.Explicit.decideLanguageEquiv] do
     if env.contains forbidden then
       throwError "native proof imports concrete or external solver {forbidden}"
+
+-- Inspect proof bodies as well as their axiom sets.
+open Lean in
+run_cmd do
+  let env ← getEnv
+  for (consumer, foundation) in #[( ``decideEquiv_correct, ``decideLanguageEquiv_correct),
+      (``successors, ``pairRegions), (``sameOutput, ``outputGuard),
+      (``Equational.solver_positive, ``Equational.algebraic_sound),
+      (``Equational.algebraic_sound, ``KATLean.star_induction_left_add),
+      (``Equational.algebraic_sound, ``KATLean.KAT.excluded_middle)] do
+    let some body := (env.find? consumer).bind ConstantInfo.value? |
+      throwError "missing proof or algorithm {consumer}"
+    unless body.getUsedConstants.contains foundation do
+      throwError "{consumer} bypasses {foundation}"
 
 #print axioms nullable_correct
 #print axioms derivative_correct

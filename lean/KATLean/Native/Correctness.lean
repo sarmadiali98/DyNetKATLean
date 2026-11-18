@@ -65,7 +65,7 @@ theorem relational_iff_language (p q : Expr T A) :
     rw [← guarded_model_correct, ← guarded_model_correct, model]
   · exact LanguageEquivalent.relational_sound
 
-variable [Fintype T] [Fintype A] [DecidableEq T] [DecidableEq A]
+variable [BooleanAlphabet T] [Encodable T] [Encodable A] [Fintype A] [DecidableEq T] [DecidableEq A]
 
 /-- Native equivalence over arbitrary relational KAT interpretations. -/
 def decideEquiv (p q : Expr T A) : Bool := decideLanguageEquiv p q

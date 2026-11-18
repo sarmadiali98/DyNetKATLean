@@ -1,1 +1,1 @@
-import KATLean.Native.Correctness
+import KATLean.Native.Equations
