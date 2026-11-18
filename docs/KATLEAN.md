@@ -1,5 +1,19 @@
 # KATLean foundation for E_NK
 
+## Native decision layer
+
+`KATLean.Native` builds on this algebra without importing the NetKAT AST,
+concrete packets, Derives or process semantics. It decides guarded-string
+equivalence and equality in all relational KATLean interpretations, with proved
+partial-derivative correctness, finite closure, soundness and completeness.
+See [NATIVE_KAT.md](NATIVE_KAT.md) for exact scope, construction comparisons,
+Boolean-alphabet costs and the remaining abstract equational-completeness gap.
+
+The intended path is KATLean → native solver → packet-aware symbolic frontend
+→ NetKAT Derives/E_NK → E_DNK. The generic solver is delivered; the packet-aware
+frontend is pending. Existing fixed-model evaluator and normalization imports
+below remain legacy dependencies, not dependencies of native correctness.
+
 ## Scope and dependencies
 
 KATLean supplies the algebra used by the dup-free NetKAT layer beneath

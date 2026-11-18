@@ -1,5 +1,19 @@
 # DyNetKAT-Lean roadmap
 
+## Native equivalence priority
+
+The next core path is KATLean → verified native equivalence → symbolic dup-free
+NetKAT E_NK → E_DNK. The generic guarded-language/all-relational-model decision
+layer is implemented with finite partial derivatives, soundness and completeness.
+[Design and enumeration audit](docs/NATIVE_KAT.md).
+
+The next mathematical milestone is the packet-aware symbolic frontend and its
+semantic/Derives bridge. Then replace concrete enumeration in core decisions and
+fixed-model proof infrastructure. Existing finite packet evaluators stay as
+concrete/regression tools; existing C/D uses are not yet removed. Abstract KAT
+axiomatic completeness, executable witnesses and Boolean sharing remain explicit
+gaps. KATch is unused and optional; no backend milestone is required.
+
 ## Objective and sources
 
 Deliver a complete Lean 4 formalization of the mathematics in Caltais, Hojjat,
@@ -73,7 +87,9 @@ statements and executing the original artifact baseline in Phase 9.
 Parameterize the finite field schema and each field's value type. Preserve a
 fixed-domain instance for existing regressions. Prove complete tests and
 assignments, dup-free relational/history correspondence, exact star, and
-exact zero and equivalence. Complete the dup-free Figure 4 soundness and
+exact zero and equivalence through the native symbolic packet layer, without
+exhaustive packet enumeration in core decisions or proof foundations. Complete
+the dup-free Figure 4 soundness and
 completeness proofs, including Lemma 5, using KATLean over Mathlib KA.
 DyNetKAT prefixes and payloads use the dup-free calculus. Full NetKAT
 with `dup` and its history-changing semantics is a supporting extension

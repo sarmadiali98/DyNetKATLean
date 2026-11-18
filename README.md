@@ -1,5 +1,19 @@
 # DyNetKAT-Lean
 
+### Native KAT decision layer
+
+`import KATLean.Native` provides a verified partial-derivative equivalence
+engine for generic KAT guarded languages and all KATLean relational models.
+Its soundness and completeness proofs use no `CtxPkt` enumeration or KATch.
+Boolean guards are formulas; the first version enumerates abstract truth
+assignments, with exponential cost in the primitive-test alphabet.
+See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the exact theorem scope and tests.
+
+The target is KATLean → native equivalence → symbolic dup-free NetKAT E_NK
+→ E_DNK. The packet-aware frontend and replacement of the existing concrete
+NetKAT decision/normalization routes remain open. The generic engine does not
+by itself decide packet equations such as assignment overwrite.
+
 Faithful Lean 4 formalization of the **original DyNetKAT calculus**:
 *DyNetKAT: An Algebra of Dynamic Networks* (arXiv:2102.10035v4, FoSSaCS 2022).
 
@@ -40,7 +54,8 @@ coverage, general-schema work and the optional full NetKAT history/dup extension
 The core formalization follows the source grammar, `Program` / reachable
 `Residual` boundary, SOS semantics, KATLean, dup-free E_NK, E_DNK and
 certified analysis. KATch is an optional experiment and comparison point.
-Core theorems and project completion use the Lean algebra and evaluator.
+Core theorems use Lean proofs. Replacing legacy concrete decisions with the
+native symbolic packet layer is now a completion obligation.
 
 ## Structure
 

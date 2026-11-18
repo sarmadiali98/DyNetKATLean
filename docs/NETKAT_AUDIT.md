@@ -1,5 +1,20 @@
 # NetKAT foundations and decision-procedure audit
 
+## Native engine and remaining concrete dependencies
+
+The generic KAT layer now has an executable partial-derivative decision with
+proved guarded-language and all-relational-model soundness/completeness.
+It imports no `CtxPkt` evaluator or KATch. The
+[construction and CtxPkt usage audit](NATIVE_KAT.md) distinguishes regression,
+concrete evaluation, proof-foundation and current decision uses.
+
+This does not yet replace `netkatEquiv`, finite-pair normalization/Lemma 5,
+or the NetKAT decisions consumed by graph normalization and safety checks.
+Those C/D uses remain a core migration obligation. Future release work must
+supply packet-aware symbolic constraints/updates and the existing AST/Derives
+bridge, rather than generalize exhaustive enumeration to larger schemas.
+The concrete evaluator will remain available for regression and examples.
+
 ## Current scope and roadmap
 
 The source is [arXiv:2102.10035v4](https://arxiv.org/pdf/2102.10035v4),
@@ -11,7 +26,7 @@ theorem targets. The dated Task 2N/2R notes below record earlier findings.
 | Dimension | Current evidence | Release requirement |
 |---|---|---|
 | Mathematical model | Generic uniform-codomain `Packet` utilities. `CtxPkt` and the policy AST use `tpSrc`, `tpDst`, `swId`, `port`, each with values 0, 1, 8 and 9. `ctxPkt_card` proves cardinality 256. The history relation and SOS use this instance. | Finite field schema with a finite value domain per field, typed field tests and updates, packet and history semantics and proved complete tests/assignments for every schema. |
-| Evaluation and decision | `eval_correct`, `execute_star_correct`, `netkatIsZero_correct`, `netkatEquiv_correct` and their history bridges. Exact star on the current universe uses a cardinality argument and fixpoint detection. | Same exactness for all finite schemas. Bound the finite evaluator by a proved stabilization measure. NetKAT star remains independent of the DyNetKAT projection depth. |
+| Evaluation and decision | `eval_correct`, `execute_star_correct`, `netkatIsZero_correct`, `netkatEquiv_correct` and their history bridges. Exact star on the current universe uses a cardinality argument and fixpoint detection. | Verified native symbolic packet equivalence for finite schemas, independent of exhaustive packet enumeration. Keep the concrete evaluator as a reference model. NetKAT star remains independent of the DyNetKAT projection depth. |
 | Algebra | `Derives` and soundness for the fixed dup-free system. Executable `normalize` produces the finite pair sum of every dup-free `CtxPkt` term, including star, with proved semantic equality. Pair-sum extensionality and star elimination from derivable stabilization are kernel checked. | `normalize_derives_starFree` and `normalize_derives` prove normalization in the existing equational system. `exists_derives_pairSum` closes Lemma 5 on `CtxPkt`. General finite schemas remain open. Full Figure 4 history/dup coverage is an optional supporting extension. |
 | Functional query coverage | Fixed-domain relation decisions and the initial/post-event firewall query. | General-domain reachability, non-reachability and waypoint inclusion, in the original dynamic pipeline and as standalone NetKAT decisions. Verify the original backend encodings as separate comparisons. |
 | Scalability | Small finite regression universe and differential corpus. | Complete the original FatTree cases through 1,344 switches with measurements of time and memory and baseline comparisons. |

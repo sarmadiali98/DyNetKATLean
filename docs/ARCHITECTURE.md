@@ -1,5 +1,23 @@
 # Architecture — DyNetKAT Lean Formalization
 
+## Native solver boundary
+
+The target algebraic pipeline is KATLean → verified native KAT equivalence
+→ symbolic dup-free NetKAT packet layer → E_NK → E_DNK. Source admission,
+reachable Residuals and SOS remain unchanged.
+
+`import KATLean.Native` is a separate Mathlib/KATLean-only surface, also exported
+by `DyNetKAT`. It contains guarded-language syntax, finite partial derivatives,
+subset-state search and a complete all-relational-model correctness theorem.
+It does not import concrete packet evaluation or experimental backends.
+The algebra-only `KATLean` import stays below it.
+
+The packet frontend and replacement of the current concrete decision path are
+pending; the architecture described below includes those legacy components.
+256-packet enumeration is excluded from native solver correctness, but remains
+in legacy fixed-model C/D uses until replacement. KATch is experimental only
+and unused. [Exact scope and audit](NATIVE_KAT.md).
+
 ## Current architecture
 
 The paper-facing core follows DyNetKAT source grammar, the `Program` /
