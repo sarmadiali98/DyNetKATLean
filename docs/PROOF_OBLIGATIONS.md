@@ -34,12 +34,12 @@ See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 | Complete decision for all relational KAT models | `decideEquiv_correct` |
 | Equality in all arbitrary abstract KATs / axiomatic completeness | Proved by `algebraicallyEquivalent_iff_equational` and `decideEquiv_iff_algebraicallyEquivalent` |
 | Symbolic packet constraints, updates, AST and Derives bridge | Proved by `compileSymbolic_correct`, `netkatNativeEquiv_correct` and `netkatNativeEquiv_iff_derives`. The last uses field-level partitions and symbolic closure. |
-| Remove legacy core concrete-enumeration C/D uses | Categories C and D are migrated. Equality uses native symbolic equivalence. Lemma 5 and Lemma 9 use accepted-pair materialization from the symbolic diagram. See [audit](NETKAT_AUDIT.md). |
+| Remove core full-packet enumeration in the fixed model | Equality uses native symbolic equivalence. Lemma 5 and Lemma 9 emit accepted pairs from the diagram. Graph normalization retains whole policy labels and safety uses symbolic zero checks. Supplied-packet star uses the generic growth bound in `reachableWithin_finite_stabilizes`. See [audit](NETKAT_AUDIT.md). |
 | Inequivalence witness | `distinguishingGuard_sat` decides satisfiability of the symbolic counterexample constraints. Concrete witness existence is proved and extraction is open. |
 
 The native proof and the symbolic normalization proofs are independent
 of complete packet enumeration and KATch. The exhaustive checker and
-normalizer remain available for differential regression.
+normalizer remain available for differential regression through an explicit `DyNetKAT.NetKAT.Legacy` import.
 
 Paper identifiers use [arXiv:2102.10035v4](https://arxiv.org/pdf/2102.10035v4).
 The [conformance inventory](PAPER_CONFORMANCE.md) gives the complete
@@ -489,8 +489,7 @@ the optional modules. Use `DyNetKAT.Experimental` for their exports.
 
 - `checkBackendRelation_sound` checks complete output sets against
   `execute_correct`. Its accepted rows agree with both
-  `netkatNormalForm` and `normalize`. Star uses the evaluator's existing
-  finite stabilization proof.
+  `netkatNormalForm` and `normalize`. Star uses the evaluator's finite growth proof over reached packets.
 - `checkBackendEquivalent_sound` validates a common relation for both
   policies. `checkBackendCounterexample_sound` validates a single
   distinguishing input by comparing its complete output sets.

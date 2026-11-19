@@ -34,8 +34,12 @@ input observations with field-level partitions and certifies star through
 the symbolic fixed point. Lemma 5 and DyNetKAT packet-head normalization
 share the symbolic relation diagram. They materialize only accepted pairs
 when the paper requires explicit branches. The complete-pair statement is
-unchanged. The exhaustive normalizer and equivalence checker remain regression
-oracles. Concrete execution still computes outputs of supplied inputs.
+unchanged. Graph normalization retains one symbolic policy per packet
+label. Concrete execution starts from the supplied input and its star
+proof bounds growth of the reached sets. Core equivalence, normalization,
+graph normalization, safety and execution correctness are independent of
+full packet enumeration. The exhaustive reference code is available
+through `DyNetKAT.NetKAT.Legacy`.
 Concrete witness extraction and diagram sharing are future work.
 [Design and enumeration audit](docs/NATIVE_KAT.md).
 

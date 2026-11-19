@@ -46,6 +46,20 @@ it out. Star reaches a canonical diagram fixed point using relational squaring.
 The final diagram is embedded as a native KAT test on packet-pair encodings.
 [Exact scope and audit](NETKAT_AUDIT.md).
 
+## Graph normalization and concrete execution
+
+The classical exact-table existence theorem uses the finite reachable
+derivatives and the syntactic prefix labels of each source and its graph
+definitions. Each packet label retains the policy of its originating SOS
+prefix. The symbolic zero check determines feasibility without expanding
+the relation into packet pairs. The checked-table renderer and safety
+checker consume those policy labels.
+
+Concrete execution starts with one supplied packet. Each star round unions
+the previous outputs with their one-step successors and stops once those
+sets agree. Executable fuel comes from field counts. The correctness proof
+bounds strict growth using the cardinality of the packet type.
+
 ## Current architecture
 
 The paper-facing core follows DyNetKAT source grammar, the `Program` /
@@ -59,9 +73,10 @@ interpretation connected to the current AST, evaluator and Derives.
 | `KATLean` | Algebra and packet model, with Mathlib dependencies |
 | `DyNetKAT.NetKAT.KATLean` | Current NetKAT AST/evaluator/Derives bridge |
 | `DyNetKAT` | Core formalization and admitted-program analysis |
+| `DyNetKAT.NetKAT.Legacy` | Exhaustive concrete equivalence, normalization and partition proofs for regression and compatibility |
 | `DyNetKAT.Experimental` | Core plus optional KATch comparison and candidate-checking modules |
 
-The core import closure excludes KATch, backend certificates, equational
+The core import closure excludes the legacy exhaustive module, KATch, backend certificates, equational
 certificates and JSON candidate formats. Python subprocess replay is an
 optional experiment. KATch is an untrusted external comparison point and
 possible future accelerator, with no release, completeness or theorem

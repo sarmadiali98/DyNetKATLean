@@ -20,66 +20,59 @@ through the symbolic checker. `legacyNetkatEquiv` is the regression oracle.
 
 See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 
-## Lemma 5 dependency audit at `99050e5`
+## Full-universe dependency audit
 
-| Role | Location | Enumeration dependency |
+The audit starts at `fe1f927`, with symbolic equivalence and algebraic
+normalization already in place at `1e4f562`. It distinguishes running a
+decision over every input from producing all results that a policy actually
+admits. The latter may include the whole domain for a dense policy.
+
+| Category | Baseline occurrence | Current dependency |
 |---|---|---|
-| A. Theorem statement | `IsPairSum`, `exists_derives_pairSum`, `AtomicPrefix.packet` | A complete test and complete assignment denote one ordered pair. The theorem requires a finite sum of those branches. Its statement uses no enumeration. |
-| B. Construction | `netkatNormalForm`, `NormalForm.orderedPairs`, `normalize` | Run the evaluator on every input in `Finset.univ`. Construct the Cartesian product of `packetList` with itself to order and filter the resulting pairs. |
-| C. Correctness | `netkatNormalForm_mem`, `normalize_correct`, `normalize_derives` | Use concrete evaluator correctness, the ordered-pair coverage proof, packet partition expansions, and packet-count stabilization for star. |
-| D. Head consumer | `HeadNormalForm.packetHeads`, `packetHeads_correct`, `normalizeHead_aux` | Build a head for each ordered pair. The equational proof imports the legacy `normalize_derives`. |
-| E. Regressions | `test_netkat_normalization.lean`, `test_head_normal_form.lean` | Exercise finite-set and exact syntax compatibility, including some explicit packet-partition lemmas. |
+| A. Core theorem proof | `GraphNormalization.exists_exactNormalization_iff` inserted `Set.range Sum.inl` of type `CtxPkt × CtxPkt` into every source alphabet. It converted the alphabet to a finset, crossed it with derivative indices and filtered for SOS witnesses. | The same iff ranges over syntactic packet-policy and reconfiguration labels and finite derivative indices. No packet-pair alphabet or extraction occurs. |
+| A. Core theorem proof | `reachableWithin_finite_stabilizes` built `Finset.univ.filter (ReachableWithin p n σ)` for every depth. | Generic `finiteGrowth_stabilizes` counts the semantic sets of reached packets. Strict growth increases their cardinalities, bounded by the ambient type cardinality. The proof uses no concrete enumeration. |
+| B. Core executable algorithm | `execute` used the concrete packet `Fintype.card` directly as star fuel. Its definitional computation could reduce through the packet function-space enumeration. | Fuel is the field-value cardinality raised to the field-name cardinality. `Fintype.card_fun` identifies it with `Fintype.card CtxPkt` in proofs. |
+| B. Core executable algorithm | `symbolicPairs`, `netkatNormalForm`, `normalize` and `HeadNormalForm.packetHeads` emit complete branches. | Kept. These decode accepting diagram paths only. Identity emits its 256 diagonal pairs and an all-pairs policy can emit 65,536 pairs when explicit paper syntax is requested. |
+| C. Supplied-packet execution | `execute`, `post`, `boundedStar`, `netkatEquivAt`, history execution and concrete SOS successor generation. | Kept. The initial packet seeds the reached-output set. The evaluator applies a policy only to discovered inputs and stops star when the set stops changing. |
+| D. Regression and compatibility | `legacyNetkatEquiv` quantifies over all input packets. `legacyNetkatNormalForm` uses `Finset.univ : Finset CtxPkt`. `enumerateFields` builds `packetList` and `orderedPairs` filters its full Cartesian square for `legacyNormalize`. | Retained by explicit import of `DyNetKAT.NetKAT.Legacy`. |
+| D. Regression and compatibility | `NormalForm.idNF`, `testNF` and `assign1NF` use `Finset.univ : Finset CompleteTest`, with a filter for `testNF`. The finite-relation operations include `seqNF`, which crosses its supplied finite relations. `completeTest_partition`, `derives_id_diagonal`, `derives_assign1_pairs` and `derives_test_pairs` use `packetList`. The old `derives_starFree_of_complete` unrolls to the packet cardinality. | Retained in `Legacy`. The core `NormalForm` module provides the pair syntax and its interpretation. |
+| D. Regression and compatibility | `Packet.lean` provides the packet and complete-test `Fintype` instances and `ctxPkt_card`, the fixed-model fact that the count is 256. | Kept for compatibility and proof-level cardinality bounds. Core execution uses the field-count formula and core proofs do not use `ctxPkt_card`. |
+| E. Experimental | `BackendCertificate.checkBackendRelation` checks every possible input against supplied output rows. KATch replay, comparison and candidate checking use this optional surface. | Kept outside the core import closure. The single-input counterexample check is pointwise. |
+| D. Regression and reference | `KATLean.Native.Explicit` enumerates abstract Boolean atoms with actions. | The native symbolic decision path does not import this reference engine. |
+| F. Finite-field-local reasoning | NetKAT `paMatchAll`, KATLean `match_all` and `matchAll_katInterp`, diagram encoding and decoding, and `lift_read_agreement`. | Kept. These use field names or values of a single field at a time. |
 
-The exact atom type gives an output-size lower bound. For example, identity
-has one distinct diagonal pair per packet. An explicit complete-pair sum or
-a list of atomic identity heads must emit all those branches. An output-sensitive
-constructor can omit rejected pairs, avoid packet or Boolean valuation
-universes, and retain the symbolic relation until explicit syntax is requested.
+Other `Finset.univ` uses audited here are over finite branching indices
+(`Approximation`), derivative indices (`GraphNormalization`), abstract
+action symbols and proof index types (`KATLean.Native.Decision` and
+`SymbolicSimulation`).
 
-## Packet enumeration at baseline `84bdeab`
+### Graph normalization and downstream safety
 
-| Category | Location | Dependency |
-|---|---|---|
-| A. Semantics and examples | `Packet.lean`, `Semantics.lean`, `HistorySemantics.lean` | `CtxPkt` models total field valuations. The semantics quantify over packets and finite paths without computing a Cartesian product. The concrete `Fintype` and `ctxPkt_card` provide the exhaustive universe to callers. |
-| B. Regression oracle | Concrete Lean evaluator/decision tests and Python differential checks | Compare outputs or relations over the fixed finite model. |
-| C. Current equivalence decision | `Decision.lean` | `netkatEquivAt` compares two concrete output sets. `netkatEquiv` runs it on every input. `netkatIsZero` applies the same procedure to `drop`. |
-| C. Core callers | `DyNetKAT/SafetyCheck.lean`, `DyNetKAT/GraphNormalization.lean` | Executable guard feasibility, nonzero step tests and static reachability use `netkatIsZero`. |
-| D. Lemma 5 | `NormalForm.lean`, `Normalization.lean` | Complete tests and updates populate diagonal, filtered, assignment and composed relations. `netkatNormalForm` queries the evaluator on every input. `packetList` constructs the product of field domains, and `orderedPairs` filters the full input/output product. The derivation proof uses that partition and finite star stabilization. |
-| E. Concrete evaluation | `Evaluator.lean`, `HistoryEvaluator.lean`, executable reachability and Python packet/tree APIs | Compute actual outputs from a supplied packet. The evaluator's star bound is `Fintype.card CtxPkt`. Retain the concrete execution API. |
-| E. History proof wrappers | `Derives.historySound` and `normalize_history_correct` | Use the legacy equality-correctness and history theorems as proof bridges. They do not execute the old checker. |
-| E. Experimental certificates | `BackendCertificate.lean`, `EquationalCertificate.lean`, `KATch.lean`, experimental imports and backend scripts | Whole-relation certificate validation, legacy-exact fallback and experimental semantic comparisons stay outside the symbolic solver. |
+A packet SOS derivation begins at a policy prefix. The surrounding SOS
+rules preserve the same residual process for every pair accepted by that
+policy. This follows through choice, interleaving, left merge, projection,
+restriction and reference unfolding. Restrictions affect communication
+actions. Reconfiguration labels remain syntactic and include
+synchronizations. An exact certificate keeps each enabled label for the
+target derivatives it realizes. The existence theorem is classical over
+these symbolic labels and keeps its full finite-derivatives hypothesis.
+The executable validator still checks the more specific
+`NormalizationAdmissible` domain.
 
-## Native engine and remaining concrete dependencies
+| Path | Transitive proof or executable mechanism |
+|---|---|
+| Native NetKAT equivalence | `netkatNativeEquiv_correct` uses `compileSymbolic_correct` and the native symbolic comparison. |
+| Lemma 5 | `exists_derives_pairSum` uses exact symbolic star closure, accepting paths and the field-local packet laws. |
+| DyNetKAT head normalization | `packetHeads_correct` and `Program.normalizes` use the same accepting-path construction through Lemma 5. |
+| Graph normalization | `exists_exactNormalization_iff` uses prefix provenance and symbolic `netkatIsZero`. `exists_checkedNormalization_iff` uses executable symbolic rows on the admissible domain. |
+| Safety | `Program.Compiled.safety_correct`, `Program.Compiled.normalizedSafety_correct` and `safetyCheckCertifiedGraph_correct` use exact graph extraction and symbolic zero checks for both original queries. |
+| Supplied-packet execution | `execute_correct` uses the generic cardinality bound to justify convergence and `boundedStar_correct` to relate discovered packets to SOS policy semantics. |
 
-The public `netkatEquiv` delegates to `netkatNativeEquiv`.
-`netkatIsZero` compares against drop. Graph normalization, safety, and the
-full-relation nonemptiness probe use these symbolic checks. Category C has
-been migrated for the dup-free core.
-
-- `legacyNetkatEquiv` runs the old checker on every input as a regression
-  oracle. `netkatEquivAt` compares concrete outputs for a supplied input.
-- `execute`, concrete star, and history execution still compute outputs
-  for a supplied packet, including in SOS execution and concrete certificates.
-- Category D has migrated for Lemma 5 and Lemma 9. `symbolicNormalForm`
-  retains the symbolic relation diagram. `symbolicPairs` walks accepting
-  paths and decodes their one-hot endpoint banks. It skips unconstrained
-  bits and searches only field-local value lists. `netkatNormalForm` is a
-  finite-set view of that list. `normalize` and `HeadNormalForm.packetHeads`
-  use it to build the unchanged complete-pair syntax.
-- `legacyNetkatNormalForm`, `legacyNormalize` and
-  `NormalForm.orderedPairs` retain the old exhaustive path for differential
-  checks. The standalone diagonal-partition and packet-count stabilization
-  lemmas remain as compatibility results. The new correctness theorems use
-  exact symbolic star closure and field-local partition via `paMatchAll`.
-- The declaration-body audit in `test_symbolic_normalization.lean` follows
-  project constants from both normalization paths. It checks the new
-  symbolic dependencies and rejects the concrete evaluators, Cartesian
-  renderer, legacy correctness lemmas, packet-universe instances and
-  explicit Boolean valuation backend. The field-domain sums in
-  KATLean's `match_all` and `matchAll_katInterp` range only over values of
-  one field.
-- Experimental certificates can still enumerate complete relations for
-  validation. They are outside the native checker and its proof chain.
+The core umbrella excludes `Legacy`, the explicit native Boolean backend
+and the experimental adapter modules. The dependency regressions check
+both the transitive module imports and representative declaration bodies.
+Existing algebraic normalization tests also reject dependencies on concrete
+execution, exhaustive renderers and whole-packet partition lemmas.
 
 ### Direct E_NK completeness
 
@@ -183,7 +176,7 @@ NetKAT history/dup coverage is an optional supporting extension.
 ### Dependency audit
 
 `DyNetKAT.lean` imports KATLean and the existing NetKAT and process proof
-modules. Its transitive source imports exclude `NetKAT.KATch`,
+modules. Its transitive source imports exclude `NetKAT.Legacy`, `NetKAT.KATch`,
 `NetKAT.BackendCertificate`, `NetKAT.EquationalCertificate` and
 `DyNetKAT.Experimental`. KATLean depends only on Mathlib. The current
 NetKAT bridge imports KATLean and NetKAT normalization.

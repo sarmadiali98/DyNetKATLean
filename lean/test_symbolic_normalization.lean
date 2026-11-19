@@ -1,3 +1,4 @@
+import DyNetKAT.NetKAT.Legacy
 import DyNetKAT
 import Lean.Util.FoldConsts
 

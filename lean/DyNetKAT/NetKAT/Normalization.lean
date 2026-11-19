@@ -31,54 +31,6 @@ theorem NormalForm.interpret_iff_mem (nf : NormalForm) (σ τ : CtxPkt) :
 
 private def values : List FieldValueEnum := [.v0, .v1, .v8, .v9]
 
-private def enumerateFields : List FieldName → List CtxPkt
-  | [] => [fun _ => .v0]
-  | f :: fs => (enumerateFields fs).flatMap fun p =>
-      values.map fun v => Packet.update p f v
-
-private theorem enumerateFields_covers (fs : List FieldName) (σ : CtxPkt) :
-    ∃ p ∈ enumerateFields fs, ∀ f ∈ fs, p f = σ f := by
-  induction fs with
-  | nil => exact ⟨_, List.mem_cons_self, by simp⟩
-  | cons f fs ih =>
-    obtain ⟨p, hp, he⟩ := ih
-    refine ⟨Packet.update p f (σ f), List.mem_flatMap.mpr ⟨p, hp, ?_⟩, ?_⟩
-    · exact List.mem_map.mpr ⟨σ f, by cases σ f <;> simp [values], rfl⟩
-    · intro g hg
-      by_cases h : g = f
-      · subst g
-        simp [Packet.update]
-      · have hm := (List.mem_cons.mp hg).resolve_left h
-        simpa [Packet.update, h, Ne.symm h] using he g hm
-
-/-- A fixed order for rendering. Its completeness follows from field enumeration. -/
-def packetList : List CtxPkt := enumerateFields NetKAT.fieldEnum
-
-theorem mem_packetList (σ : CtxPkt) : σ ∈ packetList := by
-  obtain ⟨p, hp, he⟩ := enumerateFields_covers NetKAT.fieldEnum σ
-  have h : p = σ := funext fun f => he f (NetKAT.fieldEnum_complete f)
-  exact h ▸ hp
-
-/-- The finite relation computed by the existing exact evaluator. -/
-def legacyNetkatNormalForm (p : NetKAT) : NormalForm :=
-  (Finset.univ : Finset CtxPkt).biUnion fun σ =>
-    ((execute p σ).outputs.getD ∅).image fun τ => (σ, τ)
-
-theorem legacyNetkatNormalForm_mem (p : NetKAT) (σ τ : CtxPkt) :
-    (σ, τ) ∈ legacyNetkatNormalForm p ↔ Semantics p σ τ := by
-  unfold legacyNetkatNormalForm
-  constructor
-  · intro h
-    obtain ⟨s, _, hs⟩ := Finset.mem_biUnion.mp h
-    obtain ⟨t, ht, he⟩ := Finset.mem_image.mp hs
-    cases he
-    obtain ⟨B, hB, hSem⟩ := execute_correct p σ
-    exact (hSem τ).mpr (by simpa [hB, EvalResult.outputs] using ht)
-  · intro h
-    obtain ⟨B, hB, hSem⟩ := execute_correct p σ
-    exact Finset.mem_biUnion.mpr ⟨σ, Finset.mem_univ _, Finset.mem_image.mpr
-      ⟨τ, by simpa [hB, EvalResult.outputs] using (hSem τ).mp h, rfl⟩⟩
-
 /-- The compact normal form is the reduced packet relation diagram.
 Only the paper's explicit pair syntax and heads require materialization. -/
 def symbolicNormalForm (p : NetKAT) : symbolicSchema.DiagramGuard :=
@@ -140,28 +92,6 @@ theorem pairSum_sem (xs : List (CompleteTest × CompleteAssignmentValuation)) (�
 def IsPairSum (p : NetKAT) : Prop :=
   ∃ xs : List (CompleteTest × CompleteAssignmentValuation),
     p = pairSum xs
-
-/-- Legacy Cartesian-product renderer for the concrete regression oracle. -/
-def NormalForm.orderedPairs (nf : NormalForm) :
-    List (CompleteTest × CompleteAssignmentValuation) :=
-  (packetList.flatMap fun σ => packetList.map fun τ => (σ, τ)).filter (fun pair => decide (pair ∈ nf))
-
-theorem NormalForm.mem_orderedPairs (nf : NormalForm)
-    (pair : CompleteTest × CompleteAssignmentValuation) :
-    pair ∈ nf.orderedPairs ↔ pair ∈ nf := by
-  rcases pair with ⟨σ, τ⟩
-  rw [orderedPairs, List.mem_filter, decide_eq_true_eq]
-  exact ⟨And.right, fun h => ⟨List.mem_flatMap.mpr ⟨σ, mem_packetList σ,
-    List.mem_map.mpr ⟨τ, mem_packetList τ, rfl⟩⟩, h⟩⟩
-
-/-- The original exhaustive normalizer, retained for regression. -/
-def legacyNormalize (p : NetKAT) : NetKAT :=
-  pairSum (legacyNetkatNormalForm p).orderedPairs
-
-theorem legacyNormalize_correct (p : NetKAT) (σ τ : CtxPkt) :
-    Semantics (legacyNormalize p) σ τ ↔ Semantics p σ τ :=
-  (pairSum_sem _ σ τ).trans
-    ((NormalForm.mem_orderedPairs _ _).trans (legacyNetkatNormalForm_mem p σ τ))
 
 /-- Exact finite sum of complete tests followed by complete assignments. -/
 def symbolicNormalize (p : NetKAT) : NetKAT :=
@@ -351,30 +281,6 @@ def StarFreeComplete : Prop :=
   ∀ {p q : NetKAT}, StarFree p → StarFree q →
     (∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ) → Derives p q
 
-set_option maxRecDepth 10000 in
-/-- Legacy packet-cardinality proof of star elimination kept for compatibility.
-The normalization theorem uses symbolic fixed-point iteration instead. -/
-theorem derives_starFree_of_complete (complete : StarFreeComplete) (p : NetKAT) :
-    ∃ q, StarFree q ∧ Derives p q := by
-  induction p with
-  | drop | id | test | completeTest | assign1 =>
-    refine ⟨_, ?_, .refl _⟩
-    trivial
-  | union p q ihp ihq | seq p q ihp ihq =>
-    obtain ⟨p', hp', hdp⟩ := ihp
-    obtain ⟨q', hq', hdq⟩ := ihq
-    first
-    | exact ⟨.union p' q', ⟨hp', hq'⟩, .unionCongr hdp hdq⟩
-    | exact ⟨.seq p' q', ⟨hp', hq'⟩, .seqCongr hdp hdq⟩
-  | star p ih =>
-    obtain ⟨q, hq, hd⟩ := ih
-    let n := Fintype.card CtxPkt
-    have stable : Derives (boundedPolicy q (n + 1)) (boundedPolicy q n) :=
-      complete (boundedPolicy_starFree hq _) (boundedPolicy_starFree hq _) (fun σ τ =>
-        (boundedPolicy_sem q _ σ τ).trans
-          ((reachableWithin_stable_at_card q σ τ).trans (boundedPolicy_sem q _ σ τ).symm))
-    exact ⟨_, boundedPolicy_starFree hq _, .trans (.starCongr hd) (derives_star_boundedPolicy (n := n) stable)⟩
-
 /-- Pair-sum extensionality upgrades star-free normalization to star-free
 semantic completeness. -/
 theorem starFreeComplete_iff_normalize :
@@ -539,28 +445,12 @@ private theorem write_assign (β : CtxPkt) (f : FieldName) (v : FieldValueEnum) 
 def sumOn {α : Type} (xs : List α) (f : α → NetKAT) : NetKAT :=
   xs.foldr (fun x acc => f x ⊕ acc) .drop
 
-private theorem sumOn_map {α β : Type} (xs : List α) (f : α → β) (g : β → NetKAT) :
-    sumOn (xs.map f) g = sumOn xs (fun x => g (f x)) := by
-  simp [sumOn, List.foldr_map]
-
 private theorem sumOn_congr {α : Type} {xs : List α} {f g : α → NetKAT}
     (h : ∀ x ∈ xs, Derives (f x) (g x)) : Derives (sumOn xs f) (sumOn xs g) := by
   induction xs with
   | nil => exact .refl _
   | cons x xs ih =>
     exact .unionCongr (h x List.mem_cons_self) (ih (fun y hy => h y (List.mem_cons_of_mem _ hy)))
-
-private theorem sumOn_append {α : Type} (xs ys : List α) (f : α → NetKAT) :
-    Derives (sumOn (xs ++ ys) f) (sumOn xs f ⊕ sumOn ys f) := by
-  induction xs with
-  | nil => exact .symm (.trans (.plusComm _ _) (.plusZero _))
-  | cons x xs ih => exact .trans (.unionCongr (.refl _) ih) (.plusAssoc _ _ _)
-
-private theorem sumOn_flatMap {α β : Type} (xs : List α) (f : α → List β) (g : β → NetKAT) :
-    Derives (sumOn (xs.flatMap f) g) (sumOn xs (fun x => sumOn (f x) g)) := by
-  induction xs with
-  | nil => exact .refl _
-  | cons x xs ih => exact .trans (sumOn_append _ _ _) (.unionCongr (.refl _) ih)
 
 private theorem sumOn_seq_right {α : Type} (xs : List α) (f : α → NetKAT) (p : NetKAT) :
     Derives (sumOn xs f ⨟ p) (sumOn xs (fun x => f x ⨟ p)) := by
@@ -573,49 +463,6 @@ private theorem sumOn_seq_left {α : Type} (p : NetKAT) (xs : List α) (f : α �
   induction xs with
   | nil => exact .seqZero _
   | cons x xs ih => exact .trans (.seqDistL _ _ _) (.unionCongr (.refl _) ih)
-
-private theorem field_partition (xs : List FieldName) (hn : xs.Nodup) :
-    Derives (sumOn (enumerateFields xs) (fun σ => word (reads σ) xs)) .id := by
-  induction xs with
-  | nil => exact .plusZero _
-  | cons f fs ih =>
-    obtain ⟨hnot, hn'⟩ := List.nodup_cons.mp hn
-    refine .trans (sumOn_flatMap _ _ _) (.trans (sumOn_congr ?_) (ih hn'))
-    intro σ _
-    change Derives
-      (sumOn (values.map (fun v => Packet.update σ f v)) (fun p => word (reads p) (f :: fs)))
-      (word (reads σ) fs)
-    have hp : Derives
-        (sumOn values (fun v => word (reads (Packet.update σ f v)) (f :: fs)))
-        (sumOn values (fun v => NetKAT.fieldTest f v ⨟ word (reads σ) fs)) := by
-      apply sumOn_congr
-      intro v _
-      apply Derives.seqCongr
-      · simp [reads, Packet.update]
-        exact .refl _
-      · apply word_congr
-        intro g hg
-        have hgf : g ≠ f := fun h => hnot (h ▸ hg)
-        simp [reads, Packet.update, hgf, Ne.symm hgf]
-        exact .refl _
-    change Derives
-      (sumOn values (fun v => word (reads (Packet.update σ f v)) (f :: fs)))
-      (word (reads σ) fs)
-    exact .trans hp (.trans (.symm (sumOn_seq_right values (NetKAT.fieldTest f) _))
-      (.trans (.seqCongr (.paMatchAll f) (.refl _)) (.oneSeq _)))
-
-/-- The complete tests partition identity by the packet-field axioms. -/
-theorem completeTest_partition :
-    Derives .id (sumOn packetList (fun σ => .completeTest σ)) :=
-  .symm (.trans (sumOn_congr (fun σ _ => read_eq σ))
-    (field_partition NetKAT.fieldEnum NetKAT.fieldEnum_nodup))
-
-theorem derives_id_diagonal : Derives .id (pairSum (packetList.map fun σ => (σ, σ))) := by
-  apply Derives.trans completeTest_partition
-  change Derives (sumOn packetList (fun σ => .completeTest σ))
-    (sumOn (packetList.map fun σ => (σ, σ)) NormalForm.ofSummand)
-  rw [sumOn_map]
-  exact sumOn_congr (fun σ _ => .symm (read_write_self σ))
 
 private theorem derives_to_normalize {p : NetKAT} {xs : List (CompleteTest × CompleteAssignmentValuation)}
     (h : Derives p (pairSum xs)) : Derives p (normalize p) :=
@@ -744,20 +591,6 @@ private theorem branch_post_test (α β : CtxPkt) (t : NetKAT)
   · exact ⟨[(α, β)], .trans (.symm (.seqAssoc _ _ _))
       (.trans (.seqCongr (.refl _) ht) (.symm (.plusZero _)))⟩
   · exact ⟨[], .trans (.symm (.seqAssoc _ _ _)) (.trans (.seqCongr (.refl _) ht) (.seqZero _))⟩
-
-theorem derives_assign1_pairs (f : FieldName) (v : FieldValueEnum) :
-    Derives (.assign1 f v) (pairSum (packetList.map fun σ => (σ, Packet.update σ f v))) := by
-  let xs : List (CompleteTest × CompleteAssignmentValuation) := packetList.map fun σ => (σ, σ)
-  have hd : Derives (.assign1 f v)
-      (sumOn xs (fun b => NormalForm.ofSummand b ⨟ .assign1 f v)) :=
-    .trans (.symm (.oneSeq _))
-      (.trans (.seqCongr derives_id_diagonal (.refl _)) (sumOn_seq_right xs NormalForm.ofSummand _))
-  refine .trans hd ?_
-  change Derives (sumOn (packetList.map fun σ => (σ, σ)) (fun b => NormalForm.ofSummand b ⨟ .assign1 f v))
-    (sumOn (packetList.map fun σ => (σ, Packet.update σ f v)) NormalForm.ofSummand)
-  rw [sumOn_map, sumOn_map]
-  exact sumOn_congr (fun σ _ =>
-    .trans (.symm (.seqAssoc _ _ _)) (.seqCongr (.refl _) (write_assign σ f v)))
 
 theorem pairSum_seq (xs ys : List (CompleteTest × CompleteAssignmentValuation)) :
     ∃ zs, Derives (pairSum xs ⨟ pairSum ys) (pairSum zs) := by
@@ -987,26 +820,6 @@ theorem normalize_derives_completeTest (γ : CtxPkt) :
 theorem normalize_derives_assign1 (f : FieldName) (v : FieldValueEnum) :
     Derives (.assign1 f v) (normalize (.assign1 f v)) :=
   normalize_derives (.assign1 f v)
-
--- Compatibility with the concrete diagonal partition.
-/-- A predicate derives to the diagonal branches for precisely its satisfying packets. -/
-theorem derives_test_pairs (p : Predicate) :
-    Derives (.test p) (pairSum ((packetList.filter p.eval).map fun σ => (σ, σ))) := by
-  let xs := (packetList.filter p.eval).map (fun σ => (σ, σ))
-  have h : ∀ σ τ, Semantics (.test p) σ τ ↔ Semantics (pairSum xs) σ τ := by
-    intro σ τ
-    rw [pairSum_sem]
-    change (p.holds σ ∧ σ = τ) ↔ (σ, τ) ∈ xs
-    constructor
-    · rintro ⟨hp, rfl⟩
-      exact List.mem_map.mpr ⟨σ, List.mem_filter.mpr ⟨mem_packetList σ, hp⟩, rfl⟩
-    · intro hm
-      obtain ⟨ρ, hρ, he⟩ := List.mem_map.mp hm
-      obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-      exact ⟨(List.mem_filter.mp hρ).2, rfl⟩
-  exact .trans (normalize_derives_test p)
-    ((normalize_pairSum (.test p)).derives_of_equiv ⟨xs, rfl⟩
-      (fun σ τ => (normalize_correct _ σ τ).trans (h σ τ)))
 
 /-- DyNetKAT v4 Lemma 5 with the original complete-pair syntax. -/
 theorem exists_derives_pairSum (p : NetKAT) : ∃ q, IsPairSum q ∧ Derives p q :=

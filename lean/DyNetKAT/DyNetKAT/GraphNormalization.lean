@@ -1,8 +1,6 @@
 import DyNetKAT.DyNetKAT.GraphMoves
 import DyNetKAT.DyNetKAT.SafetyCheck
-import DyNetKAT.NetKAT.NormalForm
 import Mathlib.Data.Set.Finite.Range
-import Mathlib.Data.Finite.Prod
 
 set_option linter.dupNamespace false
 
@@ -649,13 +647,14 @@ theorem exists_checkedNormalization_iff (G : ProcessGraph) :
       have he : target (state i) = i := hState.injective (hTarget hl)
       exact Or.inr ⟨j, l, hji, List.mem_map.mpr ⟨(l, state i), hl, by simp [he]⟩⟩
 
--- A finite derivative set also admits a semantic certificate. The finite
--- packet universe and the control labels in the syntax bound its alphabet.
-private def eventLabels : GProc → Finset (Channel × NetKAT)
-  | .recv x p q | .send x p q | .rcfgPrefix x p q => insert (x, p) (eventLabels q)
-  | .nSeq _ q | .project _ q | .restrict _ q => eventLabels q
+-- Packet labels retain the policy of the originating prefix. Reconfiguration
+-- labels come from prefixes or from matching send and receive prefixes.
+private def prefixLabels : GProc → Finset SequentialLabel
+  | .nSeq p q => insert (.packet p) (prefixLabels q)
+  | .recv x p q | .send x p q | .rcfgPrefix x p q => insert (.rcfg x p) (prefixLabels q)
+  | .project _ q | .restrict _ q => prefixLabels q
   | .choice p q | .parallel p q | .leftMerge p q | .commMerge p q =>
-      eventLabels p ∪ eventLabels q
+      prefixLabels p ∪ prefixLabels q
   | .ref _ | .deadlock => ∅
 
 private def actionEvent : Action → Option (Channel × NetKAT)
@@ -665,7 +664,8 @@ private def actionEvent : Action → Option (Channel × NetKAT)
 private theorem stepEvent_mem {G : ProcessGraph} {src dst : GConfig} {a : Action}
     (hs : GStep G src a dst) {e : Channel × NetKAT} :
     gprocRefs src.proc ⊆ G.nodes → actionEvent a = some e →
-      e ∈ eventLabels src.proc ∨ ∃ i ∈ G.nodes, e ∈ eventLabels (G.label i) := by
+      SequentialLabel.rcfg e.1 e.2 ∈ prefixLabels src.proc ∨
+        ∃ i ∈ G.nodes, SequentialLabel.rcfg e.1 e.2 ∈ prefixLabels (G.label i) := by
   induction hs with
   | seq_ok => intro _ h; cases h
   | recv | send | rcfg =>
@@ -706,70 +706,96 @@ private theorem stepHistory {G : ProcessGraph} {c d : GConfig} {a : Action}
     c.pending = pendingFor a d.pending ∧ d.handled = handledAfter a c.handled := by
   induction hs <;> first | exact ⟨rfl, rfl⟩ | assumption
 
-private abbrev GroundMove := (CtxPkt × CtxPkt) ⊕ (Channel × NetKAT)
+-- Every packet step has a single originating policy. Any other pair
+-- accepted by that policy follows the same SOS rules to the same process.
+private theorem stepPacket_mem {G : ProcessGraph} {src dst : GConfig} {a : Action}
+    (hs : GStep G src a dst) :
+    gprocRefs src.proc ⊆ G.nodes →
+    ∀ σ τ, a = .packet σ τ →
+      ∃ p : NetKAT,
+        (.packet p ∈ prefixLabels src.proc ∨ ∃ i ∈ G.nodes, .packet p ∈ prefixLabels (G.label i)) ∧
+        HistorySemantics p (History.singleton σ) (History.singleton τ) ∧
+        ∀ σ' τ' pt hl, HistorySemantics p (History.singleton σ') (History.singleton τ') →
+          GStep G ⟨src.proc, σ' :: pt, hl⟩ (.packet σ' τ') ⟨dst.proc, pt, τ' :: hl⟩ := by
+  induction hs with
+  | seq_ok p q _ _ _ _ h =>
+      intro _ _ _ he
+      cases he
+      exact ⟨p, Or.inl (Finset.mem_insert_self _ _), h, fun _ _ _ _ hp => .seq_ok p q _ _ _ _ hp⟩
+  | recv | send | rcfg | sync_recv_send | sync_send_recv |
+    comm_merge_recv_send | comm_merge_send_recv =>
+      intro _ _ _ he
+      cases he
+  | choice_l _ _ _ _ _ _ _ _ _ ih | par_l _ _ _ _ _ _ _ _ _ ih |
+    left_merge _ _ _ _ _ _ _ _ _ ih =>
+      intro hc σ τ he
+      obtain ⟨p, hm, hp, hrun⟩ := ih (Finset.union_subset_iff.mp hc).1 σ τ he
+      refine ⟨p, hm.imp (Finset.mem_union_left _) id, hp, fun σ' τ' pt hl hp' => ?_⟩
+      first
+      | exact .choice_l _ _ _ _ _ _ _ _ (hrun σ' τ' pt hl hp')
+      | exact .par_l _ _ _ _ _ _ _ _ (hrun σ' τ' pt hl hp')
+      | exact .left_merge _ _ _ _ _ _ _ _ (hrun σ' τ' pt hl hp')
+  | choice_r _ _ _ _ _ _ _ _ _ ih | par_r _ _ _ _ _ _ _ _ _ ih =>
+      intro hc σ τ he
+      obtain ⟨p, hm, hp, hrun⟩ := ih (Finset.union_subset_iff.mp hc).2 σ τ he
+      refine ⟨p, hm.imp (Finset.mem_union_right _) id, hp, fun σ' τ' pt hl hp' => ?_⟩
+      first
+      | exact .choice_r _ _ _ _ _ _ _ _ (hrun σ' τ' pt hl hp')
+      | exact .par_r _ _ _ _ _ _ _ _ (hrun σ' τ' pt hl hp')
+  | project _ _ _ _ _ _ _ _ _ ih | restrict _ _ _ _ _ _ _ _ _ _ ih =>
+      intro hc σ τ he
+      obtain ⟨p, hm, hp, hrun⟩ := ih hc σ τ he
+      refine ⟨p, hm, hp, fun σ' τ' pt hl hp' => ?_⟩
+      first
+      | exact .project _ _ _ _ _ _ _ _ (hrun σ' τ' pt hl hp')
+      | exact .restrict _ _ _ _ _ _ _ _ trivial (hrun σ' τ' pt hl hp')
+  | var i _ _ _ _ _ _ _ ih =>
+      intro hc σ τ he
+      have hi := hc (Finset.mem_singleton_self i)
+      obtain ⟨p, hm, hp, hrun⟩ := ih (G.closed i hi) σ τ he
+      exact ⟨p, hm.elim (fun h => Or.inr ⟨i, hi, h⟩) Or.inr, hp,
+        fun σ' τ' pt hl hp' => .var _ _ _ _ _ _ _ (hrun σ' τ' pt hl hp')⟩
 
-private def groundAction : GroundMove → Action
-  | .inl (σ, τ) => .packet σ τ
-  | .inr (x, p) => .rcfg x p
+private def alphabet (G : ProcessGraph) (p : GProc) : Finset SequentialLabel :=
+  prefixLabels p ∪ G.nodes.biUnion (prefixLabels ∘ G.label)
 
-private def groundLabel : GroundMove → SequentialLabel
-  | .inl (σ, τ) => .packet (NormalForm.ofSummand (σ, τ))
-  | .inr (x, p) => .rcfg x p
-
-private theorem groundRealizes (b : GroundMove) (pt hl : List CtxPkt) (a : Action)
-    (pt' hl' : List CtxPkt) :
-    MoveLabel.Realizes (.visible (groundLabel b)) pt hl a pt' hl' ↔
-      a = groundAction b ∧ pt = pendingFor a pt' ∧ hl' = handledAfter a hl := by
-  rcases b with ⟨σ, τ⟩ | ⟨x, p⟩
-  · constructor
-    · intro h
-      cases h with
-      | packet hh =>
-          have hsem := (historySemantics_iff_packetSemantics _ _ _ [] []).mp hh
-          obtain ⟨hσ, hτ⟩ := (ofSummand_sem σ τ _ _).mp hsem.2
-          cases (holdsComplete_iff_eq _ _).mp hσ
-          cases hτ
-          exact ⟨rfl, rfl, rfl⟩
-    · rintro ⟨rfl, rfl, rfl⟩
-      apply MoveLabel.Realizes.packet
-      apply (historySemantics_iff_packetSemantics _ _ _ [] []).mpr
-      exact ⟨rfl, (ofSummand_sem σ τ σ τ).mpr ⟨(holdsComplete_iff_eq ..).mpr rfl, rfl⟩⟩
-  · constructor
-    · intro h
-      cases h
-      exact ⟨rfl, rfl, rfl⟩
-    · rintro ⟨rfl, rfl, rfl⟩
-      exact .rcfg
-
-private theorem groundAllowed (b : GroundMove) : actionAllowed Set.univ (groundAction b) := by
-  cases b <;> exact trivial
-
-private def alphabet (G : ProcessGraph) (p : GProc) : Set GroundMove :=
-  Set.range (Sum.inl : CtxPkt × CtxPkt → GroundMove) ∪
-    Sum.inr '' ↑(eventLabels p ∪ G.nodes.biUnion (eventLabels ∘ G.label))
-
-private theorem alphabet_finite (G : ProcessGraph) (p : GProc) : (alphabet G p).Finite :=
-  (Set.finite_range _).union ((Finset.finite_toSet _).image _)
+private def LabelStep (G : ProcessGraph) (p q : GProc) (l : SequentialLabel) : Prop :=
+  ∀ pt hl a pt' hl', MoveLabel.Realizes (.visible l) pt hl a pt' hl' →
+    actionAllowed Set.univ a ∧ GStep G ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩
 
 private theorem alphabet_complete {G : ProcessGraph} {src dst : GConfig} {a : Action}
     (hs : GStep G src a dst) (hc : gprocRefs src.proc ⊆ G.nodes)
     (ha : actionAllowed Set.univ a) :
-    ∃ b ∈ alphabet G src.proc, a = groundAction b := by
+    ∃ l ∈ alphabet G src.proc, LabelStep G src.proc dst.proc l ∧
+      MoveLabel.Realizes (.visible l) src.pending src.handled a dst.pending dst.handled := by
+  have includeLabel {l : SequentialLabel}
+      (hm : l ∈ prefixLabels src.proc ∨ ∃ i ∈ G.nodes, l ∈ prefixLabels (G.label i)) :
+      l ∈ alphabet G src.proc :=
+    hm.elim (Finset.mem_union_left _) (fun ⟨i, hi, hm⟩ =>
+      Finset.mem_union_right _ (Finset.mem_biUnion.mpr ⟨i, hi, hm⟩))
+  obtain ⟨hp, hh⟩ := stepHistory hs
   cases a with
-  | packet σ τ =>
-      exact ⟨.inl (σ, τ), Or.inl ⟨(σ, τ), rfl⟩, rfl⟩
   | send | recv => simp [actionAllowed] at ha
+  | packet σ τ =>
+      obtain ⟨p, hm, he, hrun⟩ := stepPacket_mem hs hc σ τ rfl
+      refine ⟨.packet p, includeLabel hm, ?_, ?_⟩
+      · intro pt hl a pt' hl' hr
+        cases hr with
+        | packet h => exact ⟨trivial, hrun _ _ _ _ h⟩
+      · rw [hp, hh]
+        exact .packet he
   | rcfg x p =>
-      refine ⟨.inr (x, p), Or.inr ⟨(x, p), ?_, rfl⟩, rfl⟩
-      rcases stepEvent_mem hs hc (show actionEvent (.rcfg x p) = some (x, p) from rfl) with
-        hm | ⟨i, hi, hm⟩
-      · exact Finset.mem_union_left _ hm
-      · exact Finset.mem_union_right _ (Finset.mem_biUnion.mpr ⟨i, hi, hm⟩)
+      refine ⟨.rcfg x p, includeLabel (stepEvent_mem hs hc rfl), ?_, ?_⟩
+      · intro pt hl a pt' hl' hr
+        cases hr
+        exact ⟨trivial, rebaseStep hs _ _⟩
+      · rw [hp, hh]
+        exact .rcfg
 
-/-- Every finite restricted derivative system admits a proof-checked
-    certificate. This is a classical existence result. It enumerates
-    ground packet actions and syntactically available reconfigurations,
-    then retains the actual SOS transitions. -/
+/-- Every finite restricted derivative system admits an exact semantic
+    certificate. The table ranges over syntactic prefix labels and reachable
+    derivatives. Packet labels retain their whole symbolic policy relation.
+    The symbolic zero check removes labels with no packet witness. -/
 theorem exists_exactNormalization_iff (G : ProcessGraph) :
     (∃ (n : Nat) (C : NormalizationCandidate n), NormalizationExact G C) ↔
       HasFiniteDerivatives G := by
@@ -779,57 +805,37 @@ theorem exists_exactNormalization_iff (G : ProcessGraph) :
     exact ⟨_, Set.finite_range C.state, h.derivativeClosure⟩
   · intro hf
     obtain ⟨n, state, hState, cover⟩ := orderedDerivatives_cover hf
-    let runs (i j : Fin (n + 1)) (b : GroundMove) :=
-      ∃ pt hl pt' hl', GStep G ⟨state i, pt, hl⟩ (groundAction b) ⟨state j, pt', hl'⟩
     let table (i : Fin (n + 1)) :=
-      ((alphabet_finite G (state i)).toFinset.product (Finset.univ : Finset (Fin (n + 1)))).filter
-        (fun e => runs i e.2 e.1)
-    have tableMem (i j : Fin (n + 1)) (b : GroundMove) :
-        (b, j) ∈ table i ↔ runs i j b := by
-      simp only [table, Finset.mem_filter, Finset.mem_product, Finset.mem_univ, and_true]
-      refine ⟨And.right, fun h => ⟨?_, h⟩⟩
-      obtain ⟨pt, hl, pt', hl', hs⟩ := h
-      obtain ⟨b', hm, he⟩ := alphabet_complete hs (reachable_closed (hState.reachable i)) (groundAllowed b)
-      have hEq : b = b' := by
-        rcases b with ⟨σ, τ⟩ | ⟨x, p⟩ <;> rcases b' with ⟨ν, ρ⟩ | ⟨y, q⟩ <;>
-          cases he <;> rfl
-      exact Finset.mem_product.mpr
-        ⟨(alphabet_finite G (state i)).mem_toFinset.mpr (hEq ▸ hm), Finset.mem_univ _⟩
-    let C : NormalizationCandidate n :=
-      ⟨[], state, fun i => (table i).toList.map fun e => (groundLabel e.1, e.2)⟩
+      ((alphabet G (state i)).product (Finset.univ : Finset (Fin (n + 1)))).filter
+        (fun e => e.1.enabled = true ∧ LabelStep G (state i) (state e.2) e.1)
+    let C : NormalizationCandidate n := ⟨[], state, fun i => (table i).toList⟩
     have moveMem (i j : Fin (n + 1)) (l : SequentialLabel) :
-        (l, j) ∈ C.moves i ↔ ∃ b, runs i j b ∧ groundLabel b = l := by
-      change (l, j) ∈ List.map _ (table i).toList ↔ _
-      simp only [List.mem_map, Finset.mem_toList]
-      constructor
-      · rintro ⟨⟨b, k⟩, hm, he⟩
-        cases he
-        exact ⟨b, (tableMem ..).mp hm, rfl⟩
-      · rintro ⟨b, hr, rfl⟩
-        exact ⟨(b, j), (tableMem ..).mpr hr, rfl⟩
+        (l, j) ∈ C.moves i ↔
+          l ∈ alphabet G (state i) ∧ l.enabled = true ∧ LabelStep G (state i) (state j) l := by
+      simp [C, table]
+    have edge {i j : Fin (n + 1)} {pt hl a pt' hl'}
+        (ha : actionAllowed Set.univ a)
+        (hs : GStep G ⟨state i, pt, hl⟩ a ⟨state j, pt', hl'⟩) :
+        ∃ l, (l, j) ∈ C.moves i ∧ MoveLabel.Realizes (.visible l) pt hl a pt' hl' := by
+      obtain ⟨l, hm, hrun, hr⟩ := alphabet_complete hs (reachable_closed (hState.reachable i)) ha
+      exact ⟨l, (moveMem ..).mpr ⟨hm, realizes_enabled hr, hrun⟩, hr⟩
     refine ⟨n, C, ⟨hState.root.symm, ?_, ?_, ?_⟩⟩
     · intro i pt hl a q pt' hl'
       constructor
       · rintro ⟨ha, hs⟩
         have hReach := (hState.reachable i).tail ⟨pt, hl, a, pt', hl', ha, hs⟩
         obtain ⟨j, rfl⟩ := cover q hReach
-        obtain ⟨b, _, rfl⟩ := alphabet_complete hs (reachable_closed (hState.reachable i)) ha
-        obtain ⟨hp, hh⟩ := stepHistory hs
-        exact ⟨groundLabel b, j, (moveMem ..).mpr ⟨b, ⟨pt, hl, pt', hl', hs⟩, rfl⟩, rfl,
-          (groundRealizes ..).mpr ⟨rfl, hp, hh⟩⟩
+        obtain ⟨l, hm, hr⟩ := edge (i := i) (j := j) ha hs
+        exact ⟨l, j, hm, rfl, hr⟩
       · rintro ⟨l, j, hm, rfl, hr⟩
-        obtain ⟨b, ⟨_, _, _, _, hs⟩, rfl⟩ := (moveMem ..).mp hm
-        obtain ⟨rfl, rfl, rfl⟩ := (groundRealizes ..).mp hr
-        exact ⟨groundAllowed b, rebaseStep hs pt' hl⟩
+        exact (moveMem ..).mp hm |>.2.2 _ _ _ _ _ hr
     · intro i j l hm
-      obtain ⟨b, _, rfl⟩ := (moveMem ..).mp hm
-      exact realizes_enabled ((groundRealizes b (pendingFor (groundAction b) []) []
-        (groundAction b) [] (handledAfter (groundAction b) [])).mpr ⟨rfl, rfl, rfl⟩)
+      exact ((moveMem ..).mp hm).2.1
     · intro i
       rcases hState.parent i with hi | ⟨j, hji, pt, hl, a, pt', hl', ha, hs⟩
       · exact Or.inl hi
-      obtain ⟨b, _, rfl⟩ := alphabet_complete hs (reachable_closed (hState.reachable j)) ha
-      exact Or.inr ⟨j, groundLabel b, hji, (moveMem ..).mpr ⟨b, ⟨pt, hl, pt', hl', hs⟩, rfl⟩⟩
+      obtain ⟨l, hm, _⟩ := edge (i := j) (j := i) ha hs
+      exact Or.inr ⟨j, l, hji, hm⟩
 
 private def stateNode {n : Nat} (i : Fin (n + 1)) : NodeId := auxNode i.val
 

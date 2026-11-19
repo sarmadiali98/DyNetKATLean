@@ -37,8 +37,11 @@ Graph and safety checks share the symbolic zero checker. Lemma 5 and
 DyNetKAT packet-head normalization use the same symbolic packet compiler
 and exact star fixed point. They emit the paper's complete-pair branches
 from accepting diagram paths. `CtxPkt` supplies the concrete field schema
-and execution model. The exhaustive equivalence checker and normalizer are
-regression oracles. KATch remains experimental.
+and execution model. Core equivalence, both paper normalizers, graph
+normalization, safety and supplied-packet execution correctness use no
+full packet-universe enumeration. The exhaustive equivalence checker
+and normalizer are available through `DyNetKAT.NetKAT.Legacy`.
+KATch remains experimental.
 
 Faithful Lean 4 formalization of the **original DyNetKAT calculus**:
 *DyNetKAT: An Algebra of Dynamic Networks* (arXiv:2102.10035v4, FoSSaCS 2022).
@@ -181,8 +184,10 @@ proof of `NormalizationExact` is available. This accepts exact tables for
 finite systems with active reference cycles or nested restrictions.
 `exists_exactNormalization_iff` proves that such a table exists exactly
 when the restricted derivative set is finite. This existence theorem
-uses classical reasoning over the SOS. The executable renderer consumes
-the supplied table and its proof.
+uses classical reasoning over finite derivative indices and syntactic labels.
+Packet labels retain their entire policy relation and use the symbolic zero
+check for feasibility. The executable renderer consumes the supplied table
+and its proof.
 
 The [graph safety regressions](lean/test_graph_safety.lean) include the
 original parallel firewall and its two-state certificate. The

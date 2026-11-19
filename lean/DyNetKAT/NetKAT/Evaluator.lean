@@ -4,6 +4,8 @@
 
 import DyNetKAT.NetKAT.Semantics
 import Mathlib.Data.Finset.Lattice.Basic
+import Mathlib.Data.Fintype.BigOperators
+import Mathlib.Data.Set.Card
 import Mathlib.Data.Multiset.MapFold
 import Mathlib.Logic.Function.Iterate
 
@@ -206,6 +208,13 @@ private def evalPredicate : Predicate → CtxPkt → EvalResult
       | .supported A => if σ ∈ A then .supported ∅ else .supported {σ}
       | .unsupported => .unsupported
 
+-- Compute the bound from the field cardinalities, without reducing the packet Fintype.
+private def starFuel : Nat :=
+  Fintype.card FieldValueEnum ^ Fintype.card FieldName
+
+private theorem starFuel_eq_card : starFuel = Fintype.card CtxPkt :=
+  Fintype.card_fun.symm
+
 mutual
   /-- Execute a NetKAT term on an input packet. -/
   def execute : NetKAT → CtxPkt → EvalResult
@@ -222,7 +231,7 @@ mutual
         match execute p σ with
         | .unsupported => .unsupported
          | .supported A => evalSeq q A.1
-    | .star p, σ => saturateStar (execute p) (Fintype.card CtxPkt) (.supported {σ})
+    | .star p, σ => saturateStar (execute p) starFuel (.supported {σ})
     | .completeTest α, σ =>
         if σ = α then .supported {σ} else .supported ∅
 
@@ -285,7 +294,7 @@ theorem execute_star_eq_boundedStar
     (p : NetKAT) (σ : CtxPkt) :
     execute (.star p) σ =
       boundedStar p (Fintype.card CtxPkt) σ := by
-  rw [execute, saturateStar_eq_boundedStarWith]
+  rw [execute, saturateStar_eq_boundedStarWith, starFuel_eq_card]
   induction Fintype.card CtxPkt generalizing σ with
   | zero => rfl
   | succ n ih =>
@@ -692,7 +701,7 @@ theorem execute_supported
   | star p ihp =>
       obtain ⟨B, hB⟩ := boundedStarWith_supported (execute p)
         (fun τ => ihp τ)
-        (Fintype.card CtxPkt) σ
+        starFuel σ
       exact ⟨B, by simpa only [execute, saturateStar_eq_boundedStarWith] using hB⟩
 
 /- A supported, semantically correct predicate negation agrees with the
@@ -955,58 +964,37 @@ private theorem reachableWithin_stable_of_le
   | @step k h ih =>
       exact reachableWithin_stable_succ p k σ ih
 
-/- A finite chain of reachable packets must have an adjacent stable pair. -/
-set_option maxRecDepth 100000 in
+/-- An ascending chain of nonempty reachable sets has an adjacent stable pair
+    by the cardinality of its ambient type. Only the sizes of the chain's
+    sets enter the growth argument. -/
+private theorem finiteGrowth_stabilizes {α : Type*} [Fintype α]
+    (reached : Nat → Set α) (start : (reached 0).Nonempty)
+    (grow : ∀ n, reached n ⊆ reached (n + 1)) :
+    ∃ n ≤ Fintype.card α, reached (n + 1) = reached n := by
+  by_contra! h
+  have lower (k : Nat) (hk : k ≤ Fintype.card α) : k + 1 ≤ (reached k).ncard := by
+    induction k with
+    | zero => exact (Set.ncard_pos (Set.toFinite _)).mpr start
+    | succ k ih =>
+        have hk' := (Nat.le_succ k).trans hk
+        have strict := Set.ncard_lt_ncard (Set.ssubset_iff_subset_ne.mpr ⟨grow k, Ne.symm (h k hk')⟩)
+        have := ih hk'
+        omega
+  have upper := Set.ncard_le_ncard (Set.subset_univ (reached (Fintype.card α)))
+  rw [Set.ncard_univ, Nat.card_eq_fintype_card] at upper
+  have := lower (Fintype.card α) le_rfl
+  omega
+
+/-- Bounded reachability stabilizes without constructing a packet finset. -/
 theorem reachableWithin_finite_stabilizes
     (p : NetKAT) (σ : CtxPkt) :
     ∃ n, n ≤ Fintype.card CtxPkt ∧
       ∀ τ, ReachableWithin p (n + 1) σ τ ↔
         ReachableWithin p n σ τ := by
-  classical
-  let reached : Nat → Finset CtxPkt := fun n =>
-    Finset.univ.filter (ReachableWithin p n σ)
-  have hsubset : ∀ n, reached n ⊆ reached (n + 1) := by
-    intro n τ hτ
-    rw [Finset.mem_filter] at hτ ⊢
-    exact ⟨Finset.mem_univ _, reachableWithin_weaken p (Nat.le_succ n) hτ.2⟩
-  by_cases hex : ∃ n, n ≤ Fintype.card CtxPkt ∧
-      ∀ τ, ReachableWithin p (n + 1) σ τ ↔ ReachableWithin p n σ τ
-  · exact hex
-  · have hnone : ∀ n, n ≤ Fintype.card CtxPkt →
-        ¬ (∀ τ, ReachableWithin p (n + 1) σ τ ↔ ReachableWithin p n σ τ) := by
-      intro n hn hstable
-      exact hex ⟨n, hn, hstable⟩
-    have hcard_lower : ∀ k, k ≤ Fintype.card CtxPkt →
-        k + 1 ≤ (reached k).card := by
-      intro k hk
-      induction k with
-      | zero =>
-          have hσ : σ ∈ reached 0 := by
-            rw [Finset.mem_filter]
-            exact ⟨Finset.mem_univ _, rfl⟩
-          simpa using (Finset.card_pos.mpr ⟨σ, hσ⟩)
-      | succ k ih =>
-          have hk' : k ≤ Fintype.card CtxPkt := Nat.le_trans (Nat.le_succ k) hk
-          have hne : reached k ≠ reached (k + 1) := by
-            intro heq
-            apply hnone k hk'
-            intro τ
-            constructor
-            · intro hτ
-              have hmem : τ ∈ reached (k + 1) := by
-                rw [Finset.mem_filter]
-                exact ⟨Finset.mem_univ _, hτ⟩
-              have hmem' : τ ∈ reached k := heq ▸ hmem
-              exact (Finset.mem_filter.mp hmem').2
-            · intro hτ
-              exact reachableWithin_weaken p (Nat.le_succ k) hτ
-          have hlt : (reached k).card < (reached (k + 1)).card := by
-            exact Finset.card_lt_card ((Finset.ssubset_iff_subset_ne).2
-              ⟨hsubset k, hne⟩)
-          omega
-    have hlower := hcard_lower (Fintype.card CtxPkt) le_rfl
-    have hupper := Finset.card_le_univ (reached (Fintype.card CtxPkt))
-    omega
+  let reached (n : Nat) : Set CtxPkt := {τ | ReachableWithin p n σ τ}
+  obtain ⟨n, hn, hs⟩ := finiteGrowth_stabilizes reached ⟨σ, rfl⟩
+    (fun n _ h => reachableWithin_weaken p (Nat.le_succ n) h)
+  exact ⟨n, hn, fun τ => Set.ext_iff.mp hs τ⟩
 
 theorem reachableWithin_stable_at_card
     (p : NetKAT) (σ : CtxPkt) :

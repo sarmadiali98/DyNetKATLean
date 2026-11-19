@@ -1,3 +1,4 @@
+import DyNetKAT.NetKAT.Legacy
 import DyNetKAT.NetKAT.SymbolicDerives
 import DyNetKAT.DyNetKAT.SafetyCheck
 import Lean.Util.FoldConsts

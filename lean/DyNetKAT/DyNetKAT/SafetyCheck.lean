@@ -42,9 +42,7 @@
 --   are outside the scope of this milestone.
 --
 -- This module provides:
---   §1  a finite-domain existential characterization of `netkatIsZero`
---       (witness extraction over the existing `Fintype CtxPkt` domain,
---       no hardcoded enumeration);
+--   §1  an existential characterization of the symbolic zero check;
 --   §2  the property policy `in · H · out` (`reachabilityPolicy`) with
 --       its composition characterization (via `seq_sem`);
 --   §3  the two independent checkers `checkCondition34`/`checkCondition35`
@@ -79,7 +77,7 @@ namespace DyNetKAT.DyNetKAT
 open DyNetKAT.NetKAT
 
 ------------------------------------------------------------------------
--- §1 Finite-domain existential characterization of `netkatIsZero`
+-- §1 Existential characterization of the symbolic zero check
 ------------------------------------------------------------------------
 
 /-- Packet-level existence probe: the input packet `σ` reaches a nonempty

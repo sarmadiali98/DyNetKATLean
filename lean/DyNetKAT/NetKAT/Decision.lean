@@ -3,8 +3,7 @@ import DyNetKAT.NetKAT.HistorySemantics
 import DyNetKAT.NetKAT.Symbolic
 
 /-! The public NetKAT equality and zero checks use the verified native
-symbolic frontend. The exhaustive checker is retained as a regression
-oracle, and the pointwise API supports concrete execution certificates. -/
+symbolic frontend. The pointwise API supports concrete execution certificates. -/
 
 namespace DyNetKAT.NetKAT
 
@@ -47,14 +46,6 @@ def netkatEquivAt (p q : NetKAT) (σ : CtxPkt) : Bool :=
   | .supported A, .supported B => decide (A = B)
   | _, _ => false
 
-/-- NetKAT semantic-equivalence checker over the finite packet domain.
-
-    Both policies are evaluated on every possible input packet and their
-    complete output sets are compared; the result is `true` exactly when
-    all output sets agree. -/
-def legacyNetkatEquiv (p q : NetKAT) : Bool :=
-  decide (∀ σ : CtxPkt, netkatEquivAt p q σ = true)
-
 ------------------------------------------------------------------------
 -- Correctness of the checker
 ------------------------------------------------------------------------
@@ -95,22 +86,6 @@ theorem netkatEquivAt_complete (p q : NetKAT) (σ : CtxPkt)
   ext τ
   rw [← corrA τ, ← corrB τ]
   exact h τ
-
-/-- Main correctness theorem: the checker returns `true` exactly when both
-    policies have identical relational semantics on every packet of the
-    finite domain. -/
-theorem legacyNetkatEquiv_correct
-    (p q : NetKAT) :
-    legacyNetkatEquiv p q = true ↔
-      ∀ σ τ : CtxPkt,
-        Semantics p σ τ ↔ Semantics q σ τ := by
-  constructor
-  · intro h σ τ
-    have h' : (∀ ν : CtxPkt, netkatEquivAt p q ν = true) := decide_eq_true_iff.mp h
-    exact netkatEquivAt_sound p q σ (h' σ) τ
-  · intro h
-    show decide (∀ σ : CtxPkt, netkatEquivAt p q σ = true)
-    exact decide_eq_true (fun σ => netkatEquivAt_complete p q σ (h σ))
 
 /-- Core dup-free NetKAT equivalence. -/
 def netkatEquiv (p q : NetKAT) : Bool :=
