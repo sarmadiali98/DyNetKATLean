@@ -122,6 +122,6 @@ def test_missing_backend(tmp_path):
 def test_lean_round_trip(tmp_path, mode, case, method, equivalent):
     if not (adapter.ROOT / "lean/.lake/build/lib/lean/DyNetKAT/Experimental.olean").exists():
         pytest.skip("build DyNetKAT.Experimental to exercise optional Lean replay")
-    result = adapter.replay(case, command(tmp_path, mode), 10, 30)
+    result = adapter.replay(case, command(tmp_path, mode), timeout=None, lean_timeout=None)
     assert result["method"] == method
     assert result["equivalent"] is equivalent

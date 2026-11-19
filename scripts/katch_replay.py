@@ -32,8 +32,8 @@ class BackendFailure(Exception):
 
 
 def run(command, deadline, cwd=None):
-    remaining = deadline - time.monotonic()
-    if remaining <= 0:
+    remaining = None if deadline is None else deadline - time.monotonic()
+    if remaining is not None and remaining <= 0:
         raise BackendFailure("timeout")
     try:
         result = subprocess.run(command, cwd=cwd, capture_output=True,
@@ -85,7 +85,7 @@ def propose(assertion, case):
 
 
 def backend_candidate(command, policy, case, directory, timeout):
-    deadline = time.monotonic() + timeout
+    deadline = None if timeout is None else time.monotonic() + timeout
     path = directory / "probe.nkpl"
     (directory / "results").mkdir(exist_ok=True)
 
@@ -126,7 +126,8 @@ def backend_candidate(command, policy, case, directory, timeout):
 
 def replay(case, command, timeout, lean_timeout):
     overall_start = time.monotonic()
-    code, policy, _ = run([*LEAN, "emit-live", case], overall_start + lean_timeout,
+    export_deadline = None if lean_timeout is None else overall_start + lean_timeout
+    code, policy, _ = run([*LEAN, "emit-live", case], export_deadline,
                           ROOT / "lean")
     if code != 0:
         raise BackendFailure("Lean policy export failed")
@@ -147,8 +148,9 @@ def replay(case, command, timeout, lean_timeout):
             argument = candidate or "-"
 
         started = time.monotonic()
+        replay_deadline = None if lean_timeout is None else started + lean_timeout
         code, output, _ = run([*LEAN, "replay-live", case, argument],
-                              started + lean_timeout, ROOT / "lean")
+                              replay_deadline, ROOT / "lean")
         verdict = REPLAY.fullmatch(output.strip())
         if code != 0 or verdict is None:
             raise BackendFailure("invalid Lean replay response")
