@@ -117,6 +117,79 @@ example : (translate [packet, tick] [[tick]]).Trace [packet.action, tick.action]
 #guard (Regexp.concat (.union (.letter tick) (.letter fault)) (.letter tick)).hnf ==
   [twoTicks, [fault, tick]]
 
+-- Definition 17 uses one plus the stored count.
+#guard (ExtendedRegexp.letter tick).desugar alphabet == [[tick]]
+#guard (ExtendedRegexp.repeat (.letter tick) 0).desugar alphabet == [[tick]]
+#guard (ExtendedRegexp.repeat (.letter tick) 2).desugar alphabet == [[tick, tick, tick]]
+#guard ((Regexp.letter tick).repeatPositive 2).hnf == [[tick, tick, tick]]
+
+-- Nested expressions elaborate when their action clauses are defined.
+example : (PrintedRegexp.repeat
+    (.concat (.action (.neg (.literal tick))) (.union .any (.action (.literal fault)))) 0
+    |>.elaborate) =
+    some (.repeat (.concat (.except tick) (.union .any (.letter fault))) 0) := rfl
+
+example : (PrintedRegexp.union .any (.action (.neg (.neg (.literal tick))))).elaborate =
+    none := rfl
+
+#guard (ExtendedRegexp.except tick).desugar [tick, packet] == []
+#guard (padded fault 0).desugar alphabet == [[fault]]
+#guard (padded fault 1).desugar alphabet == [[tick, fault], [fault, fault]]
+#guard (padded fault 2).desugar alphabet ==
+  [[tick, tick, fault], [tick, fault, fault], [fault, tick, fault], [fault, fault, fault]]
+
+-- Padding expands to different core syntax with the same position-specific property.
+private def explicitFirstPadding : Formula alphabet :=
+  ⟨.union (.concat (.letter tick) (.letter fault)) (.concat (.letter fault) (.letter fault)),
+    by simp [Regexp.Over, alphabet]⟩
+
+example : EquationalSafety oneTick alphabet ((padded fault 1).desugar alphabet) ↔
+    EquationalSafety oneTick alphabet explicitFirstPadding.val.hnf := Iff.rfl
+
+private theorem loop_uses_alphabet : UsesAlphabet loop alphabet := by
+  intro actions run
+  obtain ⟨w, eq, inA, _⟩ := (translate_trace_iff [tick] [] (by simp) _).mp run
+  refine ⟨w, eq, fun a mem => ?_⟩
+  have same : a = tick := by simpa using inA a mem
+  simp [alphabet, same]
+
+example : ∀ n, EquationalSafety loop alphabet ((padded fault n).desugar alphabet) := by
+  apply (eq28_iff_no_occurrence loop alphabet loop_uses_alphabet fault).mpr
+  intro actions run occurs
+  obtain ⟨w, rfl, inA, _⟩ := (translate_trace_iff [tick] [] (by simp) _).mp run
+  obtain ⟨a, mem, equalAction⟩ := List.mem_map.mp occurs
+  have eqTick : a = tick := by simpa using inA a mem
+  have eqFault := Letter.action_injective equalAction
+  simp [eqTick, tick, fault] at eqFault
+
+-- The first position is safe, but the next position violates safety.
+private def delayed := finite (.rcfgPrefix "tick" .id (.rcfgPrefix "fault" .id .deadlock))
+  ⟨rfl, rfl, trivial⟩ rfl
+
+example : Safe delayed ((padded fault 0).desugar alphabet) := by
+  rw [safe_padded_iff]
+  intro u len _ run
+  have empty := List.length_eq_zero_iff.mp len
+  subst u
+  obtain ⟨_, step, _⟩ := sourceTrace_cons_actionStep.mp run
+  have action := (rcfgPrefix_step_inv _ _ _ _ _ _ _ _ _ _ step).1
+  simp [fault, Letter.action] at action
+
+example : ¬ Safe delayed ((padded fault 1).desugar alphabet) := by
+  intro safe
+  apply (safe_padded_iff delayed alphabet fault 1).mp safe [tick] rfl (by simp [InAlphabet, alphabet])
+  exact sourceTrace_cons_actionStep.mpr ⟨_, .cpol_rcfg _ _ _ [] [],
+    sourceTrace_cons_actionStep.mpr ⟨_, .cpol_rcfg _ _ _ [] [], sourceTrace_nil ..⟩⟩
+
+#print axioms ExtendedRegexp.desugar_correct
+#print axioms Regexp.matches_repeatPositive
+#print axioms ExtendedRegexp.equational_iff_core
+#print axioms padded_exists_coreFormula
+#print axioms mem_padded
+#print axioms safe_padded_iff_project
+#print axioms padded_equational_iff
+#print axioms eq28_iff_no_occurrence
+
 #print axioms sourceTrace_iff_packetLists
 #print axioms Program.trace_iff_reaches_residual
 #print axioms Program.Compiled.trace_iff

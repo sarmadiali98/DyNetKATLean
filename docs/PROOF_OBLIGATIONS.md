@@ -310,10 +310,10 @@ Extending completeness to that domain would require a separate argument.
 
 | Obligation | Required statement and dependencies |
 |---|---|
-| S1 Definitions 12–13 and 17 | `Formula` and `Regexp.mem_hnf` give the core syntax and exact word language. `ExtendedRegexp.desugar` covers the explicit clauses for true, same-kind literal negation and positive repetition. Nested negation is unspecified by the printed desugaring. |
+| S1 Definitions 12–13 and 17 | `Formula` and `Regexp.mem_hnf` give the core word language. `PrintedRegexp.elaborate` accepts the explicitly defined Definition 17 fragment. `ExtendedRegexp.desugar_correct` and `Regexp.matches_repeatPositive` verify its language. `ExtendedRegexp.equational_iff_core` connects nonempty sums to ordinary formulas and Eq. (27). |
 | S2 Definition 14 | `translate_trace_iff` proves the translated admitted program realizes precisely the words over the supplied finite alphabet with no forbidden prefix. The proof checks the guarded Θ and the two word sums. Named suffixes preserve printed continuation sorting. |
 | S3 Definitions 15–16, Eqs. (26)–(27) | `SourceTrace` uses the feasible source SOS. `TraceDerives.sound` and `TraceDerives.complete` establish exact trace equivalence for closed guarded terms. `Formula.equational_iff` proves Eq. (27) for networks over the supplied alphabet. `Program.Compiled.trace_iff` and `TraceSafety.check_iff_equationalSafety` transfer the result to certified symbolic moves for supplied forbidden words. |
-| S4 Eq. (28) and §V | `safe_iff_project_maxLength` gives the complete property-specific bound. `safe_iff_all_projections` characterizes all-length safety, and the Figure 5 source regressions cover the initial and synchronized post-reconfiguration observations. The padded formula family for the distributed controllers and the general positive-witness characterization remain open. |
+| S4 Eq. (28) and §V | `mem_padded` gives exactly the n-letter alphabet prefixes followed by the forbidden letter. `safe_padded_iff_project` proves the complete n + 1 bound for each member. `eq28_iff_no_occurrence` characterizes the all-length family over admitted networks whose traces use the alphabet. The controller instance and general positive-witness characterization remain open. |
 | S5 Eqs. (29)–(33) | Prove AST equality with the structural rewrite on the projected, normalized, restricted term. Prove graph head corresponds to all packet contributions reachable across packet-only paths and tail to the choice of continuations reached immediately after a selected event with no earlier event outside R. Keep structural extraction distinct from feasible SOS traces: `0;N;⊥` illustrates a head traversal that would cross an impossible packet step before zero elimination. Prove preprocessing removes that discrepancy. Show bisimilar admissible presentations and bounded DAG sharing give the same extracted observations. Prove a process-level tail correspondence strong enough to compose nested tails. |
 | S6 Eqs. (34)–(35) | Lift `safetyCheckGraph_correct` from the rendered graph's extraction specifications to the original projected restricted SOS. Initial absence and post-event existence are separate assertions. Prove how their conjunction relates to the stated firewall requirement and which reconfiguration sets, history assumptions and depths suffice. |
 | S7 Original tool queries | Parse the v1.1 property expression, preserve operator precedence and event identities, and prove that reachability, non-reachability and waypoint verdicts match the mathematical NetKAT expressions. Prove waypointing for the accepted network shape and distinguish endpoint-relation inclusion from an all-path claim. For the latter, use path-observing semantics or prove a suitable hypothesis such as unique paths. |
@@ -334,19 +334,17 @@ translation.
 - Def. 13 repeats the left term in the equation distributing on the
   left of a product. Distribution needs both terms to preserve the word
   language, consistent with the definition in prose and the chapter.
-- Def. 17 gives same-kind negation sums, while the accompanying prose
-  and the published chapter describe complement over the whole alphabet.
-  On an alphabet with packet and rcfg actions these differ. For example,
-  complementing an rcfg event by a sum of other rcfg events omits every
-  packet letter. Its grammar admits nested negation, while the equations
-  explicitly cover only negations of atomic actions. Specify both the
-  printed cases and the intended language interpretation, document any
-  correction, and prove the bridge on its valid domain.
-- Def. 17 admits positive repetition counts. Eq. (28) quantifies over
-  natural numbers and needs an epsilon convention for zero padding.
-  Def. 14 uses nonempty words and a maximum, while desugaring can
-  yield an empty sum. Include the always-possible empty trace and
-  state the behavior of empty forbidden language.
+- Def. 17 gives same-kind negation sums. The accompanying prose suggests
+  a whole-alphabet complement, which differs on mixed alphabets. Lean
+  follows the explicit sums. The printed surface grammar permits nested
+  negation, but no supplied clause eliminates it. `PrintedAction.elaborate`
+  returns `none` for the nested case. Union, concatenation and repetition
+  can still be nested over supported actions.
+- Def. 17 admits only positive repetition. Eq. (28) ranges over all
+  natural numbers. At n = 0 there is one possible prefix, the empty word,
+  and `padded_zero` reduces the family member to the unpadded literal.
+  This introduces no epsilon formula. An empty desugared sum forbids
+  no word and uses the word-sum form of Eq. (27).
 - Eq. (32) prints Z in the membership check of an N-prefixed term.
   Use N, as in Eq. (33) and the v1.1 implementation. Def. 4 and its
   prose also use π and π-derived test notation inconsistently in

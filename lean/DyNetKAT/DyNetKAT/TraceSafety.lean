@@ -80,6 +80,34 @@ inductive ExtendedRegexp
   | concat (p q : ExtendedRegexp)
   | repeat (p : ExtendedRegexp) (extra : Nat)
 
+/-- The action grammar as printed, including nested negation. -/
+inductive PrintedAction
+  | literal (a : Letter)
+  | neg (a : PrintedAction)
+
+def PrintedAction.elaborate : PrintedAction → Option ExtendedRegexp
+  | .literal a => some (.letter a)
+  | .neg (.literal a) => some (.except a)
+  | .neg (.neg _) => none
+
+/-- The surface grammar of Definition 17. A repetition count is one plus
+the stored count, as in the supported extended grammar. -/
+inductive PrintedRegexp
+  | action (a : PrintedAction)
+  | any
+  | union (p q : PrintedRegexp)
+  | concat (p q : PrintedRegexp)
+  | repeat (p : PrintedRegexp) (extra : Nat)
+
+/-- Elaboration is defined exactly where the paper supplies a clause for
+each action. Alphabet membership is checked separately by `ExtendedRegexp.Over`. -/
+def PrintedRegexp.elaborate : PrintedRegexp → Option ExtendedRegexp
+  | .action a => a.elaborate
+  | .any => some .any
+  | .union p q => ExtendedRegexp.union <$> p.elaborate <*> q.elaborate
+  | .concat p q => ExtendedRegexp.concat <$> p.elaborate <*> q.elaborate
+  | .repeat p n => (·.repeat n) <$> p.elaborate
+
 private def wordPower (p : List Word) : Nat → List Word
   | 0 => [[]]
   | n + 1 => wordProduct p (wordPower p n)
@@ -716,5 +744,254 @@ theorem ExtendedRegexp.equational_iff {extended : Bool} {env : RecEnv}
     (r : ExtendedRegexp) (p : Program extended env) (A : Alphabet) (alphabet : UsesAlphabet p A) :
     EquationalSafety p A (r.desugar A) ↔ Safe p (r.desugar A) :=
   equationalSafety_iff_safe p A _ (r.desugar_nonempty_word A) alphabet
+
+
+def ExtendedRegexp.Over (A : Alphabet) : ExtendedRegexp → Prop
+  | .letter a | .except a => a ∈ A
+  | .any => True
+  | .union p q | .concat p q => p.Over A ∧ q.Over A
+  | .repeat p _ => p.Over A
+
+/-- Word semantics of the supported Definition 17 fragment. A repetition
+matches a concatenation of exactly the indicated number of matching words. -/
+def ExtendedRegexp.Matches (A : Alphabet) : ExtendedRegexp → Word → Prop
+  | .letter a, w => w = [a]
+  | .any, w => ∃ a ∈ A, w = [a]
+  | .except a, w => ∃ b ∈ A, a.sameKind b = true ∧ b ≠ a ∧ w = [b]
+  | .union p q, w => p.Matches A w ∨ q.Matches A w
+  | .concat p q, w => ∃ u v, u ++ v = w ∧ p.Matches A u ∧ q.Matches A v
+  | .repeat p n, w =>
+      ∃ ws : List Word, ws.length = n + 1 ∧ (∀ u ∈ ws, p.Matches A u) ∧ ws.flatten = w
+
+theorem ExtendedRegexp.desugar_correct (A : Alphabet) (r : ExtendedRegexp) (w : Word) :
+    w ∈ r.desugar A ↔ r.Matches A w := by
+  induction r generalizing w with
+  | letter => simp [desugar, Matches]
+  | any => simp [desugar, Matches, eq_comm]
+  | except => exact mem_desugar_except
+  | union _ _ ih₁ ih₂ => simp [desugar, Matches, ih₁, ih₂]
+  | concat _ _ ih₁ ih₂ => simp [desugar, Matches, mem_wordProduct, ih₁, ih₂]
+  | «repeat» _ _ ih => simp [Matches, mem_desugar_repeat, ih]
+
+/-- Concatenation of a core expression with itself a positive number of times.
+The argument is the number of copies after the first. -/
+def Regexp.repeatPositive (r : Regexp) : Nat → Regexp
+  | 0 => r
+  | n + 1 => .concat r (r.repeatPositive n)
+
+private theorem Regexp.hnf_repeatPositive (r : Regexp) (n : Nat) :
+    (r.repeatPositive n).hnf = wordPower r.hnf (n + 1) := by
+  induction n with
+  | zero => simp [repeatPositive, wordPower, wordProduct]
+  | succ n ih => simp only [repeatPositive, hnf, wordPower, ih]
+
+theorem Regexp.matches_repeatPositive (r : Regexp) (n : Nat) (w : Word) :
+    (r.repeatPositive n).Matches w ↔
+      ∃ ws : List Word, ws.length = n + 1 ∧ (∀ u ∈ ws, r.Matches u) ∧ ws.flatten = w := by
+  simp only [← Regexp.mem_hnf, hnf_repeatPositive, mem_wordPower]
+
+theorem ExtendedRegexp.equational_iff_matches {extended : Bool} {env : RecEnv}
+    (r : ExtendedRegexp) (p : Program extended env) (A : Alphabet) (alphabet : UsesAlphabet p A) :
+    EquationalSafety p A (r.desugar A) ↔ ∀ w, r.Matches A w → ¬ p.Trace (w.map Letter.action) := by
+  rw [r.equational_iff p A alphabet]
+  simp only [Safe, desugar_correct]
+
+/-- The Eq. (28) expression. At zero the empty prefix contributes no action,
+so the formula is the ordinary forbidden literal. -/
+def padded (a : Letter) : Nat → ExtendedRegexp
+  | 0 => .letter a
+  | n + 1 => .concat (.repeat .any n) (.letter a)
+
+theorem padded_over {A : Alphabet} {a : Letter} (ha : a ∈ A) (n : Nat) :
+    (padded a n).Over A := by
+  cases n
+  · exact ha
+  · exact ⟨trivial, ha⟩
+
+private theorem wordPower_any {A : Alphabet} {n : Nat} {u : Word} :
+    u ∈ wordPower (A.map fun a => [a]) n ↔ u.length = n ∧ InAlphabet A u := by
+  induction n generalizing u with
+  | zero =>
+      cases u <;> simp [wordPower, InAlphabet]
+  | succ n ih =>
+      simp only [wordPower, mem_wordProduct, List.mem_map, ih]
+      constructor
+      · rintro ⟨_, v, rfl, ⟨a, ha, rfl⟩, hv, letters⟩
+        exact ⟨by simp [hv], fun b hb => (List.mem_cons.mp hb).elim (fun eq => eq ▸ ha) (letters b)⟩
+      · rintro ⟨len, letters⟩
+        cases u with
+        | nil => simp at len
+        | cons a v =>
+            exact ⟨[a], v, rfl, ⟨a, letters a (by simp), rfl⟩, by simpa using len,
+              fun b hb => letters b (List.mem_cons_of_mem _ hb)⟩
+
+theorem mem_padded {A : Alphabet} {a : Letter} {n : Nat} {w : Word} :
+    w ∈ (padded a n).desugar A ↔
+      ∃ u, u.length = n ∧ InAlphabet A u ∧ w = u ++ [a] := by
+  cases n with
+  | zero => simp [padded, ExtendedRegexp.desugar, InAlphabet]
+  | succ n =>
+      simp only [padded, ExtendedRegexp.desugar, mem_wordProduct, wordPower_any,
+        List.mem_singleton]
+      constructor
+      · rintro ⟨u, _, rfl, ⟨len, letters⟩, rfl⟩
+        exact ⟨u, len, letters, rfl⟩
+      · rintro ⟨u, len, letters, rfl⟩
+        exact ⟨u, [a], rfl, ⟨len, letters⟩, rfl⟩
+
+theorem padded_matches {A : Alphabet} {a : Letter} {n : Nat} {w : Word} :
+    (padded a n).Matches A w ↔ ∃ u, u.length = n ∧ InAlphabet A u ∧ w = u ++ [a] :=
+  (ExtendedRegexp.desugar_correct ..).symm.trans mem_padded
+
+@[simp] theorem padded_zero (A : Alphabet) (a : Letter) :
+    (padded a 0).desugar A = [[a]] := rfl
+
+theorem safe_padded_iff {extended : Bool} {env : RecEnv} (p : Program extended env)
+    (A : Alphabet) (a : Letter) (n : Nat) :
+    Safe p ((padded a n).desugar A) ↔
+      ∀ u, u.length = n → InAlphabet A u → ¬ p.Trace ((u ++ [a]).map Letter.action) := by
+  constructor
+  · intro safe u len letters
+    exact safe _ (mem_padded.mpr ⟨u, len, letters, rfl⟩)
+  · intro rejects w mem
+    obtain ⟨u, len, letters, rfl⟩ := mem_padded.mp mem
+    exact rejects u len letters
+
+/-- For one member of Eq. (28), depth `n + 1` completely decides trace
+feasibility for that member's words. -/
+theorem safe_padded_iff_project {extended : Bool} {env : RecEnv} (p : Program extended env)
+    (A : Alphabet) (a : Letter) (n : Nat) :
+    Safe p ((padded a n).desugar A) ↔
+      ∀ w ∈ (padded a n).desugar A, ¬ SourceTrace env (.project (n + 1) p.term)
+        (w.map Letter.action) := by
+  constructor
+  · intro safe w mem run
+    exact safe w mem (sourceTrace_project_iff.mp run).1
+  · intro projected w mem run
+    have len : w.length = n + 1 := by
+      obtain ⟨u, len, _, rfl⟩ := mem_padded.mp mem
+      simp [len]
+    exact projected w mem (sourceTrace_project_iff.mpr ⟨run, by simp [len]⟩)
+
+theorem padded_equational_iff {extended : Bool} {env : RecEnv} (p : Program extended env)
+    (A : Alphabet) (alphabet : UsesAlphabet p A) (a : Letter) (n : Nat) :
+    EquationalSafety p A ((padded a n).desugar A) ↔
+      ∀ u, u.length = n → InAlphabet A u → ¬ p.Trace ((u ++ [a]).map Letter.action) :=
+  ((padded a n).equational_iff p A alphabet).trans (safe_padded_iff p A a n)
+
+/-- Eq. (28) over all prefix lengths. The alphabet covers the complete
+traces of the network, including the prefix before a candidate violation. -/
+theorem eq28_iff_no_occurrence {extended : Bool} {env : RecEnv} (p : Program extended env)
+    (A : Alphabet) (alphabet : UsesAlphabet p A) (a : Letter) :
+    (∀ n, EquationalSafety p A ((padded a n).desugar A)) ↔
+      ∀ t, p.Trace t → a.action ∉ t := by
+  constructor
+  · intro all t trace occurrence
+    obtain ⟨w, rfl, letters⟩ := alphabet t trace
+    obtain ⟨b, mem, eq⟩ := List.mem_map.mp occurrence
+    obtain rfl := Letter.action_injective eq
+    obtain ⟨u, v, rfl⟩ := List.append_of_mem mem
+    have prefixLetters : InAlphabet A u :=
+      fun k hk => letters k (List.mem_append_left _ hk)
+    have observed : p.Trace ((u ++ [b]).map Letter.action) := by
+      obtain ⟨_, _, _, run⟩ := trace
+      apply sourceTrace_prefix_of_append run (v := v.map Letter.action)
+      simp [List.map_append, List.append_assoc]
+    exact (padded_equational_iff p A alphabet b u.length).mp (all _) _ rfl prefixLetters observed
+  · intro never n
+    apply (padded_equational_iff p A alphabet a n).mpr
+    intro u _ _ run
+    exact never _ run (by simp)
+
+
+theorem ExtendedRegexp.desugar_inAlphabet {A : Alphabet} {r : ExtendedRegexp}
+    (valid : r.Over A) {w : Word} (mem : w ∈ r.desugar A) : InAlphabet A w := by
+  replace mem := (r.desugar_correct A w).mp mem
+  induction r generalizing w with
+  | letter a =>
+      change w = [a] at mem
+      subst w
+      simpa [InAlphabet] using valid
+  | any =>
+      obtain ⟨a, ha, rfl⟩ := mem
+      simpa [InAlphabet] using ha
+  | except a =>
+      obtain ⟨b, hb, _, _, rfl⟩ := mem
+      simpa [InAlphabet] using hb
+  | union _ _ ih₁ ih₂ =>
+      exact mem.elim (ih₁ valid.1) (ih₂ valid.2)
+  | concat _ _ ih₁ ih₂ =>
+      obtain ⟨u, v, rfl, left, right⟩ := mem
+      exact inAlphabet_append (ih₁ valid.1 left) (ih₂ valid.2 right)
+  | «repeat» _ _ ih =>
+      obtain ⟨ws, _, wordMatches, rfl⟩ := mem
+      intro a occurs
+      obtain ⟨u, hu, letter⟩ := List.mem_flatten.mp occurs
+      exact ih valid (wordMatches u hu) a letter
+
+private theorem formula_of_word {A : Alphabet} {a : Letter} {w : Word}
+    (letters : InAlphabet A (a :: w)) :
+    ∃ f : Formula A, ∀ u, f.val.Matches u ↔ u = a :: w := by
+  induction w generalizing a with
+  | nil => exact ⟨⟨.letter a, letters a (by simp)⟩, fun _ => Iff.rfl⟩
+  | cons b rest ih =>
+      obtain ⟨f, wordMatches⟩ := ih (fun c hc => letters c (List.mem_cons_of_mem _ hc))
+      refine ⟨⟨.concat (.letter a) f.val, letters a (by simp), f.property⟩, ?_⟩
+      intro u
+      simp [Regexp.Matches, wordMatches, eq_comm]
+
+private theorem formula_of_words {A : Alphabet} {words : List Word}
+    (hasWord : words ≠ []) (noEmpty : [] ∉ words)
+    (letters : ∀ w ∈ words, InAlphabet A w) :
+    ∃ f : Formula A, ∀ w, f.val.Matches w ↔ w ∈ words := by
+  induction words with
+  | nil => exact (hasWord rfl).elim
+  | cons w ws ih =>
+      cases w with
+      | nil => exact (noEmpty (by simp)).elim
+      | cons a w =>
+          obtain ⟨head, matchesHead⟩ := formula_of_word (a := a) (w := w) (letters _ (by simp))
+          by_cases empty : ws = []
+          · exact ⟨head, fun w => by simp [empty, matchesHead]⟩
+          · obtain ⟨tail, matchesTail⟩ := ih empty
+              (fun mem => noEmpty (List.mem_cons_of_mem _ mem))
+              (fun w mem => letters w (List.mem_cons_of_mem _ mem))
+            exact ⟨⟨.union head.val tail.val, head.property, tail.property⟩,
+              fun w => by simp [Regexp.Matches, matchesHead, matchesTail]⟩
+
+/-- A nonempty desugared sum is represented by an ordinary formula. An
+empty sum has no representation in the literal/union/concatenation grammar
+and is already handled by the word-sum form of Eq. (27). -/
+theorem ExtendedRegexp.exists_coreFormula {A : Alphabet} {r : ExtendedRegexp}
+    (valid : r.Over A) (hasWord : r.desugar A ≠ []) :
+    ∃ f : Formula A, ∀ w, f.val.Matches w ↔ r.Matches A w := by
+  obtain ⟨f, exactWords⟩ := formula_of_words hasWord (r.desugar_nonempty_word A)
+    (fun _ mem => desugar_inAlphabet valid mem)
+  exact ⟨f, fun w => (exactWords w).trans (r.desugar_correct A w)⟩
+
+theorem ExtendedRegexp.equational_iff_core {extended : Bool} {env : RecEnv}
+    (r : ExtendedRegexp) (p : Program extended env) (A : Alphabet) (alphabet : UsesAlphabet p A)
+    (valid : r.Over A) (hasWord : r.desugar A ≠ []) :
+    ∃ f : Formula A, (∀ w, f.val.Matches w ↔ r.Matches A w) ∧
+      (EquationalSafety p A (r.desugar A) ↔ EquationalSafety p A f.val.hnf) := by
+  obtain ⟨f, wordMatches⟩ := exists_coreFormula valid hasWord
+  refine ⟨f, wordMatches, ?_⟩
+  rw [r.equational_iff_matches p A alphabet, f.equational_iff p alphabet]
+  simp only [wordMatches]
+
+/-- Every member of the paper's padding family has a core formula when
+the forbidden action belongs to the alphabet. -/
+theorem padded_exists_coreFormula {A : Alphabet} {a : Letter} (ha : a ∈ A) (n : Nat) :
+    ∃ f : Formula A, ∀ w, f.val.Matches w ↔
+      ∃ u, u.length = n ∧ InAlphabet A u ∧ w = u ++ [a] := by
+  have mem : List.replicate n a ++ [a] ∈ (padded a n).desugar A :=
+    mem_padded.mpr ⟨List.replicate n a, by simp, fun b hb => by
+      obtain ⟨_, rfl⟩ := List.mem_replicate.mp hb
+      exact ha, rfl⟩
+  have hasWord : (padded a n).desugar A ≠ [] := by
+    intro empty
+    simp [empty] at mem
+  obtain ⟨f, wordMatches⟩ := ExtendedRegexp.exists_coreFormula (padded_over ha n) hasWord
+  exact ⟨f, fun w => (wordMatches w).trans padded_matches⟩
 
 end DyNetKAT.DyNetKAT.TraceSafety

@@ -167,14 +167,14 @@ bisimilarity, including name independence and agreement with source closure.
 
 Definitions 12–16 and Eq. (27) are proved over the admitted `CtxPkt`
 domain and the supplied finite safety alphabet. Definition 17's explicit
-desugaring clauses are formalized. The word checker is exact for supplied
-forbidden words using certified symbolic moves, with a completeness bound
+desugaring clauses and the all-length Eq. (28) padding theorem are proved.
+The word checker is exact for supplied forbidden words using certified
+symbolic moves, with a completeness bound
 given by the longest forbidden word. Its semantic specification and trace
 derivability theorem use all source traces. See the
 [v4 crosswalk](docs/PAPER_CONFORMANCE.md#safety-property-theory).
-The general positive reachability dual, the padded formula family for
-the distributed controllers and general feasible head/tail extraction
-remain open.
+The general positive reachability dual, the distributed-controller case
+study and general feasible head/tail extraction remain open.
 
 ### Phase 6 — Extraction and normalization
 

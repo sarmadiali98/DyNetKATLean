@@ -405,8 +405,9 @@ ledger](PROOF_OBLIGATIONS.md#algebra-and-completeness).
 | Def. 14 | Let W = hnf(r) and M be its longest word length. Sum `w;⊥` for permitted shorter words and `w;⊥ ⊕ w;Θ` for permitted length-M words. Θ is guarded and sums both stopping and continuing for each letter. | **Formalized.** `branches` and `translate` in `TraceSafety.lean` build the sums as an admitted extended program. Guarded names stand for suffixes to satisfy the packet continuation sort of Eq. (6). `translate_trace_iff` proves exact avoidance of forbidden prefixes over the supplied finite alphabet. The empty sum forbids no word and uses M = 0. Consumed by Def. 16. |
 | Def. 15, Eq. (26) | E_DNK^tr extends Fig. 11 with A16, distribution of a prefix over a choice of continuations. | **Formalized.** `TraceDerives`, `trace_a16` and `TraceDerives.iff_traces` in `TraceEquations.lean`. Trace congruence includes parallel, both merges, restriction and projection. Completeness uses the existing typed Fig. 11 rules and AIP over all depths for closed guarded terms. Consumed by Eq. (27). |
 | Def. 16, Eq. (27) | A network i is safe if E_DNK^tr derives `⟦s⟧⊕i ≡ ⟦s⟧`. This corresponds to trace inclusion in the translation. | **Formalized.** `EquationalSafety`, `safe_iff_trace_inclusion` and `Formula.equational_iff` in `TraceSafety.lean`. Both endpoints are admitted and share a declaration system via trace-preserving recursive renaming. `UsesAlphabet` requires the network's observed traces to lie in 𝒜, including all packet pairs and syntactic reconfiguration labels actually observed. No global finite derivative closure is required. |
-| Def. 17 | Add true, negated actions and positive finite repetition. The given desugaring sums all letters for true and the unequal letters of the same kind for a negated literal. | **Partial.** `ExtendedRegexp.desugar`, `mem_desugar_except`, `mem_desugar_repeat` and `ExtendedRegexp.equational_iff` cover every explicit desugaring clause. The printed action grammar permits nested negation, but the printed desugaring gives no corresponding clause. Eq. (28) also uses n=0 despite the positive repetition syntax. |
-| Eq. (28), §V positive dual | Distributed controller excludes the S2→H4 packet action after arbitrary length-n prefixes for every n. Positive `⟨r⟩true` is phrased as inclusion of witness behavior in i. | Open. The two firewall queries use a separate extraction workflow. The Figure 5 regression additionally proves absence of an initial external packet flow and exhibits a synchronized post-reconfiguration flow in source SOS. |
+| Def. 17 | Extended actions are packet or reconfiguration literals or negated extended actions. Extended expressions add `true`, union, concatenation and positive repetition. | `PrintedAction` and `PrintedRegexp` represent the printed grammar. `elaborate` accepts the fragment with explicit desugaring clauses. `ExtendedRegexp.desugar_correct`, `Regexp.matches_repeatPositive` and `ExtendedRegexp.equational_iff_core` give its language and Eq. (27) bridges. Nested negation is represented in the surface grammar and has no elaboration. |
+| Eq. (28) | For every natural n, absorb the network into the specification forbidding the designated packet action immediately after n alphabet events. | **Formalized.** `padded`, `mem_padded`, `padded_exists_coreFormula` and `padded_equational_iff` verify each formula. `eq28_iff_no_occurrence` proves the full family equivalent to absence of the action on every feasible source trace over the alphabet. At n = 0, `padded_zero` gives the unpadded literal. The distributed-controller case study remains open. |
+| §V positive dual | Positive `⟨r⟩true` is phrased as inclusion of witness behavior in the network. | Open. |
 | §V queries | Dup-free reachability/non-reachability test the NetKAT composition against zero. Waypointing uses the inclusion equation in the tool audit. The intended correctness requires relating extracted policies to reachable configurations and scope of the bounded verdict. | The firewall predicates (34) and (35) have executable checks and specification theorems on supported inputs. General feasible head/tail and waypoint correspondence remain open. |
 
 `SourceTrace` and `Program.Trace` in `SourceTrace.lean` use the existing
@@ -426,6 +427,33 @@ remains separate.
 The Eq. (27) endpoints are admitted programs. As in Lemma 9, the internal
 normal forms are algebraic proof witnesses. The word-sum proof does not
 expose those witnesses as admitted programs or SOS residuals.
+
+### Definition 17 desugaring boundary
+
+The printed grammar has extended actions `α·π | rcfg(x,p) | ¬actₑ`,
+extended expressions `true | actₑ | r+s | r·s | rⁿ` with n ≥ 1, and
+formulas `[r]false`. Its desugaring sums all alphabet letters for
+`true`, other packet letters for a negated packet literal, and other
+reconfiguration letters for a negated reconfiguration literal. It
+expands positive repetition into n concatenated copies, descends
+through products and sums when they are outside the core grammar, and
+leaves core expressions unchanged. The extended translation applies
+Definition 14 to the desugared result.
+
+The literal-negation clauses exclude letters of the other kind.
+Consequently they differ from the surrounding whole-alphabet reading
+on a mixed alphabet. Lean follows the displayed sums. The fallback
+identity on core expressions cannot eliminate nested negation, which
+is outside the core grammar. Empty desugared sums use the existing
+word-sum form of Eq. (27). Every nonempty well-formed sum has an ordinary
+`Formula` with the same language.
+
+Eq. (28) treats the empty prefix at n = 0 as the concatenation
+identity, without adding zero repetition to Definition 17. A fixed
+member forbids words of length n + 1, and
+`safe_padded_iff_project` proves that depth n + 1 completely checks
+that member. Different indices check different positions. The theorem
+over every n expresses absence at every position.
 
 ## Head and tail
 

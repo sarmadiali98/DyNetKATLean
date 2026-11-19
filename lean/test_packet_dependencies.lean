@@ -161,7 +161,8 @@ run_cmd do
     if layering.contains forbidden then
       throwError "semantic layering proof depends on {forbidden}"
   let traceTheory := dependencies env [``TraceSafety.Formula.equational_iff,
-    ``TraceSafety.translate_trace_iff, ``Program.Compiled.trace_iff]
+    ``TraceSafety.translate_trace_iff, ``Program.Compiled.trace_iff,
+    ``TraceSafety.ExtendedRegexp.equational_iff_core, ``TraceSafety.eq28_iff_no_occurrence]
   for required in [``TraceDerives.a16, ``TraceDerives.complete, ``TraceSafety.translate,
       ``Steps.cons] do
     unless traceTheory.contains required do
