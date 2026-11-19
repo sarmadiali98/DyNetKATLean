@@ -1,3 +1,4 @@
+import DyNetKAT.DyNetKAT.SequentialReachability
 ------------------------------------------------------------------------
 -- S5B: Formal safety-checking criterion (paper §V, Eqs. (34)–(35))
 --
@@ -655,32 +656,10 @@ theorem validateProcessGraph_invalid_iff (nodes : Finset NodeId) (root : GProc)
   · split <;> simp_all
   · simp_all
 
-private theorem blockCommunication_shape {Q : ProcessGraph} {p q : GProc}
-    (h : blockCommunication p = some q) (hc : gprocRefs q ⊆ Q.nodes) :
-    TailShapeOk Q q := by
-  induction p generalizing q with
-  | nSeq _ _ ih =>
-      obtain ⟨p', hp, rfl⟩ := Option.map_eq_some'.mp h
-      exact .nSeq (ih hp hc)
-  | rcfgPrefix _ _ _ ih =>
-      obtain ⟨p', hp, rfl⟩ := Option.map_eq_some'.mp h
-      exact .rcfgPrefix (ih hp hc)
-  | choice _ _ ih₁ ih₂ =>
-      obtain ⟨_, hp, he⟩ := Option.bind_eq_some_iff.mp h
-      obtain ⟨_, hq, rfl⟩ := Option.map_eq_some'.mp he
-      obtain ⟨hc₁, hc₂⟩ := Finset.union_subset_iff.mp hc
-      exact .choice (ih₁ hp hc₁) (ih₂ hq hc₂)
-  | deadlock | recv | send => cases h; exact .deadlock
-  | ref i => cases h; exact .ref (hc (Finset.mem_singleton_self i))
-  | parallel | leftMerge | commMerge | restrict | project => cases h
-
 theorem preprocessGraph_supported {G Q : ProcessGraph} (h : preprocessGraph G = some Q) :
-    GraphHeadSupported Q ∧ GraphTailSupported Q := by
-  obtain ⟨hNodes, hRoot, hLabels⟩ := preprocessGraph_eq_some h
-  have rootShape := blockCommunication_shape hRoot Q.root_closed
-  have labelShape (i) (hi : i ∈ Q.nodes) : TailShapeOk Q (Q.label i) :=
-    blockCommunication_shape (hLabels i (hNodes ▸ hi)) (Q.closed i hi)
-  exact graphSupported_of_shapes rootShape labelShape
+    GraphHeadSupported Q ∧ GraphTailSupported Q :=
+  let ready := preprocessGraph_traceReady h
+  graphSupported_of_shapes ready.root.shape (fun i hi => (ready.label i hi).shape)
 
 /-- Check the graph under restriction of all communication actions. If
     restriction cannot be eliminated in the sequential fragment, both

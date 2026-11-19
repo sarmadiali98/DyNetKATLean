@@ -162,12 +162,15 @@ run_cmd do
       throwError "semantic layering proof depends on {forbidden}"
   let traceTheory := dependencies env [``TraceSafety.Formula.equational_iff,
     ``TraceSafety.translate_trace_iff, ``Program.Compiled.trace_iff,
-    ``TraceSafety.ExtendedRegexp.equational_iff_core, ``TraceSafety.eq28_iff_no_occurrence]
+    ``TraceSafety.ExtendedRegexp.equational_iff_core, ``TraceSafety.eq28_iff_no_occurrence,
+    ``TraceSafety.positiveAbsorption_iff_traces, ``graphTails_source_iff, ``graphHead_source_iff,
+    ``projectedReachability_correct, ``normalizedReachability_correct]
   for required in [``TraceDerives.a16, ``TraceDerives.complete, ``TraceSafety.translate,
       ``Steps.cons] do
     unless traceTheory.contains required do
       throwError "missing trace safety proof dependency: {required}"
-  let traceChecker := dependencies env [``TraceSafety.check]
+  let traceChecker := dependencies env [``TraceSafety.check, ``TraceSafety.checkPositive,
+    ``projectedReachability]
   let traceCheckerProof := dependencies env [``TraceSafety.check_correct]
   for required in [``checkedMoves, ``execute] do
     unless traceChecker.contains required do

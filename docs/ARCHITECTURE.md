@@ -245,8 +245,13 @@ without changing either trace language.
 
 `TraceSafetyCheck.lean` checks supplied words through certified
 symbolic moves. The source theorem applies without a compiled graph.
-The structural head/tail workflow for the two firewall queries keeps its
-own extraction specification.
+`Reachability.lean` connects endpoint queries through
+`SequentialReachability.lean` to feasible source traces. Each structural
+tail segment ends at a selected reconfiguration and can precede another
+tail segment. Graph paths use `GSteps` with canonical packet lists and
+transport to source `Steps`. The bounded workflow renders an exact
+projection and prunes impossible packet prefixes using symbolic zero.
+The exact-row certificate provides a separate all-depth route.
 
 
 ## Python role

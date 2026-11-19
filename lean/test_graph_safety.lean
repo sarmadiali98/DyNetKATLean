@@ -716,4 +716,25 @@ theorem firewall_post_reconfiguration_trace :
 #guard TraceSafety.check compiledFirewall firewallChecks concreteSupport concreteRootValid [[externalFlow]]
 #guard !(TraceSafety.check compiledFirewall firewallChecks concreteSupport concreteRootValid [[opening, externalFlow]])
 
+-- The §V structural endpoint query sees the synchronization and its
+-- forwarding continuation within two source steps.
+#guard projectedReachability compiledFirewall firewallChecks (fun _ => firewallChecks)
+  2 [req] enter leave == some true
+#guard projectedReachability compiledFirewall firewallChecks (fun _ => firewallChecks)
+  1 [req] enter leave == some false
+
+example (verdict : projectedReachability compiledFirewall firewallChecks (fun _ => firewallChecks)
+    2 [req] enter leave = some true) : EndpointReachable rawProgram (some 2) [req] enter leave :=
+  (projectedReachability_correct compiledFirewall firewallChecks concreteSupport concreteRootValid
+    2 [req] enter leave).mp verdict
+
+#guard graphReachability (normalizeCertifiedGraph rawFirewallCandidate
+  (checkNormalization_sound rawCertificateAccepted)) [req] enter leave == some true
+
+example (verdict : graphReachability (normalizeCertifiedGraph rawFirewallCandidate
+    (checkNormalization_sound rawCertificateAccepted)) [req] enter leave = some true) :
+    EndpointReachable rawProgram none [req] enter leave :=
+  (normalizedReachability_correct compiledFirewall (checkNormalization_sound rawCertificateAccepted)
+    [req] enter leave).mp verdict
+
 end DyNetKAT.DyNetKAT.GraphSafetyTests

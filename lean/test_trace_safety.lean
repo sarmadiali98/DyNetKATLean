@@ -181,6 +181,21 @@ example : ¬ Safe delayed ((padded fault 1).desugar alphabet) := by
   exact sourceTrace_cons_actionStep.mpr ⟨_, .cpol_rcfg _ _ _ [] [],
     sourceTrace_cons_actionStep.mpr ⟨_, .cpol_rcfg _ _ _ [] [], sourceTrace_nil ..⟩⟩
 
+private def positiveTick : Formula alphabet := ⟨.letter tick, by simp [Regexp.Over, alphabet]⟩
+private def positiveEither : Formula alphabet :=
+  ⟨.union (.letter tick) (.letter fault), by simp [Regexp.Over, alphabet]⟩
+
+#guard checkPositive compiled noChecks supported valid positiveTick
+#guard !(checkPositive compiled noChecks supported valid positiveEither)
+
+example : PositiveAbsorption oneTick positiveTick :=
+  (checkPositive_correct compiled noChecks supported valid positiveTick).mp rfl
+
+example : ¬ PositiveAbsorption oneTick positiveEither := by
+  intro h
+  have verdict := (checkPositive_correct compiled noChecks supported valid positiveEither).mpr h
+  cases verdict
+
 #print axioms ExtendedRegexp.desugar_correct
 #print axioms Regexp.matches_repeatPositive
 #print axioms ExtendedRegexp.equational_iff_core

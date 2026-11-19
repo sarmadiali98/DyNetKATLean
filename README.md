@@ -156,6 +156,16 @@ moves when compilation support and restriction classifiers are supplied.
 The word length is an exact bound for matching that word. See the
 [paper crosswalk](docs/PAPER_CONFORMANCE.md#safety-property-theory).
 
+## Positive reachability and nested tails
+
+`TraceSafety.checkPositive` verifies the §V positive absorption equation
+by checking every word of the supplied specification. For endpoint
+queries, `projectedReachability` applies the requested sequence of
+structural tails and checks for a feasible packet observation within the
+specified source projection. An empty stage list checks the initial head.
+`normalizedReachability_correct` proves the all-depth endpoint result
+when an exact finite derivative table is supplied.
+
 ## Checking safety on a recursive graph
 
 `compileGraph env p support` checks that the supplied finite set contains

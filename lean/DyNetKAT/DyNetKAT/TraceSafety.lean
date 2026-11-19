@@ -361,14 +361,13 @@ private theorem body_facts (A : Alphabet) (node : Node A) :
             exact ⟨h q (by simp), ih (fun r mem => h r (List.mem_cons_of_mem _ mem))⟩
       exact guarded ps (fun p mem => (heads p mem).2.2)
 
-/-- Definition 14 rendered in the printed extended grammar. Named guarded
-tails put a base-sorted variable immediately below a packet prefix. -/
-def translate (A : Alphabet) (forbidden : List Word) : Program true (translationEnv A) := by
-  have root := choiceOf_facts (ps := (branches A forbidden).map fun (w, loop) => branch A w loop)
-    (fun p mem => by
-      obtain ⟨⟨w, loop⟩, _, rfl⟩ := List.mem_map.mp mem
-      exact branch_facts A w loop)
-  refine ⟨translatedTerm A forbidden, (paperAdmissible_iff ..).mpr ⟨root.1, ?_⟩⟩
+private def branchProgram (A : Alphabet) (words : List (List (Index A) × Bool)) :
+    Program true (translationEnv A) := by
+  let branches := words.map fun (w, loop) => branch A w loop
+  have root := choiceOf_facts (ps := branches) (fun p mem => by
+    obtain ⟨⟨w, loop⟩, _, rfl⟩ := List.mem_map.mp mem
+    exact branch_facts A w loop)
+  refine ⟨choiceOf branches, (paperAdmissible_iff ..).mpr ⟨root.1, ?_⟩⟩
   intro x reachable
   have named : ∃ node : Node A, x = nodeName node := by
     induction reachable with
@@ -384,6 +383,11 @@ def translate (A : Alphabet) (forbidden : List Word) : Program true (translation
     (typedPaperGuarded_iff_guardedOccurrences _).mpr facts.2.2⟩,
     fun q proof => RecEnv.lookup_unique proof.1 (lookup_node A node)⟩
 
+
+/-- Definition 14 rendered in the printed extended grammar. Named guarded
+tails put a base-sorted variable immediately below a packet prefix. -/
+def translate (A : Alphabet) (forbidden : List Word) : Program true (translationEnv A) :=
+  branchProgram A (branches A forbidden)
 
 private theorem trace_deadlock_iff {env : RecEnv} {t : List Action} :
     SourceTrace env .deadlock t ↔ t = [] := by
@@ -993,5 +997,69 @@ theorem padded_exists_coreFormula {A : Alphabet} {a : Letter} (ha : a ∈ A) (n 
     simp [empty] at mem
   obtain ⟨f, wordMatches⟩ := ExtendedRegexp.exists_coreFormula (padded_over ha n) hasWord
   exact ⟨f, fun w => (wordMatches w).trans padded_matches⟩
+
+
+private noncomputable def positiveBranch {A : Alphabet} (r : Formula A)
+    (w : {w // w ∈ r.val.hnf}) : List (Index A) × Bool :=
+  (Classical.choose (exists_wordOf (Regexp.hnf_inAlphabet r.property w.property)), false)
+
+private theorem positiveBranch_word {A : Alphabet} (r : Formula A)
+    (w : {w // w ∈ r.val.hnf}) : wordOf A (positiveBranch r w).1 = w.val :=
+  Classical.choose_spec (exists_wordOf (Regexp.hnf_inAlphabet r.property w.property))
+
+/-- The positive witness consists of the finite words in the core expression,
+each ending at deadlock. This is an admitted process with guarded suffixes. -/
+noncomputable def positiveSpecification {A : Alphabet} (r : Formula A) :
+    Program true (translationEnv A) :=
+  branchProgram A (r.val.hnf.attach.map (positiveBranch r))
+
+theorem positiveSpecification_trace_iff {A : Alphabet} (r : Formula A) (t : List Action) :
+    (positiveSpecification r).Trace t ↔
+      t = [] ∨ ∃ w, r.val.Matches w ∧ t <+: w.map Letter.action := by
+  cases t with
+  | nil => exact ⟨fun _ => .inl rfl, fun _ => sourceTrace_nil ..⟩
+  | cons a t =>
+      change SourceTrace _ (choiceOf _) (a :: t) ↔ _
+      simp only [List.cons_ne_nil, false_or, trace_choiceOf_cons, List.map_map, List.mem_map]
+      constructor
+      · rintro ⟨_, ⟨w, _, rfl⟩, run⟩
+        obtain ⟨v, _, empty, pref⟩ := (trace_branch ..).mp run
+        have eq := positiveBranch_word r w
+        refine ⟨w.val, (Regexp.mem_hnf ..).mp w.property, ?_⟩
+        simpa only [empty rfl, List.append_nil, eq] using pref
+      · rintro ⟨w, m, pref⟩
+        let witness : {w // w ∈ r.val.hnf} := ⟨w, (Regexp.mem_hnf ..).mpr m⟩
+        refine ⟨_, ⟨witness, by simp, rfl⟩, (trace_branch ..).mpr
+          ⟨[], by simp [InAlphabet], fun _ => rfl, ?_⟩⟩
+        simpa only [List.append_nil, positiveBranch_word r witness] using pref
+
+/-- The positive absorption equation of §V, in a shared declaration system. -/
+def PositiveAbsorption {extended : Bool} {env : RecEnv} {A : Alphabet}
+    (p : Program extended env) (r : Formula A) : Prop :=
+  let network := p.inLeft (translationEnv A)
+  let witness := (positiveSpecification r).inRight env
+  TraceDerives (env.disjoint (translationEnv A)) (network.choice witness).term network.term
+
+theorem positiveAbsorption_iff_traces {extended : Bool} {env : RecEnv} {A : Alphabet}
+    (p : Program extended env) (r : Formula A) :
+    PositiveAbsorption p r ↔ ∀ w, r.val.Matches w → p.Trace (w.map Letter.action) := by
+  unfold PositiveAbsorption
+  dsimp only
+  rw [TraceDerives.iff_traces (Program.admissible _).1 (Program.admissible _).1]
+  change (∀ t, ((p.inLeft (translationEnv A)).choice ((positiveSpecification r).inRight env)).Trace t
+    ↔ (p.inLeft (translationEnv A)).Trace t) ↔ _
+  simp only [Program.choice_trace, Program.inLeft_trace, Program.inRight_trace]
+  constructor
+  · intro absorb w matchWord
+    exact (absorb _).mp (.inr ((positiveSpecification_trace_iff r _).mpr
+      (.inr ⟨w, matchWord, ⟨[], by simp⟩⟩)))
+  · intro all t
+    refine ⟨fun h => h.elim id ?_, Or.inl⟩
+    intro trace
+    rcases (positiveSpecification_trace_iff r t).mp trace with rfl | ⟨w, m, pre⟩
+    · exact sourceTrace_nil ..
+    · obtain ⟨_, _, _, steps⟩ := all w m
+      obtain ⟨suffix, eq⟩ := pre
+      exact sourceTrace_prefix_of_append steps eq.symm
 
 end DyNetKAT.DyNetKAT.TraceSafety

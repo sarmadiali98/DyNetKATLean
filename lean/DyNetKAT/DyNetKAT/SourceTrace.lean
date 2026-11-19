@@ -10,16 +10,6 @@ open DyNetKAT.NetKAT
 def SourceTrace (env : RecEnv) (p : DyNetKAT) (word : List Action) : Prop :=
   ∃ pending handled target, Steps env ⟨p, pending, handled⟩ word target
 
-def Action.pendingFor (a : Action) (tail : List CtxPkt) : List CtxPkt :=
-  match a with
-  | .packet input _ => input :: tail
-  | _ => tail
-
-def Action.handledAfter (a : Action) (handled : List CtxPkt) : List CtxPkt :=
-  match a with
-  | .packet _ output => output :: handled
-  | _ => handled
-
 theorem Step.rebase {env : RecEnv} {c d : Config} {a : Action}
     (h : Step env c a d) (tail handled : List CtxPkt) :
     Step env ⟨c.proc, a.pendingFor tail, handled⟩ a ⟨d.proc, tail, a.handledAfter handled⟩ := by

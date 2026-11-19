@@ -1,3 +1,4 @@
+import DyNetKAT.DyNetKAT.GraphPaths
 import DyNetKAT.DyNetKAT.GraphHead
 import DyNetKAT.DyNetKAT.TailExtraction
 
@@ -1466,5 +1467,162 @@ theorem graphSupported_of_shapes {Q : ProcessGraph}
     induction hReach with
     | refl => exact Q.root_closed hi
     | tail _ hEdge ih => exact Q.closed _ ih hEdge
+
+
+/-- The original continuations selected by a structural tail. -/
+inductive TailSelect (G : ProcessGraph) (R : ReconfigSet) : GProc → GProc → Prop
+  | packet : TailSelect G R p q → TailSelect G R (.nSeq N p) q
+  | left : TailSelect G R p q → TailSelect G R (.choice p r) q
+  | right : TailSelect G R r q → TailSelect G R (.choice p r) q
+  | ref : TailSelect G R (G.label i) q → TailSelect G R (.ref i) q
+  | stop : (x, N) ∈ R → TailSelect G R (.rcfgPrefix x N p) p
+  | next : (x, N) ∈ R → TailSelect G R p q → TailSelect G R (.rcfgPrefix x N p) q
+
+section
+variable {G Q : ProcessGraph} {R : ReconfigSet} {L : List NodeId}
+variable {pt hl pt' hl' : List CtxPkt} {a : Action} {dst : GProc}
+
+private theorem select_closed {p q : GProc} (s : TailSelect G R p q) :
+    gprocRefs p ⊆ G.nodes → gprocRefs q ⊆ G.nodes := by
+  induction s with
+  | packet _ ih | next _ _ ih => exact ih
+  | left _ ih => exact fun hc => ih (Finset.union_subset_iff.mp hc).1
+  | right _ ih => exact fun hc => ih (Finset.union_subset_iff.mp hc).2
+  | ref _ ih => exact fun hc => ih (G.closed _ (hc (Finset.mem_singleton_self _)))
+  | stop => exact id
+
+private theorem select_spine {p q : GProc} {i : NodeId} (h : NSeqRefSpine p i)
+    (s : TailSelect G R (G.label i) q) : TailSelect G R p q := by
+  induction h with
+  | ref => exact .ref s
+  | nSeq _ ih => exact .packet (ih s)
+
+private theorem collectedChoice_select {p l r : GProc}
+    (found :
+      ((gprocRefs l ⊆ G.nodes → GStep G ⟨l, pt, hl⟩ a ⟨dst, pt', hl'⟩) ∧
+        (∀ p, tailCollectR G R (fresh G L) p = some l → TailRegion G R L p →
+          ∃ q, TailSelect G R p q ∧ GStep G ⟨q, pt, hl⟩ a ⟨dst, pt', hl'⟩)) ∨
+      (∀ p, tailCollectR G R (fresh G L) p = some r → TailRegion G R L p →
+          ∃ q, TailSelect G R p q ∧ GStep G ⟨q, pt, hl⟩ a ⟨dst, pt', hl'⟩))
+    (coll : tailCollectR G R (fresh G L) p = some (.choice l r))
+    (region : TailRegion G R L p) :
+    ∃ q, TailSelect G R p q ∧ GStep G ⟨q, pt, hl⟩ a ⟨dst, pt', hl'⟩ := by
+  induction p with
+  | nSeq N p ih =>
+      obtain ⟨q, sel, step⟩ := ih coll region
+      exact ⟨q, .packet sel, step⟩
+  | choice p q =>
+      obtain ⟨l', r', hL, hR, eq⟩ := tailCollectR_choice_some_iff.mp coll
+      cases eq
+      obtain ⟨hP, hQ⟩ := tailRegion_choice.mp region
+      rcases found with ⟨_, useLeft⟩ | useRight
+      · obtain ⟨z, sel, step⟩ := useLeft p hL hP
+        exact ⟨z, .left sel, step⟩
+      · obtain ⟨z, sel, step⟩ := useRight q hR hQ
+        exact ⟨z, .right sel, step⟩
+  | rcfgPrefix x N p =>
+      by_cases hm : (x, N) ∈ R
+      · obtain ⟨r', hR, eq⟩ := (tailCollectR_rcfgPrefix_mem_some_iff hm).mp coll
+        cases eq
+        have hP := (tailRegion_rcfg hm).mp region
+        rcases found with ⟨verbatim, _⟩ | useRight
+        · exact ⟨_, .stop hm, verbatim hP.1⟩
+        · obtain ⟨q, sel, step⟩ := useRight _ hR hP
+          exact ⟨q, .next hm sel, step⟩
+      · simp [tailCollectR_rcfgPrefix_not_mem _ hm] at coll
+  | deadlock | ref | recv | send | parallel | leftMerge | commMerge | restrict | project =>
+      simp at coll
+
+private theorem collectedStep_sound
+    (agree : ∀ i ∈ G.nodes, Q.label i = G.label i)
+    (labels : ∀ i ∈ L, TailRegion G R L (G.label i) ∧
+      tailCollectR G R (fresh G L) (G.label i) = some (Q.label (fresh G L i)))
+    {src out : GConfig} {a : Action} (step : GStep Q src a out) :
+    ∀ p, tailCollectR G R (fresh G L) p = some src.proc → TailRegion G R L p →
+      ∃ q, TailSelect G R p q ∧ GStep G {src with proc := q} a out := by
+  have closed : ∀ i ∈ G.nodes, gprocRefs (Q.label i) ⊆ G.nodes := by
+    intro i hi; rw [agree i hi]; exact G.closed i hi
+  induction step with
+  | choice_l l r _ _ _ _ _ _ inner ih =>
+      exact fun _ => collectedChoice_select
+        (Or.inl ⟨GStep.of_agree closed agree inner, ih⟩)
+  | choice_r _ _ _ _ _ _ _ _ _ ih =>
+      exact fun _ => collectedChoice_select (Or.inr ih)
+  | var k _ _ _ _ _ _ _ ih =>
+      intro p coll reg
+      obtain ⟨i, spine, rfl⟩ := tailCollectR_ref_inv.mp coll
+      obtain ⟨region, label⟩ := labels i (reg.2 i spine.mem_tailRefsR)
+      obtain ⟨q, selected, source⟩ := ih _ label region
+      exact ⟨q, select_spine spine selected, source⟩
+  | seq_ok | recv | send | rcfg | par_l | par_r | left_merge | comm_merge_recv_send |
+    comm_merge_send_recv | sync_recv_send | sync_send_recv | project | restrict =>
+      intro p coll _
+      rcases tailCollectR_image_shape coll with h | ⟨_, _, h⟩ | ⟨_, h⟩ <;> cases h
+
+private theorem collectedStep_complete
+    (agree : ∀ i ∈ G.nodes, Q.label i = G.label i)
+    (labels : ∀ i ∈ L, TailRegion G R L (G.label i) ∧
+      tailCollectR G R (fresh G L) (G.label i) = some (Q.label (fresh G L i)))
+    {p q : GProc} (sel : TailSelect G R p q)
+    (step : GStep G ⟨q, pt, hl⟩ a ⟨dst, pt', hl'⟩) :
+    ∀ out, tailCollectR G R (fresh G L) p = some out → TailRegion G R L p →
+      GStep Q ⟨out, pt, hl⟩ a ⟨dst, pt', hl'⟩ := by
+  induction sel with
+  | packet _ ih => exact fun out coll region => ih step out coll region
+  | left _ ih =>
+      intro out coll region
+      obtain ⟨l, r, hL, _, rfl⟩ := tailCollectR_choice_some_iff.mp coll
+      exact .choice_l l r _ _ _ _ _ _ (ih step l hL (tailRegion_choice.mp region).1)
+  | right _ ih =>
+      intro out coll region
+      obtain ⟨l, r, _, hR, rfl⟩ := tailCollectR_choice_some_iff.mp coll
+      exact .choice_r l r _ _ _ _ _ _ (ih step r hR (tailRegion_choice.mp region).2)
+  | @ref i _ _ ih =>
+      intro out coll region
+      cases coll
+      obtain ⟨region', coll'⟩ := labels i (region.2 i (by simp [tailRefsR]))
+      exact .var _ _ _ _ _ _ _ (ih step _ coll' region')
+  | stop mem =>
+      intro out coll region
+      obtain ⟨r, _, rfl⟩ := (tailCollectR_rcfgPrefix_mem_some_iff mem).mp coll
+      exact .choice_l _ r _ _ _ _ _ _ (GStep.of_agree G.closed (fun i hi => (agree i hi).symm)
+        step ((tailRegion_rcfg mem).mp region).1)
+  | next mem _ ih =>
+      intro out coll region
+      obtain ⟨r, coll', rfl⟩ := (tailCollectR_rcfgPrefix_mem_some_iff mem).mp coll
+      exact .choice_r _ r _ _ _ _ _ _ (ih step r coll' ((tailRegion_rcfg mem).mp region))
+
+end
+
+/-- A nonempty execution of the collected tail starts in one original
+selected continuation. Its endpoint and action word are preserved. -/
+theorem graphTail_path_iff {G Q : ProcessGraph} {R : ReconfigSet}
+    (h : graphTail G R = some Q) {a : Action} {w : List Action} {dst : GProc} :
+    GraphPath Q Q.root (a :: w) dst ↔
+      ∃ p, TailSelect G R G.root p ∧ GraphPath G p (a :: w) dst := by
+  obtain ⟨L, root, entries, hRun, hRoot, hEntries, rfl⟩ := graphTail_some_inv h
+  let out := tailGraphOf G R L root entries hRun hRoot hEntries
+  have agree : ∀ i ∈ G.nodes, out.label i = G.label i :=
+    fun _ hi => tailGraphOf_label_original hi
+  have labels : ∀ i ∈ L, TailRegion G R L (G.label i) ∧
+      tailCollectR G R (fresh G L) (G.label i) = some (out.label (fresh G L i)) := by
+    intro i hi
+    have hNode := (tailRun_root_success G R L hRun).2.2 i hi
+    obtain ⟨p, hp⟩ := Option.ne_none_iff_exists'.mp
+      ((collectTailLabels_some_iff _ L).mp ⟨entries, hEntries⟩ i hi)
+    rw [tailGraphOf_label_fresh hi hp]
+    exact ⟨⟨G.closed i hNode, (tailRun_root_refs_mem hRun).2 i hi⟩, hp⟩
+  have region : TailRegion G R L G.root :=
+    ⟨G.root_closed, (tailRun_root_refs_mem hRun).1⟩
+  change GraphPath out root (a :: w) dst ↔ _
+  simp only [GraphPath.cons_iff]
+  constructor
+  · rintro ⟨mid, first, rest⟩
+    obtain ⟨p, selected, step⟩ := collectedStep_sound agree labels first _ hRoot region
+    exact ⟨p, selected, mid, step, (GraphPath.agree agree (step.closed
+      (select_closed selected G.root_closed))).mp rest⟩
+  · rintro ⟨p, selected, mid, step, rest⟩
+    exact ⟨mid, collectedStep_complete agree labels selected step _ hRoot region,
+      (GraphPath.agree agree (step.closed (select_closed selected G.root_closed))).mpr rest⟩
 
 end DyNetKAT.DyNetKAT

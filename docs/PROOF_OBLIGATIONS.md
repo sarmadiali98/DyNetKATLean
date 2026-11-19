@@ -219,13 +219,11 @@ the remaining consumer and algebra obligations.
    has no recursive references. A symbolic packet prefix with an empty
    relation has no realizing SOS step. The finite-derivative certificate
    continues to serve the separate normalization route.
-5. **Executable consumers and algebra.** Prove the head/tail bridge for
-   these finite projections and then for nested tails. Reuse `steps_project_lift` and `steps_project_unwrap` for source runs
-   of length at most n and the remaining-depth invariant. Lift the
-   cutoff to the generalized schema, restriction and renderer. Establish the
-   projection composition/truncation laws needed for AIP. A derivation
-   connecting π_n to a finite normal form must use the algebraic rules,
-   including unfolding and NetKAT prefix normalization. This derivation is an additional deliverable to the bisimulation theorem.
+5. **Executable consumers and algebra.** `projectedReachability_correct`
+   uses exact finite projection and sequential preprocessing to verify head
+   and nested tail queries against source traces of length at most n. The
+   projection law counts the selected events and final packet. General
+   schemas and an algebraic derivation of the finite rendering remain open.
 
 The existing `restrict_project_commute` proves commutation up to
 bisimilarity for an outer restriction. The tool can preserve the original
@@ -313,9 +311,9 @@ Extending completeness to that domain would require a separate argument.
 | S1 Definitions 12–13 and 17 | `Formula` and `Regexp.mem_hnf` give the core word language. `PrintedRegexp.elaborate` accepts the explicitly defined Definition 17 fragment. `ExtendedRegexp.desugar_correct` and `Regexp.matches_repeatPositive` verify its language. `ExtendedRegexp.equational_iff_core` connects nonempty sums to ordinary formulas and Eq. (27). |
 | S2 Definition 14 | `translate_trace_iff` proves the translated admitted program realizes precisely the words over the supplied finite alphabet with no forbidden prefix. The proof checks the guarded Θ and the two word sums. Named suffixes preserve printed continuation sorting. |
 | S3 Definitions 15–16, Eqs. (26)–(27) | `SourceTrace` uses the feasible source SOS. `TraceDerives.sound` and `TraceDerives.complete` establish exact trace equivalence for closed guarded terms. `Formula.equational_iff` proves Eq. (27) for networks over the supplied alphabet. `Program.Compiled.trace_iff` and `TraceSafety.check_iff_equationalSafety` transfer the result to certified symbolic moves for supplied forbidden words. |
-| S4 Eq. (28) and §V | `mem_padded` gives exactly the n-letter alphabet prefixes followed by the forbidden letter. `safe_padded_iff_project` proves the complete n + 1 bound for each member. `eq28_iff_no_occurrence` characterizes the all-length family over admitted networks whose traces use the alphabet. The controller instance and general positive-witness characterization remain open. |
-| S5 Eqs. (29)–(33) | Prove AST equality with the structural rewrite on the projected, normalized, restricted term. Prove graph head corresponds to all packet contributions reachable across packet-only paths and tail to the choice of continuations reached immediately after a selected event with no earlier event outside R. Keep structural extraction distinct from feasible SOS traces: `0;N;⊥` illustrates a head traversal that would cross an impossible packet step before zero elimination. Prove preprocessing removes that discrepancy. Show bisimilar admissible presentations and bounded DAG sharing give the same extracted observations. Prove a process-level tail correspondence strong enough to compose nested tails. |
-| S6 Eqs. (34)–(35) | Lift `safetyCheckGraph_correct` from the rendered graph's extraction specifications to the original projected restricted SOS. Initial absence and post-event existence are separate assertions. Prove how their conjunction relates to the stated firewall requirement and which reconfiguration sets, history assumptions and depths suffice. |
+| S4 Eq. (28) and §V | `eq28_iff_no_occurrence` characterizes the all-length safety family. `TraceSafety.positiveAbsorption_iff_traces` verifies the positive witness equation as source-trace inclusion and `checkPositive_correct` verifies every word of the finite expression. The controller instance remains open. |
+| S5 Eqs. (29)–(33) | `GraphHeadSpec.iff_feasible` gives exact packet observations on enabled sequential graphs. `graphTail_path_iff` preserves original continuation endpoints. `graphTails_feasible_iff` composes selected segments before a nonempty suffix. `preprocessGraph_traceReady` proves that preprocessing drops the infeasible packet prefixes detected by symbolic zero. |
+| S6 Eqs. (34)–(35) | `compiledSafety_source_correct` lifts the existing verdicts to source isolation and post-event forwarding. `projectedReachability_correct` checks the entire source trace within the indicated projection, and `normalizedReachability_correct` uses exact rows without a depth restriction. The Figure 5 regression checks the synchronized forwarding witness. |
 | S7 Original tool queries | Parse the v1.1 property expression, preserve operator precedence and event identities, and prove that reachability, non-reachability and waypoint verdicts match the mathematical NetKAT expressions. Prove waypointing for the accepted network shape and distinguish endpoint-relation inclusion from an all-path claim. For the latter, use path-observing semantics or prove a suitable hypothesis such as unique paths. |
 | S8 User-facing correctness | Prove parser/elaborator soundness and acceptance for the documented valid input language. Compose D1–D6, finite projection, S5 and N3/N6 into a parser-to-verdict iff for each property kind. Show that support checks, preprocessing reuse, graph normalization optimization and parallel scheduling preserve verdicts. Errors or resource exhaustion are a separate observable result. |
 | S9 Case studies | Check the firewall encodings and traces, the independent and synchronized controller variants, and each FatTree query. State which results are machine-checked properties of the generated models and which are empirical regressions against a reference tool. Report the performance gates in the roadmap. |

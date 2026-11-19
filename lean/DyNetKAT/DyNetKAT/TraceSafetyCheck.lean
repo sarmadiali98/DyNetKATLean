@@ -129,4 +129,24 @@ theorem check_iff_equationalSafety {extended : Bool} {env : RecEnv} {p : Program
   (check_correct compiled rootChecks support valid forbidden).trans
     (equationalSafety_iff_safe p A forbidden nonemptyWords alphabet).symm
 
+
+/-- Verify inclusion of every word of the positive specification. -/
+def checkPositive {extended : Bool} {env : RecEnv} {p : Program extended env} {A : Alphabet}
+    (compiled : p.Compiled) (rootChecks : RestrictionChecks)
+    {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
+    (valid : (compiled.initial rootChecks).checked.Valid live)
+    (r : Formula A) : Bool :=
+  r.val.hnf.all (acceptsWord support (compiled.initial rootChecks).checked valid)
+
+theorem checkPositive_correct {extended : Bool} {env : RecEnv} {p : Program extended env}
+    {A : Alphabet} (compiled : p.Compiled) (rootChecks : RestrictionChecks)
+    {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
+    (valid : (compiled.initial rootChecks).checked.Valid live) (r : Formula A) :
+    checkPositive compiled rootChecks support valid r = true ↔ PositiveAbsorption p r := by
+  rw [positiveAbsorption_iff_traces]
+  simp only [checkPositive, List.all_eq_true, Regexp.mem_hnf]
+  apply forall_congr'
+  intro w
+  exact imp_congr_right fun _ => acceptsWord_iff support valid compiled.corr w
+
 end DyNetKAT.DyNetKAT.TraceSafety

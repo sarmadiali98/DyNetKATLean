@@ -1,4 +1,6 @@
 import DyNetKAT.DyNetKAT.ProcessGraph
+import DyNetKAT.DyNetKAT.NetKATBridge
+import DyNetKAT.NetKAT.Decision
 
 set_option linter.dupNamespace false
 
@@ -8,10 +10,11 @@ open DyNetKAT.NetKAT
 
 /-- Push a restriction of all communication actions through the sequential
     fragment. Synchronizations already represented by reconfiguration prefixes
-    survive. Parallel and merge terms require normalization before this pass. -/
+    survive. Packet prefixes with empty relations are replaced by deadlock.
+    Parallel and merge terms require normalization before this pass. -/
 def blockCommunication : GProc → Option GProc
   | .deadlock => some .deadlock
-  | .nSeq N p => (blockCommunication p).map (.nSeq N)
+  | .nSeq N p => if netkatIsZero N then some .deadlock else (blockCommunication p).map (.nSeq N)
   | .rcfgPrefix x N p => (blockCommunication p).map (.rcfgPrefix x N)
   | .choice p q => (blockCommunication p).bind fun p' =>
       (blockCommunication q).map (.choice p')
@@ -22,7 +25,13 @@ def blockCommunication : GProc → Option GProc
 theorem blockCommunication_refs {p q : GProc} (h : blockCommunication p = some q) :
     gprocRefs q ⊆ gprocRefs p := by
   induction p generalizing q with
-  | nSeq _ _ ih | rcfgPrefix _ _ _ ih =>
+  | nSeq N _ ih =>
+      rw [blockCommunication] at h
+      split at h
+      · cases h; simp [gprocRefs]
+      · obtain ⟨p', hp, rfl⟩ := Option.map_eq_some'.mp h
+        exact ih (q := p') hp
+  | rcfgPrefix _ _ _ ih =>
       obtain ⟨p', hp, rfl⟩ := Option.map_eq_some'.mp h
       exact ih (q := p') hp
   | choice _ _ ih₁ ih₂ =>
@@ -90,6 +99,11 @@ private theorem blockStep_forward {src dst : GConfig} {a : Action}
   induction hStep with
   | seq_ok N p σ τ pt hl sem =>
       intro q h hc
+      have enabled : netkatIsZero N ≠ true := by
+        intro zero
+        exact (netkatIsZero_correct _).mp zero _ _
+          ((historySemantics_singleton_iff_packetSemantics ..).mp sem)
+      rw [blockCommunication, if_neg enabled] at h
       obtain ⟨q', hq, rfl⟩ := Option.map_eq_some'.mp h
       exact ⟨q', hq, hc, .seq_ok N q' σ τ pt hl sem⟩
   | rcfg x N p pt hl =>
@@ -132,19 +146,22 @@ private theorem blockStep_backward {src dst : GConfig} {a : Action}
       intro p hp hc
       cases p <;> try (simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff] at hp; done)
       rename_i pol cont
-      obtain ⟨t, ht, he⟩ := Option.map_eq_some'.mp hp
-      cases he
-      exact ⟨cont, ht, hc, trivial, .seq_ok _ _ σ τ pt hl sem⟩
+      rw [blockCommunication] at hp
+      split at hp
+      · cases hp
+      · obtain ⟨t, ht, he⟩ := Option.map_eq_some'.mp hp
+        cases he
+        exact ⟨cont, ht, hc, trivial, .seq_ok _ _ σ τ pt hl sem⟩
   | rcfg x N q pt hl =>
       intro p hp hc
-      cases p <;> try (simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff] at hp; done)
+      cases p <;> try (simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff, ite_eq_iff'] at hp; done)
       rename_i chan pol cont
       obtain ⟨t, ht, he⟩ := Option.map_eq_some'.mp hp
       cases he
       exact ⟨cont, ht, hc, trivial, .rcfg _ _ _ pt hl⟩
   | choice_l q r q' a pt pt' hl hl' _ ih =>
       intro p hp hc
-      cases p <;> try (simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff] at hp; done)
+      cases p <;> try (simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff, ite_eq_iff'] at hp; done)
       rename_i u v
       obtain ⟨s, hs, h⟩ := Option.bind_eq_some_iff.mp hp
       obtain ⟨t, ht, he⟩ := Option.map_eq_some'.mp h
@@ -153,7 +170,7 @@ private theorem blockStep_backward {src dst : GConfig} {a : Action}
       exact ⟨u', h, hc', ha, .choice_l u v u' a pt pt' hl hl' step⟩
   | choice_r q r r' a pt pt' hl hl' _ ih =>
       intro p hp hc
-      cases p <;> try (simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff] at hp; done)
+      cases p <;> try (simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff, ite_eq_iff'] at hp; done)
       rename_i u v
       obtain ⟨s, hs, h⟩ := Option.bind_eq_some_iff.mp hp
       obtain ⟨t, ht, he⟩ := Option.map_eq_some'.mp h
@@ -162,7 +179,7 @@ private theorem blockStep_backward {src dst : GConfig} {a : Action}
       exact ⟨v', h, hc', ha, .choice_r u v v' a pt pt' hl hl' step⟩
   | var i q' a pt pt' hl hl' _ ih =>
       intro p hp hc
-      cases p <;> simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff] at hp
+      cases p <;> simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff, ite_eq_iff'] at hp
       subst i
       have hi := hc (Finset.mem_singleton_self _)
       obtain ⟨p', h, hc', ha, step⟩ := ih (labels _ hi) (G.closed _ hi)
@@ -170,7 +187,7 @@ private theorem blockStep_backward {src dst : GConfig} {a : Action}
   | recv | send | par_l | par_r | left_merge | comm_merge_recv_send | comm_merge_send_recv |
     sync_recv_send | sync_send_recv | restrict | project =>
       intro p hp
-      cases p <;> simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff] at hp
+      cases p <;> simp [blockCommunication, Option.map_eq_some', Option.bind_eq_some_iff, ite_eq_iff'] at hp
 
 end
 
@@ -195,5 +212,16 @@ theorem preprocessGraph_bisimulation {G Q : ProcessGraph}
   · intro q' step
     obtain ⟨p', hq, hc', ha, hstep⟩ := blockStep_backward labels step hp hc
     exact ⟨p', hq, hc', .restrict Set.univ p p' a pt pt' hl hl' ha hstep⟩
+
+theorem preprocessGraph_exists {G : ProcessGraph}
+    (root : (blockCommunication G.root).isSome)
+    (labels : ∀ i ∈ G.nodes, (blockCommunication (G.label i)).isSome) :
+    ∃ Q, preprocessGraph G = some Q := by
+  unfold preprocessGraph
+  split
+  · rename_i eq
+    simp [eq] at root
+  · rw [dif_pos labels]
+    exact ⟨_, rfl⟩
 
 end DyNetKAT.DyNetKAT

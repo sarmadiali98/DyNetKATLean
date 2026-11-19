@@ -1,4 +1,5 @@
 import DyNetKAT.DyNetKAT.GraphMoves
+import DyNetKAT.DyNetKAT.GraphRestriction
 
 set_option linter.dupNamespace false
 
@@ -331,5 +332,40 @@ theorem renderProjection_restricted {env : RecEnv} {root : DyNetKAT} {S : Finset
   have hB := renderProjection_bisimilar hG hRestricted
     (corr_restrict_intro (L := L) (toGraph_corr env root S hs)) hq
   exact ⟨q, hq, hB.trans env (Bisimilar.symm env (restrict_project_commute env L root n))⟩
+
+theorem renderProjection_preprocessable {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
+    {n : Nat} {state : CheckedResidual} {q : DyNetKAT}
+    (render : renderProjection G bodyChecks n state = some q) :
+    (blockCommunication (toGProc q)).isSome := by
+  induction n generalizing state q with
+  | zero => cases render; rfl
+  | succ n ih =>
+      obtain ⟨row, _, render⟩ := Option.bind_eq_some_iff.mp render
+      obtain ⟨branches, hb, eq⟩ := Option.bind_eq_some_iff.mp render
+      cases eq
+      have present : ∀ b ∈ branches, (blockCommunication (toGProc b)).isSome := by
+        intro b mem
+        obtain ⟨m, _, branchResult⟩ := (mapM_members hb b).mp mem
+        obtain ⟨suffix, hs, rfl⟩ := Option.map_eq_some'.mp branchResult
+        obtain ⟨out, hout⟩ := Option.isSome_iff_exists.mp (ih hs)
+        cases m.1 with
+        | visible label =>
+            cases label with
+            | packet N => by_cases zero : netkatIsZero N = true <;>
+                simp [MoveLabel.prefix, toGProc, blockCommunication, hout, zero]
+            | rcfg => simp [MoveLabel.prefix, toGProc, blockCommunication, hout]
+        | recv | send => rfl
+      have choiceSupported (bs : List DyNetKAT)
+          (ok : ∀ b ∈ bs, (blockCommunication (toGProc b)).isSome) :
+          (blockCommunication (toGProc (choiceOf bs))).isSome := by
+        induction bs with
+        | nil => rfl
+        | cons b rest ihBranches =>
+            obtain ⟨first, hf⟩ := Option.isSome_iff_exists.mp (ok b (by simp))
+            obtain ⟨last, hl⟩ := Option.isSome_iff_exists.mp
+              (ihBranches (fun u hu => ok u (List.mem_cons_of_mem _ hu)))
+            simp [choiceOf, toGProc, blockCommunication, hf, hl]
+      exact choiceSupported branches present
+
 
 end DyNetKAT.DyNetKAT

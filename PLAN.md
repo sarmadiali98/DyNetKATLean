@@ -173,22 +173,19 @@ symbolic moves, with a completeness bound
 given by the longest forbidden word. Its semantic specification and trace
 derivability theorem use all source traces. See the
 [v4 crosswalk](docs/PAPER_CONFORMANCE.md#safety-property-theory).
-The general positive reachability dual, the distributed-controller case
-study and general feasible head/tail extraction remain open.
+The §V positive witness equation and the feasible head/tail source bridge
+are machine checked. The distributed-controller and FatTree case studies
+remain open.
 
 ### Phase 6 — Extraction and normalization
 
-Make exact projection of closed guarded processes the general executable
-route. Derive finite one-step rows over local SOS premises, then recurse on
-remaining transition depth. Preserve interleaving and both synchronization
-orientations. The full symbolic row is computed before outer communication
-restriction, so a matching send and receive can still produce an observable
-reconfiguration. Support the paper's restriction semantics and nested
-projections, and prove bisimulation with the source SOS at every finite
-depth. Validate head and repeated tail against the equations and original
-projected SOS, including cutoffs and unmatched events. The finite-derivative
-certificate may accelerate suitable inputs with a proof that the optimization
-preserves the selected depth and query semantics.
+Exact projection and sequential preprocessing give
+`projectedReachability_correct` for head and nested tails at a specified
+source depth on guarded networks with finite definition support.
+`normalizedReachability_correct` gives the all-depth alternative under a
+finite derivative certificate. Both preserve the source actions and
+exclude impossible packet prefixes. General schemas, parser integration,
+and the projection derivation in the equational theory remain open.
 
 ### Paper-faithful recursive execution acceleration
 

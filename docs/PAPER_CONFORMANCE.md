@@ -407,8 +407,9 @@ ledger](PROOF_OBLIGATIONS.md#algebra-and-completeness).
 | Def. 16, Eq. (27) | A network i is safe if E_DNK^tr derives `⟦s⟧⊕i ≡ ⟦s⟧`. This corresponds to trace inclusion in the translation. | **Formalized.** `EquationalSafety`, `safe_iff_trace_inclusion` and `Formula.equational_iff` in `TraceSafety.lean`. Both endpoints are admitted and share a declaration system via trace-preserving recursive renaming. `UsesAlphabet` requires the network's observed traces to lie in 𝒜, including all packet pairs and syntactic reconfiguration labels actually observed. No global finite derivative closure is required. |
 | Def. 17 | Extended actions are packet or reconfiguration literals or negated extended actions. Extended expressions add `true`, union, concatenation and positive repetition. | `PrintedAction` and `PrintedRegexp` represent the printed grammar. `elaborate` accepts the fragment with explicit desugaring clauses. `ExtendedRegexp.desugar_correct`, `Regexp.matches_repeatPositive` and `ExtendedRegexp.equational_iff_core` give its language and Eq. (27) bridges. Nested negation is represented in the surface grammar and has no elaboration. |
 | Eq. (28) | For every natural n, absorb the network into the specification forbidding the designated packet action immediately after n alphabet events. | **Formalized.** `padded`, `mem_padded`, `padded_exists_coreFormula` and `padded_equational_iff` verify each formula. `eq28_iff_no_occurrence` proves the full family equivalent to absence of the action on every feasible source trace over the alphabet. At n = 0, `padded_zero` gives the unpadded literal. The distributed-controller case study remains open. |
-| §V positive dual | Positive `⟨r⟩true` is phrased as inclusion of witness behavior in the network. | Open. |
-| §V queries | Dup-free reachability/non-reachability test the NetKAT composition against zero. Waypointing uses the inclusion equation in the tool audit. The intended correctness requires relating extracted policies to reachable configurations and scope of the bounded verdict. | The firewall predicates (34) and (35) have executable checks and specification theorems on supported inputs. General feasible head/tail and waypoint correspondence remain open. |
+| §V positive absorption | For `s = ⟨r⟩true`, derive `i ⊕ ⟦s⟧ ≡ i` in the trace theory. | `TraceSafety.positiveSpecification` renders the finite word witnesses. `positiveAbsorption_iff_traces` proves inclusion of **each** word in source traces. For a singleton word this says that word is feasible. `checkPositive_correct` uses exact symbolic moves with supported compilation and restriction classifiers. |
+| §V static endpoint query | Test `in · (p · t)* · out` for nonzero. | `staticReachability_iff` gives an existential endpoint flow through zero or more switch/topology rounds. The ingress and egress predicates test the endpoints. |
+| §V dynamic endpoint queries (34)–(35) | Initial isolation uses zero of the head policy. Post-event forwarding uses nonzero of the head of the selected tail. | `graphHead_source_iff` identifies feasible source-visible packet observations after preprocessing, including nested tails. `compiledSafety_source_correct` connects both verdicts to the source. `projectedReachability_correct` is bounded by the total source-word length, and `normalizedReachability_correct` is all-depth with exact finite derivative rows. Waypoint correspondence remains open. |
 
 `SourceTrace` and `Program.Trace` in `SourceTrace.lean` use the existing
 `Steps` relation with consecutive packet lists. One-sided sends and receives
@@ -421,8 +422,15 @@ moves and supplied-packet execution. It proves the full finite-formula
 property. Its completeness bound is the longest forbidden word, as proved
 by `safe_iff_project_maxLength`, and the checker assumes correct restriction
 classifiers and finite compilation support. `check_iff_equationalSafety`
-adds the alphabet condition for Eq. (27). The general head/tail pipeline
-remains separate.
+adds the alphabet condition for Eq. (27).
+
+Section V gives the positive absorption equation without a separate
+translation algorithm for its diamond formula. The Lean witness is the
+finite sum of the matching action words ending in deadlock. Its trace
+language contains the prefixes of those words. Absorption therefore asks
+for inclusion of every matching word, including both branches of a union.
+The endpoint query in Eq. (35) quantifies existentially over the packet
+pair and the earlier feasible actions.
 
 The Eq. (27) endpoints are admitted programs. As in Lemma 9, the internal
 normal forms are algebraic proof witnesses. The word-sum proof does not
@@ -472,19 +480,23 @@ The matching branch of (32) uses N for event membership, consistent with
 (33) and the v1.1 rewrite. Head can traverse several packet prefixes before
 an event. Tail can cross packet prefixes and selected events, keeps each
 matching continuation, and stops at the first event outside R along a
-branch. Nested calls can select ordered updates. A selected event at the
-last step can leave a deadlocked continuation.
+branch. Each nested tail starts from a continuation selected by the
+previous tail. `graphTails_feasible_iff` concatenates those segments before
+a nonempty observation suffix. A selected event at the last step can
+leave a deadlocked continuation. The final input/output pair belongs to
+one packet action. Earlier packet actions consume their own inputs as in
+the SOS, and synchronization matches communication payloads syntactically.
 
 | Lean layer | Actual theorem boundary | Additional assumptions and remaining bridge |
 |---|---|---|
 | AST `SafetyHead`, `TailExtraction` | `head_spec`, `tail_spec_iff`, `tail_domain_iff`, `tail_head_spec`; `tail_step_suffix` and `suffix_step_tail` for the supported AST setting. | Constructor fragment; the full tail support predicate requires communication-free and variable-free terms. Domain can be query-dependent. |
 | `ProcessGraph` | `compileGraph_eq_some_iff` requires `FiniteSupport`; `compileGraph_corr` and `graph_step_iff` preserve raw transitions, including parallel, synchronization, merges, δ and π. | Supplied finite transitively closed support with defined variables. A finite graph of definitions can describe infinitely many residual terms. |
-| `GraphRestriction` | `preprocessGraph_bisimulation` on successful preprocessing, comparing with the original graph under an outer block on send/receive. | Structural sequential preprocessor. General parallel must preserve possible handshakes before blocking unilateral actions. |
-| `GraphHead` | `graphHead_supported_some`, `graphHead_sound`, `graphHead_complete`, `graphHead_spec_iff` characterize the inductive head relation. | Finite closed graph and supported syntax in the head region. References are followed by finite traversal and visited-node tracking. |
-| `GraphTail` | `graphTail_domain_iff`, `graphTail_bridge`, `graphTail_spec_iff_of_domain`, `graphTailSpec_toGProc_iff` for variable-free source comparison. Tail adds fresh labels for transformed references and retains the original labels needed by selected continuations. | Exact query domain `GraphTailDomain G R`; `GraphTailSupported` is a sufficient all-sets domain. The bridge equates **head of tail** with a relational specification. Nested tail, presentation independence and correspondence to the original projected SOS are additional obligations. |
+| `GraphRestriction` | `preprocessGraph_bisimulation` on successful preprocessing, comparing with the original graph under an outer block on send/receive. | Sequential preprocessing blocks unilateral communication and replaces zero packet prefixes by deadlock. `preprocessGraph_traceReady` verifies the enabled fragment. Parallel handshakes must be resolved by projection or normalization before this pass. |
+| `GraphHead` | `graphHead_supported_some`, `graphHead_sound`, `graphHead_complete`, `graphHead_spec_iff` characterize the inductive head relation. | `GraphHeadSpec.iff_feasible` gives exact packet-only prefix execution followed by the observed packet on enabled sequential graphs. References are administrative. |
+| `GraphTail` | `graphTail_domain_iff`, `graphTail_bridge`, `graphTail_spec_iff_of_domain`, `graphTailSpec_toGProc_iff` for variable-free source comparison. Tail adds fresh labels for transformed references and retains the original labels needed by selected continuations. | Exact query domain `GraphTailDomain G R`; `GraphTailSupported` is a sufficient all-sets domain. `graphTail_path_iff` preserves the continuation endpoint. `graphTail_feasible_iff` and `graphTails_feasible_iff` recover exact selected-event segments before a nonempty suffix on enabled graphs. |
 | `GraphNormalization` | `exists_exactNormalization_iff` for finite restricted derivatives uses syntactic policy labels and symbolic zero checks. `exists_checkedNormalization_iff` adds admissibility, and `normalizeGraph_correct` establishes graph bisimilarity and extractor support. | Caller supplies a derivative table. Boolean validation also requires restriction-free derivative syntax and one checked reference order with supported one-step rows. The certificate path is separate from finite-depth rendering. |
-| `FiniteProjection` | `renderProjection_source` proves exact executable finite projection on guarded, finitely supported `CtxPkt` inputs with correct executable membership at restriction sites. `renderProjection_restricted` compares with an outer restriction of the projection. | General packet schemas, head/tail consumer proofs, and algebraic derivability remain open. |
-| `SafetyCheck` and compiled graph entry points | `safetyCheckGraph_correct` yields the two verdicts against `GraphHeadSpec` and `GraphTailSpec` on their domains. `compileNormalizeAndSafetyCheckGraph_correct` adds source/graph correspondence and restricted graph bisimilarity on successful compilation and normalization. | The extraction specifications in that theorem are over the rendered graph. A source trace theorem, nested dynamic queries, full safety derivability, parser and general-domain query evaluation remain open. |
+| `FiniteProjection` | `renderProjection_source` proves exact executable finite projection on guarded, finitely supported `CtxPkt` inputs with correct executable membership at restriction sites. `renderProjection_restricted` compares with an outer restriction of the projection. | `projectedReachability_correct` verifies the bounded consumer on guarded source programs with finite definition support. Algebraic projection derivability and general packet schemas remain open. |
+| `SafetyCheck` and compiled graph entry points | `safetyCheckGraph_correct` yields the two verdicts against `GraphHeadSpec` and `GraphTailSpec` on their domains. `compileNormalizeAndSafetyCheckGraph_correct` adds source/graph correspondence and restricted graph bisimilarity on successful compilation and normalization. | `compiledSafety_source_correct` connects the sequential API to source traces. `normalizedReachability_correct` bridges exact finite derivative certificates without a depth bound. Parser and waypoint correspondence remain open. |
 
 The firewall and distributed controllers in Figs. 5–7 and the illustrated
 traces in Figs. 9–10 are validation targets. The local firewall regression

@@ -44,6 +44,7 @@ import DyNetKAT.DyNetKAT.FiniteAbstraction
 import DyNetKAT.DyNetKAT.AnalysisStrategy
 import DyNetKAT.DyNetKAT.Program
 import DyNetKAT.DyNetKAT.TraceSafetyCheck
+import DyNetKAT.DyNetKAT.Reachability
 import DyNetKAT.DyNetKAT.FiniteBranching
 import DyNetKAT.DyNetKAT.Equations
 import DyNetKAT.DyNetKAT.EquationsAIP

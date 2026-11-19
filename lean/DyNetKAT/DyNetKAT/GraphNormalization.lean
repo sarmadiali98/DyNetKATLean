@@ -335,39 +335,6 @@ private theorem appendStep {G : ProcessGraph} {c d e : GConfig} {acts : List Act
   | nil => exact .cons _ _ _ _ _ hs (.nil _)
   | cons _ _ _ _ _ hf _ ih => exact .cons _ _ _ _ _ hf (ih hs)
 
-private def pendingFor (a : Action) (pt : List CtxPkt) : List CtxPkt :=
-  match a with
-  | .packet σ _ => σ :: pt
-  | _ => pt
-
-private def handledAfter (a : Action) (hl : List CtxPkt) : List CtxPkt :=
-  match a with
-  | .packet _ τ => τ :: hl
-  | _ => hl
-
-private theorem rebaseStep {G : ProcessGraph} {c d : GConfig} {a : Action}
-    (h : GStep G c a d) (pt hl : List CtxPkt) :
-    GStep G ⟨c.proc, pendingFor a pt, hl⟩ a ⟨d.proc, pt, handledAfter a hl⟩ := by
-  induction h with
-  | seq_ok N p σ τ _ _ h => exact .seq_ok N p σ τ pt hl h
-  | recv => exact .recv _ _ _ pt hl
-  | send => exact .send _ _ _ pt hl
-  | rcfg => exact .rcfg _ _ _ pt hl
-  | choice_l _ _ _ _ _ _ _ _ _ ih => exact .choice_l _ _ _ _ _ _ _ _ ih
-  | choice_r _ _ _ _ _ _ _ _ _ ih => exact .choice_r _ _ _ _ _ _ _ _ ih
-  | par_l _ _ _ _ _ _ _ _ _ ih => exact .par_l _ _ _ _ _ _ _ _ ih
-  | par_r _ _ _ _ _ _ _ _ _ ih => exact .par_r _ _ _ _ _ _ _ _ ih
-  | left_merge _ _ _ _ _ _ _ _ _ ih => exact .left_merge _ _ _ _ _ _ _ _ ih
-  | comm_merge_recv_send _ _ _ _ _ _ _ _ _ _ ih₁ ih₂ =>
-      exact .comm_merge_recv_send _ _ _ _ _ _ pt hl ih₁ ih₂
-  | comm_merge_send_recv _ _ _ _ _ _ _ _ _ _ ih₁ ih₂ =>
-      exact .comm_merge_send_recv _ _ _ _ _ _ pt hl ih₁ ih₂
-  | sync_recv_send _ _ _ _ _ _ _ _ _ _ ih₁ ih₂ => exact .sync_recv_send _ _ _ _ _ _ pt hl ih₁ ih₂
-  | sync_send_recv _ _ _ _ _ _ _ _ _ _ ih₁ ih₂ => exact .sync_send_recv _ _ _ _ _ _ pt hl ih₁ ih₂
-  | var _ _ _ _ _ _ _ _ ih => exact .var _ _ _ _ _ _ _ ih
-  | project _ _ _ _ _ _ _ _ _ ih => exact .project _ _ _ _ _ _ _ _ ih
-  | restrict _ _ _ _ _ _ _ _ ha _ ih => exact .restrict _ _ _ _ _ _ _ _ ha ih
-
 private theorem restrictedTrace_derivative {G : ProcessGraph} {c d : GConfig}
     {acts : List Action} (h : GSteps G c acts d) :
     ∀ p, c.proc = .restrict Set.univ p →
@@ -401,12 +368,12 @@ theorem reachableDerivative_iff_trace {G : ProcessGraph} {p : GProc} :
     | @tail q r hPath hStep ih =>
         obtain ⟨pt, acts, hl, hTrace⟩ := ih
         obtain ⟨_, _, a, _, _, ha, hs⟩ := hStep
-        let next := pendingFor a []
+        let next := a.pendingFor []
         have extended : GSteps G ⟨.restrict Set.univ G.root, pt ++ next, []⟩ acts
             ⟨.restrict Set.univ q, next, hl⟩ := appendPending_steps hTrace next
         have nextStep : GStep G ⟨.restrict Set.univ q, next, hl⟩ a
-            ⟨.restrict Set.univ r, [], handledAfter a hl⟩ :=
-          .restrict Set.univ q r a next [] hl (handledAfter a hl) ha (rebaseStep hs [] hl)
+            ⟨.restrict Set.univ r, [], a.handledAfter hl⟩ :=
+          .restrict Set.univ q r a next [] hl (a.handledAfter hl) ha (GStep.rebase hs [] hl)
         exact ⟨_, _, _, appendStep extended nextStep⟩
   · rintro ⟨pt, acts, hl, h⟩
     obtain ⟨q, hq, hr⟩ := restrictedTrace_derivative h G.root rfl
@@ -703,7 +670,7 @@ private theorem reachable_closed {G : ProcessGraph} {p : GProc}
 
 private theorem stepHistory {G : ProcessGraph} {c d : GConfig} {a : Action}
     (hs : GStep G c a d) :
-    c.pending = pendingFor a d.pending ∧ d.handled = handledAfter a c.handled := by
+    c.pending = a.pendingFor d.pending ∧ d.handled = a.handledAfter c.handled := by
   induction hs <;> first | exact ⟨rfl, rfl⟩ | assumption
 
 -- Every packet step has a single originating policy. Any other pair
@@ -788,7 +755,7 @@ private theorem alphabet_complete {G : ProcessGraph} {src dst : GConfig} {a : Ac
       refine ⟨.rcfg x p, includeLabel (stepEvent_mem hs hc rfl), ?_, ?_⟩
       · intro pt hl a pt' hl' hr
         cases hr
-        exact ⟨trivial, rebaseStep hs _ _⟩
+        exact ⟨trivial, GStep.rebase hs _ _⟩
       · rw [hp, hh]
         exact .rcfg
 
@@ -997,6 +964,31 @@ private theorem NormalizationExact.bisimilar {n : Nat} {G : ProcessGraph}
 def normalizeCertifiedGraph {n : Nat} {G : ProcessGraph}
     (C : NormalizationCandidate n) (_ : NormalizationExact G C) : ProcessGraph :=
   sequentialGraph C
+
+theorem normalizeCertifiedGraph_traceReady {n : Nat} {G : ProcessGraph}
+    {C : NormalizationCandidate n} (h : NormalizationExact G C) :
+    TraceReady (normalizeCertifiedGraph C h) := by
+  have shape (i : Fin (n + 1)) (row : List (SequentialLabel × Fin (n + 1)))
+      (sub : ∀ edge ∈ row, edge ∈ C.moves i) :
+      EnabledSequential (sequentialGraph C) (renderRow row) := by
+    induction row with
+    | nil => exact .deadlock
+    | cons edge rest ih =>
+        obtain ⟨l, j⟩ := edge
+        have tail := ih (fun e he => sub e (List.mem_cons_of_mem _ he))
+        have href : EnabledSequential (sequentialGraph C) (.ref (stateNode j)) :=
+          .ref (stateNode_mem j)
+        cases l with
+        | packet N =>
+            have active := h.enabled (sub (.packet N, j) List.mem_cons_self)
+            exact .choice (.packet ((netkatIsZero_false_iff_exists N).mp (by simpa [SequentialLabel.enabled] using active)) href) tail
+        | rcfg x N => exact .choice (.rcfg href) tail
+  refine ⟨.ref (stateNode_mem _), ?_⟩
+  intro k hk
+  obtain ⟨i, _, rfl⟩ := Finset.mem_image.mp hk
+  change EnabledSequential (sequentialGraph C) (sequentialLabel C (stateNode i))
+  rw [sequentialLabel_stateNode]
+  exact shape i (C.moves i) (fun _ mem => mem)
 
 theorem normalizeCertifiedGraph_correct {n : Nat} {G : ProcessGraph}
     {C : NormalizationCandidate n} (h : NormalizationExact G C) :
