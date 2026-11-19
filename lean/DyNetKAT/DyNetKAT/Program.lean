@@ -15,7 +15,21 @@ structure Program (extended : Bool) (env : RecEnv) where
 
 namespace Program
 
+open DyNetKAT.NetKAT
+
 variable {extended : Bool} {env : RecEnv}
+
+/-- Prefix an admitted continuation of the base sort, with the same defining equations. -/
+def packetPrefix (d : Program extended env) (base : BaseSyntax d.term) (p : NetKAT) :
+    Program extended env :=
+  ⟨.nSeq p d.term, d.admissible.packetPrefix base p⟩
+
+/-- Proposition 1 with endpoints formed by the paper's packet-prefix rule. -/
+theorem historySemantics_iff_packetPrefix_bisimilar (d : Program extended env)
+    (base : BaseSyntax d.term) (p q : NetKAT) :
+    (∀ input output, HistorySemantics p input output ↔ HistorySemantics q input output) ↔
+      Bisimilar env (d.packetPrefix base p).term (d.packetPrefix base q).term :=
+  Equations.historySemantics_iff_nSeq_bisimilar env p q d.term
 
 /-- A residual is indexed by its source program. Each edge is a paper SOS
 step with packet lists, in the stateless sense used by bisimilarity. -/

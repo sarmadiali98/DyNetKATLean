@@ -155,10 +155,12 @@ direction uses summand matching and induction on process-prefix counts in
 Prove general finite branching for the actual closed guarded domain, including
 derivatives. Resolve root references, mutual recursion and finite support for
 finite specifications. Prove guarded reference resolution and finite exact
-one-step enumeration under the paper's assumptions. Complete Proposition 1
-and Lemma 3 with all histories and unchanged labels, including the chosen
-recursive binding rules. Generalize the existing finite-support graph/SOS
-correspondence and connect independent closed graphs to the paper's
+one-step enumeration under the paper's assumptions. Proposition 1 is proved
+for all histories over `CtxPkt` and a shared continuation in any fixed
+environment. `Program.historySemantics_iff_packetPrefix_bisimilar` covers
+admitted base-sorted continuations, including recursive ones. Complete the
+general-schema and recursive-binding scope of Lemma 3. Generalize the existing
+finite-support graph/SOS correspondence and connect independent closed graphs to the paper's
 bisimilarity, including name independence and agreement with source closure.
 
 ### Phase 5 — Full safety-property theory

@@ -78,6 +78,15 @@ private theorem reachableVar_of_vars_subset {env : RecEnv} {p q : DyNetKAT}
   | direct occurs => exact .direct (subset occurs)
   | throughDefinition _ lookup occurs ih => exact .throughDefinition ih lookup occurs
 
+/-- A packet prefix preserves the reachable declarations of a base-sorted continuation. -/
+theorem PaperAdmissible.packetPrefix {extended : Bool} {env : RecEnv} {d : DyNetKAT}
+    (admitted : PaperAdmissible extended env d) (base : BaseSyntax d)
+    (p : DyNetKAT.NetKAT.NetKAT) : PaperAdmissible extended env (.nSeq p d) := by
+  refine (paperAdmissible_iff ..).2 ⟨base, ?_⟩
+  intro x reachable
+  exact ((paperAdmissible_iff ..).1 admitted).2 x
+    (reachableVar_of_vars_subset (p := .nSeq p d) (q := d) Finset.Subset.rfl reachable)
+
 private theorem Step.preserves_paperSyntax {extended : Bool} {env : RecEnv}
     {c d : Config} {a : Action} (step : Step env c a d)
     (formed : PaperSyntax extended c.proc)

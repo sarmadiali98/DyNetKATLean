@@ -1,4 +1,5 @@
 import DyNetKAT.DyNetKAT.FiniteProjection
+import DyNetKAT.DyNetKAT.NetKATBridge
 import DyNetKAT.NetKAT.Axioms
 
 set_option linter.dupNamespace false
@@ -66,13 +67,43 @@ theorem a1_sound (env : RecEnv) (z y : NetKAT) (p : DyNetKAT) :
     · exact .cpol_seq_ok _ _ _ _ _ _ (Or.inl (by assumption))
     · exact .cpol_seq_ok _ _ _ _ _ _ (Or.inr (by assumption))
 
-theorem netkat_sound (env : RecEnv) {z y : NetKAT} (h : NetKAT.Derives z y) (p : DyNetKAT) :
-    Bisimilar env (.nSeq z p) (.nSeq y p) := by
+/-- Equal NetKAT history relations give identical prefix steps into the shared continuation. -/
+theorem nSeq_bisimilar_of_historySemantics (env : RecEnv) {p q : NetKAT} (d : DyNetKAT)
+    (h : ∀ input output, HistorySemantics p input output ↔ HistorySemantics q input output) :
+    Bisimilar env (.nSeq p d) (.nSeq q d) := by
   apply bisimilar_of_step_iff
   intro pt hl a r pt' hl'
   constructor <;> intro hs <;> cases hs
-  · exact .cpol_seq_ok _ _ _ _ _ _ ((h.historySound ..).mp (by assumption))
-  · exact .cpol_seq_ok _ _ _ _ _ _ ((h.historySound ..).mpr (by assumption))
+  · exact .cpol_seq_ok _ _ _ _ _ _ ((h ..).mp (by assumption))
+  · exact .cpol_seq_ok _ _ _ _ _ _ ((h ..).mpr (by assumption))
+
+/-- Matching singleton packet observations determine the full dup-free history relation. -/
+theorem historySemantics_of_nSeq_bisimilar {env : RecEnv} {p q : NetKAT} {d : DyNetKAT}
+    (h : Bisimilar env (.nSeq p d) (.nSeq q d)) :
+    ∀ input output, HistorySemantics p input output ↔ HistorySemantics q input output := by
+  have transfer {x y : NetKAT} (bisim : Bisimilar env (.nSeq x d) (.nSeq y d))
+      (σ τ : CtxPkt) (obs : Semantics x σ τ) : Semantics y σ τ := by
+    obtain ⟨R, matching, related⟩ := bisim
+    have step := Step.cpol_seq_ok (env := env) x d σ τ [] []
+      ((historySemantics_singleton_iff_packetSemantics x σ τ).mpr obs)
+    obtain ⟨target, matched, _⟩ := matching.2 _ _ related [σ] [] (.packet σ τ) d [] [τ] step
+    obtain ⟨input, output, actionEq, _, evaluates, _⟩ :=
+      nSeq_step_inv env y d [σ] [] (.packet σ τ) target [] [τ] matched
+    obtain ⟨rfl, rfl⟩ := Action.packet.inj actionEq
+    exact (historySemantics_singleton_iff_packetSemantics y σ τ).mp evaluates
+  rintro ⟨σ, tail⟩ ⟨τ, tail'⟩
+  rw [historySemantics_iff_packetSemantics, historySemantics_iff_packetSemantics]
+  exact and_congr_right fun _ => ⟨transfer h σ τ, transfer (h.symm env) σ τ⟩
+
+/-- Semantic layering (arXiv v4 Proposition 1) for dup-free NetKAT over `CtxPkt`. -/
+theorem historySemantics_iff_nSeq_bisimilar (env : RecEnv) (p q : NetKAT) (d : DyNetKAT) :
+    (∀ input output, HistorySemantics p input output ↔ HistorySemantics q input output) ↔
+      Bisimilar env (.nSeq p d) (.nSeq q d) :=
+  ⟨nSeq_bisimilar_of_historySemantics env d, historySemantics_of_nSeq_bisimilar⟩
+
+theorem netkat_sound (env : RecEnv) {z y : NetKAT} (h : NetKAT.Derives z y) (p : DyNetKAT) :
+    Bisimilar env (.nSeq z p) (.nSeq y p) :=
+  nSeq_bisimilar_of_historySemantics env p h.historySound
 
 theorem a2_sound (env : RecEnv) (p q : DyNetKAT) :
     Bisimilar env (.choice p q) (.choice q p) := by

@@ -150,6 +150,16 @@ run_cmd do
     ``Program.Compiled.safety_correct, ``Program.Compiled.normalizedSafety_correct,
     ``execute_correct, ``reachableWithin_finite_stabilizes]
   if core.contains ``ctxPkt_card then throwError "core uses the concrete 256-packet cardinality lemma"
+  let layering := dependencies env [``Equations.historySemantics_iff_nSeq_bisimilar,
+    ``Program.historySemantics_iff_packetPrefix_bisimilar]
+  for required in [``Step.cpol_seq_ok, ``nSeq_step_inv,
+      ``historySemantics_iff_packetSemantics] do
+    unless layering.contains required do
+      throwError "missing semantic layering proof dependency: {required}"
+  for forbidden in [``DyNetKAT.NetKAT.instFintypeCtxPkt, ``ctxPkt_card, ``symbolicPairs,
+      ``execute, ``netkatNativeEquiv, ``compileSymbolic] do
+    if layering.contains forbidden then
+      throwError "semantic layering proof depends on {forbidden}"
 
 #print axioms exists_exactNormalization_iff
 #print axioms reachableWithin_finite_stabilizes
