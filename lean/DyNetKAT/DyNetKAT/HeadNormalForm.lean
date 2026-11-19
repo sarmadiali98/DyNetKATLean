@@ -9,6 +9,36 @@ namespace DyNetKAT.DyNetKAT
 open DyNetKAT.NetKAT
 open Equations
 
+theorem choiceOf_append (env : RecEnv) (xs ys : List DyNetKAT) :
+    DerivesNoAIP env (.choice (choiceOf xs) (choiceOf ys)) (choiceOf (xs ++ ys)) := by
+  induction xs with
+  | nil => exact .trans (.a2 _ _) (.a5 _)
+  | cons b xs ih =>
+    exact .trans (.a3 _ _ _) (.choiceCongr (.refl _) ih)
+
+/-- The rendered choice depends equationally only on summand membership. -/
+theorem choiceOf_derives_of_mem_iff (env : RecEnv) {xs ys : List DyNetKAT}
+    (h : ∀ b, b ∈ xs ↔ b ∈ ys) : DerivesNoAIP env (choiceOf xs) (choiceOf ys) := by
+  have absorb (b : DyNetKAT) (zs : List DyNetKAT) (hb : b ∈ zs) :
+      DerivesNoAIP env (.choice b (choiceOf zs)) (choiceOf zs) := by
+    induction zs with
+    | nil => simp at hb
+    | cons c zs ih =>
+      rcases List.mem_cons.mp hb with rfl | ht
+      · exact .trans (.symm (.a3 _ _ _)) (.choiceCongr (.a4 _) (.refl _))
+      · exact .trans (.symm (.a3 _ _ _)) (.trans (.choiceCongr (.a2 _ _) (.refl _))
+          (.trans (.a3 _ _ _) (.choiceCongr (.refl _) (ih ht))))
+  have absorbList (us vs : List DyNetKAT) (sub : ∀ b ∈ us, b ∈ vs) :
+      DerivesNoAIP env (.choice (choiceOf us) (choiceOf vs)) (choiceOf vs) := by
+    induction us with
+    | nil => exact .trans (.a2 _ _) (.a5 _)
+    | cons b us ih =>
+      exact .trans (.a3 _ _ _) (.trans
+        (.choiceCongr (.refl _) (ih (fun c hc => sub c (List.mem_cons_of_mem _ hc))))
+        (absorb b vs (sub b List.mem_cons_self)))
+  exact .trans (.symm (absorbList ys xs (fun b => (h b).mpr)))
+    (.trans (.a2 _ _) (absorbList xs ys (fun b => (h b).mp)))
+
 /-- Definition 6's head sort, with an unrestricted process continuation. -/
 structure HeadSummand where
   label : MoveLabel
@@ -67,33 +97,14 @@ theorem render_singleton (env : RecEnv) (b : HeadSummand) :
 
 theorem render_append (env : RecEnv) (xs ys : HeadNormalForm) :
     DerivesNoAIP env (.choice (render xs) (render ys)) (render (xs ++ ys)) := by
-  induction xs with
-  | nil => exact .trans (.a2 _ _) (.a5 _)
-  | cons b xs ih =>
-    exact .trans (.a3 _ _ _) (.choiceCongr (.refl _) ih)
+  simpa only [render, List.map_append] using choiceOf_append env
+    (xs.map HeadSummand.render) (ys.map HeadSummand.render)
 
-/-- The rendered choice depends equationally only on summand membership. -/
 theorem render_derives_of_mem_iff (env : RecEnv) {xs ys : HeadNormalForm}
     (h : ∀ b, b ∈ xs ↔ b ∈ ys) : DerivesNoAIP env (render xs) (render ys) := by
-  have absorb (b : HeadSummand) (zs : HeadNormalForm) (hb : b ∈ zs) :
-      DerivesNoAIP env (.choice b.render (render zs)) (render zs) := by
-    induction zs with
-    | nil => simp at hb
-    | cons c zs ih =>
-      rcases List.mem_cons.mp hb with rfl | ht
-      · exact .trans (.symm (.a3 _ _ _)) (.choiceCongr (.a4 _) (.refl _))
-      · exact .trans (.symm (.a3 _ _ _)) (.trans (.choiceCongr (.a2 _ _) (.refl _))
-          (.trans (.a3 _ _ _) (.choiceCongr (.refl _) (ih ht))))
-  have absorbList (us vs : HeadNormalForm) (sub : ∀ b ∈ us, b ∈ vs) :
-      DerivesNoAIP env (.choice (render us) (render vs)) (render vs) := by
-    induction us with
-    | nil => exact .trans (.a2 _ _) (.a5 _)
-    | cons b us ih =>
-      exact .trans (.a3 _ _ _) (.trans
-        (.choiceCongr (.refl _) (ih (fun c hc => sub c (List.mem_cons_of_mem _ hc))))
-        (absorb b vs (sub b List.mem_cons_self)))
-  exact .trans (.symm (absorbList ys xs (fun b => (h b).mpr)))
-    (.trans (.a2 _ _) (absorbList xs ys (fun b => (h b).mp)))
+  apply choiceOf_derives_of_mem_iff
+  intro q
+  simp only [List.mem_map, h]
 
 private theorem distribute (env : RecEnv) (f : DyNetKAT → DyNetKAT)
     (branches : HeadSummand → HeadNormalForm)
@@ -289,106 +300,176 @@ private theorem project_bound {p : DyNetKAT} {xs : HeadNormalForm}
     obtain rfl := List.mem_singleton.mp hb
     exact hx a ha
 
+/-- All continuation references belong to the given source name set. -/
+def NamesWithin (S : Set Var) (xs : HeadNormalForm) : Prop :=
+  ∀ b ∈ xs, ∀ x ∈ recursiveVars b.continuation, x ∈ S
+
+private theorem NamesWithin.append {S : Set Var} {xs ys : HeadNormalForm}
+    (hx : NamesWithin S xs) (hy : NamesWithin S ys) : NamesWithin S (xs ++ ys) :=
+  fun b hb => (List.mem_append.mp hb).elim (hx b) (hy b)
+
+private theorem NamesWithin.leftMerge {S : Set Var} {xs : HeadNormalForm} {q : DyNetKAT}
+    (hx : NamesWithin S xs) (hq : ∀ x ∈ recursiveVars q, x ∈ S) :
+    NamesWithin S (leftMerge xs q) := by
+  intro b hb x occurs
+  obtain ⟨a, ha, hb⟩ := List.mem_flatMap.mp hb
+  obtain rfl := List.mem_singleton.mp hb
+  exact (Finset.mem_union.mp occurs).elim (hx a ha x) (hq x)
+
+private theorem NamesWithin.commMerge {S : Set Var} {xs ys : HeadNormalForm}
+    (hx : NamesWithin S xs) (hy : NamesWithin S ys) : NamesWithin S (commMerge xs ys) := by
+  intro c hc x occurs
+  obtain ⟨a, ha, hc⟩ := List.mem_flatMap.mp hc
+  obtain ⟨b, hb, hc⟩ := List.mem_flatMap.mp hc
+  rw [synchronize_continuation hc, recursiveVars] at occurs
+  exact (Finset.mem_union.mp occurs).elim (hx a ha x) (hy b hb x)
+
+private theorem NamesWithin.restrict {S : Set Var} {xs : HeadNormalForm}
+    (hx : NamesWithin S xs) (L : Set CommunicationAction) :
+    NamesWithin S (restrict L xs) := by
+  classical
+  intro b hb
+  obtain ⟨a, ha, hb⟩ := List.mem_flatMap.mp hb
+  by_cases h : PrefixBlocked L a.label
+  · simp [if_pos h] at hb
+  · simp only [if_neg h, List.mem_singleton] at hb
+    subst b
+    exact hx a ha
+
+private theorem NamesWithin.project {S : Set Var} {xs : HeadNormalForm}
+    (hx : NamesWithin S xs) (n : Nat) : NamesWithin S (project n xs) := by
+  cases n with
+  | zero => simp [NamesWithin, HeadNormalForm.project]
+  | succ n =>
+    intro b hb
+    obtain ⟨a, ha, hb⟩ := List.mem_flatMap.mp hb
+    obtain rfl := List.mem_singleton.mp hb
+    exact hx a ha
+
 end HeadNormalForm
 
 def IsDNKNormalForm (q : DyNetKAT) : Prop :=
   ∃ xs : HeadNormalForm, q = xs.render
 
 open HeadNormalForm in
-private theorem normalizeHead_aux (env : RecEnv) (p : DyNetKAT)
+private theorem normalizeHead_aux (env : RecEnv) (p : DyNetKAT) (names : Set Var)
+    (bounded : ∀ x ∈ recursiveVars p, x ∈ names)
     (h : GuardedOccurrences p ∨
-      ∀ x ∈ recursiveVars p, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render) :
+      ∀ x ∈ recursiveVars p, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) :
     ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render ∧
-      (Ground p → ResidualBound p xs) := by
+      (Ground p → ResidualBound p xs) ∧ NamesWithin names xs := by
   have split (p q : DyNetKAT)
       (h : (GuardedOccurrences p ∧ GuardedOccurrences q) ∨
         ∀ x ∈ recursiveVars p ∪ recursiveVars q,
-          ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render) :
+          ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) :
       (GuardedOccurrences p ∨
-        ∀ x ∈ recursiveVars p, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render) ∧
+        ∀ x ∈ recursiveVars p, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) ∧
       (GuardedOccurrences q ∨
-        ∀ x ∈ recursiveVars q, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render) := by
+        ∀ x ∈ recursiveVars q, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) := by
     rcases h with ⟨hp, hq⟩ | h
     · exact ⟨Or.inl hp, Or.inl hq⟩
     · exact ⟨Or.inr (fun x hx => h x (Finset.mem_union_left _ hx)),
         Or.inr (fun x hx => h x (Finset.mem_union_right _ hx))⟩
   have groundPair {p q : DyNetKAT} (h : recursiveVars p ∪ recursiveVars q = ∅) :
       Ground p ∧ Ground q := Finset.union_eq_empty.mp h
+  have leftNames {p q : DyNetKAT}
+      (allNames : ∀ x ∈ recursiveVars p ∪ recursiveVars q, x ∈ names) :
+      ∀ x ∈ recursiveVars p, x ∈ names :=
+    fun x hx => allNames x (Finset.mem_union_left _ hx)
+  have rightNames {p q : DyNetKAT}
+      (allNames : ∀ x ∈ recursiveVars p ∪ recursiveVars q, x ∈ names) :
+      ∀ x ∈ recursiveVars q, x ∈ names :=
+    fun x hx => allNames x (Finset.mem_union_right _ hx)
   induction p with
-  | deadlock => exact ⟨[], .refl _, by simp [ResidualBound]⟩
+  | deadlock => exact ⟨[], .refl _, by simp [ResidualBound], by simp [NamesWithin]⟩
   | nSeq z p =>
-    refine ⟨_, packetHeads_correct env z p, ?_⟩
-    intro hg b hb
-    obtain ⟨⟨α, π⟩, _, rfl⟩ := List.mem_map.mp hb
-    exact ⟨hg, Nat.lt_succ_self _⟩
+    refine ⟨_, packetHeads_correct env z p, ?_, ?_⟩
+    · intro hg b hb
+      obtain ⟨⟨α, π⟩, _, rfl⟩ := List.mem_map.mp hb
+      exact ⟨hg, Nat.lt_succ_self _⟩
+    · intro b hb
+      obtain ⟨⟨α, π⟩, _, rfl⟩ := List.mem_map.mp hb
+      exact bounded
   | recv x z p =>
-    exact ⟨[.recv x z p], .symm (.a5 _), by
-      intro hg b hb
+    refine ⟨[.recv x z p], .symm (.a5 _), ?_, ?_⟩
+    · intro hg b hb
       obtain rfl := List.mem_singleton.mp hb
-      exact ⟨hg, Nat.lt_succ_self _⟩⟩
+      exact ⟨hg, Nat.lt_succ_self _⟩
+    · intro b hb
+      obtain rfl := List.mem_singleton.mp hb
+      exact bounded
   | send x z p =>
-    exact ⟨[.send x z p], .symm (.a5 _), by
-      intro hg b hb
+    refine ⟨[.send x z p], .symm (.a5 _), ?_, ?_⟩
+    · intro hg b hb
       obtain rfl := List.mem_singleton.mp hb
-      exact ⟨hg, Nat.lt_succ_self _⟩⟩
+      exact ⟨hg, Nat.lt_succ_self _⟩
+    · intro b hb
+      obtain rfl := List.mem_singleton.mp hb
+      exact bounded
   | rcfgPrefix x z p =>
-    exact ⟨[.rcfg x z p], .symm (.a5 _), by
-      intro hg b hb
+    refine ⟨[.rcfg x z p], .symm (.a5 _), ?_, ?_⟩
+    · intro hg b hb
       obtain rfl := List.mem_singleton.mp hb
-      exact ⟨hg, Nat.lt_succ_self _⟩⟩
+      exact ⟨hg, Nat.lt_succ_self _⟩
+    · intro b hb
+      obtain rfl := List.mem_singleton.mp hb
+      exact bounded
   | choice p q ihp ihq =>
     obtain ⟨hp, hq⟩ := split p q h
-    obtain ⟨xs, dx, bx⟩ := ihp hp
-    obtain ⟨ys, dy, bys⟩ := ihq hq
-    refine ⟨_, .trans (.choiceCongr dx dy) (render_append ..), fun hg => ?_⟩
+    obtain ⟨xs, dx, bx, nx⟩ := ihp (leftNames (q := q) bounded) hp
+    obtain ⟨ys, dy, bys, ny⟩ := ihq (rightNames (p := p) bounded) hq
+    refine ⟨_, .trans (.choiceCongr dx dy) (render_append ..), fun hg => ?_, nx.append ny⟩
     obtain ⟨gp, gq⟩ := groundPair hg
     exact ((bx gp).mono (Nat.le_add_right ..)).append ((bys gq).mono (Nat.le_add_left ..))
   | parallel p q ihp ihq =>
     obtain ⟨hp, hq⟩ := split p q h
-    obtain ⟨xs, dx, bx⟩ := ihp hp
-    obtain ⟨ys, dy, bys⟩ := ihq hq
-    refine ⟨_, parallel_correct env dx dy, fun hg => ?_⟩
+    obtain ⟨xs, dx, bx, nx⟩ := ihp (leftNames (q := q) bounded) hp
+    obtain ⟨ys, dy, bys, ny⟩ := ihq (rightNames (p := p) bounded) hq
+    refine ⟨_, parallel_correct env dx dy, fun hg => ?_,
+      ((nx.leftMerge (rightNames (p := p) bounded)).append
+        (ny.leftMerge (leftNames (q := q) bounded))).append (nx.commMerge ny)⟩
     obtain ⟨gp, gq⟩ := groundPair hg
     exact ((leftMerge_bound (bx gp) gq).append
       ((leftMerge_bound (bys gq) gp).mono (Nat.add_comm ..).le)).append
       (commMerge_bound (bx gp) (bys gq))
   | leftMerge p q ihp ihq =>
     obtain ⟨hp, _⟩ := split p q h
-    obtain ⟨_, dx, bx⟩ := ihp hp
-    refine ⟨_, .trans (.leftMergeCongr dx (.refl _)) (leftMerge_correct ..), fun hg => ?_⟩
+    obtain ⟨_, dx, bx, nx⟩ := ihp (leftNames (q := q) bounded) hp
+    refine ⟨_, .trans (.leftMergeCongr dx (.refl _)) (leftMerge_correct ..), fun hg => ?_,
+      nx.leftMerge (rightNames (p := p) bounded)⟩
     obtain ⟨gp, gq⟩ := groundPair hg
     exact leftMerge_bound (bx gp) gq
   | commMerge p q ihp ihq =>
     obtain ⟨hp, hq⟩ := split p q h
-    obtain ⟨_, dx, bx⟩ := ihp hp
-    obtain ⟨_, dy, bys⟩ := ihq hq
-    refine ⟨_, .trans (.commMergeCongr dx dy) (commMerge_correct ..), fun hg => ?_⟩
+    obtain ⟨_, dx, bx, nx⟩ := ihp (leftNames (q := q) bounded) hp
+    obtain ⟨_, dy, bys, ny⟩ := ihq (rightNames (p := p) bounded) hq
+    refine ⟨_, .trans (.commMergeCongr dx dy) (commMerge_correct ..), fun hg => ?_, nx.commMerge ny⟩
     obtain ⟨gp, gq⟩ := groundPair hg
     exact commMerge_bound (bx gp) (bys gq)
   | restrict L p ih =>
-    obtain ⟨_, dx, bx⟩ := ih h
+    obtain ⟨_, dx, bx, nx⟩ := ih bounded h
     exact ⟨_, .trans (.restrictCongr L dx) (restrict_correct ..),
-      fun hg => restrict_bound L (bx hg)⟩
+      fun hg => restrict_bound L (bx hg), nx.restrict L⟩
   | project n p ih =>
-    obtain ⟨_, dx, bx⟩ := ih h
+    obtain ⟨_, dx, bx, nx⟩ := ih bounded h
     exact ⟨_, .trans (.projectCongr n dx) (project_correct ..),
-      fun hg => project_bound n (bx hg)⟩
+      fun hg => project_bound n (bx hg), nx.project n⟩
   | var x =>
     rcases h with h | h
     · exact False.elim h
-    · obtain ⟨xs, dx⟩ := h x (by simp)
-      exact ⟨xs, dx, by simp [Ground]⟩
+    · obtain ⟨xs, dx, nx⟩ := h x (by simp)
+      exact ⟨xs, dx, by simp [Ground], nx⟩
 
 theorem Ground.exists_headNormalForm {env : RecEnv} {p : DyNetKAT} (h : Ground p) :
     ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render ∧ HeadNormalForm.ResidualBound p xs := by
-  obtain ⟨xs, dx, hx⟩ := normalizeHead_aux env p (Or.inl h.guarded)
+  obtain ⟨xs, dx, hx, _⟩ := normalizeHead_aux env p Set.univ (by simp) (Or.inl h.guarded)
   exact ⟨xs, dx, hx h⟩
 
 /-- Head-summand witness for the typed syntactically guarded domain. -/
 theorem exists_headNormalForm_of_guarded (env : RecEnv) {p : DyNetKAT}
     (h : GuardedOccurrences p) :
     ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render :=
-  let ⟨xs, dx, _⟩ := normalizeHead_aux env p (Or.inl h)
+  let ⟨xs, dx, _, _⟩ := normalizeHead_aux env p Set.univ (by simp) (Or.inl h)
   ⟨xs, dx⟩
 
 /-- arXiv v4 Lemma 9, under the Lean interpretation of guarded occurrences. -/
@@ -397,17 +478,30 @@ theorem guarded_normalizes (env : RecEnv) {p : DyNetKAT} (h : GuardedOccurrences
   obtain ⟨xs, d⟩ := exists_headNormalForm_of_guarded env h
   exact ⟨xs.render, ⟨xs, rfl⟩, d⟩
 
-/-- Resolve a needed head variable by normalizing its guarded body, leaving
-all occurrences behind prefixes as continuations. -/
+/-- Normalize without introducing unrelated recursive names into continuations. -/
+theorem WellFormed.exists_headNormalForm_closed {env : RecEnv} {p : DyNetKAT}
+    (h : WellFormed env p) : ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render ∧
+      ∀ b ∈ xs, WellFormed env b.continuation := by
+  let S := {x | ReachableVar env p x}
+  have refs (x : Var) (hx : x ∈ recursiveVars p) :
+      ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ xs.NamesWithin S := by
+    obtain ⟨body, lookup, guarded⟩ := h.2 x (.direct hx)
+    obtain ⟨xs, d, _, names⟩ := normalizeHead_aux env body S
+      (fun _ mem => ReachableVar.throughDefinition (.direct hx) lookup mem) (Or.inl guarded)
+    exact ⟨xs, .trans (.unfold lookup) d, names⟩
+  obtain ⟨xs, dx, _, names⟩ := normalizeHead_aux env p S (fun _ mem => .direct mem) (Or.inr refs)
+  refine ⟨xs, dx, fun b hb => ?_⟩
+  have subset {x : Var} (reach : ReachableVar env b.continuation x) : ReachableVar env p x := by
+    induction reach with
+    | direct mem => exact names b hb _ mem
+    | throughDefinition _ lookup mem ih => exact .throughDefinition ih lookup mem
+  exact ⟨fun x hx => h.1 x (subset hx), fun x hx => h.2 x (subset hx)⟩
+
+/-- Resolve needed head variables, leaving references behind prefixes as continuations. -/
 theorem WellFormed.exists_headNormalForm {env : RecEnv} {p : DyNetKAT} (h : WellFormed env p) :
     ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render := by
-  have refs (x : Var) (hx : x ∈ recursiveVars p) :
-      ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render := by
-    obtain ⟨body, lookup, guarded⟩ := h.2 x (.direct hx)
-    obtain ⟨xs, d⟩ := exists_headNormalForm_of_guarded env guarded
-    exact ⟨xs, .trans (.unfold lookup) d⟩
-  obtain ⟨xs, dx, _⟩ := normalizeHead_aux env p (Or.inr refs)
-  exact ⟨xs, dx⟩
+  obtain ⟨xs, d, _⟩ := h.exists_headNormalForm_closed
+  exact ⟨xs, d⟩
 
 theorem WellFormed.normalizes {env : RecEnv} {p : DyNetKAT} (h : WellFormed env p) :
     ∃ q, IsDNKNormalForm q ∧ DerivesNoAIP env p q := by

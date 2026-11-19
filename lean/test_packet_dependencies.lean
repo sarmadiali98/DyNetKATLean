@@ -160,6 +160,25 @@ run_cmd do
       ``execute, ``netkatNativeEquiv, ``compileSymbolic] do
     if layering.contains forbidden then
       throwError "semantic layering proof depends on {forbidden}"
+  let traceTheory := dependencies env [``TraceSafety.Formula.equational_iff,
+    ``TraceSafety.translate_trace_iff, ``Program.Compiled.trace_iff]
+  for required in [``TraceDerives.a16, ``TraceDerives.complete, ``TraceSafety.translate,
+      ``Steps.cons] do
+    unless traceTheory.contains required do
+      throwError "missing trace safety proof dependency: {required}"
+  let traceChecker := dependencies env [``TraceSafety.check]
+  let traceCheckerProof := dependencies env [``TraceSafety.check_correct]
+  for required in [``checkedMoves, ``execute] do
+    unless traceChecker.contains required do
+      throwError "missing trace checker dependency: {required}"
+  for forbidden in [``DyNetKAT.NetKAT.instFintypeCtxPkt, ``ctxPkt_card] do
+    if traceTheory.contains forbidden || traceChecker.contains forbidden then
+      throwError "trace safety depends on the concrete packet universe via {forbidden}"
+  -- Supplied-packet star correctness uses the abstract cardinality bound.
+  unless traceCheckerProof.contains ``execute_correct do
+    throwError "trace checker lacks the supplied-packet correctness proof"
+  if traceCheckerProof.contains ``ctxPkt_card then
+    throwError "trace checker proof uses the concrete 256-packet cardinality lemma"
 
 #print axioms exists_exactNormalization_iff
 #print axioms reachableWithin_finite_stabilizes

@@ -141,6 +141,21 @@ A no-argument `lake build` that reports `[0/0]` does not compile the library;
 always validate the explicit `DyNetKAT` target. If the system Python lacks
 pytest, use a virtual environment and install `pytest>=8` there.
 
+## Paper trace safety
+
+`Program.Trace` is a finite execution of the source SOS with consistent
+packet lists. For the arXiv v4 safety formula `[r]false`,
+`TraceSafety.Formula.equational_iff` proves Eq. (27) equivalent to excluding
+every forbidden initial word on an admitted network over the supplied
+finite alphabet. This theorem covers guarded recursion without a finite
+derivative closure.
+
+`TraceSafety.check` checks supplied forbidden words against exact symbolic
+moves when compilation support and restriction classifiers are supplied.
+`TraceSafety.check_correct` connects the result to source safety.
+The word length is an exact bound for matching that word. See the
+[paper crosswalk](docs/PAPER_CONFORMANCE.md#safety-property-theory).
+
 ## Checking safety on a recursive graph
 
 `compileGraph env p support` checks that the supplied finite set contains

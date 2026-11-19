@@ -388,7 +388,7 @@ These are distinct quantifications in the figure. The symbols `⊕`, `∥`,
 | δ⊥, δ;, δ;⊥, δ⊕ | δ preserves deadlock; passes an allowed prefix with restricted continuation; maps a forbidden prefix to deadlock; distributes over choice. | `restrictDeadlock`, `restrictAllowed`, `restrictBlocked`, `restrictChoice`. The prefix rules require `AtomicPrefix` and the corresponding `PrefixBlocked` test. Soundness reuses the restriction SOS theorems. |
 | Π0, Π⊥, Π;, Π⊕ | π₀ is deadlock; every π of deadlock is deadlock; a prefix consumes one from positive depth; projection distributes over choice. | `projectZero`, `projectDeadlock`, `projectPrefix`, `projectChoice`. The prefix rule requires `AtomicPrefix` at successor depth. Soundness reuses the projection SOS theorems. |
 | AIP | If `π_n(p) ≡ π_n(q)` for all n, derive `p ≡ q`. | `Derives.aip`, with `ImageFiniteFrom` at each endpoint and full `Derives` premises for every n. `WellFormed.imageFiniteFrom` supplies the side condition on the guarded source domain. |
-| A16, Eq. (26) | `a;(q⊕r) ≡ a;q ⊕ a;r` in the trace extension. Here a is a well-typed prefix. | Open. Establish trace soundness separately from strong bisimilarity. |
+| A16, Eq. (26) | `a;(q⊕r) ≡ a;q ⊕ a;r` in the trace extension. Here a is a well-typed prefix. | `TraceDerives.a16` in `TraceEquations.lean`. `trace_a16` and `TraceDerives.sound` prove trace soundness with the original action labels. `TraceDerives.complete` uses A16 to distribute each finite projection into a sum of words, then applies AIP. |
 
 The Fig. 11 reference to E_NK is represented by `DerivesNoAIP.netkat`, which imports a `NetKAT.Derives` proof only at a packet prefix. `DerivesNoAIP.unfold` gives equational use of the named definitions surrounding Figure 11. It requires a successful lookup in the fixed recursive environment, following the variable SOS, and is separate from the printed Figure 11 axiom list. For instance,
 `z ≡ z+0` at the NetKAT level can replace a packet prefix by Prop. 1.
@@ -400,14 +400,32 @@ ledger](PROOF_OBLIGATIONS.md#algebra-and-completeness).
 
 | Source | Mathematical item | Current coverage |
 |---|---|---|
-| Def. 12 | Alphabet 𝒜 consists of complete packet-transform letters α·π and rcfg(x,p). Base expressions have a letter, union and concatenation; `[r]false` forbids an execution starting with a word in the language of r. | Packet and rcfg actions exist. No safety alphabet, regexp or formula calculus. |
-| Def. 13 | A word is a nonempty sequence over 𝒜. Prefix includes equality. `hnf` produces a finite sum of words using two-sided distributivity. | Open. Distinct from the process `head` extractor. |
-| Def. 14 | Put W = hnf(r) and M = max word length in W. Encode a word by action-prefixing its letters. The guarded universal process is the choice over a ∈ 𝒜 of `a;⊥ ⊕ a;Θ`. The translation is the choice of `w;⊥` for each word shorter than M having no W-prefix and `w;⊥ ⊕ w;Θ` for each such word of length M. For other r, first take hnf. | Open. Specify finite alphabet, empty sums/epsilon and the trace set of the translated process. |
-| Def. 15 | E_DNK^tr extends Fig. 11 by A16. | Open. |
-| Def. 16, Eq. (27) | A network i is safe if E_DNK^tr derives `⟦s⟧⊕i ≡ ⟦s⟧`. Text characterizes this as trace inclusion. | Open. Need trace semantics, translation and both characterization directions under stated assumptions. |
-| Def. 17 | Add true (any single letter), negated actions and finite n-fold repetition with n≥1. Desugar true as the sum of 𝒜, negated packet/rcfg actions as the printed sums over unequal letters of the same kind, n-fold repetition as concatenation, and recurse through union and product. Interpret extended formulas by desugaring. | Open. Mixed alphabet complement, nested negation and the zero-length convention in Eq. (28) need explicit treatment. |
-| Eq. (28), §V positive dual | Distributed controller excludes the S2→H4 packet action after arbitrary length-n prefixes for every n. Positive `⟨r⟩true` is phrased as inclusion of witness behavior in i. | Open. The two firewall queries alone are a separate extraction workflow. |
-| §V queries | Dup-free reachability/non-reachability test the NetKAT composition against zero. Waypointing uses the inclusion equation in the tool audit. The intended correctness requires relating extracted policies to reachable configurations and scope of the bounded verdict. | The firewall predicates (34) and (35) have executable checks and specification theorems on supported inputs. No waypoint translation or general safety decision theorem. |
+| Def. 12 | Alphabet 𝒜 consists of complete packet-transform letters α·π and rcfg(x,p). Expressions are letters, union and concatenation. The formula `[r]false` forbids a trace starting with a word of r. | **Formalized.** `TraceSafety.Letter`, `Alphabet`, `Formula`, `Regexp.Matches` and `Safe` in `TraceSafety.lean`. Consumed by Defs. 13–14 and 16. |
+| Def. 13 | A word is a nonempty sequence over 𝒜. Prefix includes equality. `hnf` gives a finite sum of words using two-sided distributivity. | **Formalized.** `Regexp.hnf`, `Regexp.mem_hnf`, `Regexp.hnf_nonempty_word` and `Regexp.hnf_inAlphabet` in `TraceSafety.lean`. Consumed by Def. 14(c2). The printed left-distributivity line repeats the first branch. The implementation distributes to both branches, as required by word-language union. |
+| Def. 14 | Let W = hnf(r) and M be its longest word length. Sum `w;⊥` for permitted shorter words and `w;⊥ ⊕ w;Θ` for permitted length-M words. Θ is guarded and sums both stopping and continuing for each letter. | **Formalized.** `branches` and `translate` in `TraceSafety.lean` build the sums as an admitted extended program. Guarded names stand for suffixes to satisfy the packet continuation sort of Eq. (6). `translate_trace_iff` proves exact avoidance of forbidden prefixes over the supplied finite alphabet. The empty sum forbids no word and uses M = 0. Consumed by Def. 16. |
+| Def. 15, Eq. (26) | E_DNK^tr extends Fig. 11 with A16, distribution of a prefix over a choice of continuations. | **Formalized.** `TraceDerives`, `trace_a16` and `TraceDerives.iff_traces` in `TraceEquations.lean`. Trace congruence includes parallel, both merges, restriction and projection. Completeness uses the existing typed Fig. 11 rules and AIP over all depths for closed guarded terms. Consumed by Eq. (27). |
+| Def. 16, Eq. (27) | A network i is safe if E_DNK^tr derives `⟦s⟧⊕i ≡ ⟦s⟧`. This corresponds to trace inclusion in the translation. | **Formalized.** `EquationalSafety`, `safe_iff_trace_inclusion` and `Formula.equational_iff` in `TraceSafety.lean`. Both endpoints are admitted and share a declaration system via trace-preserving recursive renaming. `UsesAlphabet` requires the network's observed traces to lie in 𝒜, including all packet pairs and syntactic reconfiguration labels actually observed. No global finite derivative closure is required. |
+| Def. 17 | Add true, negated actions and positive finite repetition. The given desugaring sums all letters for true and the unequal letters of the same kind for a negated literal. | **Partial.** `ExtendedRegexp.desugar`, `mem_desugar_except`, `mem_desugar_repeat` and `ExtendedRegexp.equational_iff` cover every explicit desugaring clause. The printed action grammar permits nested negation, but the printed desugaring gives no corresponding clause. Eq. (28) also uses n=0 despite the positive repetition syntax. |
+| Eq. (28), §V positive dual | Distributed controller excludes the S2→H4 packet action after arbitrary length-n prefixes for every n. Positive `⟨r⟩true` is phrased as inclusion of witness behavior in i. | Open. The two firewall queries use a separate extraction workflow. The Figure 5 regression additionally proves absence of an initial external packet flow and exhibits a synchronized post-reconfiguration flow in source SOS. |
+| §V queries | Dup-free reachability/non-reachability test the NetKAT composition against zero. Waypointing uses the inclusion equation in the tool audit. The intended correctness requires relating extracted policies to reachable configurations and scope of the bounded verdict. | The firewall predicates (34) and (35) have executable checks and specification theorems on supported inputs. General feasible head/tail and waypoint correspondence remain open. |
+
+`SourceTrace` and `Program.Trace` in `SourceTrace.lean` use the existing
+`Steps` relation with consecutive packet lists. One-sided sends and receives
+remain visible in the source. A network over the paper safety alphabet
+must eliminate those observations, for example by restriction after
+synchronization. `Program.Compiled.trace_iff` transfers whole traces with
+those same packet lists. `TraceSafety.check_correct` in
+`TraceSafetyCheck.lean` checks supplied forbidden words via exact symbolic
+moves and supplied-packet execution. It proves the full finite-formula
+property. Its completeness bound is the longest forbidden word, as proved
+by `safe_iff_project_maxLength`, and the checker assumes correct restriction
+classifiers and finite compilation support. `check_iff_equationalSafety`
+adds the alphabet condition for Eq. (27). The general head/tail pipeline
+remains separate.
+
+The Eq. (27) endpoints are admitted programs. As in Lemma 9, the internal
+normal forms are algebraic proof witnesses. The word-sum proof does not
+expose those witnesses as admitted programs or SOS residuals.
 
 ## Head and tail
 

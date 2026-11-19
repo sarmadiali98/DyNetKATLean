@@ -165,14 +165,16 @@ bisimilarity, including name independence and agreement with source closure.
 
 ### Phase 5 — Full safety-property theory
 
-Implement Definitions 12–17, including desugaring, word sums, finite
-alphabets, guarded universal process, prefix avoidance and A16. Prove
-language preservation, the trace semantics of the translation, and the
-conditions under which trace inclusion is equivalent to the derivability
-equation. Prove a bounded decision theorem for finite forbidden words and
-validate both sides of the firewall workflow and the distributed-controller
-example. Track the full all-length statement separately from an individual
-bounded verdict. Include the positive reachability dual used in §V.
+Definitions 12–16 and Eq. (27) are proved over the admitted `CtxPkt`
+domain and the supplied finite safety alphabet. Definition 17's explicit
+desugaring clauses are formalized. The word checker is exact for supplied
+forbidden words using certified symbolic moves, with a completeness bound
+given by the longest forbidden word. Its semantic specification and trace
+derivability theorem use all source traces. See the
+[v4 crosswalk](docs/PAPER_CONFORMANCE.md#safety-property-theory).
+The general positive reachability dual, the padded formula family for
+the distributed controllers and general feasible head/tail extraction
+remain open.
 
 ### Phase 6 — Extraction and normalization
 

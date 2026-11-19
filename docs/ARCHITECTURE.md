@@ -234,6 +234,21 @@ The architecture mirrors the paper's structure:
 7. **Soundness & completeness** — Theorem 1.
 8. **Safety** — Definitions 12–17.
 
+`SourceTrace.lean` exposes the source `Steps` relation at the admitted
+program boundary. Action words preserve packet observations and
+communication labels. `TraceEquations.lean` extends the typed
+equational theory with A16 and proves trace completeness using finite
+word sums and AIP. `TraceSafety.lean` renders the translated specification
+as an admitted program and proves Eq. (27). `TraceEnvironment.lean`
+puts the specification and implementation in one declaration system
+without changing either trace language.
+
+`TraceSafetyCheck.lean` checks supplied words through certified
+symbolic moves. The source theorem applies without a compiled graph.
+The structural head/tail workflow for the two firewall queries keeps its
+own extraction specification.
+
+
 ## Python role
 
 Python handles only:

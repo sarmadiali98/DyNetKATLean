@@ -22,7 +22,7 @@ def PaperSyntax (extended : Bool) : DyNetKAT → Prop
 
 abbrev BaseSyntax := PaperSyntax false
 
-private theorem PaperSyntax.of_base {extended : Bool} {p : DyNetKAT}
+theorem PaperSyntax.of_base {extended : Bool} {p : DyNetKAT}
     (base : BaseSyntax p) : PaperSyntax extended p := by
   induction p <;> simp only [PaperSyntax, Bool.false_eq_true, false_and] at *
   case nSeq => exact base

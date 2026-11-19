@@ -670,4 +670,50 @@ private def restrictedFirewallStrategy :=
   | .unknown (.boundedProjection 2) (some .cannotIdentifyState) => true
   | _ => false)
 
+-- Figure 5 source observations corresponding to the v4 polarities in
+-- (34) and (35). Inspect the exact source moves, including the handshake.
+private def firewallInput : CtxPkt := fun _ => .v0
+private def firewallOutput : CtxPkt := Packet.update firewallInput .port .v1
+private def opening : TraceSafety.Letter := .rcfg "secConReq" .id
+private def externalFlow : TraceSafety.Letter := .packet firewallInput firewallOutput
+
+theorem firewall_no_initial_external_flow (σ τ : CtxPkt) (outside : σ .port = .v0) :
+    ¬ SourceTrace rawFirewall (.restrict Set.univ rawInit) [.packet σ τ] := by
+  rw [sourceTrace_restrict_iff]
+  rintro ⟨run, _⟩
+  obtain ⟨q, step, _⟩ := sourceTrace_cons_actionStep.mp run
+  obtain ⟨l, target, mem, realizes, _⟩ :=
+    ((closedRowExact.source_steps compiledFirewall.corr) [σ] [] (.packet σ τ) [] [τ]).2 q step
+  simp only [closedRow, List.mem_cons, List.not_mem_nil, or_false] at mem
+  rcases mem with mem | mem | mem | mem | mem | mem <;> cases mem <;> cases realizes
+  · rename_i ev
+    have sem := (historySemantics_singleton_iff_packetSemantics ..).mp ev
+    obtain ⟨mid, incoming, _⟩ := (seq_sem ..).mp sem
+    have port := ((fieldTest_sem ..).mp incoming).1
+    rw [outside] at port
+    cases port
+  · rename_i ev
+    exact seq_drop_right enter σ τ ((historySemantics_singleton_iff_packetSemantics ..).mp ev)
+
+theorem firewall_post_reconfiguration_trace :
+    SourceTrace rawFirewall (.restrict Set.univ rawInit)
+      [opening.action, externalFlow.action] := by
+  rw [sourceTrace_restrict_iff]
+  refine ⟨?_, by simp [opening, externalFlow, TraceSafety.Letter.action, actionAllowed]⟩
+  obtain ⟨p, openingStep, openCorr⟩ :=
+    ((closedRowExact.source_steps compiledFirewall.corr) [] [] opening.action [] []).1
+      (.visible (.rcfg "secConReq" .id)) openState (by simp [closedRow]) .rcfg
+  have permits : Semantics allow firewallInput firewallOutput :=
+    (seq_sem ..).mpr ⟨firewallInput, (fieldTest_sem ..).mpr ⟨rfl, rfl⟩, (assign1_sem ..).mpr rfl⟩
+  obtain ⟨q, packetStep, _⟩ :=
+    ((openRowExact.source_steps openCorr) [firewallInput] [] externalFlow.action [] [firewallOutput]).1
+      (.visible (.packet allow)) openState (by simp [openRow])
+      (.packet ((historySemantics_singleton_iff_packetSemantics ..).mpr permits))
+  exact sourceTrace_cons_actionStep.mpr ⟨p, openingStep,
+    sourceTrace_cons_actionStep.mpr ⟨q, packetStep, sourceTrace_nil ..⟩⟩
+
+-- Exact bounded-word checks, using the existing guarded symbolic oracle.
+#guard TraceSafety.check compiledFirewall firewallChecks concreteSupport concreteRootValid [[externalFlow]]
+#guard !(TraceSafety.check compiledFirewall firewallChecks concreteSupport concreteRootValid [[opening, externalFlow]])
+
 end DyNetKAT.DyNetKAT.GraphSafetyTests
