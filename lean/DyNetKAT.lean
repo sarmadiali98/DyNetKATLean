@@ -1,5 +1,6 @@
 import KATLean.Native
 import DyNetKAT.NetKAT.NativeEquations
+import DyNetKAT.NetKAT.SymbolicDerives
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Insert

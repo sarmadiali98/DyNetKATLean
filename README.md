@@ -9,10 +9,16 @@ Boolean decision trees and symbolic partial derivatives.
 abstract KATLean model. `nativeSolver_derives` yields a NetKAT derivation
 under any substitution of primitive actions and tests.
 
-The decision and its completeness proof use symbolic guards. KATch, concrete
-packet enumeration and truth-assignment enumeration are outside this proof
-and decision path. The packet-aware NetKAT frontend and the migration of
-concrete NetKAT core decisions remain separate milestones.
+`netkatNativeEquiv` adds executable symbolic equivalence for the current
+dup-free NetKAT AST. KATLean → native KAT → symbolic packet frontend →
+NetKAT equivalence → E_NK → E_DNK is the resulting proof path.
+`netkatNativeEquiv_correct` is independent of KATch, concrete packet
+enumeration and Boolean valuation enumeration. The E_NK completeness proof
+uses symbolic closure and the field-level partition axiom. The public
+`netkatEquiv` and `netkatIsZero` APIs serve graph normalization and safety
+through the symbolic checker. `legacyNetkatEquiv` is the regression oracle.
+
+See the [symbolic frontend and dependency audit](docs/NETKAT_AUDIT.md).
 
 See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the theorem chain and proof construction.
 
@@ -25,10 +31,10 @@ Boolean guards are canonical decision trees; the solver explores satisfiable
 symbolic regions instead of abstract truth assignments.
 See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the exact theorem scope and tests.
 
-The target is KATLean → native equivalence → symbolic dup-free NetKAT E_NK
-→ E_DNK. The packet-aware frontend and replacement of the existing concrete
-NetKAT decision/normalization routes remain open. The generic engine does not
-by itself decide packet equations such as assignment overwrite.
+The symbolic frontend interprets packet equations such as assignment
+overwrite before comparing the encoded relations through `KATLean.Native`.
+Graph and safety checks share the symbolic zero checker. The executable
+Lemma 5 normalizer still constructs complete packet pairs.
 
 Faithful Lean 4 formalization of the **original DyNetKAT calculus**:
 *DyNetKAT: An Algebra of Dynamic Networks* (arXiv:2102.10035v4, FoSSaCS 2022).
@@ -70,8 +76,8 @@ coverage, general-schema work and the optional full NetKAT history/dup extension
 The core formalization follows the source grammar, `Program` / reachable
 `Residual` boundary, SOS semantics, KATLean, dup-free E_NK, E_DNK and
 certified analysis. KATch is an optional experiment and comparison point.
-Core theorems use Lean proofs. Replacing legacy concrete decisions with the
-native symbolic packet layer is now a completion obligation.
+Core equivalence theorems use Lean proofs over the native symbolic packet
+layer.
 
 ## Structure
 

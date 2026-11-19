@@ -1,38 +1,10 @@
-------------------------------------------------------------------------
--- Verified NetKAT semantic-equivalence and zero checkers (finite packet
--- domain)
---
--- `netkatEquiv p q` decides whether the dup-free NetKAT policies `p` and
--- `q` have identical relational semantics on the existing finite packet
--- domain `CtxPkt`.  Both policies are executed on every packet of the
--- finite domain (no hardcoded domain size: the enumeration comes from the
--- existing `Fintype CtxPkt` instance) and their complete computed output
--- sets are compared.  The evaluator's `unsupported` result is kept
--- distinct from a supported empty output set.
---
--- `netkatEquiv_correct` relates the Boolean result unconditionally to
--- semantic equivalence, reusing `execute_correct` from `Evaluator.lean`.
--- Both directions are proved; no new axioms are introduced.
---
--- The zero checker `netkatIsZero p` decides whether `p` denotes the empty
--- relation by reusing `netkatEquiv` against `drop`; `netkatIsZero_correct`
--- relates the Boolean result unconditionally to emptiness of the relational
--- semantics over the finite packet domain.
---
--- Scope boundary: the theorem establishes semantic equivalence for the
--- existing finite-domain, dup-free NetKAT AST only.  It does NOT
--- establish derivability in `E_NK`, completeness of the `E_NK` axiom
--- system, DyNetKAT bisimilarity, safety of arbitrary DyNetKAT systems,
--- or scalability to realistic packet domains.
---
--- Note: this Mathlib snapshot (v4.19.0) has no `Finset.all`, so the
--- checker is expressed as a decidable universal check over the packet
--- universe, which is computably equivalent to the intended
--- `Finset.univ.all` formulation.
-------------------------------------------------------------------------
-
 import DyNetKAT.NetKAT.Evaluator
 import DyNetKAT.NetKAT.HistorySemantics
+import DyNetKAT.NetKAT.Symbolic
+
+/-! The public NetKAT equality and zero checks use the verified native
+symbolic frontend. The exhaustive checker is retained as a regression
+oracle, and the pointwise API supports concrete execution certificates. -/
 
 namespace DyNetKAT.NetKAT
 
@@ -80,7 +52,7 @@ def netkatEquivAt (p q : NetKAT) (σ : CtxPkt) : Bool :=
     Both policies are evaluated on every possible input packet and their
     complete output sets are compared; the result is `true` exactly when
     all output sets agree. -/
-def netkatEquiv (p q : NetKAT) : Bool :=
+def legacyNetkatEquiv (p q : NetKAT) : Bool :=
   decide (∀ σ : CtxPkt, netkatEquivAt p q σ = true)
 
 ------------------------------------------------------------------------
@@ -127,9 +99,9 @@ theorem netkatEquivAt_complete (p q : NetKAT) (σ : CtxPkt)
 /-- Main correctness theorem: the checker returns `true` exactly when both
     policies have identical relational semantics on every packet of the
     finite domain. -/
-theorem netkatEquiv_correct
+theorem legacyNetkatEquiv_correct
     (p q : NetKAT) :
-    netkatEquiv p q = true ↔
+    legacyNetkatEquiv p q = true ↔
       ∀ σ τ : CtxPkt,
         Semantics p σ τ ↔ Semantics q σ τ := by
   constructor
@@ -139,6 +111,14 @@ theorem netkatEquiv_correct
   · intro h
     show decide (∀ σ : CtxPkt, netkatEquivAt p q σ = true)
     exact decide_eq_true (fun σ => netkatEquivAt_complete p q σ (h σ))
+
+/-- Core dup-free NetKAT equivalence. -/
+def netkatEquiv (p q : NetKAT) : Bool :=
+  netkatNativeEquiv p q
+
+theorem netkatEquiv_correct (p q : NetKAT) :
+    netkatEquiv p q = true ↔ ∀ σ τ : CtxPkt, Semantics p σ τ ↔ Semantics q σ τ :=
+  netkatNativeEquiv_correct p q
 
 ------------------------------------------------------------------------
 -- The zero checker

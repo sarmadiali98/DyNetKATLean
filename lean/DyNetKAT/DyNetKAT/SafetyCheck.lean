@@ -104,72 +104,23 @@ theorem netkatNonemptyAt_iff (p : NetKAT) (σ : CtxPkt) (B : Finset CtxPkt)
     (hB : execute p σ = .supported B) : netkatNonemptyAt p σ ↔ B ≠ ∅ := by
   simp only [netkatNonemptyAt, hB]
 
-/-- Finite-domain existence probe: is there an input packet on which `p`
-    computes a nonempty output set?  Decided by the existing decidable
-    existential over the `Fintype CtxPkt` packet universe; no hardcoded
-    enumeration is introduced. -/
-def netkatExistsNonempty (p : NetKAT) : Bool :=
-  decide (∃ σ : CtxPkt, netkatNonemptyAt p σ)
-
-/-- Soundness of the probe: a positive probe yields a concrete packet
-    pair witnessing a nonempty relational semantics. -/
-theorem netkatExistsNonempty_sound (p : NetKAT)
-    (h : netkatExistsNonempty p = true) : ∃ σ τ : CtxPkt, Semantics p σ τ := by
-  obtain ⟨σ, hσ⟩ := decide_eq_true_iff.mp h
-  obtain ⟨B, hB, corr⟩ := execute_correct p σ
-  rw [netkatNonemptyAt_iff p σ B hB] at hσ
-  obtain ⟨τ, hτ⟩ := Finset.nonempty_iff_ne_empty.mpr hσ
-  exact ⟨σ, τ, (corr τ).mpr hτ⟩
-
-/-- Completeness of the probe: a nonempty relational semantics yields a
-    positive probe. -/
-theorem netkatExistsNonempty_complete (p : NetKAT)
-    (h : ∃ σ τ : CtxPkt, Semantics p σ τ) : netkatExistsNonempty p = true := by
-  obtain ⟨σ, τ, hsem⟩ := h
-  obtain ⟨B, hB, corr⟩ := execute_correct p σ
-  refine decide_eq_true ⟨σ, ?_⟩
-  rw [netkatNonemptyAt_iff p σ B hB]
-  intro hBempty
-  have hτB : τ ∈ B := (corr τ).mp hsem
-  rw [hBempty] at hτB
-  exact Finset.not_mem_empty τ hτB
-
-/-- Finite-domain existential characterization of the zero checker:
-    `netkatIsZero p = false` exactly when some packet pair of the finite
-    packet domain (ranged over via the existing `Fintype CtxPkt`
-    instance) lies in the relational semantics of `p`.  This is the
-    dual of `netkatIsZero_correct` and is proved constructively through
-    the executable probe `netkatExistsNonempty`. -/
+/-- Rejection of equality with drop gives a related packet pair. -/
 theorem netkatIsZero_false_iff_exists (p : NetKAT) :
     netkatIsZero p = false ↔ ∃ σ τ : CtxPkt, Semantics p σ τ := by
-  constructor
-  · intro h
-    cases hprobe : netkatExistsNonempty p with
-    | true => exact netkatExistsNonempty_sound p hprobe
-    | false =>
-        exfalso
-        have hz : netkatIsZero p = true := by
-          rw [netkatIsZero_iff_empty_execute]
-          intro σ
-          have hnex : ¬ ∃ ν : CtxPkt, netkatNonemptyAt p ν := by
-            intro hex
-            have htrue : netkatExistsNonempty p = true := decide_eq_true hex
-            rw [hprobe] at htrue
-            exact Bool.noConfusion htrue
-          obtain ⟨B, hB⟩ := execute_supported p σ
-          have hBempty : B = ∅ := by
-            rw [Finset.eq_empty_iff_forall_not_mem]
-            intro τ hτ
-            refine hnex ⟨σ, ?_⟩
-            rw [netkatNonemptyAt_iff p σ B hB]
-            exact Finset.nonempty_iff_ne_empty.mp ⟨τ, hτ⟩
-          rw [hB, hBempty]
-        rw [hz] at h
-        exact Bool.noConfusion h
-  · rintro ⟨σ, τ, hsem⟩
-    cases hz : netkatIsZero p with
-    | false => rfl
-    | true => exact absurd hsem (((netkatIsZero_correct p).mp hz) σ τ)
+  change netkatNativeEquiv p .drop = false ↔ _
+  rw [netkatNativeEquiv_false_iff]
+  simp [Semantics]
+
+/-- Symbolic nonemptiness probe for the packet relation. -/
+def netkatExistsNonempty (p : NetKAT) : Bool := !netkatIsZero p
+
+theorem netkatExistsNonempty_sound (p : NetKAT)
+    (h : netkatExistsNonempty p = true) : ∃ σ τ : CtxPkt, Semantics p σ τ :=
+  (netkatIsZero_false_iff_exists p).mp (by simpa [netkatExistsNonempty] using h)
+
+theorem netkatExistsNonempty_complete (p : NetKAT)
+    (h : ∃ σ τ : CtxPkt, Semantics p σ τ) : netkatExistsNonempty p = true :=
+  by simpa [netkatExistsNonempty] using (netkatIsZero_false_iff_exists p).mpr h
 
 ------------------------------------------------------------------------
 -- §2 The property policy `in · H · out`

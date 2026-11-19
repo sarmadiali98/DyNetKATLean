@@ -9,10 +9,16 @@ Boolean decision trees and symbolic partial derivatives.
 abstract KATLean model. `nativeSolver_derives` yields a NetKAT derivation
 under any substitution of primitive actions and tests.
 
-The decision and its completeness proof use symbolic guards. KATch, concrete
-packet enumeration and truth-assignment enumeration are outside this proof
-and decision path. The packet-aware NetKAT frontend and the migration of
-concrete NetKAT core decisions remain separate milestones.
+`netkatNativeEquiv` adds executable symbolic equivalence for the current
+dup-free NetKAT AST. KATLean → native KAT → symbolic packet frontend →
+NetKAT equivalence → E_NK → E_DNK is the resulting proof path.
+`netkatNativeEquiv_correct` is independent of KATch, concrete packet
+enumeration and Boolean valuation enumeration. The E_NK completeness proof
+uses symbolic closure and the field-level partition axiom. The public
+`netkatEquiv` and `netkatIsZero` APIs serve graph normalization and safety
+through the symbolic checker. `legacyNetkatEquiv` is the regression oracle.
+
+See the [symbolic frontend and dependency audit](docs/NETKAT_AUDIT.md).
 
 See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the theorem chain and proof construction.
 
@@ -22,11 +28,13 @@ The core path is KATLean → verified native equivalence → symbolic dup-free
 NetKAT → E_NK → E_DNK. Native pure-KAT algebraic completeness now uses finite
 partial-derivative systems and the existing symbolic search.
 
-The next mathematical milestone is a packet-aware symbolic frontend with
-verified field constraints and assignments. Prove semantic preservation and
-packet-aware completeness, then connect its results to NetKAT derivations.
-Replacing the legacy core decision and normalization dependencies follows that
-bridge. Executable witnesses and Boolean-tree sharing remain separate work.
+The symbolic frontend covers the dup-free AST. Equality and zero checks in
+graph and safety analysis now use it. The direct E_NK proof discharges
+input observations with field-level partitions and certifies star through
+the symbolic fixed point. The executable Lemma 5 normalizer still constructs
+complete packet pairs. Concrete execution remains available for computing
+outputs of supplied inputs. Concrete witness extraction and diagram sharing
+are future work.
 [Design and enumeration audit](docs/NATIVE_KAT.md).
 
 ## Objective and sources

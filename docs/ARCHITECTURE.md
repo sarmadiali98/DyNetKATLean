@@ -9,10 +9,16 @@ Boolean decision trees and symbolic partial derivatives.
 abstract KATLean model. `nativeSolver_derives` yields a NetKAT derivation
 under any substitution of primitive actions and tests.
 
-The decision and its completeness proof use symbolic guards. KATch, concrete
-packet enumeration and truth-assignment enumeration are outside this proof
-and decision path. The packet-aware NetKAT frontend and the migration of
-concrete NetKAT core decisions remain separate milestones.
+`netkatNativeEquiv` adds executable symbolic equivalence for the current
+dup-free NetKAT AST. KATLean → native KAT → symbolic packet frontend →
+NetKAT equivalence → E_NK → E_DNK is the resulting proof path.
+`netkatNativeEquiv_correct` is independent of KATch, concrete packet
+enumeration and Boolean valuation enumeration. The E_NK completeness proof
+uses symbolic closure and the field-level partition axiom. The public
+`netkatEquiv` and `netkatIsZero` APIs serve graph normalization and safety
+through the symbolic checker. `legacyNetkatEquiv` is the regression oracle.
+
+See the [symbolic frontend and dependency audit](NETKAT_AUDIT.md).
 
 See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 
@@ -28,11 +34,12 @@ subset-state search and a complete all-relational-model correctness theorem.
 It does not import concrete packet evaluation or experimental backends.
 The algebra-only `KATLean` import stays below it.
 
-The packet frontend and replacement of the current concrete decision path are
-pending; the architecture described below includes those legacy components.
-256-packet enumeration is excluded from native solver correctness, but remains
-in legacy fixed-model C/D uses until replacement. KATch is experimental only
-and unused. [Exact scope and audit](NATIVE_KAT.md).
+The packet frontend compiles syntax to a reduced ordered diagram for a binary
+packet relation. Identity, tests and assignments impose one-hot field constraints.
+Composition renames endpoints to a common middle bank and existentially projects
+it out. Star reaches a canonical diagram fixed point using relational squaring.
+The final diagram is embedded as a native KAT test on packet-pair encodings.
+[Exact scope and audit](NETKAT_AUDIT.md).
 
 ## Current architecture
 

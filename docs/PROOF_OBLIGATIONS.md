@@ -9,10 +9,16 @@ Boolean decision trees and symbolic partial derivatives.
 abstract KATLean model. `nativeSolver_derives` yields a NetKAT derivation
 under any substitution of primitive actions and tests.
 
-The decision and its completeness proof use symbolic guards. KATch, concrete
-packet enumeration and truth-assignment enumeration are outside this proof
-and decision path. The packet-aware NetKAT frontend and the migration of
-concrete NetKAT core decisions remain separate milestones.
+`netkatNativeEquiv` adds executable symbolic equivalence for the current
+dup-free NetKAT AST. KATLean → native KAT → symbolic packet frontend →
+NetKAT equivalence → E_NK → E_DNK is the resulting proof path.
+`netkatNativeEquiv_correct` is independent of KATch, concrete packet
+enumeration and Boolean valuation enumeration. The E_NK completeness proof
+uses symbolic closure and the field-level partition axiom. The public
+`netkatEquiv` and `netkatIsZero` APIs serve graph normalization and safety
+through the symbolic checker. `legacyNetkatEquiv` is the regression oracle.
+
+See the [symbolic frontend and dependency audit](NETKAT_AUDIT.md).
 
 See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 
@@ -27,9 +33,9 @@ See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 | Exact KATLean relational-model correspondence | `interp_iff_accept`, `guarded_model_correct`, `relational_iff_language` |
 | Complete decision for all relational KAT models | `decideEquiv_correct` |
 | Equality in all arbitrary abstract KATs / axiomatic completeness | Proved by `algebraicallyEquivalent_iff_equational` and `decideEquiv_iff_algebraicallyEquivalent` |
-| Symbolic packet constraints, updates, AST and Derives bridge | Next milestone. The pure-KAT substitution bridge is proved by `nativeSolver_derives` |
-| Remove legacy core concrete-enumeration C/D uses | Open; see [audit](NATIVE_KAT.md#existing-packet-enumeration-audit) |
-| Executable inequivalence witness | Existence proved; extraction open |
+| Symbolic packet constraints, updates, AST and Derives bridge | Proved by `compileSymbolic_correct`, `netkatNativeEquiv_correct` and `netkatNativeEquiv_iff_derives`. The last uses field-level partitions and symbolic closure. |
+| Remove legacy core concrete-enumeration C/D uses | Category C migrated. Category D remains in the complete-pair normalizer. See [audit](NETKAT_AUDIT.md). |
+| Inequivalence witness | `distinguishingGuard_sat` decides satisfiability of the symbolic counterexample constraints. Concrete witness existence is proved and extraction is open. |
 
 The new native proof uses neither `CtxPkt` enumeration nor KATch. The older
 fixed-model normalization and decisions remain verified but retain enumeration.

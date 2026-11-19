@@ -3,6 +3,11 @@ import KATLean.Native.Search
 
 namespace KATLean.Native
 
+/-- Compare already-compiled output guards. An action-free frontend can use
+the same comparison without rebuilding the guards from test syntax. -/
+def compareOutputGuards (p q : Boolean.Guard n) : Bool :=
+  decide (p = q)
+
 variable {T A : Type} [BooleanAlphabet T] [Encodable T] [Encodable A] [Fintype A] [DecidableEq T] [DecidableEq A]
 
 abbrev StatePair (T A : Type) := State T A × State T A
@@ -49,12 +54,12 @@ def explored (p q : Expr T A) : Finset (StatePair T A) :=
 
 /-- Canonical symbolic output comparison, without truth-assignment enumeration. -/
 def sameOutput (pair : StatePair T A) : Bool :=
-  decide (outputGuard pair.1 = outputGuard pair.2)
+  compareOutputGuards (outputGuard pair.1) (outputGuard pair.2)
 
 omit [Fintype A] [DecidableEq T] [DecidableEq A] in
 theorem sameOutput_correct (pair : StatePair T A) : sameOutput pair = true ↔
     ∀ atom, output pair.1 atom = output pair.2 atom := by
-  rw [sameOutput, decide_eq_true_eq]
+  rw [sameOutput, compareOutputGuards, decide_eq_true_eq]
   constructor
   · intro h atom
     rw [← outputGuard_correct, ← outputGuard_correct, h]

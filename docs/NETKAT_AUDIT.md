@@ -9,27 +9,117 @@ Boolean decision trees and symbolic partial derivatives.
 abstract KATLean model. `nativeSolver_derives` yields a NetKAT derivation
 under any substitution of primitive actions and tests.
 
-The decision and its completeness proof use symbolic guards. KATch, concrete
-packet enumeration and truth-assignment enumeration are outside this proof
-and decision path. The packet-aware NetKAT frontend and the migration of
-concrete NetKAT core decisions remain separate milestones.
+`netkatNativeEquiv` adds executable symbolic equivalence for the current
+dup-free NetKAT AST. KATLean → native KAT → symbolic packet frontend →
+NetKAT equivalence → E_NK → E_DNK is the resulting proof path.
+`netkatNativeEquiv_correct` is independent of KATch, concrete packet
+enumeration and Boolean valuation enumeration. The E_NK completeness proof
+uses symbolic closure and the field-level partition axiom. The public
+`netkatEquiv` and `netkatIsZero` APIs serve graph normalization and safety
+through the symbolic checker. `legacyNetkatEquiv` is the regression oracle.
 
 See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 
+## Packet enumeration at baseline `84bdeab`
+
+| Category | Location | Dependency |
+|---|---|---|
+| A. Semantics and examples | `Packet.lean`, `Semantics.lean`, `HistorySemantics.lean` | `CtxPkt` models total field valuations. The semantics quantify over packets and finite paths without computing a Cartesian product. The concrete `Fintype` and `ctxPkt_card` provide the exhaustive universe to callers. |
+| B. Regression oracle | Concrete Lean evaluator/decision tests and Python differential checks | Compare outputs or relations over the fixed finite model. |
+| C. Current equivalence decision | `Decision.lean` | `netkatEquivAt` compares two concrete output sets. `netkatEquiv` runs it on every input. `netkatIsZero` applies the same procedure to `drop`. |
+| C. Core callers | `DyNetKAT/SafetyCheck.lean`, `DyNetKAT/GraphNormalization.lean` | Executable guard feasibility, nonzero step tests and static reachability use `netkatIsZero`. |
+| D. Lemma 5 | `NormalForm.lean`, `Normalization.lean` | Complete tests and updates populate diagonal, filtered, assignment and composed relations. `netkatNormalForm` queries the evaluator on every input. `packetList` constructs the product of field domains, and `orderedPairs` filters the full input/output product. The derivation proof uses that partition and finite star stabilization. |
+| E. Concrete evaluation | `Evaluator.lean`, `HistoryEvaluator.lean`, executable reachability and Python packet/tree APIs | Compute actual outputs from a supplied packet. The evaluator's star bound is `Fintype.card CtxPkt`. Retain the concrete execution API. |
+| E. History proof wrappers | `Derives.historySound` and `normalize_history_correct` | Use the legacy equality-correctness and history theorems as proof bridges. They do not execute the old checker. |
+| E. Experimental certificates | `BackendCertificate.lean`, `EquationalCertificate.lean`, `KATch.lean`, experimental imports and backend scripts | Whole-relation certificate validation, legacy-exact fallback and experimental semantic comparisons stay outside the symbolic solver. |
+
 ## Native engine and remaining concrete dependencies
 
-The generic KAT layer now has an executable partial-derivative decision with
-proved soundness and completeness for the pure KAT equational theory.
-It imports no `CtxPkt` evaluator or KATch. The
-[construction and CtxPkt usage audit](NATIVE_KAT.md) distinguishes regression,
-concrete evaluation, proof-foundation and current decision uses.
+The public `netkatEquiv` delegates to `netkatNativeEquiv`.
+`netkatIsZero` compares against drop. Graph normalization, safety, and the
+full-relation nonemptiness probe use these symbolic checks. Category C has
+been migrated for the dup-free core.
 
-This does not yet replace `netkatEquiv`, finite-pair normalization/Lemma 5,
-or the NetKAT decisions consumed by graph normalization and safety checks.
-Those C/D uses remain a core migration obligation. Future release work must
-supply packet-aware symbolic constraints/updates and the existing AST/Derives
-bridge, rather than generalize exhaustive enumeration to larger schemas.
-The concrete evaluator will remain available for regression and examples.
+- `legacyNetkatEquiv` runs the old checker on every input as a regression
+  oracle. `netkatEquivAt` compares concrete outputs for a supplied input.
+- `execute`, concrete star, and history execution still compute outputs
+  for a supplied packet, including in SOS execution and concrete certificates.
+- Category D remains in `netkatNormalForm` (every input),
+  `NormalForm.orderedPairs` (the input/output product), and the executable
+  Lemma 5 normalization and its legacy proof (complete packet partitions and
+  bounded stabilization). Head normalization in `HeadNormalForm.lean` consumes the
+  complete-pair normal form, and its derivation uses `normalize_derives`.
+- Experimental certificates can still enumerate complete relations for
+  validation. They are outside the native checker and its proof chain.
+
+### Direct E_NK completeness
+
+`derives_of_equiv_starFree` reduces both policies under a single arbitrary
+input observation. Its branch sets are generated from the policy syntax and
+reached assignments. The proof lifts agreement under these observations by
+induction on fields, distributing the local `paMatchAll` sum at each step.
+It constructs no list of complete input packets or packet pairs.
+
+`exists_derives_starFree_symbolic` maintains a star-free syntactic witness
+below the original star during canonical diagram squaring. At closure,
+the star-free completeness theorem derives the right-star fixed-point
+equation, and `lfpR` yields the reverse inequality.
+`netkatNativeEquiv_iff_derives` uses these two proofs. Neither the
+semantic correctness theorem nor the direct derivation bridge depends on
+the concrete evaluator, `packetList`, the bounded-star policy, or the Lemma 5
+normalizer.
+
+### Symbolic representation and theorem dependencies
+
+`KATLean.NetKAT.Symbolic.Schema` numbers the bits for individual field/value
+pairs. Each field must have exactly one active value in each endpoint bank.
+Identity relates equal values fieldwise. An assignment constrains the written
+output field and requires equality on all other fields. This gives symbolic
+overwrite and independence under composition. Native tests use the input bank
+and may contain arbitrary Boolean connectives. A complete-test node conjoins
+the field equalities of its single supplied packet.
+
+`Guard.rename` substitutes bit indices. `Guard.project` performs existential
+forgetting by disjoining a node's two branches when its bit is eliminated.
+`Schema.seq_correct` proves this implements relational composition.
+The frontend recognizes empty and identity guards before joining, using
+the proved annihilation and identity laws of packet relations.
+`Schema.star_correct` proves that successive relational squaring from
+identity plus the body reaches precisely reflexive-transitive closure.
+Canonical diagram equality controls the executable loop. The proof measures
+the finite set of rejected Boolean observations, without constructing a
+list of observations or selecting a loop cutoff.
+
+`compileSymbolic_correct` states that arbitrary bit valuations satisfy the
+compiled diagram exactly when their two endpoint banks encode related packets.
+This also rejects malformed encodings. `compileNative` reifies the whole
+relation diagram as a single test, with an empty primitive action alphabet.
+`netkatNativeEquiv` invokes the native solver's shared
+`compareOutputGuards` directly on compiled diagrams.
+`netkatNativeEquiv_eq_solver` proves that this specialization returns the
+same Boolean as `Native.decideEquiv` on the reified terms.
+The reified native search has one reached pair, because its alphabet has
+no actions. Packet composition and star are handled by the symbolic frontend
+before the final comparison. `distinguishingGuard` is the symmetric difference
+of relation diagrams, with certified satisfiability exactly when the solver
+rejects.
+
+### Performance sanity
+
+The focused end-to-end check after specializing the native output comparison
+reported the following timings in Lean's evaluator. Timing includes both
+packet compilations and their comparison. Node counts are reported for the
+left/right final guards. Branch counts count decision nodes only.
+
+| Example | Guard nodes | Branch nodes | Native support sizes | Native pairs | Wall time |
+|---|---:|---:|---:|---:|---:|
+| Same-field overwrite | 4,760 / 4,760 | 1,955 / 1,955 | 1 / 1 | 1 | 1.62 s |
+| Three-step route under nested star | 2,456 / 2,456 | 995 / 995 | 1 / 1 | 1 | 24.28 s |
+
+These are single runs under concurrent verification. Reduced decision trees
+can duplicate subdiagrams, and the final node count excludes intermediate
+composition diagrams. The measurements establish an executable path and
+identify compilation as the main cost in the migrated callers.
 
 ## Current scope and roadmap
 

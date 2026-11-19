@@ -9,10 +9,16 @@ Boolean decision trees and symbolic partial derivatives.
 abstract KATLean model. `nativeSolver_derives` yields a NetKAT derivation
 under any substitution of primitive actions and tests.
 
-The decision and its completeness proof use symbolic guards. KATch, concrete
-packet enumeration and truth-assignment enumeration are outside this proof
-and decision path. The packet-aware NetKAT frontend and the migration of
-concrete NetKAT core decisions remain separate milestones.
+`netkatNativeEquiv` adds executable symbolic equivalence for the current
+dup-free NetKAT AST. KATLean → native KAT → symbolic packet frontend →
+NetKAT equivalence → E_NK → E_DNK is the resulting proof path.
+`netkatNativeEquiv_correct` is independent of KATch, concrete packet
+enumeration and Boolean valuation enumeration. The E_NK completeness proof
+uses symbolic closure and the field-level partition axiom. The public
+`netkatEquiv` and `netkatIsZero` APIs serve graph normalization and safety
+through the symbolic checker. `legacyNetkatEquiv` is the regression oracle.
+
+See the [symbolic frontend and dependency audit](NETKAT_AUDIT.md).
 
 See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 
@@ -25,10 +31,13 @@ partial-derivative correctness, finite closure, soundness and completeness.
 See [NATIVE_KAT.md](NATIVE_KAT.md) for exact scope, construction comparisons,
 Boolean-alphabet costs and the proof of abstract equational completeness.
 
-The intended path is KATLean → native solver → packet-aware symbolic frontend
-→ NetKAT Derives/E_NK → E_DNK. The generic solver is delivered; the packet-aware
-frontend is pending. Existing fixed-model evaluator and normalization imports
-below remain legacy dependencies, not dependencies of native correctness.
+The symbolic frontend uses the lookup/update laws of `PacketModel` for
+primitive transfers. Its schema has finite field names and a shared finite value
+domain, matching the existing generic `Packet` representation. Primitive
+assignments constrain output bits on the written field and preserve the other
+fields. The existing KATLean relation laws justify compositional correctness and
+the reflexive-transitive closure proof. `Denotation.lean` exposes the relational
+interpretation independently of the evaluator compatibility module.
 
 ## Scope and dependencies
 

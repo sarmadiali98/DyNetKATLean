@@ -106,10 +106,9 @@ in the new correctness proof. `Ordering.lean` supplies compact injective syntax
 codes for executable ordering; structural insertion sort preserves kernel
 reduction for `by decide` proof examples.
 
-**KATch:** not used by the core. **CtxPkt exhaustive enumeration:** not used by
-the native solver. **Boolean valuation enumeration:** removed from the core
-native solver. Existing concrete NetKAT C/D dependencies listed below remain;
-no packet migration is claimed.
+The native KAT and dup-free NetKAT equivalence paths use symbolic guards.
+KATch remains experimental. The concrete evaluator and legacy Lemma 5
+normalizer supply separate packet execution and normal form APIs.
 
 ## Construction audit and choice
 
@@ -234,37 +233,16 @@ is not a solver-only benchmark. No scalability claim follows from it.
 
 ## Existing packet enumeration audit
 
-Categories: A = regression/example; B = concrete evaluator; C = proof foundation;
-D = current equivalence/analysis decision path. A module may have multiple roles.
-
-| Existing location/use | Category | Status |
-|---|---|---|
-| `NetKAT/Packet.lean`: `Fintype CtxPkt`, cardinality 256 | B/C | Concrete schema and legacy finite-model proofs retained |
-| `NetKAT/Evaluator.lean`: finite reachability, bounded star and stabilization | B/C | Exact concrete evaluator retained; not imported by native proofs |
-| `NetKAT/Decision.lean`: `netkatEquivAt`, `netkatEquiv`, `netkatIsZero` | D (correctness C) | Legacy concrete decision path; replacement pending |
-| `NetKAT/NormalForm.lean`, `Normalization.lean`: `Finset.univ` over complete tests, `packetList`, complete pair sums and Lemma 5 | C | Existing fixed-model normalization proof retained; symbolic replacement pending |
-| `NetKAT/Interpretation.lean`: `execute_katInterp`; history/evaluator bridges and process `NetKATBridge.lean` | B/C | Semantics and finite-evaluation correspondence retained; no native proof dependency |
-| `NetKAT/Axioms.lean`: decidable-equivalence to derivation bridge | C/D | Existing concrete bridge retained; generic native results do not yet feed it |
-| `DyNetKAT/GraphNormalization.lean`, `SafetyCheck.lean`: zero/equivalence calls | D | Existing admitted-program analysis retains concrete NetKAT dependencies |
-| Optional backend/equational certificates: complete packet relation checks | B/D experimental | Preserved outside core imports; unused by native solver |
-| `test_*.lean` concrete policy comparisons and examples | A | Useful future differential oracle |
-
-Therefore the **new native correctness proof** is independent of all concrete
-packet enumeration. The **existing project as a whole** still contains C/D
-uses and does not yet meet the long-term no-enumeration architecture.
+The [NetKAT audit](NETKAT_AUDIT.md) lists the original exhaustive dependencies
+and the migrated paths. The public equality and zero callers are symbolic.
+The direct E_NK completeness bridge uses single-input branch reduction,
+field-level partition, and exact symbolic closure. The legacy complete-pair
+normalizer remains the executable witness for the existing Lemma 5 API.
 
 ## Next obligations
 
-1. Verify symbolic packet constraints and field updates using KATLean packet
-   laws. Generic KAT action variables cannot express assignment overwrite or
-   field commutation.
-2. Add a semantics-preserving frontend for the existing dup-free NetKAT AST
-   and prove packet-aware completeness and its NetKAT Derives/E_NK bridge.
-3. Migrate legacy core C/D uses and retain concrete evaluation for regressions
-   and concrete model checks. Preserve Program/Residual and literal
-   communication-payload boundaries.
-4. Add executable counterexamples, DAG sharing and a frontier worklist as
-   separate milestones.
+Concrete counterexample extraction, diagram sharing, and migrating consumers
+of complete-pair normal forms are separate milestones.
 
 KATch is experimental only and unused. No DyNetKAT SOS rule, admission predicate,
 communication payload rule, or existing normalization algorithm changes here.
@@ -329,4 +307,4 @@ Baseline: `69cc3a6`. Verification completed:
 
 This prior checkpoint introduced symbolic guards. Its commit message was
 `replace native KAT valuation enumeration with symbolic guards`.
-The packet-aware frontend remains a separate milestone.
+That symbolic-guard checkpoint preceded the packet-aware frontend.

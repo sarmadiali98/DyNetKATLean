@@ -815,4 +815,135 @@ theorem normalize_derives (p : NetKAT) : Derives p (normalize p) :=
 theorem exists_derives_pairSum (p : NetKAT) : ∃ q, IsPairSum q ∧ Derives p q :=
   ⟨normalize p, normalize_pairSum p, normalize_derives p⟩
 
+/-- Reduce a star-free policy starting from one known packet. The
+resulting branches arise from the policy's syntax and assignments. -/
+private theorem branch_derives_pairSum (p : NetKAT) (free : StarFree p)
+    (α β : CtxPkt) :
+    ∃ xs, Derives (NormalForm.ofSummand (α, β) ⨟ p) (pairSum xs) := by
+  induction p generalizing α β with
+  | drop => exact ⟨[], .seqZero _⟩
+  | id => exact ⟨[(α, β)], .trans (.seqOne _) (.symm (.plusZero _))⟩
+  | test p => exact branch_post_test α β _ (write_testResult β p)
+  | completeTest γ => exact branch_post_test α β _ (write_completeTest_result β γ)
+  | assign1 f v =>
+    exact ⟨[(α, Packet.update β f v)], .trans (.symm (.seqAssoc _ _ _))
+      (.trans (.seqCongr (.refl _) (write_assign β f v)) (.symm (.plusZero _)))⟩
+  | union p q ihp ihq =>
+    obtain ⟨xs, hx⟩ := ihp free.1 α β
+    obtain ⟨ys, hy⟩ := ihq free.2 α β
+    exact ⟨xs ++ ys, .trans (.seqDistL _ _ _) (.trans (.unionCongr hx hy) (pairSum_append xs ys))⟩
+  | seq p q ihp ihq =>
+    obtain ⟨xs, hx⟩ := ihp free.1 α β
+    obtain ⟨ys, hy⟩ := sumOn_to_pairs (xs := xs)
+      (f := fun a => NormalForm.ofSummand a ⨟ q)
+      (fun (a, b) _ => ihq free.2 a b)
+    exact ⟨ys, .trans (.seqAssoc _ _ _) (.trans (.seqCongr hx (.refl _))
+      (.trans (sumOn_seq_right xs NormalForm.ofSummand q) hy))⟩
+  | star => exact False.elim free
+
+private theorem word_snoc (f : FieldName → NetKAT) (fs : List FieldName) (g : FieldName) :
+    Derives (word f (fs ++ [g])) (word f fs ⨟ f g) := by
+  induction fs with
+  | nil => exact .trans (.seqOne _) (.symm (.oneSeq _))
+  | cons x xs ih => exact .trans (.seqCongr (.refl _) ih) (.seqAssoc _ _ _)
+
+private theorem lift_field_agreement (readPart p q : NetKAT) (f : FieldName)
+    (h : ∀ v, Derives ((readPart ⨟ NetKAT.fieldTest f v) ⨟ p)
+      ((readPart ⨟ NetKAT.fieldTest f v) ⨟ q)) :
+    Derives (readPart ⨟ p) (readPart ⨟ q) := by
+  have reduce (t : NetKAT) :
+      Derives (sumOn values (fun v => (readPart ⨟ NetKAT.fieldTest f v) ⨟ t)) (readPart ⨟ t) :=
+    .trans (.symm (sumOn_seq_right _ _ _))
+      (.seqCongr (.trans (.symm (sumOn_seq_left _ _ _))
+        (.trans (.seqCongr (.refl _) (.paMatchAll f)) (.seqOne _))) (.refl _))
+  exact (reduce p).symm.trans ((sumOn_congr (fun v _ => h v)).trans (reduce q))
+
+/-- Discharge observations one field at a time using PA-MATCH-ALL.
+The induction ranges over fields and the local value list only. -/
+private theorem lift_read_agreement {p q : NetKAT} (fs gs : List FieldName) (σ : CtxPkt)
+    (distinct : (fs ++ gs).Nodup)
+    (h : ∀ τ, (∀ f ∈ fs, τ f = σ f) →
+      Derives (word (reads τ) (fs ++ gs) ⨟ p) (word (reads τ) (fs ++ gs) ⨟ q)) :
+    Derives (word (reads σ) fs ⨟ p) (word (reads σ) fs ⨟ q) := by
+  induction gs generalizing fs σ with
+  | nil => simpa using h σ (fun _ _ => rfl)
+  | cons g gs ih =>
+    apply lift_field_agreement _ p q g
+    intro v
+    let τ := Packet.update σ g v
+    have hdistinct : (fs ++ [g] ++ gs).Nodup := by simpa [List.append_assoc] using distinct
+    have hg : g ∉ fs := by
+      have hn := (List.nodup_append.mp distinct).2.2
+      exact fun hm => hn hm (by simp)
+    have agree (f : FieldName) (hf : f ∈ fs) : τ f = σ f :=
+      Packet.get_update_diff σ g f v (fun eq => hg (eq ▸ hf))
+    have more := ih (fs ++ [g]) τ hdistinct (by
+      intro ρ hρ
+      have hh := h ρ (fun f hf => (hρ f (List.mem_append_left _ hf)).trans (agree f hf))
+      simpa [List.append_assoc] using hh)
+    have tail : Derives (word (reads τ) (fs ++ [g]))
+        (word (reads σ) fs ⨟ NetKAT.fieldTest g v) := by
+      refine (word_snoc _ fs g).trans (.seqCongr (word_congr ?_) ?_)
+      · intro f hf
+        rw [reads, reads, agree f hf]
+        exact .refl _
+      · rw [reads, show τ g = v from Packet.get_update_same σ g v]
+        exact .refl _
+    exact (.seqCongr tail.symm (.refl p) : Derives _ _).trans
+      (more.trans (.seqCongr tail (.refl q)))
+
+/-- Packet-specific completeness for star-free syntax. Compare branches
+under one input observation, then discharge those observations using only
+the field-level partition axiom. -/
+theorem derives_of_equiv_starFree {p q : NetKAT} (hp : StarFree p) (hq : StarFree q)
+    (h : ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ) : Derives p q := by
+  have prefixed (σ : CtxPkt) :
+      Derives (.completeTest σ ⨟ p) (.completeTest σ ⨟ q) := by
+    obtain ⟨xs, hx⟩ := branch_derives_pairSum p hp σ σ
+    obtain ⟨ys, hy⟩ := branch_derives_pairSum q hq σ σ
+    have hs : IsPairSum (pairSum xs) := ⟨xs, rfl⟩
+    have ht : IsPairSum (pairSum ys) := ⟨ys, rfl⟩
+    have eq : Derives (pairSum xs) (pairSum ys) :=
+      hs.derives_of_equiv ht (fun x y => (hx.sound x y).symm.trans
+        ((seq_sem _ _ x y).trans ((exists_congr fun z => and_congr_right' (h z y)).trans
+          ((seq_sem _ _ x y).symm.trans (hy.sound x y)))))
+    exact (.seqCongr (read_write_self σ).symm (.refl p) : Derives _ _).trans
+      (hx.trans (eq.trans (hy.symm.trans (.seqCongr (read_write_self σ) (.refl q)))))
+  have lifted := lift_read_agreement (p := p) (q := q) [] NetKAT.fieldEnum examplePacket
+    (by simpa using NetKAT.fieldEnum_nodup) (by
+      intro σ _
+      exact (.seqCongr (read_eq σ).symm (.refl p) : Derives _ _).trans
+        ((prefixed σ).trans (.seqCongr (read_eq σ) (.refl q))))
+  exact (Derives.oneSeq p).symm.trans (lifted.trans (.oneSeq q))
+
+private theorem below_seq_left (p : NetKAT) {a b : NetKAT} (h : Below a b) :
+    Below (p ⨟ a) (p ⨟ b) :=
+  .trans (.symm (.seqDistL _ _ _)) (.seqCongr (.refl _) h)
+
+/-- The first symbolic star approximation lies below the original star. -/
+theorem star_seed_below (p : NetKAT) : Derives ((.id ⊕ p) ⊕ .star p) (.star p) := by
+  have unfoldLeft := below_of_derives (Derives.unrollL p)
+  have hid := below_trans (below_left _ _) unfoldLeft
+  have hp : Below p (.star p) :=
+    below_trans (below_of_derives (.symm (.seqOne p)))
+      (below_trans (below_seq_left p hid) (below_trans (below_right _ _) unfoldLeft))
+  exact below_union hid hp
+
+/-- A symbolic squaring round preserves the algebraic upper bound by star. -/
+theorem star_square_below {p r : NetKAT} (h : Derives (r ⊕ .star p) (.star p)) :
+    Derives ((r ⊕ (r ⨟ r)) ⊕ .star p) (.star p) := by
+  have hright := below_trans (below_right _ _) (below_of_derives (Derives.unrollR p))
+  have hstar : Below (.star p ⨟ .star p) (.star p) :=
+    Derives.lfpR (below_union (.plusIdem _) hright)
+  exact below_union h (below_trans (below_seq_right h r)
+    (below_trans (below_seq_left (.star p) h) hstar))
+
+/-- A right-star fixed point below star is derivably equal to star. -/
+theorem derives_star_of_fixed {p r : NetKAT}
+    (lower : Derives (r ⊕ .star p) (.star p)) (fixed : Derives (.id ⊕ (r ⨟ p)) r) :
+    Derives (.star p) r := by
+  have upper : Below (.id ⨟ .star p) r := Derives.lfpR (below_of_derives fixed)
+  exact derives_of_below
+    (.trans (.unionCongr (.symm (.oneSeq _)) (.refl _)) upper) lower
+
 end DyNetKAT.NetKAT
