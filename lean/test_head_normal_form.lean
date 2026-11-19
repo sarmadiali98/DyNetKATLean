@@ -17,11 +17,9 @@ example (σ τ : CtxPkt) (different : σ ≠ τ) :
     ∃ a b : HeadSummand, a ∈ packetHeads .id p ∧ b ∈ packetHeads .id p ∧ a ≠ b := by
   refine ⟨.packet σ σ p, .packet τ τ p, ?_, ?_, ?_⟩
   · apply List.mem_map.mpr
-    exact ⟨(σ, σ), (NormalForm.mem_orderedPairs ..).mpr
-      ((netkatNormalForm_mem ..).mpr rfl), rfl⟩
+    exact ⟨(σ, σ), (mem_symbolicPairs ..).mpr rfl, rfl⟩
   · apply List.mem_map.mpr
-    exact ⟨(τ, τ), (NormalForm.mem_orderedPairs ..).mpr
-      ((netkatNormalForm_mem ..).mpr rfl), rfl⟩
+    exact ⟨(τ, τ), (mem_symbolicPairs ..).mpr rfl, rfl⟩
   · intro h
     have eq := congrArg HeadSummand.label h
     cases eq

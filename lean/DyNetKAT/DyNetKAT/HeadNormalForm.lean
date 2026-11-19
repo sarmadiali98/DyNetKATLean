@@ -108,7 +108,7 @@ private theorem distribute (env : RecEnv) (f : DyNetKAT → DyNetKAT)
     exact .trans (choice _ _) (.trans (.choiceCongr (head b) ih) (render_append ..))
 
 def packetHeads (z : NetKAT) (p : DyNetKAT) : HeadNormalForm :=
-  (netkatNormalForm z).orderedPairs.map fun (α, π) => .packet α π p
+  (symbolicPairs z).map fun (α, π) => .packet α π p
 
 private theorem pairSum_prefix (env : RecEnv) (p : DyNetKAT)
     (xs : List (CompleteTest × CompleteAssignmentValuation)) :

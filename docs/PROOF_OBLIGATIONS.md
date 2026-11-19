@@ -34,11 +34,12 @@ See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 | Complete decision for all relational KAT models | `decideEquiv_correct` |
 | Equality in all arbitrary abstract KATs / axiomatic completeness | Proved by `algebraicallyEquivalent_iff_equational` and `decideEquiv_iff_algebraicallyEquivalent` |
 | Symbolic packet constraints, updates, AST and Derives bridge | Proved by `compileSymbolic_correct`, `netkatNativeEquiv_correct` and `netkatNativeEquiv_iff_derives`. The last uses field-level partitions and symbolic closure. |
-| Remove legacy core concrete-enumeration C/D uses | Category C migrated. Category D remains in the complete-pair normalizer. See [audit](NETKAT_AUDIT.md). |
+| Remove legacy core concrete-enumeration C/D uses | Categories C and D are migrated. Equality uses native symbolic equivalence. Lemma 5 and Lemma 9 use accepted-pair materialization from the symbolic diagram. See [audit](NETKAT_AUDIT.md). |
 | Inequivalence witness | `distinguishingGuard_sat` decides satisfiability of the symbolic counterexample constraints. Concrete witness existence is proved and extraction is open. |
 
-The new native proof uses neither `CtxPkt` enumeration nor KATch. The older
-fixed-model normalization and decisions remain verified but retain enumeration.
+The native proof and the symbolic normalization proofs are independent
+of complete packet enumeration and KATch. The exhaustive checker and
+normalizer remain available for differential regression.
 
 Paper identifiers use [arXiv:2102.10035v4](https://arxiv.org/pdf/2102.10035v4).
 The [conformance inventory](PAPER_CONFORMANCE.md) gives the complete
@@ -63,7 +64,7 @@ Backend experiments are tracked under optional tooling below.
 | N2 Fig. 3 denotation | Give the dup-free relational clauses and their history correspondence. Prove that dup-free history outputs have the original tail, and that their possible heads are exactly the relational outputs. Consequently singleton observations suffice for all histories in this fragment. Full history semantics with dup is an optional supporting extension. |
 | N3 Evaluation | Preserve the concrete evaluator as reference/model tooling. Core decisions must use the verified native symbolic packet layer, independently of exhaustive packet enumeration. Prove exact evaluation for every constructor on a general schema. For star, executable closure iff an arbitrary finite execution exists. Prove stabilization/termination from the finite domain, including nested stars. Lift zero and equivalence in both directions to the history denotation where applicable. `eval_correct`, `execute_star_correct` and the decision theorems currently cover the fixed model. |
 | N4 Fig. 4 E_NK soundness | Inductive derivations for the dup-free printed laws and well-sorted equational reasoning, with a proof for each constructor. Prove both least-fixpoint rules and PA-MATCH-ALL over the declared domain. PA-DUP-FILTER-COMM belongs to the optional full NetKAT extension. Lift fixed-domain `Derives.sound/historySound` for the restricted system. |
-| N5 Fig. 4 completeness and Lemma 5 | Lemma 5 is proved for dup-free `CtxPkt` policies by `exists_derives_pairSum`. `normalize_derives_starFree` uses the finite packet partition, Boolean test and assignment expansions, and complete-branch multiplication. `starFree_complete` and the bounded stabilization argument lift it to arbitrary star, yielding `normalize_derives`. The general finite-schema result and dup-free language-model construction remain core work. Full history ground completeness belongs to the optional full NetKAT extension. |
+| N5 Fig. 4 completeness and Lemma 5 | Lemma 5 is proved for dup-free `CtxPkt` policies by `exists_derives_pairSum`. `normalize_derives` uses the proved symbolic star fixed point to obtain a star-free representative, and field-local packet laws to derive equality with the sum from accepting paths. `symbolic_normalize_pairSum` recovers the original paper syntax. Lemma 9 uses the same list through `packetHeads_correct`. The general finite-schema result and dup-free language-model construction remain core work. Full history ground completeness belongs to the optional full NetKAT extension. |
 | N6 Query correctness | Prove interpretation-preserving elaboration for declared field names, values, input guard, and every term constructor in the dup-free fragment. Establish zero/equivalence against the mathematical query semantics with a proved Lean evaluator, including completeness and termination. See the [query and experimental-tooling audit](NETKAT_AUDIT.md). |
 
 ### KATLean foundation

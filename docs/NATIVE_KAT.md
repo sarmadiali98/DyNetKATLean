@@ -2,7 +2,7 @@
 
 ## Status and exact scope
 
-Current development baseline: `123fb24 replace native KAT valuation enumeration with symbolic guards`.
+The current normalization work starts from `99050e5 add verified symbolic dup-free NetKAT equivalence solver`. The pure KAT guard milestone was `123fb24 replace native KAT valuation enumeration with symbolic guards`.
 `import KATLean.Native` exposes an executable, sound-and-complete decision
 procedure for the pure KAT equational theory over the native solver's finite
 alphabets. It also decides guarded-string language equality, equality in all
@@ -107,8 +107,10 @@ codes for executable ordering; structural insertion sort preserves kernel
 reduction for `by decide` proof examples.
 
 The native KAT and dup-free NetKAT equivalence paths use symbolic guards.
-KATch remains experimental. The concrete evaluator and legacy Lemma 5
-normalizer supply separate packet execution and normal form APIs.
+The same symbolic packet compiler serves executable Lemma 5 and
+DyNetKAT packet-head normalization. The concrete evaluator serves execution
+on a supplied packet. The exhaustive normalizer is retained for regression.
+KATch remains experimental.
 
 ## Construction audit and choice
 
@@ -236,16 +238,27 @@ is not a solver-only benchmark. No scalability claim follows from it.
 The [NetKAT audit](NETKAT_AUDIT.md) lists the original exhaustive dependencies
 and the migrated paths. The public equality and zero callers are symbolic.
 The direct E_NK completeness bridge uses single-input branch reduction,
-field-level partition, and exact symbolic closure. The legacy complete-pair
-normalizer remains the executable witness for the existing Lemma 5 API.
+field-level partition, and exact symbolic closure. Lemma 5 uses
+`symbolicNormalForm` to retain the compiled relation diagram. For the exact
+paper witness, `symbolicPairs` exports one representative of each accepting
+path. It traverses a skipped bit once and sets it to false. Endpoint banks
+are one-hot. An accepting representative retaining only true bits of an
+original witness must agree with that witness on every field. This proves
+that path representatives suffice to recover exactly the related packet
+pairs (`mem_acceptedPairs`). Decoding searches the value list for each
+field. It never scans the complete packet universe.
+
+`symbolic_normalize_correct` compares the emitted pair sum with an
+equationally derived star-free representative. `packetHeads_correct` uses
+this derivation at a DyNetKAT packet prefix. Dense output still pays for
+each required complete-pair branch.
 
 ## Next obligations
 
-Concrete counterexample extraction, diagram sharing, and migrating consumers
-of complete-pair normal forms are separate milestones.
-
-KATch is experimental only and unused. No DyNetKAT SOS rule, admission predicate,
-communication payload rule, or existing normalization algorithm changes here.
+Concrete counterexample extraction, diagram sharing and lifting the
+`Derives` syntax to general schemas are separate milestones.
+KATch remains experimental. This normalization migration preserves DyNetKAT
+SOS, admission and communication payload equality.
 
 ## Prior checkpoint verification (69cc3a6)
 

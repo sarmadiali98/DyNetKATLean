@@ -33,8 +33,12 @@ See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the exact theorem scope and tests.
 
 The symbolic frontend interprets packet equations such as assignment
 overwrite before comparing the encoded relations through `KATLean.Native`.
-Graph and safety checks share the symbolic zero checker. The executable
-Lemma 5 normalizer still constructs complete packet pairs.
+Graph and safety checks share the symbolic zero checker. Lemma 5 and
+DyNetKAT packet-head normalization use the same symbolic packet compiler
+and exact star fixed point. They emit the paper's complete-pair branches
+from accepting diagram paths. `CtxPkt` supplies the concrete field schema
+and execution model. The exhaustive equivalence checker and normalizer are
+regression oracles. KATch remains experimental.
 
 Faithful Lean 4 formalization of the **original DyNetKAT calculus**:
 *DyNetKAT: An Algebra of Dynamic Networks* (arXiv:2102.10035v4, FoSSaCS 2022).

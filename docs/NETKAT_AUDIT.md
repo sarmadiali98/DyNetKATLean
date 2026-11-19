@@ -20,6 +20,22 @@ through the symbolic checker. `legacyNetkatEquiv` is the regression oracle.
 
 See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 
+## Lemma 5 dependency audit at `99050e5`
+
+| Role | Location | Enumeration dependency |
+|---|---|---|
+| A. Theorem statement | `IsPairSum`, `exists_derives_pairSum`, `AtomicPrefix.packet` | A complete test and complete assignment denote one ordered pair. The theorem requires a finite sum of those branches. Its statement uses no enumeration. |
+| B. Construction | `netkatNormalForm`, `NormalForm.orderedPairs`, `normalize` | Run the evaluator on every input in `Finset.univ`. Construct the Cartesian product of `packetList` with itself to order and filter the resulting pairs. |
+| C. Correctness | `netkatNormalForm_mem`, `normalize_correct`, `normalize_derives` | Use concrete evaluator correctness, the ordered-pair coverage proof, packet partition expansions, and packet-count stabilization for star. |
+| D. Head consumer | `HeadNormalForm.packetHeads`, `packetHeads_correct`, `normalizeHead_aux` | Build a head for each ordered pair. The equational proof imports the legacy `normalize_derives`. |
+| E. Regressions | `test_netkat_normalization.lean`, `test_head_normal_form.lean` | Exercise finite-set and exact syntax compatibility, including some explicit packet-partition lemmas. |
+
+The exact atom type gives an output-size lower bound. For example, identity
+has one distinct diagonal pair per packet. An explicit complete-pair sum or
+a list of atomic identity heads must emit all those branches. An output-sensitive
+constructor can omit rejected pairs, avoid packet or Boolean valuation
+universes, and retain the symbolic relation until explicit syntax is requested.
+
 ## Packet enumeration at baseline `84bdeab`
 
 | Category | Location | Dependency |
@@ -44,11 +60,24 @@ been migrated for the dup-free core.
   oracle. `netkatEquivAt` compares concrete outputs for a supplied input.
 - `execute`, concrete star, and history execution still compute outputs
   for a supplied packet, including in SOS execution and concrete certificates.
-- Category D remains in `netkatNormalForm` (every input),
-  `NormalForm.orderedPairs` (the input/output product), and the executable
-  Lemma 5 normalization and its legacy proof (complete packet partitions and
-  bounded stabilization). Head normalization in `HeadNormalForm.lean` consumes the
-  complete-pair normal form, and its derivation uses `normalize_derives`.
+- Category D has migrated for Lemma 5 and Lemma 9. `symbolicNormalForm`
+  retains the symbolic relation diagram. `symbolicPairs` walks accepting
+  paths and decodes their one-hot endpoint banks. It skips unconstrained
+  bits and searches only field-local value lists. `netkatNormalForm` is a
+  finite-set view of that list. `normalize` and `HeadNormalForm.packetHeads`
+  use it to build the unchanged complete-pair syntax.
+- `legacyNetkatNormalForm`, `legacyNormalize` and
+  `NormalForm.orderedPairs` retain the old exhaustive path for differential
+  checks. The standalone diagonal-partition and packet-count stabilization
+  lemmas remain as compatibility results. The new correctness theorems use
+  exact symbolic star closure and field-local partition via `paMatchAll`.
+- The declaration-body audit in `test_symbolic_normalization.lean` follows
+  project constants from both normalization paths. It checks the new
+  symbolic dependencies and rejects the concrete evaluators, Cartesian
+  renderer, legacy correctness lemmas, packet-universe instances and
+  explicit Boolean valuation backend. The field-domain sums in
+  KATLean's `match_all` and `matchAll_katInterp` range only over values of
+  one field.
 - Experimental certificates can still enumerate complete relations for
   validation. They are outside the native checker and its proof chain.
 
@@ -133,7 +162,7 @@ theorem targets. The dated Task 2N/2R notes below record earlier findings.
 |---|---|---|
 | Mathematical model | Generic uniform-codomain `Packet` utilities. `CtxPkt` and the policy AST use `tpSrc`, `tpDst`, `swId`, `port`, each with values 0, 1, 8 and 9. `ctxPkt_card` proves cardinality 256. The history relation and SOS use this instance. | Finite field schema with a finite value domain per field, typed field tests and updates, packet and history semantics and proved complete tests/assignments for every schema. |
 | Evaluation and decision | `eval_correct`, `execute_star_correct`, `netkatIsZero_correct`, `netkatEquiv_correct` and their history bridges. Exact star on the current universe uses a cardinality argument and fixpoint detection. | Verified native symbolic packet equivalence for finite schemas, independent of exhaustive packet enumeration. Keep the concrete evaluator as a reference model. NetKAT star remains independent of the DyNetKAT projection depth. |
-| Algebra | `Derives` and soundness for the fixed dup-free system. Executable `normalize` produces the finite pair sum of every dup-free `CtxPkt` term, including star, with proved semantic equality. Pair-sum extensionality and star elimination from derivable stabilization are kernel checked. | `normalize_derives_starFree` and `normalize_derives` prove normalization in the existing equational system. `exists_derives_pairSum` closes Lemma 5 on `CtxPkt`. General finite schemas remain open. Full Figure 4 history/dup coverage is an optional supporting extension. |
+| Algebra | `Derives` and soundness for the fixed dup-free system. Executable `normalize` emits the exact pair sum from accepting symbolic paths. Pair-sum extensionality and algebraic star elimination from symbolic closure are kernel checked. | `normalize_derives_starFree` and `normalize_derives` prove normalization in the existing equational system. `exists_derives_pairSum` closes Lemma 5 on `CtxPkt`. General finite schemas remain open. Full Figure 4 history/dup coverage is an optional supporting extension. |
 | Functional query coverage | Fixed-domain relation decisions and the initial/post-event firewall query. | General-domain reachability, non-reachability and waypoint inclusion, in the original dynamic pipeline and as standalone NetKAT decisions. Verify the original backend encodings as separate comparisons. |
 | Scalability | Small finite regression universe and differential corpus. | Complete the original FatTree cases through 1,344 switches with measurements of time and memory and baseline comparisons. |
 

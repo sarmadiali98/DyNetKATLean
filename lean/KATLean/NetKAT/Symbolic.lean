@@ -56,6 +56,86 @@ def Represents (g : s.DiagramGuard) (r : Rel (F → V)) : Prop :=
   ∀ v : s.Bits, eval g.1 v = true ↔
     ∃ p q, s.Matches 0 v p ∧ s.Matches 1 v q ∧ r.holds p q
 
+private def decodeField (fallback : V) (b : Fin 3) (v : s.Bits) : F → V :=
+  fun f => (s.values.find? (fun a => v (s.bit b f a))).getD fallback
+
+private theorem decodeField_correct {b : Fin 3} {v : s.Bits} {p : F → V}
+    (fallback : V) (h : s.Matches b v p) : s.decodeField fallback b v = p := by
+  funext f
+  unfold decodeField
+  cases he : s.values.find? (fun a => v (s.bit b f a)) with
+  | none =>
+    have hn := List.find?_eq_none.mp he (p f) (s.values_complete (p f))
+    exact False.elim (hn (by simp [h f (p f)]))
+  | some a =>
+    have ht : v (s.bit b f a) = true := List.find?_some (p := fun a => v (s.bit b f a)) he
+    rw [h f a, decide_eq_true_eq] at ht
+    exact ht.symm
+
+private theorem matches_of_true_subset {b : Fin 3} {v w : s.Bits} {p q : F → V}
+    (hp : s.Matches b v p) (hq : s.Matches b w q)
+    (sub : ∀ i, w i = true → v i = true) : p = q := by
+  funext f
+  have h : v (s.bit b f (q f)) = true := sub _ (by simp [hq f (q f)])
+  rwa [hp f (q f), decide_eq_true_eq] at h
+
+section
+
+variable [DecidableEq F]
+
+/-- Cache the decoded fields once. Packet expressions can then read the
+same packet repeatedly without following the decision path again. -/
+private def decodeBank (fallback : V) (b : Fin 3) (v : s.Bits) : F → V :=
+  let fields := s.fields.map fun f => (f, s.decodeField fallback b v f)
+  fun f => (fields.lookup f).getD fallback
+
+omit [DecidableEq V] in
+private theorem lookup_fields (fields : List F) (p : F → V) (f : F) (h : f ∈ fields) :
+    (fields.map fun g => (g, p g)).lookup f = some (p f) := by
+  induction fields with
+  | nil => simp at h
+  | cons g gs ih =>
+    by_cases e : f = g
+    · subst g
+      simp
+    · have hm : f ∈ gs := by simpa [e] using h
+      simp [List.lookup_cons, beq_false_of_ne e, ih hm]
+
+private theorem decodeBank_correct {b : Fin 3} {v : s.Bits} {p : F → V}
+    (fallback : V) (h : s.Matches b v p) : s.decodeBank fallback b v = p := by
+  funext f
+  simp only [decodeBank, s.decodeField_correct fallback h,
+    lookup_fields _ _ _ (s.fields_complete f), Option.getD_some]
+
+/-- Materialize only the packet pairs on accepting diagram paths.
+The fallback is unreachable for represented relations. -/
+def acceptedPairs (fallback : V) (g : s.DiagramGuard) : List ((F → V) × (F → V)) :=
+  (Guard.acceptingReps g.1).map fun v =>
+    (s.decodeBank fallback 0 v, s.decodeBank fallback 1 v)
+
+theorem mem_acceptedPairs (fallback : V) {g : s.DiagramGuard} {r : Rel (F → V)}
+    (h : s.Represents g r) (p q : F → V) :
+    (p, q) ∈ s.acceptedPairs fallback g ↔ r.holds p q := by
+  constructor
+  · intro hm
+    obtain ⟨w, hw, eq⟩ := List.mem_map.mp hm
+    obtain ⟨a, b, ha, hb, step⟩ := (h w).mp (Guard.acceptingReps_sound hw)
+    rw [s.decodeBank_correct fallback ha, s.decodeBank_correct fallback hb] at eq
+    cases eq
+    exact step
+  · intro step
+    let banks : Fin 3 → F → V := fun b => if b = 0 then p else q
+    let v := s.encode banks
+    have hp : s.Matches 0 v p := by simpa [v, banks] using s.matches_encode banks 0
+    have hq : s.Matches 1 v q := by simpa [v, banks] using s.matches_encode banks 1
+    obtain ⟨w, hw, sub⟩ := Guard.acceptingReps_complete v ((h v).mpr ⟨p, q, hp, hq, step⟩)
+    obtain ⟨a, b, ha, hb, _⟩ := (h w).mp (Guard.acceptingReps_sound hw)
+    exact List.mem_map.mpr ⟨w, hw, Prod.ext
+      ((s.decodeBank_correct fallback ha).trans (s.matches_of_true_subset hp ha sub).symm)
+      ((s.decodeBank_correct fallback hb).trans (s.matches_of_true_subset hq hb sub).symm)⟩
+
+end
+
 private def every (xs : List X) (f : X → Guard n) : Guard n :=
   xs.foldr (fun x acc => conj (f x) acc) truth
 

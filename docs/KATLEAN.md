@@ -230,10 +230,13 @@ proves its semantic bridge by AST induction. This gives an acyclic
 foundation for the derivation induction.
 
 `normalize_katInterp` applies `Derives.katSound` to the existing
-`normalize_derives` theorem. Lemma 5's derivation is interpreted in the
-same algebra. The normalization algorithm and supported fragment keep
-their existing definitions. Algebraic validity alone does not establish
-syntactic derivability or general-schema completeness.
+`normalize_derives` theorem. Its proof uses the symbolic star-free
+representative and compares it with the explicit sum constructed from
+accepting paths. `derives_of_equiv_starFree` discharges that comparison by
+packet laws and field-local partition. The statement of Lemma 5 and its
+dup-free syntax are unchanged. The path traversal is generic over the
+symbolic schema. The existing `Derives` system supplies the concrete
+`CtxPkt` instance.
 
 ## DyNetKAT integration
 

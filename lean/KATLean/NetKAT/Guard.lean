@@ -104,4 +104,70 @@ theorem eval_project (d : Diagram n) (erase v : Fin n → Bool) :
         · exact Or.inl ⟨fun i => w i.succ, ht, by simpa [eval, hv] using h⟩
         · exact Or.inr ⟨fun i => w i.succ, ht, by simpa [eval, hv] using h⟩
 
+private def prependBit (b : Bool) (w : Fin n → Bool) (i : Fin (n + 1)) : Bool :=
+  if h : i = 0 then b else w (i.pred h)
+
+@[simp] private theorem prependBit_zero (b : Bool) (w : Fin n → Bool) :
+    prependBit b w 0 = b := by simp [prependBit]
+
+@[simp] private theorem prependBit_succ (b : Bool) (w : Fin n → Bool) (i : Fin n) :
+    prependBit b w i.succ = w i := by simp [prependBit]
+
+/-- One accepting representative per true path. Skipped bits are set to
+false, so traversal never expands a don't-care bit into two valuations. -/
+def acceptingReps : Diagram n → List (Fin n → Bool)
+  | .leaf false => []
+  | .leaf true => [fun _ => false]
+  | .skip child => (acceptingReps child).map (prependBit false)
+  | .node low high =>
+    (acceptingReps low).map (prependBit false) ++ (acceptingReps high).map (prependBit true)
+
+theorem acceptingReps_sound {d : Diagram n} {w : Fin n → Bool} (h : w ∈ acceptingReps d) :
+    eval d w = true := by
+  induction d with
+  | leaf b =>
+    cases b
+    · exact False.elim (List.not_mem_nil h)
+    · rfl
+  | skip child ih =>
+    obtain ⟨u, hu, rfl⟩ := List.mem_map.mp h
+    simpa only [eval, prependBit_succ] using ih hu
+  | node low high ihl ihr =>
+    rcases List.mem_append.mp h with h | h
+    · obtain ⟨u, hu, rfl⟩ := List.mem_map.mp h
+      simpa [eval] using ihl hu
+    · obtain ⟨u, hu, rfl⟩ := List.mem_map.mp h
+      simpa [eval] using ihr hu
+
+private theorem cases_true_subset {v : Fin (n + 1) → Bool} {w : Fin n → Bool} {b : Bool}
+    (hb : b = true → v 0 = true) (hw : ∀ i, w i = true → v i.succ = true) :
+    ∀ i, prependBit b w i = true → v i = true := by
+  intro i
+  refine Fin.cases ?_ (fun j => ?_) i
+  · simpa only [prependBit_zero] using hb
+  · simpa only [prependBit_succ] using hw j
+
+/-- The representative selected by an accepting valuation retains only
+true bits from that valuation. An exactly-one encoding therefore cannot
+lose its active endpoint bits. -/
+theorem acceptingReps_complete {d : Diagram n} (v : Fin n → Bool) (h : eval d v = true) :
+    ∃ w ∈ acceptingReps d, ∀ i, w i = true → v i = true := by
+  induction d with
+  | leaf b =>
+    cases b
+    · cases h
+    · exact ⟨fun _ => false, by simp [acceptingReps], fun _ hf => by cases hf⟩
+  | skip child ih =>
+    obtain ⟨w, hw, sub⟩ := ih (fun i => v i.succ) h
+    exact ⟨prependBit false w, List.mem_map.mpr ⟨w, hw, rfl⟩,
+      cases_true_subset (by simp) sub⟩
+  | node low high ihl ihr =>
+    cases hb : v 0
+    · obtain ⟨w, hw, sub⟩ := ihl (fun i => v i.succ) (by simpa [eval, hb] using h)
+      exact ⟨prependBit false w, List.mem_append.mpr (.inl (List.mem_map.mpr ⟨w, hw, rfl⟩)),
+        cases_true_subset (by simp) sub⟩
+    · obtain ⟨w, hw, sub⟩ := ihr (fun i => v i.succ) (by simpa [eval, hb] using h)
+      exact ⟨prependBit true w, List.mem_append.mpr (.inr (List.mem_map.mpr ⟨w, hw, rfl⟩)),
+        cases_true_subset (fun _ => hb) sub⟩
+
 end KATLean.NetKAT.Guard

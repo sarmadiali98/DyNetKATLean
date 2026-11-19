@@ -1,5 +1,6 @@
 import DyNetKAT.NetKAT.NormalForm
 import DyNetKAT.NetKAT.Axioms
+import DyNetKAT.NetKAT.Symbolic
 
 namespace DyNetKAT.NetKAT
 
@@ -59,13 +60,13 @@ theorem mem_packetList (σ : CtxPkt) : σ ∈ packetList := by
   exact h ▸ hp
 
 /-- The finite relation computed by the existing exact evaluator. -/
-def netkatNormalForm (p : NetKAT) : NormalForm :=
+def legacyNetkatNormalForm (p : NetKAT) : NormalForm :=
   (Finset.univ : Finset CtxPkt).biUnion fun σ =>
     ((execute p σ).outputs.getD ∅).image fun τ => (σ, τ)
 
-theorem netkatNormalForm_mem (p : NetKAT) (σ τ : CtxPkt) :
-    (σ, τ) ∈ netkatNormalForm p ↔ Semantics p σ τ := by
-  unfold netkatNormalForm
+theorem legacyNetkatNormalForm_mem (p : NetKAT) (σ τ : CtxPkt) :
+    (σ, τ) ∈ legacyNetkatNormalForm p ↔ Semantics p σ τ := by
+  unfold legacyNetkatNormalForm
   constructor
   · intro h
     obtain ⟨s, _, hs⟩ := Finset.mem_biUnion.mp h
@@ -77,6 +78,32 @@ theorem netkatNormalForm_mem (p : NetKAT) (σ τ : CtxPkt) :
     obtain ⟨B, hB, hSem⟩ := execute_correct p σ
     exact Finset.mem_biUnion.mpr ⟨σ, Finset.mem_univ _, Finset.mem_image.mpr
       ⟨τ, by simpa [hB, EvalResult.outputs] using (hSem τ).mp h, rfl⟩⟩
+
+/-- The compact normal form is the reduced packet relation diagram.
+Only the paper's explicit pair syntax and heads require materialization. -/
+def symbolicNormalForm (p : NetKAT) : symbolicSchema.DiagramGuard :=
+  compileSymbolic p
+
+theorem symbolicNormalForm_correct (p : NetKAT) :
+    symbolicSchema.Represents (symbolicNormalForm p) (katInterp p) :=
+  compileSymbolic_correct p
+
+/-- Materialize the exact paper branches from accepting paths only. -/
+def symbolicPairs (p : NetKAT) : List (CompleteTest × CompleteAssignmentValuation) :=
+  symbolicSchema.acceptedPairs .v0 (symbolicNormalForm p)
+
+theorem mem_symbolicPairs (p : NetKAT) (σ τ : CtxPkt) :
+    (σ, τ) ∈ symbolicPairs p ↔ Semantics p σ τ :=
+  (symbolicSchema.mem_acceptedPairs .v0 (symbolicNormalForm_correct p) σ τ).trans
+    (katInterp_correct p σ τ)
+
+/-- Finite-set compatibility view of the symbolic normal form. -/
+def netkatNormalForm (p : NetKAT) : NormalForm :=
+  (symbolicPairs p).toFinset
+
+theorem netkatNormalForm_mem (p : NetKAT) (σ τ : CtxPkt) :
+    (σ, τ) ∈ netkatNormalForm p ↔ Semantics p σ τ :=
+  List.mem_toFinset.trans (mem_symbolicPairs p σ τ)
 
 theorem netkatNormalForm_correct (p : NetKAT) (σ τ : CtxPkt) :
     Semantics (netkatNormalForm p).interpret σ τ ↔ Semantics p σ τ :=
@@ -114,8 +141,7 @@ def IsPairSum (p : NetKAT) : Prop :=
   ∃ xs : List (CompleteTest × CompleteAssignmentValuation),
     p = pairSum xs
 
-/-- Render the finite relation in a fixed packet order, without
-`Finset.toList` or noncomputable choice. -/
+/-- Legacy Cartesian-product renderer for the concrete regression oracle. -/
 def NormalForm.orderedPairs (nf : NormalForm) :
     List (CompleteTest × CompleteAssignmentValuation) :=
   (packetList.flatMap fun σ => packetList.map fun τ => (σ, τ)).filter (fun pair => decide (pair ∈ nf))
@@ -128,16 +154,30 @@ theorem NormalForm.mem_orderedPairs (nf : NormalForm)
   exact ⟨And.right, fun h => ⟨List.mem_flatMap.mpr ⟨σ, mem_packetList σ,
     List.mem_map.mpr ⟨τ, mem_packetList τ, rfl⟩⟩, h⟩⟩
 
-def normalize (p : NetKAT) : NetKAT :=
-  pairSum (netkatNormalForm p).orderedPairs
+/-- The original exhaustive normalizer, retained for regression. -/
+def legacyNormalize (p : NetKAT) : NetKAT :=
+  pairSum (legacyNetkatNormalForm p).orderedPairs
+
+theorem legacyNormalize_correct (p : NetKAT) (σ τ : CtxPkt) :
+    Semantics (legacyNormalize p) σ τ ↔ Semantics p σ τ :=
+  (pairSum_sem _ σ τ).trans
+    ((NormalForm.mem_orderedPairs _ _).trans (legacyNetkatNormalForm_mem p σ τ))
+
+/-- Exact finite sum of complete tests followed by complete assignments. -/
+def symbolicNormalize (p : NetKAT) : NetKAT :=
+  pairSum (symbolicPairs p)
+
+abbrev normalize := symbolicNormalize
+
+theorem symbolic_normalize_pairSum (p : NetKAT) : IsPairSum (symbolicNormalize p) :=
+  ⟨symbolicPairs p, rfl⟩
 
 theorem normalize_pairSum (p : NetKAT) : IsPairSum (normalize p) :=
-  ⟨(netkatNormalForm p).orderedPairs, rfl⟩
+  symbolic_normalize_pairSum p
 
 theorem normalize_correct (p : NetKAT) (σ τ : CtxPkt) :
-    Semantics (normalize p) σ τ ↔ Semantics p σ τ := by
-  exact (pairSum_sem _ σ τ).trans
-    ((NormalForm.mem_orderedPairs _ _).trans (netkatNormalForm_mem p σ τ))
+    Semantics (normalize p) σ τ ↔ Semantics p σ τ :=
+  (pairSum_sem _ σ τ).trans (mem_symbolicPairs p σ τ)
 
 theorem normalize_history_correct (p : NetKAT) (h h' : History) :
     HistorySemantics (normalize p) h h' ↔ HistorySemantics p h h' :=
@@ -255,8 +295,8 @@ private theorem pairSum_append (xs ys : List (CompleteTest × CompleteAssignment
 
 theorem normalize_derives_union {p q : NetKAT} (hp : Derives p (normalize p))
     (hq : Derives q (normalize q)) : Derives (p ⊕ q) (normalize (p ⊕ q)) := by
-  let xs := (netkatNormalForm p).orderedPairs
-  let ys := (netkatNormalForm q).orderedPairs
+  let xs := symbolicPairs p
+  let ys := symbolicPairs q
   have hd : Derives (p ⊕ q) (pairSum (xs ++ ys)) :=
     .trans (.unionCongr hp hq) (pairSum_append xs ys)
   have hshape : IsPairSum (pairSum (xs ++ ys)) := ⟨_, rfl⟩
@@ -312,6 +352,8 @@ def StarFreeComplete : Prop :=
     (∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ) → Derives p q
 
 set_option maxRecDepth 10000 in
+/-- Legacy packet-cardinality proof of star elimination kept for compatibility.
+The normalization theorem uses symbolic fixed-point iteration instead. -/
 theorem derives_starFree_of_complete (complete : StarFreeComplete) (p : NetKAT) :
     ∃ q, StarFree q ∧ Derives p q := by
   induction p with
@@ -345,15 +387,6 @@ theorem starFreeComplete_iff_normalize :
       (normalize_pairSum p).derives_of_equiv (normalize_pairSum q) (fun σ τ =>
         (normalize_correct p σ τ).trans ((he σ τ).trans (normalize_correct q σ τ).symm))
     exact .trans (normalizeProof p hp) (.trans hn (.symm (normalizeProof q hq)))
-
-/-- Lift a star-free completeness proof to derivable normalization of every
-policy, using finite stabilization and the right least-fixpoint rule. -/
-theorem normalize_derives_of_starFree_complete (complete : StarFreeComplete) (p : NetKAT) :
-    Derives p (normalize p) := by
-  obtain ⟨q, hq, hd⟩ := derives_starFree_of_complete complete p
-  exact .trans hd (complete hq (normalize_starFree p)
-    (fun σ τ => (hd.sound σ τ).symm.trans (normalize_correct p σ τ).symm))
-
 
 private def word (f : FieldName → NetKAT) (xs : List FieldName) : NetKAT :=
   xs.foldr (fun x acc => f x ⨟ acc) .id
@@ -589,10 +622,6 @@ private theorem derives_to_normalize {p : NetKAT} {xs : List (CompleteTest × Co
   .trans h ((show IsPairSum (pairSum xs) from ⟨xs, rfl⟩).derives_of_equiv (normalize_pairSum p)
     (fun σ τ => (h.sound σ τ).symm.trans (normalize_correct p σ τ).symm))
 
-theorem normalize_derives_id : Derives .id (normalize .id) :=
-  derives_to_normalize derives_id_diagonal
-
-
 private def TestResult (a p : NetKAT) : Prop :=
   Derives (a ⨟ p) a ∨ Derives (a ⨟ p) .drop
 
@@ -716,43 +745,6 @@ private theorem branch_post_test (α β : CtxPkt) (t : NetKAT)
       (.trans (.seqCongr (.refl _) ht) (.symm (.plusZero _)))⟩
   · exact ⟨[], .trans (.symm (.seqAssoc _ _ _)) (.trans (.seqCongr (.refl _) ht) (.seqZero _))⟩
 
-private theorem normalize_derives_testResult (t : NetKAT)
-    (ht : ∀ β, TestResult (NetKAT.completeAssignExpr β) t) :
-    Derives t (normalize t) := by
-  let xs : List (CompleteTest × CompleteAssignmentValuation) := packetList.map fun σ => (σ, σ)
-  have hdist := sumOn_seq_right xs NormalForm.ofSummand t
-  obtain ⟨ys, hy⟩ := sumOn_to_pairs
-    (xs := xs) (f := fun b => NormalForm.ofSummand b ⨟ t)
-    (fun (α, β) _ => branch_post_test α β t (ht β))
-  exact derives_to_normalize (.trans (.symm (.oneSeq _))
-    (.trans (.seqCongr derives_id_diagonal (.refl _)) (.trans hdist hy)))
-
-theorem normalize_derives_test (p : Predicate) : Derives (.test p) (normalize (.test p)) :=
-  normalize_derives_testResult _ (fun β => write_testResult β p)
-
-/-- A predicate derives to the diagonal branches for precisely its satisfying packets. -/
-theorem derives_test_pairs (p : Predicate) :
-    Derives (.test p) (pairSum ((packetList.filter p.eval).map fun σ => (σ, σ))) := by
-  let xs := (packetList.filter p.eval).map (fun σ => (σ, σ))
-  have h : ∀ σ τ, Semantics (.test p) σ τ ↔ Semantics (pairSum xs) σ τ := by
-    intro σ τ
-    rw [pairSum_sem]
-    change (p.holds σ ∧ σ = τ) ↔ (σ, τ) ∈ xs
-    constructor
-    · rintro ⟨hp, rfl⟩
-      exact List.mem_map.mpr ⟨σ, List.mem_filter.mpr ⟨mem_packetList σ, hp⟩, rfl⟩
-    · intro hm
-      obtain ⟨ρ, hρ, he⟩ := List.mem_map.mp hm
-      obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
-      exact ⟨(List.mem_filter.mp hρ).2, rfl⟩
-  exact .trans (normalize_derives_test p)
-    ((normalize_pairSum (.test p)).derives_of_equiv ⟨xs, rfl⟩
-      (fun σ τ => (normalize_correct _ σ τ).trans (h σ τ)))
-
-theorem normalize_derives_completeTest (γ : CtxPkt) :
-    Derives (.completeTest γ) (normalize (.completeTest γ)) :=
-  normalize_derives_testResult _ (fun β => write_completeTest_result β γ)
-
 theorem derives_assign1_pairs (f : FieldName) (v : FieldValueEnum) :
     Derives (.assign1 f v) (pairSum (packetList.map fun σ => (σ, Packet.update σ f v))) := by
   let xs : List (CompleteTest × CompleteAssignmentValuation) := packetList.map fun σ => (σ, σ)
@@ -766,10 +758,6 @@ theorem derives_assign1_pairs (f : FieldName) (v : FieldValueEnum) :
   rw [sumOn_map, sumOn_map]
   exact sumOn_congr (fun σ _ =>
     .trans (.symm (.seqAssoc _ _ _)) (.seqCongr (.refl _) (write_assign σ f v)))
-
-theorem normalize_derives_assign1 (f : FieldName) (v : FieldValueEnum) :
-    Derives (.assign1 f v) (normalize (.assign1 f v)) :=
-  derives_to_normalize (derives_assign1_pairs f v)
 
 theorem pairSum_seq (xs ys : List (CompleteTest × CompleteAssignmentValuation)) :
     ∃ zs, Derives (pairSum xs ⨟ pairSum ys) (pairSum zs) := by
@@ -791,29 +779,8 @@ theorem pairSum_seq (xs ys : List (CompleteTest × CompleteAssignmentValuation))
 
 theorem normalize_derives_seq {p q : NetKAT} (hp : Derives p (normalize p))
     (hq : Derives q (normalize q)) : Derives (p ⨟ q) (normalize (p ⨟ q)) := by
-  obtain ⟨zs, hz⟩ := pairSum_seq (netkatNormalForm p).orderedPairs (netkatNormalForm q).orderedPairs
+  obtain ⟨zs, hz⟩ := pairSum_seq (symbolicPairs p) (symbolicPairs q)
   exact derives_to_normalize (.trans (.seqCongr hp hq) hz)
-
-theorem normalize_derives_starFree (p : NetKAT) (h : StarFree p) : Derives p (normalize p) := by
-  induction p with
-  | drop => exact normalize_derives_drop
-  | id => exact normalize_derives_id
-  | test p => exact normalize_derives_test p
-  | completeTest α => exact normalize_derives_completeTest α
-  | assign1 f v => exact normalize_derives_assign1 f v
-  | union p q ihp ihq => exact normalize_derives_union (ihp h.1) (ihq h.2)
-  | seq p q ihp ihq => exact normalize_derives_seq (ihp h.1) (ihq h.2)
-  | star => exact False.elim h
-
-theorem starFree_complete : StarFreeComplete :=
-  starFreeComplete_iff_normalize.mpr normalize_derives_starFree
-
-theorem normalize_derives (p : NetKAT) : Derives p (normalize p) :=
-  normalize_derives_of_starFree_complete starFree_complete p
-
-/-- DyNetKAT v4 Lemma 5 for the current dup-free NetKAT syntax on CtxPkt. -/
-theorem exists_derives_pairSum (p : NetKAT) : ∃ q, IsPairSum q ∧ Derives p q :=
-  ⟨normalize p, normalize_pairSum p, normalize_derives p⟩
 
 /-- Reduce a star-free policy starting from one known packet. The
 resulting branches arise from the policy's syntax and assignments. -/
@@ -945,5 +912,104 @@ theorem derives_star_of_fixed {p r : NetKAT}
   have upper : Below (.id ⨟ .star p) r := Derives.lfpR (below_of_derives fixed)
   exact derives_of_below
     (.trans (.unionCongr (.symm (.oneSeq _)) (.refl _)) upper) lower
+
+open scoped Computability in
+open KATLean.Native.Boolean in
+/-- Exact symbolic closure gives a star-free derivation representative.
+The invariant tracks a syntactic unfolding below star for each reached
+diagram. Star induction certifies the final fixed point. -/
+theorem exists_derives_starFree_symbolic (p : NetKAT) :
+    ∃ r, StarFree r ∧ Derives p r := by
+  induction p with
+  | drop | id | test | completeTest | assign1 => exact ⟨_, by trivial, .refl _⟩
+  | union p q ihp ihq =>
+    obtain ⟨r, hrf, hr⟩ := ihp
+    obtain ⟨t, htf, ht⟩ := ihq
+    exact ⟨r ⊕ t, ⟨hrf, htf⟩, .unionCongr hr ht⟩
+  | seq p q ihp ihq =>
+    obtain ⟨r, hrf, hr⟩ := ihp
+    obtain ⟨t, htf, ht⟩ := ihq
+    exact ⟨r ⨟ t, ⟨hrf, htf⟩, .seqCongr hr ht⟩
+  | star p ih =>
+    obtain ⟨body, hfree, hbody⟩ := ih
+    let Inv (g : symbolicSchema.DiagramGuard) := ∃ r,
+      StarFree r ∧ symbolicSchema.Represents g (katInterp r) ∧
+        Derives (r ⊕ .star p) (.star p)
+    have base : Inv (disj symbolicSchema.skip (compileSymbolic p)) := by
+      have hrep := compileSymbolic_correct p
+      rw [hbody.katSound] at hrep
+      exact ⟨.id ⊕ body, ⟨trivial, hfree⟩,
+        symbolicSchema.union_correct symbolicSchema.skip_correct hrep,
+        Derives.trans (.unionCongr (.unionCongr (.refl _) hbody.symm) (.refl _)) (star_seed_below p)⟩
+    have step (g) (h : Inv g) : Inv (disj g (symbolicSchema.seq g g)) := by
+      obtain ⟨r, hf, hr, hu⟩ := h
+      exact ⟨r ⊕ (r ⨟ r), ⟨hf, hf, hf⟩,
+        symbolicSchema.union_correct hr (symbolicSchema.seq_correct hr hr), star_square_below hu⟩
+    obtain ⟨r, hf, hr, hu⟩ := symbolicSchema.star_induction base step
+    have heq : katInterp r = katInterp (.star p) :=
+      symbolicSchema.represents_unique hr (compileSymbolic_correct (.star p))
+    have hfixed : Derives (.id ⊕ (r ⨟ body)) r := by
+      apply derives_of_equiv_starFree (p := .id ⊕ (r ⨟ body)) ⟨trivial, hf, hfree⟩ hf
+      apply katInterp_eq_iff.mp
+      rw [katInterp_union, katInterp_seq, ← hbody.katSound, heq, katInterp_star]
+      exact KATLean.star_unfold_right _
+    have hfixed' : Derives (.id ⊕ (r ⨟ p)) r :=
+      Derives.trans (.unionCongr (.refl _) (.seqCongr (.refl _) hbody)) hfixed
+    exact ⟨r, hf, derives_star_of_fixed hu hfixed'⟩
+
+/-- Lift star-free completeness to normalization using exact symbolic closure. -/
+theorem normalize_derives_of_starFree_complete (complete : StarFreeComplete) (p : NetKAT) :
+    Derives p (normalize p) := by
+  obtain ⟨r, hf, hr⟩ := exists_derives_starFree_symbolic p
+  exact hr.trans (complete hf (normalize_starFree p)
+    (fun σ τ => (hr.sound σ τ).symm.trans (normalize_correct p σ τ).symm))
+
+theorem symbolic_normalize_correct (p : NetKAT) : Derives p (symbolicNormalize p) :=
+  normalize_derives_of_starFree_complete (@derives_of_equiv_starFree) p
+
+theorem normalize_derives (p : NetKAT) : Derives p (normalize p) :=
+  symbolic_normalize_correct p
+
+theorem normalize_derives_starFree (p : NetKAT) (h : StarFree p) : Derives p (normalize p) :=
+  derives_of_equiv_starFree h (normalize_starFree p) (fun σ τ => (normalize_correct p σ τ).symm)
+
+theorem starFree_complete : StarFreeComplete := @derives_of_equiv_starFree
+
+theorem normalize_derives_id : Derives .id (normalize .id) := normalize_derives .id
+
+theorem normalize_derives_test (p : Predicate) : Derives (.test p) (normalize (.test p)) :=
+  normalize_derives (.test p)
+
+theorem normalize_derives_completeTest (γ : CtxPkt) :
+    Derives (.completeTest γ) (normalize (.completeTest γ)) :=
+  normalize_derives (.completeTest γ)
+
+theorem normalize_derives_assign1 (f : FieldName) (v : FieldValueEnum) :
+    Derives (.assign1 f v) (normalize (.assign1 f v)) :=
+  normalize_derives (.assign1 f v)
+
+-- Compatibility with the concrete diagonal partition.
+/-- A predicate derives to the diagonal branches for precisely its satisfying packets. -/
+theorem derives_test_pairs (p : Predicate) :
+    Derives (.test p) (pairSum ((packetList.filter p.eval).map fun σ => (σ, σ))) := by
+  let xs := (packetList.filter p.eval).map (fun σ => (σ, σ))
+  have h : ∀ σ τ, Semantics (.test p) σ τ ↔ Semantics (pairSum xs) σ τ := by
+    intro σ τ
+    rw [pairSum_sem]
+    change (p.holds σ ∧ σ = τ) ↔ (σ, τ) ∈ xs
+    constructor
+    · rintro ⟨hp, rfl⟩
+      exact List.mem_map.mpr ⟨σ, List.mem_filter.mpr ⟨mem_packetList σ, hp⟩, rfl⟩
+    · intro hm
+      obtain ⟨ρ, hρ, he⟩ := List.mem_map.mp hm
+      obtain ⟨rfl, rfl⟩ := Prod.mk.inj he
+      exact ⟨(List.mem_filter.mp hρ).2, rfl⟩
+  exact .trans (normalize_derives_test p)
+    ((normalize_pairSum (.test p)).derives_of_equiv ⟨xs, rfl⟩
+      (fun σ τ => (normalize_correct _ σ τ).trans (h σ τ)))
+
+/-- DyNetKAT v4 Lemma 5 with the original complete-pair syntax. -/
+theorem exists_derives_pairSum (p : NetKAT) : ∃ q, IsPairSum q ∧ Derives p q :=
+  ⟨normalize p, normalize_pairSum p, normalize_derives p⟩
 
 end DyNetKAT.NetKAT

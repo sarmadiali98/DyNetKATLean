@@ -24,9 +24,14 @@ See [NATIVE_KAT.md](NATIVE_KAT.md) for the theorem chain and proof construction.
 
 ## Native solver boundary
 
-The target algebraic pipeline is KATLean → verified native KAT equivalence
-→ symbolic dup-free NetKAT packet layer → E_NK → E_DNK. Source admission,
-reachable Residuals and SOS remain unchanged.
+The algebraic pipeline runs from KATLean and verified native KAT
+through symbolic dup-free NetKAT equivalence and normalization, then E_NK,
+DyNetKAT head normalization and E_DNK. Equivalence compares encoded
+relations through native KAT. Normalization exports accepted packet pairs
+from the same compiled diagram for Lemma 5 and the packet-prefix case of
+Lemma 9. Its proof uses symbolic star elimination, KATLean-backed packet
+laws and pair-sum extensionality. Source admission, reachable Residuals and
+SOS remain unchanged.
 
 `import KATLean.Native` is a separate Mathlib/KATLean-only surface, also exported
 by `DyNetKAT`. It contains guarded-language syntax, finite partial derivatives,

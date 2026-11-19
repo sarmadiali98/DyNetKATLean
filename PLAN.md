@@ -22,7 +22,7 @@ See the [symbolic frontend and dependency audit](docs/NETKAT_AUDIT.md).
 
 See [NATIVE_KAT.md](docs/NATIVE_KAT.md) for the theorem chain and proof construction.
 
-## Native equivalence priority
+## Native equivalence and normalization
 
 The core path is KATLean → verified native equivalence → symbolic dup-free
 NetKAT → E_NK → E_DNK. Native pure-KAT algebraic completeness now uses finite
@@ -31,10 +31,12 @@ partial-derivative systems and the existing symbolic search.
 The symbolic frontend covers the dup-free AST. Equality and zero checks in
 graph and safety analysis now use it. The direct E_NK proof discharges
 input observations with field-level partitions and certifies star through
-the symbolic fixed point. The executable Lemma 5 normalizer still constructs
-complete packet pairs. Concrete execution remains available for computing
-outputs of supplied inputs. Concrete witness extraction and diagram sharing
-are future work.
+the symbolic fixed point. Lemma 5 and DyNetKAT packet-head normalization
+share the symbolic relation diagram. They materialize only accepted pairs
+when the paper requires explicit branches. The complete-pair statement is
+unchanged. The exhaustive normalizer and equivalence checker remain regression
+oracles. Concrete execution still computes outputs of supplied inputs.
+Concrete witness extraction and diagram sharing are future work.
 [Design and enumeration audit](docs/NATIVE_KAT.md).
 
 ## Objective and sources
