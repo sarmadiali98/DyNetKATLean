@@ -8,60 +8,62 @@ namespace DyNetKAT.DyNetKAT.TraceSafety
 
 open DyNetKAT.NetKAT
 
+variable {schema : PacketSchema}
+
+local instance : DecidableEq schema.Packet := schema.packetEq
+
 /-- Definition 12. A complete packet transform or a syntactic reconfiguration label. -/
-inductive Letter
-  | packet (input output : CtxPkt)
-  | rcfg (channel : Channel) (payload : NetKAT)
+inductive Letter (schema : PacketSchema := ctxSchema)
+  | packet (input output : schema.Packet)
+  | rcfg (channel : Channel) (payload : NetKAT schema)
   deriving DecidableEq
 
-def Letter.action : Letter → Action
+def Letter.action : Letter schema → Action schema
   | .packet i o => .packet i o
   | .rcfg x p => .rcfg x p
 
-theorem Letter.action_injective : Function.Injective Letter.action := by
+theorem Letter.action_injective : Function.Injective (@Letter.action schema) := by
   intro a b h
   cases a <;> cases b <;> cases h <;> rfl
 
-def Letter.label (l : Letter) : MoveLabel := l.action.atomicLabel
-
-def Letter.sameKind : Letter → Letter → Bool
+def Letter.sameKind : Letter schema → Letter schema → Bool
   | .packet .., .packet .. | .rcfg .., .rcfg .. => true
   | _, _ => false
 
-abbrev Word := List Letter
-abbrev Alphabet := List Letter
+abbrev Word (schema : PacketSchema := ctxSchema) := List (Letter schema)
+abbrev Alphabet (schema : PacketSchema := ctxSchema) := List (Letter schema)
 
-inductive Regexp
-  | letter (a : Letter)
-  | union (p q : Regexp)
-  | concat (p q : Regexp)
+inductive Regexp (schema : PacketSchema := ctxSchema)
+  | letter (a : Letter schema)
+  | union (p q : Regexp schema)
+  | concat (p q : Regexp schema)
 
-def Regexp.Matches : Regexp → Word → Prop
+def Regexp.Matches : Regexp schema → Word schema → Prop
   | .letter a, w => w = [a]
   | .union p q, w => p.Matches w ∨ q.Matches w
   | .concat p q, w => ∃ u v, u ++ v = w ∧ p.Matches u ∧ q.Matches v
 
-private def wordProduct (p q : List Word) : List Word :=
+private def wordProduct (p q : List (Word schema)) : List (Word schema) :=
   p.flatMap fun u => q.map (u ++ ·)
 
-private theorem mem_wordProduct {p q : List Word} {w : Word} :
+private theorem mem_wordProduct {p q : List (Word schema)} {w : Word schema} :
     w ∈ wordProduct p q ↔ ∃ u v, u ++ v = w ∧ u ∈ p ∧ v ∈ q := by
   simp only [wordProduct, List.mem_flatMap, List.mem_map]
   aesop
 
 /-- Definition 13, distributing concatenation over both operands of a sum. -/
-def Regexp.hnf : Regexp → List Word
+def Regexp.hnf : Regexp schema → List (Word schema)
   | .letter a => [[a]]
   | .union p q => p.hnf ++ q.hnf
   | .concat p q => wordProduct p.hnf q.hnf
 
-theorem Regexp.mem_hnf (r : Regexp) (w : Word) : w ∈ r.hnf ↔ r.Matches w := by
+theorem Regexp.mem_hnf (r : Regexp schema) (w : Word schema) : w ∈ r.hnf ↔ r.Matches w := by
   induction r generalizing w with
   | letter => simp [Regexp.hnf, Regexp.Matches]
   | union _ _ ih₁ ih₂ => simp [Regexp.hnf, Regexp.Matches, ih₁, ih₂]
   | concat _ _ ih₁ ih₂ => simp [Regexp.hnf, Regexp.Matches, mem_wordProduct, ih₁, ih₂]
 
-theorem Regexp.hnf_nonempty_word {r : Regexp} {w : Word} (h : w ∈ r.hnf) : w ≠ [] := by
+theorem Regexp.hnf_nonempty_word {r : Regexp schema} {w : Word schema} (h : w ∈ r.hnf) : w ≠ [] := by
   induction r generalizing w with
   | letter a => simp [Regexp.hnf] at h; simp [h]
   | union _ _ ih₁ ih₂ => exact (List.mem_append.mp h).elim ih₁ ih₂
@@ -72,48 +74,48 @@ theorem Regexp.hnf_nonempty_word {r : Regexp} {w : Word} (h : w ∈ r.hnf) : w �
 
 /-- Definition 17's stated desugaring clauses. Negation is of a literal and
 ranges over its own kind. The printed desugaring gives no nested-negation rule. -/
-inductive ExtendedRegexp
-  | letter (a : Letter)
+inductive ExtendedRegexp (schema : PacketSchema := ctxSchema)
+  | letter (a : Letter schema)
   | any
-  | except (a : Letter)
-  | union (p q : ExtendedRegexp)
-  | concat (p q : ExtendedRegexp)
-  | repeat (p : ExtendedRegexp) (extra : Nat)
+  | except (a : Letter schema)
+  | union (p q : ExtendedRegexp schema)
+  | concat (p q : ExtendedRegexp schema)
+  | repeat (p : ExtendedRegexp schema) (extra : Nat)
 
 /-- The action grammar as printed, including nested negation. -/
-inductive PrintedAction
-  | literal (a : Letter)
-  | neg (a : PrintedAction)
+inductive PrintedAction (schema : PacketSchema := ctxSchema)
+  | literal (a : Letter schema)
+  | neg (a : PrintedAction schema)
 
-def PrintedAction.elaborate : PrintedAction → Option ExtendedRegexp
+def PrintedAction.elaborate : PrintedAction schema → Option (ExtendedRegexp schema)
   | .literal a => some (.letter a)
   | .neg (.literal a) => some (.except a)
   | .neg (.neg _) => none
 
 /-- The surface grammar of Definition 17. A repetition count is one plus
 the stored count, as in the supported extended grammar. -/
-inductive PrintedRegexp
-  | action (a : PrintedAction)
+inductive PrintedRegexp (schema : PacketSchema := ctxSchema)
+  | action (a : PrintedAction schema)
   | any
-  | union (p q : PrintedRegexp)
-  | concat (p q : PrintedRegexp)
-  | repeat (p : PrintedRegexp) (extra : Nat)
+  | union (p q : PrintedRegexp schema)
+  | concat (p q : PrintedRegexp schema)
+  | repeat (p : PrintedRegexp schema) (extra : Nat)
 
 /-- Elaboration is defined exactly where the paper supplies a clause for
 each action. Alphabet membership is checked separately by `ExtendedRegexp.Over`. -/
-def PrintedRegexp.elaborate : PrintedRegexp → Option ExtendedRegexp
+def PrintedRegexp.elaborate : PrintedRegexp schema → Option (ExtendedRegexp schema)
   | .action a => a.elaborate
   | .any => some .any
   | .union p q => ExtendedRegexp.union <$> p.elaborate <*> q.elaborate
   | .concat p q => ExtendedRegexp.concat <$> p.elaborate <*> q.elaborate
   | .repeat p n => (·.repeat n) <$> p.elaborate
 
-private def wordPower (p : List Word) : Nat → List Word
+private def wordPower (p : List (Word schema)) : Nat → List (Word schema)
   | 0 => [[]]
   | n + 1 => wordProduct p (wordPower p n)
 
 /-- A finite sum is represented by its summands, so empty sums are meaningful. -/
-def ExtendedRegexp.desugar (A : Alphabet) : ExtendedRegexp → List Word
+def ExtendedRegexp.desugar (A : Alphabet schema) : ExtendedRegexp schema → List (Word schema)
   | .letter a => [[a]]
   | .any => A.map fun a => [a]
   | .except a => (A.filter fun b => a.sameKind b && decide (b ≠ a)).map fun b => [b]
@@ -121,26 +123,26 @@ def ExtendedRegexp.desugar (A : Alphabet) : ExtendedRegexp → List Word
   | .concat p q => wordProduct (p.desugar A) (q.desugar A)
   | .repeat p n => wordPower (p.desugar A) (n + 1)
 
-def InAlphabet (A : Alphabet) (w : Word) : Prop := ∀ a ∈ w, a ∈ A
+def InAlphabet (A : Alphabet schema) (w : Word schema) : Prop := ∀ a ∈ w, a ∈ A
 
-def Avoids (forbidden : List Word) (w : Word) : Prop :=
+def Avoids (forbidden : List (Word schema)) (w : Word schema) : Prop :=
   ∀ bad ∈ forbidden, ¬ bad <+: w
 
-def avoids (forbidden : List Word) (w : Word) : Bool :=
+def avoids (forbidden : List (Word schema)) (w : Word schema) : Bool :=
   !forbidden.any (·.isPrefixOf w)
 
-theorem avoids_iff (forbidden : List Word) (w : Word) :
+theorem avoids_iff (forbidden : List (Word schema)) (w : Word schema) :
     avoids forbidden w = true ↔ Avoids forbidden w := by
   simp [avoids, Avoids, List.any_eq_true, List.isPrefixOf_iff_prefix]
 
-theorem Avoids.prefix {forbidden : List Word} {w v : Word} (h : Avoids forbidden w)
+theorem Avoids.prefix {forbidden : List (Word schema)} {w v : Word schema} (h : Avoids forbidden w)
     (pre : v <+: w) : Avoids forbidden v :=
   fun bad mem occurs => h bad mem (occurs.trans pre)
 
-def maxLength (forbidden : List Word) : Nat :=
+def maxLength (forbidden : List (Word schema)) : Nat :=
   forbidden.foldr (fun w n => max w.length n) 0
 
-theorem le_maxLength {forbidden : List Word} {w : Word} (mem : w ∈ forbidden) :
+theorem le_maxLength {forbidden : List (Word schema)} {w : Word schema} (mem : w ∈ forbidden) :
     w.length ≤ maxLength forbidden := by
   induction forbidden with
   | nil => simp at mem
@@ -150,21 +152,26 @@ theorem le_maxLength {forbidden : List Word} {w : Word} (mem : w ∈ forbidden) 
       · exact Nat.le_max_left ..
       · exact (ih mem).trans (Nat.le_max_right ..)
 
-theorem Avoids.append_of_maxLength {forbidden : List Word} {u : Word}
-    (h : Avoids forbidden u) (length : maxLength forbidden ≤ u.length) (v : Word) :
+theorem Avoids.append_of_maxLength {forbidden : List (Word schema)} {u : Word schema}
+    (h : Avoids forbidden u) (length : maxLength forbidden ≤ u.length) (v : Word schema) :
     Avoids forbidden (u ++ v) := by
   intro bad mem pre
   exact h bad mem (List.prefix_of_prefix_length_le pre (List.prefix_append ..)
     ((le_maxLength mem).trans length))
 
-private theorem trace_prefix_cons {env : RecEnv} {l : Letter} {p : DyNetKAT}
-    {a : Action} {word : List Action} :
+variable [diagram : DiagramLayout schema]
+
+def Letter.label (l : Letter schema) : MoveLabel schema := l.action.atomicLabel
+
+private theorem trace_prefix_cons {env : RecEnv schema} {l : Letter schema} {p : DyNetKAT schema}
+    {a : Action schema} {word : List (Action schema)} :
     SourceTrace env (l.label.prefix p) (a :: word) ↔
       a = l.action ∧ SourceTrace env p word := by
   simp only [Letter.label, sourceTrace_atomicPrefix_iff]
 
-private theorem trace_choiceOf_cons {env : RecEnv} {ps : List DyNetKAT} {a : Action}
-    {word : List Action} :
+omit diagram in
+private theorem trace_choiceOf_cons {env : RecEnv schema} {ps : List (DyNetKAT schema)} {a : Action schema}
+    {word : List (Action schema)} :
     SourceTrace env (choiceOf ps) (a :: word) ↔ ∃ p ∈ ps, SourceTrace env p (a :: word) := by
   simp only [sourceTrace_cons_iff]
   constructor
@@ -177,8 +184,9 @@ private theorem trace_choiceOf_cons {env : RecEnv} {ps : List DyNetKAT} {a : Act
     exact ⟨⟨choiceOf ps, pt, hl⟩, ⟨q, pt', hl'⟩, rfl,
       (choiceOf_step_iff ..).mpr ⟨p, hp, step⟩, rest⟩
 
-private theorem trace_var_iff {env : RecEnv} {x : Var} {body : DyNetKAT}
-    (lookup : env.lookup x = some body) {word : List Action} :
+omit diagram in
+private theorem trace_var_iff {env : RecEnv schema} {x : Var} {body : DyNetKAT schema}
+    (lookup : env.lookup x = some body) {word : List (Action schema)} :
     SourceTrace env (.var x) word ↔ SourceTrace env body word := by
   cases word with
   | nil => exact ⟨fun _ => sourceTrace_nil .., fun _ => sourceTrace_nil ..⟩
@@ -197,18 +205,20 @@ private theorem trace_var_iff {env : RecEnv} {x : Var} {body : DyNetKAT}
 
 
 /-- Index the supplied alphabet. Word enumeration ranges only over these indices. -/
-private abbrev Index (A : Alphabet) := Fin A.length
-private abbrev Node (A : Alphabet) := Option (Index A × List (Index A) × Bool)
+private abbrev Index (A : Alphabet schema) := Fin A.length
+private abbrev Node (A : Alphabet schema) := Option (Index A × List (Index A) × Bool)
 
-private def wordOf (A : Alphabet) (w : List (Index A)) : Word := w.map A.get
+private def wordOf (A : Alphabet schema) (w : List (Index A)) : Word schema := w.map A.get
 
-private theorem inAlphabet_wordOf (A : Alphabet) (w : List (Index A)) :
+omit diagram in
+private theorem inAlphabet_wordOf (A : Alphabet schema) (w : List (Index A)) :
     InAlphabet A (wordOf A w) := by
   intro a mem
   obtain ⟨i, _, rfl⟩ := List.mem_map.mp mem
   exact List.mem_iff_get.mpr ⟨i, rfl⟩
 
-private theorem exists_wordOf {A : Alphabet} {w : Word} (mem : InAlphabet A w) :
+omit diagram in
+private theorem exists_wordOf {A : Alphabet schema} {w : Word schema} (mem : InAlphabet A w) :
     ∃ is, wordOf A is = w := by
   induction w with
   | nil => exact ⟨[], rfl⟩
@@ -217,11 +227,12 @@ private theorem exists_wordOf {A : Alphabet} {w : Word} (mem : InAlphabet A w) :
       obtain ⟨is, his⟩ := ih (fun b hb => mem b (List.mem_cons_of_mem _ hb))
       exact ⟨i :: is, congrArg₂ List.cons hi his⟩
 
-private def wordsAt (A : Alphabet) : Nat → List (List (Index A))
+private def wordsAt (A : Alphabet schema) : Nat → List (List (Index A))
   | 0 => [[]]
   | n + 1 => (List.finRange A.length).flatMap fun i => (wordsAt A n).map (i :: ·)
 
-private theorem mem_wordsAt (A : Alphabet) (n : Nat) (w : List (Index A)) :
+omit diagram in
+private theorem mem_wordsAt (A : Alphabet schema) (n : Nat) (w : List (Index A)) :
     w ∈ wordsAt A n ↔ w.length = n := by
   induction n generalizing w with
   | zero => simp [wordsAt]
@@ -230,12 +241,12 @@ private theorem mem_wordsAt (A : Alphabet) (n : Nat) (w : List (Index A)) :
 
 /-- The two word sums in Definition 14. The boolean marks the summand ending
 in Θ. The deadlock summand is included at every permitted depth. -/
-def branches (A : Alphabet) (forbidden : List Word) : List (List (Index A) × Bool) :=
+def branches (A : Alphabet schema) (forbidden : List (Word schema)) : List (List (Index A) × Bool) :=
   let M := maxLength forbidden
   let words n := (wordsAt A n).filter fun w => avoids forbidden (wordOf A w)
   ((List.range (M + 1)).flatMap words).map (·, false) ++ (words M).map (·, true)
 
-private theorem mem_branches {A : Alphabet} {forbidden : List Word}
+private theorem mem_branches {A : Alphabet schema} {forbidden : List (Word schema)}
     {w : List (Index A)} {loop : Bool} :
     (w, loop) ∈ branches A forbidden ↔
       Avoids forbidden (wordOf A w) ∧ w.length ≤ maxLength forbidden ∧
@@ -254,57 +265,59 @@ private theorem fold_bits (n : Nat) : n.bits.foldr Nat.bit 0 = n := by
   | f b n valid ih =>
       rw [Nat.bits_append_bit _ _ valid, List.foldr_cons, ih]
 
-private def nodeName {A : Alphabet} (node : Node A) : Var :=
+private def nodeName {A : Alphabet schema} (node : Node A) : Var :=
   String.mk ((Encodable.encode node).bits.map fun b => if b then '1' else '0')
 
 private def nameCode (name : Var) : Nat :=
   (name.data.map (· == '1')).foldr Nat.bit 0
 
-private theorem nameCode_nodeName {A : Alphabet} (node : Node A) :
+omit diagram in
+private theorem nameCode_nodeName {A : Alphabet schema} (node : Node A) :
     nameCode (nodeName node) = Encodable.encode node := by
   simp only [nameCode, nodeName, List.map_map]
   rw [show ((· == '1') ∘ (fun b : Bool => if b then '1' else '0')) = id by
     funext b; cases b <;> rfl]
   rw [List.map_id, fold_bits]
 
-private def ref {A : Alphabet} (node : Node A) : DyNetKAT := .var (nodeName node)
+private def ref {A : Alphabet schema} (node : Node A) : DyNetKAT schema := .var (nodeName node)
 
-private def continuation (A : Alphabet) (w : List (Index A)) (loop : Bool) : DyNetKAT :=
+private def continuation (A : Alphabet schema) (w : List (Index A)) (loop : Bool) : DyNetKAT schema :=
   match w with
   | [] => if loop then ref (A := A) none else .deadlock
   | i :: rest => ref (A := A) (some (i, rest, loop))
 
-private def branch (A : Alphabet) (w : List (Index A)) (loop : Bool) : DyNetKAT :=
+private def branch (A : Alphabet schema) (w : List (Index A)) (loop : Bool) : DyNetKAT schema :=
   match w with
   | [] => continuation A [] loop
   | i :: rest => (A.get i).label.prefix (continuation A rest loop)
 
-private def theta (A : Alphabet) : DyNetKAT :=
+private def theta (A : Alphabet schema) : DyNetKAT schema :=
   choiceOf ((List.finRange A.length).flatMap fun i => [branch A [i] false, branch A [i] true])
 
-private def body (A : Alphabet) : Node A → DyNetKAT
+private def body (A : Alphabet schema) : Node A → DyNetKAT schema
   | none => theta A
   | some (i, rest, loop) => branch A (i :: rest) loop
 
-def translationEnv (A : Alphabet) : RecEnv := fun name =>
+def translationEnv (A : Alphabet schema) : RecEnv schema := fun name =>
   (Encodable.decode (α := Node A) (nameCode name)).map (body A)
 
-private theorem lookup_node (A : Alphabet) (node : Node A) :
+private theorem lookup_node (A : Alphabet schema) (node : Node A) :
     (translationEnv A).lookup (nodeName node) = some (body A node) := by
   simp [RecEnv.lookup, translationEnv, nameCode_nodeName, Encodable.encodek]
 
-private def translatedTerm (A : Alphabet) (forbidden : List Word) : DyNetKAT :=
+private def translatedTerm (A : Alphabet schema) (forbidden : List (Word schema)) : DyNetKAT schema :=
   choiceOf ((branches A forbidden).map fun (w, loop) => branch A w loop)
 
-private def ReferencesDefined (A : Alphabet) (p : DyNetKAT) : Prop :=
+private def ReferencesDefined (A : Alphabet schema) (p : DyNetKAT schema) : Prop :=
   ∀ x ∈ recursiveVars p, ∃ node : Node A, x = nodeName node
 
-private theorem continuation_facts (A : Alphabet) (w : List (Index A)) (loop : Bool) :
+omit diagram in
+private theorem continuation_facts (A : Alphabet schema) (w : List (Index A)) (loop : Bool) :
     BaseSyntax (continuation A w loop) ∧ ReferencesDefined A (continuation A w loop) := by
   cases w <;> cases loop <;>
     simp [continuation, PaperSyntax, ReferencesDefined, recursiveVars, ref]
 
-private theorem prefix_facts (A : Alphabet) (l : Letter) (p : DyNetKAT)
+private theorem prefix_facts (A : Alphabet schema) (l : Letter schema) (p : DyNetKAT schema)
     (base : BaseSyntax p) (refs : ReferencesDefined A p) :
     PaperSyntax true (l.label.prefix p) ∧ ReferencesDefined A (l.label.prefix p) ∧
       GuardedOccurrences (l.label.prefix p) := by
@@ -312,7 +325,8 @@ private theorem prefix_facts (A : Alphabet) (l : Letter) (p : DyNetKAT)
   | packet i o => exact ⟨base, refs, trivial⟩
   | rcfg x q => exact ⟨⟨rfl, base.of_base⟩, refs, trivial⟩
 
-private theorem choiceOf_facts {A : Alphabet} {ps : List DyNetKAT}
+omit diagram in
+private theorem choiceOf_facts {A : Alphabet schema} {ps : List (DyNetKAT schema)}
     (h : ∀ p ∈ ps, PaperSyntax true p ∧ ReferencesDefined A p) :
     PaperSyntax true (choiceOf ps) ∧ ReferencesDefined A (choiceOf ps) := by
   induction ps with
@@ -322,7 +336,7 @@ private theorem choiceOf_facts {A : Alphabet} {ps : List DyNetKAT}
       obtain ⟨tail, refs'⟩ := ih (fun q mem => h q (List.mem_cons_of_mem _ mem))
       exact ⟨⟨head, tail⟩, fun x mem => (Finset.mem_union.mp mem).elim (refs x) (refs' x)⟩
 
-private theorem branch_facts (A : Alphabet) (w : List (Index A)) (loop : Bool) :
+private theorem branch_facts (A : Alphabet schema) (w : List (Index A)) (loop : Bool) :
     PaperSyntax true (branch A w loop) ∧ ReferencesDefined A (branch A w loop) := by
   cases w with
   | nil =>
@@ -332,7 +346,7 @@ private theorem branch_facts (A : Alphabet) (w : List (Index A)) (loop : Bool) :
       obtain ⟨base, refs⟩ := continuation_facts A w loop
       exact ⟨(prefix_facts A _ _ base refs).1, (prefix_facts A _ _ base refs).2.1⟩
 
-private theorem body_facts (A : Alphabet) (node : Node A) :
+private theorem body_facts (A : Alphabet schema) (node : Node A) :
     PaperSyntax true (body A node) ∧ ReferencesDefined A (body A node) ∧
       GuardedOccurrences (body A node) := by
   cases node with
@@ -344,7 +358,7 @@ private theorem body_facts (A : Alphabet) (node : Node A) :
       let ps := (List.finRange A.length).flatMap fun i => [branch A [i] false, branch A [i] true]
       change PaperSyntax true (choiceOf ps) ∧ ReferencesDefined A (choiceOf ps) ∧
         GuardedOccurrences (choiceOf ps)
-      have heads (p : DyNetKAT) (mem : p ∈ ps) :
+      have heads (p : DyNetKAT schema) (mem : p ∈ ps) :
           PaperSyntax true p ∧ ReferencesDefined A p ∧ GuardedOccurrences p := by
         obtain ⟨i, _, mem⟩ := List.mem_flatMap.mp mem
         simp only [List.mem_cons, List.not_mem_nil, or_false] at mem
@@ -353,7 +367,7 @@ private theorem body_facts (A : Alphabet) (node : Node A) :
         · exact prefix_facts A _ _ trivial (continuation_facts ..).2
       obtain ⟨sort, refs⟩ := choiceOf_facts (fun p mem => ⟨(heads p mem).1, (heads p mem).2.1⟩)
       refine ⟨sort, refs, ?_⟩
-      have guarded (qs : List DyNetKAT) (h : ∀ q ∈ qs, GuardedOccurrences q) :
+      have guarded (qs : List (DyNetKAT schema)) (h : ∀ q ∈ qs, GuardedOccurrences q) :
           GuardedOccurrences (choiceOf qs) := by
         induction qs with
         | nil => trivial
@@ -361,7 +375,7 @@ private theorem body_facts (A : Alphabet) (node : Node A) :
             exact ⟨h q (by simp), ih (fun r mem => h r (List.mem_cons_of_mem _ mem))⟩
       exact guarded ps (fun p mem => (heads p mem).2.2)
 
-private def branchProgram (A : Alphabet) (words : List (List (Index A) × Bool)) :
+private def branchProgram (A : Alphabet schema) (words : List (List (Index A) × Bool)) :
     Program true (translationEnv A) := by
   let branches := words.map fun (w, loop) => branch A w loop
   have root := choiceOf_facts (ps := branches) (fun p mem => by
@@ -386,10 +400,11 @@ private def branchProgram (A : Alphabet) (words : List (List (Index A) × Bool))
 
 /-- Definition 14 rendered in the printed extended grammar. Named guarded
 tails put a base-sorted variable immediately below a packet prefix. -/
-def translate (A : Alphabet) (forbidden : List Word) : Program true (translationEnv A) :=
+def translate (A : Alphabet schema) (forbidden : List (Word schema)) : Program true (translationEnv A) :=
   branchProgram A (branches A forbidden)
 
-private theorem trace_deadlock_iff {env : RecEnv} {t : List Action} :
+omit diagram in
+private theorem trace_deadlock_iff {env : RecEnv schema} {t : List (Action schema)} :
     SourceTrace env .deadlock t ↔ t = [] := by
   cases t with
   | nil => exact ⟨fun _ => rfl, fun _ => sourceTrace_nil ..⟩
@@ -397,10 +412,10 @@ private theorem trace_deadlock_iff {env : RecEnv} {t : List Action} :
       rw [sourceTrace_cons_iff]
       constructor
       · rintro ⟨⟨_, pt, hl⟩, d, rfl, step, _⟩
-        exact (deadlock_no_step _ _ _ _ _ step).elim
+        cases step
       · simp
 
-private theorem trace_theta (A : Alphabet) (t : List Action) :
+private theorem trace_theta (A : Alphabet schema) (t : List (Action schema)) :
     SourceTrace (translationEnv A) (ref (A := A) none) t ↔
       ∃ w, InAlphabet A w ∧ w.map Letter.action = t := by
   induction t with
@@ -431,8 +446,8 @@ private theorem trace_theta (A : Alphabet) (t : List Action) :
           exact trace_prefix_cons.mpr ⟨congrArg Letter.action hi.symm,
             ih.mpr ⟨w, fun c hc => inA c (List.mem_cons_of_mem _ hc), rfl⟩⟩
 
-private theorem trace_branch (A : Alphabet) (w : List (Index A)) (loop : Bool)
-    (t : List Action) :
+private theorem trace_branch (A : Alphabet schema) (w : List (Index A)) (loop : Bool)
+    (t : List (Action schema)) :
     SourceTrace (translationEnv A) (branch A w loop) t ↔
       ∃ v, InAlphabet A v ∧ (loop = false → v = []) ∧
         t <+: (wordOf A w ++ v).map Letter.action := by
@@ -477,25 +492,28 @@ private theorem map_prefix {α β : Type} (f : α → β) {u v : List α}
   rw [List.map_append]
   exact List.prefix_append ..
 
-private theorem prefix_of_map_prefix {u v : Word}
+omit diagram in
+private theorem prefix_of_map_prefix {u v : Word schema}
     (h : u.map Letter.action <+: v.map Letter.action) : u <+: v := by
   apply List.prefix_iff_eq_take.mpr
   apply List.map_injective_iff.mpr Letter.action_injective
   simpa only [List.map_take, List.length_map] using List.prefix_iff_eq_take.mp h
 
-private theorem inAlphabet_append {A : Alphabet} {u v : Word}
+omit diagram in
+private theorem inAlphabet_append {A : Alphabet schema} {u v : Word schema}
     (hu : InAlphabet A u) (hv : InAlphabet A v) : InAlphabet A (u ++ v) :=
   fun a mem => (List.mem_append.mp mem).elim (hu a) (hv a)
 
-private theorem inAlphabet_prefix {A : Alphabet} {u v : Word}
+omit diagram in
+private theorem inAlphabet_prefix {A : Alphabet schema} {u v : Word schema}
     (hv : InAlphabet A v) (h : u <+: v) : InAlphabet A u := by
   obtain ⟨w, rfl⟩ := h
   exact fun a mem => hv a (List.mem_append_left _ mem)
 
 /-- The SOS traces of the Definition 14 term are exactly the alphabet words
 that have no forbidden prefix. Every occurrence keeps the full SOS action. -/
-theorem translate_trace_iff (A : Alphabet) (forbidden : List Word)
-    (nonemptyWords : [] ∉ forbidden) (t : List Action) :
+theorem translate_trace_iff (A : Alphabet schema) (forbidden : List (Word schema))
+    (nonemptyWords : [] ∉ forbidden) (t : List (Action schema)) :
     (translate A forbidden).Trace t ↔
       ∃ w, w.map Letter.action = t ∧ InAlphabet A w ∧ Avoids forbidden w := by
   cases t with
@@ -550,13 +568,14 @@ theorem translate_trace_iff (A : Alphabet) (forbidden : List Word)
           · rw [his, split, eq]
 
 
-private theorem repeat_nonempty {p : List Word} (h : [] ∉ p) (n : Nat) :
+omit diagram in
+private theorem repeat_nonempty {p : List (Word schema)} (h : [] ∉ p) (n : Nat) :
     [] ∉ wordPower p (n + 1) := by
   intro mem
   obtain ⟨u, _, eq, hu, _⟩ := mem_wordProduct.mp mem
   exact h ((List.append_eq_nil_iff.mp eq).1 ▸ hu)
 
-theorem ExtendedRegexp.desugar_nonempty_word (A : Alphabet) (r : ExtendedRegexp) :
+theorem ExtendedRegexp.desugar_nonempty_word (A : Alphabet schema) (r : ExtendedRegexp schema) :
     [] ∉ r.desugar A := by
   induction r with
   | letter => simp [ExtendedRegexp.desugar]
@@ -571,17 +590,18 @@ theorem ExtendedRegexp.desugar_nonempty_word (A : Alphabet) (r : ExtendedRegexp)
 
 /-- A formula `[r]false` forbids feasible initial occurrences of its words.
 The quantification over source input lists is in `Program.Trace`. -/
-def Safe {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (forbidden : List Word) : Prop :=
+def Safe {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (forbidden : List (Word schema)) : Prop :=
   ∀ bad ∈ forbidden, ¬ p.Trace (bad.map Letter.action)
 
-def UsesAlphabet {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) : Prop :=
+def UsesAlphabet {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) : Prop :=
   ∀ t, p.Trace t → ∃ w, w.map Letter.action = t ∧ InAlphabet A w
 
+omit diagram in
 /-- All-depth safety is equivalent to avoiding bad prefixes on every trace. -/
-theorem safe_iff_avoids_traces {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (forbidden : List Word) :
+theorem safe_iff_avoids_traces {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (forbidden : List (Word schema)) :
     Safe p forbidden ↔ ∀ w, p.Trace (w.map Letter.action) → Avoids forbidden w := by
   constructor
   · intro safe w trace bad mem pre
@@ -593,8 +613,8 @@ theorem safe_iff_avoids_traces {extended : Bool} {env : RecEnv} (p : Program ext
 
 /-- Semantic trace inclusion in the translated safety program. The alphabet
 hypothesis is precisely what licenses comparison with all source traces. -/
-theorem safe_iff_trace_inclusion {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (forbidden : List Word) (nonemptyWords : [] ∉ forbidden)
+theorem safe_iff_trace_inclusion {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (forbidden : List (Word schema)) (nonemptyWords : [] ∉ forbidden)
     (alphabet : UsesAlphabet p A) :
     Safe p forbidden ↔ ∀ t, p.Trace t → (translate A forbidden).Trace t := by
   constructor
@@ -611,8 +631,8 @@ theorem safe_iff_trace_inclusion {extended : Bool} {env : RecEnv} (p : Program e
 
 /-- The semantic absorption equation underlying Eq. (27). The two programs
 may have separate defining equations. The union is over trace languages. -/
-theorem safe_iff_trace_absorption {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (forbidden : List Word) (nonemptyWords : [] ∉ forbidden)
+theorem safe_iff_trace_absorption {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (forbidden : List (Word schema)) (nonemptyWords : [] ∉ forbidden)
     (alphabet : UsesAlphabet p A) :
     Safe p forbidden ↔ ∀ t,
       ((translate A forbidden).Trace t ∨ p.Trace t) ↔ (translate A forbidden).Trace t := by
@@ -623,10 +643,11 @@ theorem safe_iff_trace_absorption {extended : Bool} {env : RecEnv} (p : Program 
   · intro absorbs t h
     exact (absorbs t).mp (.inr h)
 
+omit diagram in
 /-- A single formula has a completeness bound fixed by its longest bad word.
 This compares a property-specific projection with the unprojected source. -/
-theorem safe_iff_project_maxLength {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (forbidden : List Word) :
+theorem safe_iff_project_maxLength {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (forbidden : List (Word schema)) :
     Safe p forbidden ↔
       ∀ bad ∈ forbidden, ¬ SourceTrace env (.project (maxLength forbidden) p.term)
         (bad.map Letter.action) := by
@@ -638,8 +659,8 @@ theorem safe_iff_project_maxLength {extended : Bool} {env : RecEnv} (p : Program
   · intro safe bad mem run
     exact safe bad mem ⟨run, le_maxLength mem⟩
 
-theorem safe_iff_all_projections {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (forbidden : List Word) :
+theorem safe_iff_all_projections {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (forbidden : List (Word schema)) :
     Safe p forbidden ↔
       ∀ n bad, bad ∈ forbidden → ¬ SourceTrace env (.project n p.term) (bad.map Letter.action) := by
   constructor
@@ -679,14 +700,14 @@ theorem equationalSafety_iff_safe {extended : Bool} {env : RecEnv} (p : Program 
   exact (safe_iff_trace_absorption p A forbidden nonemptyWords alphabet).symm
 
 /-- Admissible expressions in the alphabet of Definition 12. -/
-def Regexp.Over (A : Alphabet) : Regexp → Prop
+def Regexp.Over (A : Alphabet schema) : Regexp schema → Prop
   | .letter a => a ∈ A
   | .union p q | .concat p q => p.Over A ∧ q.Over A
 
-abbrev Formula (A : Alphabet) := {r : Regexp // r.Over A}
+abbrev Formula (A : Alphabet schema) := {r : Regexp schema // r.Over A}
 
-theorem Regexp.hnf_inAlphabet {A : Alphabet} {r : Regexp} (valid : r.Over A)
-    {w : Word} (mem : w ∈ r.hnf) : InAlphabet A w := by
+theorem Regexp.hnf_inAlphabet {A : Alphabet schema} {r : Regexp schema} (valid : r.Over A)
+    {w : Word schema} (mem : w ∈ r.hnf) : InAlphabet A w := by
   induction r generalizing w with
   | letter a =>
       simp [Regexp.hnf] at mem
@@ -698,16 +719,18 @@ theorem Regexp.hnf_inAlphabet {A : Alphabet} {r : Regexp} (valid : r.Over A)
       obtain ⟨u, v, rfl, first, second⟩ := mem_wordProduct.mp mem
       exact inAlphabet_append (ih₁ valid.1 first) (ih₂ valid.2 second)
 
-theorem ExtendedRegexp.mem_desugar_except {A : Alphabet} {a : Letter} {w : Word} :
+omit diagram in
+theorem ExtendedRegexp.mem_desugar_except {A : Alphabet schema} {a : Letter schema} {w : Word schema} :
     w ∈ (ExtendedRegexp.except a).desugar A ↔
       ∃ b ∈ A, a.sameKind b = true ∧ b ≠ a ∧ w = [b] := by
   simp only [ExtendedRegexp.desugar, List.mem_map, List.mem_filter, Bool.and_eq_true,
     decide_eq_true_eq]
   aesop
 
-private theorem mem_wordPower {p : List Word} {n : Nat} {w : Word} :
+omit diagram in
+private theorem mem_wordPower {p : List (Word schema)} {n : Nat} {w : Word schema} :
     w ∈ wordPower p n ↔
-      ∃ ws : List Word, ws.length = n ∧ (∀ u ∈ ws, u ∈ p) ∧ ws.flatten = w := by
+      ∃ ws : List (Word schema), ws.length = n ∧ (∀ u ∈ ws, u ∈ p) ∧ ws.flatten = w := by
   induction n generalizing w with
   | zero =>
       constructor
@@ -730,10 +753,10 @@ private theorem mem_wordPower {p : List Word} {n : Nat} {w : Word} :
             exact ⟨u, ws.flatten, rfl, mem u (by simp), ws, by simpa using len,
               fun v hv => mem v (List.mem_cons_of_mem u hv), rfl⟩
 
-theorem ExtendedRegexp.mem_desugar_repeat {A : Alphabet} {r : ExtendedRegexp}
-    {n : Nat} {w : Word} :
+theorem ExtendedRegexp.mem_desugar_repeat {A : Alphabet schema} {r : ExtendedRegexp schema}
+    {n : Nat} {w : Word schema} :
     w ∈ (r.repeat n).desugar A ↔
-      ∃ ws : List Word, ws.length = n + 1 ∧ (∀ u ∈ ws, u ∈ r.desugar A) ∧ ws.flatten = w :=
+      ∃ ws : List (Word schema), ws.length = n + 1 ∧ (∀ u ∈ ws, u ∈ r.desugar A) ∧ ws.flatten = w :=
   mem_wordPower
 
 /-- Paper-facing Eq. (27) for a core formula `[r]false`. -/
@@ -750,7 +773,7 @@ theorem ExtendedRegexp.equational_iff {extended : Bool} {env : RecEnv}
   equationalSafety_iff_safe p A _ (r.desugar_nonempty_word A) alphabet
 
 
-def ExtendedRegexp.Over (A : Alphabet) : ExtendedRegexp → Prop
+def ExtendedRegexp.Over (A : Alphabet schema) : ExtendedRegexp schema → Prop
   | .letter a | .except a => a ∈ A
   | .any => True
   | .union p q | .concat p q => p.Over A ∧ q.Over A
@@ -758,16 +781,16 @@ def ExtendedRegexp.Over (A : Alphabet) : ExtendedRegexp → Prop
 
 /-- Word semantics of the supported Definition 17 fragment. A repetition
 matches a concatenation of exactly the indicated number of matching words. -/
-def ExtendedRegexp.Matches (A : Alphabet) : ExtendedRegexp → Word → Prop
+def ExtendedRegexp.Matches (A : Alphabet schema) : ExtendedRegexp schema → Word schema → Prop
   | .letter a, w => w = [a]
   | .any, w => ∃ a ∈ A, w = [a]
   | .except a, w => ∃ b ∈ A, a.sameKind b = true ∧ b ≠ a ∧ w = [b]
   | .union p q, w => p.Matches A w ∨ q.Matches A w
   | .concat p q, w => ∃ u v, u ++ v = w ∧ p.Matches A u ∧ q.Matches A v
   | .repeat p n, w =>
-      ∃ ws : List Word, ws.length = n + 1 ∧ (∀ u ∈ ws, p.Matches A u) ∧ ws.flatten = w
+      ∃ ws : List (Word schema), ws.length = n + 1 ∧ (∀ u ∈ ws, p.Matches A u) ∧ ws.flatten = w
 
-theorem ExtendedRegexp.desugar_correct (A : Alphabet) (r : ExtendedRegexp) (w : Word) :
+theorem ExtendedRegexp.desugar_correct (A : Alphabet schema) (r : ExtendedRegexp schema) (w : Word schema) :
     w ∈ r.desugar A ↔ r.Matches A w := by
   induction r generalizing w with
   | letter => simp [desugar, Matches]
@@ -779,19 +802,20 @@ theorem ExtendedRegexp.desugar_correct (A : Alphabet) (r : ExtendedRegexp) (w : 
 
 /-- Concatenation of a core expression with itself a positive number of times.
 The argument is the number of copies after the first. -/
-def Regexp.repeatPositive (r : Regexp) : Nat → Regexp
+def Regexp.repeatPositive (r : Regexp schema) : Nat → Regexp schema
   | 0 => r
   | n + 1 => .concat r (r.repeatPositive n)
 
-private theorem Regexp.hnf_repeatPositive (r : Regexp) (n : Nat) :
+omit diagram in
+private theorem Regexp.hnf_repeatPositive (r : Regexp schema) (n : Nat) :
     (r.repeatPositive n).hnf = wordPower r.hnf (n + 1) := by
   induction n with
   | zero => simp [repeatPositive, wordPower, wordProduct]
   | succ n ih => simp only [repeatPositive, hnf, wordPower, ih]
 
-theorem Regexp.matches_repeatPositive (r : Regexp) (n : Nat) (w : Word) :
+theorem Regexp.matches_repeatPositive (r : Regexp schema) (n : Nat) (w : Word schema) :
     (r.repeatPositive n).Matches w ↔
-      ∃ ws : List Word, ws.length = n + 1 ∧ (∀ u ∈ ws, r.Matches u) ∧ ws.flatten = w := by
+      ∃ ws : List (Word schema), ws.length = n + 1 ∧ (∀ u ∈ ws, r.Matches u) ∧ ws.flatten = w := by
   simp only [← Regexp.mem_hnf, hnf_repeatPositive, mem_wordPower]
 
 theorem ExtendedRegexp.equational_iff_matches {extended : Bool} {env : RecEnv}
@@ -802,17 +826,19 @@ theorem ExtendedRegexp.equational_iff_matches {extended : Bool} {env : RecEnv}
 
 /-- The Eq. (28) expression. At zero the empty prefix contributes no action,
 so the formula is the ordinary forbidden literal. -/
-def padded (a : Letter) : Nat → ExtendedRegexp
+def padded (a : Letter schema) : Nat → ExtendedRegexp schema
   | 0 => .letter a
   | n + 1 => .concat (.repeat .any n) (.letter a)
 
-theorem padded_over {A : Alphabet} {a : Letter} (ha : a ∈ A) (n : Nat) :
+omit diagram in
+theorem padded_over {A : Alphabet schema} {a : Letter schema} (ha : a ∈ A) (n : Nat) :
     (padded a n).Over A := by
   cases n
   · exact ha
   · exact ⟨trivial, ha⟩
 
-private theorem wordPower_any {A : Alphabet} {n : Nat} {u : Word} :
+omit diagram in
+private theorem wordPower_any {A : Alphabet schema} {n : Nat} {u : Word schema} :
     u ∈ wordPower (A.map fun a => [a]) n ↔ u.length = n ∧ InAlphabet A u := by
   induction n generalizing u with
   | zero =>
@@ -829,7 +855,7 @@ private theorem wordPower_any {A : Alphabet} {n : Nat} {u : Word} :
             exact ⟨[a], v, rfl, ⟨a, letters a (by simp), rfl⟩, by simpa using len,
               fun b hb => letters b (List.mem_cons_of_mem _ hb)⟩
 
-theorem mem_padded {A : Alphabet} {a : Letter} {n : Nat} {w : Word} :
+theorem mem_padded {A : Alphabet schema} {a : Letter schema} {n : Nat} {w : Word schema} :
     w ∈ (padded a n).desugar A ↔
       ∃ u, u.length = n ∧ InAlphabet A u ∧ w = u ++ [a] := by
   cases n with
@@ -843,15 +869,16 @@ theorem mem_padded {A : Alphabet} {a : Letter} {n : Nat} {w : Word} :
       · rintro ⟨u, len, letters, rfl⟩
         exact ⟨u, [a], rfl, ⟨len, letters⟩, rfl⟩
 
-theorem padded_matches {A : Alphabet} {a : Letter} {n : Nat} {w : Word} :
+theorem padded_matches {A : Alphabet schema} {a : Letter schema} {n : Nat} {w : Word schema} :
     (padded a n).Matches A w ↔ ∃ u, u.length = n ∧ InAlphabet A u ∧ w = u ++ [a] :=
   (ExtendedRegexp.desugar_correct ..).symm.trans mem_padded
 
-@[simp] theorem padded_zero (A : Alphabet) (a : Letter) :
+omit diagram in
+@[simp] theorem padded_zero (A : Alphabet schema) (a : Letter schema) :
     (padded a 0).desugar A = [[a]] := rfl
 
-theorem safe_padded_iff {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (a : Letter) (n : Nat) :
+theorem safe_padded_iff {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (a : Letter schema) (n : Nat) :
     Safe p ((padded a n).desugar A) ↔
       ∀ u, u.length = n → InAlphabet A u → ¬ p.Trace ((u ++ [a]).map Letter.action) := by
   constructor
@@ -863,8 +890,8 @@ theorem safe_padded_iff {extended : Bool} {env : RecEnv} (p : Program extended e
 
 /-- For one member of Eq. (28), depth `n + 1` completely decides trace
 feasibility for that member's words. -/
-theorem safe_padded_iff_project {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (a : Letter) (n : Nat) :
+theorem safe_padded_iff_project {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (a : Letter schema) (n : Nat) :
     Safe p ((padded a n).desugar A) ↔
       ∀ w ∈ (padded a n).desugar A, ¬ SourceTrace env (.project (n + 1) p.term)
         (w.map Letter.action) := by
@@ -883,11 +910,10 @@ theorem padded_equational_iff {extended : Bool} {env : RecEnv} (p : Program exte
       ∀ u, u.length = n → InAlphabet A u → ¬ p.Trace ((u ++ [a]).map Letter.action) :=
   ((padded a n).equational_iff p A alphabet).trans (safe_padded_iff p A a n)
 
-/-- Eq. (28) over all prefix lengths. The alphabet covers the complete
-traces of the network, including the prefix before a candidate violation. -/
-theorem eq28_iff_no_occurrence {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (alphabet : UsesAlphabet p A) (a : Letter) :
-    (∀ n, EquationalSafety p A ((padded a n).desugar A)) ↔
+/-- The trace semantics of the padded words in Eq. (28), over all prefix lengths. -/
+theorem safe_padded_all_iff_no_occurrence {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (alphabet : UsesAlphabet p A) (a : Letter schema) :
+    (∀ n, Safe p ((padded a n).desugar A)) ↔
       ∀ t, p.Trace t → a.action ∉ t := by
   constructor
   · intro all t trace occurrence
@@ -901,15 +927,23 @@ theorem eq28_iff_no_occurrence {extended : Bool} {env : RecEnv} (p : Program ext
       obtain ⟨_, _, _, run⟩ := trace
       apply sourceTrace_prefix_of_append run (v := v.map Letter.action)
       simp [List.map_append, List.append_assoc]
-    exact (padded_equational_iff p A alphabet b u.length).mp (all _) _ rfl prefixLetters observed
+    exact (safe_padded_iff p A b u.length).mp (all _) _ rfl prefixLetters observed
   · intro never n
-    apply (padded_equational_iff p A alphabet a n).mpr
+    apply (safe_padded_iff p A a n).mpr
     intro u _ _ run
     exact never _ run (by simp)
 
 
-theorem ExtendedRegexp.desugar_inAlphabet {A : Alphabet} {r : ExtendedRegexp}
-    (valid : r.Over A) {w : Word} (mem : w ∈ r.desugar A) : InAlphabet A w := by
+/-- Eq. (28) in the equational system, using the trace characterization above. -/
+theorem eq28_iff_no_occurrence {extended : Bool} {env : RecEnv} (p : Program extended env)
+    (A : Alphabet) (alphabet : UsesAlphabet p A) (a : Letter) :
+    (∀ n, EquationalSafety p A ((padded a n).desugar A)) ↔
+      ∀ t, p.Trace t → a.action ∉ t := by
+  rw [← safe_padded_all_iff_no_occurrence p A alphabet a]
+  exact forall_congr' fun n => (padded a n).equational_iff p A alphabet
+
+theorem ExtendedRegexp.desugar_inAlphabet {A : Alphabet schema} {r : ExtendedRegexp schema}
+    (valid : r.Over A) {w : Word schema} (mem : w ∈ r.desugar A) : InAlphabet A w := by
   replace mem := (r.desugar_correct A w).mp mem
   induction r generalizing w with
   | letter a =>
@@ -933,7 +967,8 @@ theorem ExtendedRegexp.desugar_inAlphabet {A : Alphabet} {r : ExtendedRegexp}
       obtain ⟨u, hu, letter⟩ := List.mem_flatten.mp occurs
       exact ih valid (wordMatches u hu) a letter
 
-private theorem formula_of_word {A : Alphabet} {a : Letter} {w : Word}
+omit diagram in
+private theorem formula_of_word {A : Alphabet schema} {a : Letter schema} {w : Word schema}
     (letters : InAlphabet A (a :: w)) :
     ∃ f : Formula A, ∀ u, f.val.Matches u ↔ u = a :: w := by
   induction w generalizing a with
@@ -944,7 +979,7 @@ private theorem formula_of_word {A : Alphabet} {a : Letter} {w : Word}
       intro u
       simp [Regexp.Matches, wordMatches, eq_comm]
 
-private theorem formula_of_words {A : Alphabet} {words : List Word}
+private theorem formula_of_words {A : Alphabet schema} {words : List (Word schema)}
     (hasWord : words ≠ []) (noEmpty : [] ∉ words)
     (letters : ∀ w ∈ words, InAlphabet A w) :
     ∃ f : Formula A, ∀ w, f.val.Matches w ↔ w ∈ words := by
@@ -966,7 +1001,7 @@ private theorem formula_of_words {A : Alphabet} {words : List Word}
 /-- A nonempty desugared sum is represented by an ordinary formula. An
 empty sum has no representation in the literal/union/concatenation grammar
 and is already handled by the word-sum form of Eq. (27). -/
-theorem ExtendedRegexp.exists_coreFormula {A : Alphabet} {r : ExtendedRegexp}
+theorem ExtendedRegexp.exists_coreFormula {A : Alphabet schema} {r : ExtendedRegexp schema}
     (valid : r.Over A) (hasWord : r.desugar A ≠ []) :
     ∃ f : Formula A, ∀ w, f.val.Matches w ↔ r.Matches A w := by
   obtain ⟨f, exactWords⟩ := formula_of_words hasWord (r.desugar_nonempty_word A)
@@ -985,7 +1020,7 @@ theorem ExtendedRegexp.equational_iff_core {extended : Bool} {env : RecEnv}
 
 /-- Every member of the paper's padding family has a core formula when
 the forbidden action belongs to the alphabet. -/
-theorem padded_exists_coreFormula {A : Alphabet} {a : Letter} (ha : a ∈ A) (n : Nat) :
+theorem padded_exists_coreFormula {A : Alphabet schema} {a : Letter schema} (ha : a ∈ A) (n : Nat) :
     ∃ f : Formula A, ∀ w, f.val.Matches w ↔
       ∃ u, u.length = n ∧ InAlphabet A u ∧ w = u ++ [a] := by
   have mem : List.replicate n a ++ [a] ∈ (padded a n).desugar A :=
@@ -999,21 +1034,21 @@ theorem padded_exists_coreFormula {A : Alphabet} {a : Letter} (ha : a ∈ A) (n 
   exact ⟨f, fun w => (wordMatches w).trans padded_matches⟩
 
 
-private noncomputable def positiveBranch {A : Alphabet} (r : Formula A)
+private noncomputable def positiveBranch {A : Alphabet schema} (r : Formula A)
     (w : {w // w ∈ r.val.hnf}) : List (Index A) × Bool :=
   (Classical.choose (exists_wordOf (Regexp.hnf_inAlphabet r.property w.property)), false)
 
-private theorem positiveBranch_word {A : Alphabet} (r : Formula A)
+private theorem positiveBranch_word {A : Alphabet schema} (r : Formula A)
     (w : {w // w ∈ r.val.hnf}) : wordOf A (positiveBranch r w).1 = w.val :=
   Classical.choose_spec (exists_wordOf (Regexp.hnf_inAlphabet r.property w.property))
 
 /-- The positive witness consists of the finite words in the core expression,
 each ending at deadlock. This is an admitted process with guarded suffixes. -/
-noncomputable def positiveSpecification {A : Alphabet} (r : Formula A) :
+noncomputable def positiveSpecification {A : Alphabet schema} (r : Formula A) :
     Program true (translationEnv A) :=
   branchProgram A (r.val.hnf.attach.map (positiveBranch r))
 
-theorem positiveSpecification_trace_iff {A : Alphabet} (r : Formula A) (t : List Action) :
+theorem positiveSpecification_trace_iff {A : Alphabet schema} (r : Formula A) (t : List (Action schema)) :
     (positiveSpecification r).Trace t ↔
       t = [] ∨ ∃ w, r.val.Matches w ∧ t <+: w.map Letter.action := by
   cases t with

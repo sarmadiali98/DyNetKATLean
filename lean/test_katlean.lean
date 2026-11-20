@@ -84,7 +84,7 @@ example (p : CtxPkt) : ∃ outputs, execute (.star ((.assign1 .port .v1 : NetKAT
 
 example : katInterp (.seq ((.assign1 .port .v0 : NetKAT)) ((.assign1 .port .v1 : NetKAT))) =
     katInterp ((.assign1 .port .v1 : NetKAT)) :=
-  (Derives.paModMod .port .v0 .v1).katSound
+  (Derives.paModMod (schema := ctxSchema) .port .v0 .v1).katSound
 
 example (policy : DyNetKAT.NetKAT.NetKAT) : katInterp policy = katInterp (normalize policy) :=
   normalize_katInterp policy

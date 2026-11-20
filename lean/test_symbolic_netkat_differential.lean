@@ -51,7 +51,7 @@ run_cmd do
   let used := proofDependencies env [``netkatNativeEquiv_iff_derives, ``netkatEquiv_correct,
     ``netkatIsZero, `DyNetKAT.DyNetKAT.netkatExistsNonempty]
   for n in [``derives_of_equiv_starFree, ``exists_derives_starFree_symbolic,
-      ``KATLean.NetKAT.Symbolic.Schema.star_induction, ``Derives.paMatchAll, ``Derives.lfpR] do
+      ``KATLean.NetKAT.Symbolic.Schema.star_induction, ``Derives.paMatchAllFor, ``Derives.lfpR] do
     unless used.contains n do throwError "expected derivation dependency: {n}"
   for n in used do
     if [``legacyNetkatEquiv, ``netkatEquivAt, ``execute,

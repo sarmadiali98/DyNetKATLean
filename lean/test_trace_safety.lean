@@ -41,12 +41,12 @@ private theorem valid : (compiled.initial noChecks).checked.Valid (fun _ => Fals
 #guard !(check compiled noChecks supported valid [[tick]])
 
 example : Safe oneTick [[fault]] :=
-  (check_correct compiled noChecks supported valid _).mp rfl
+  (check_correct compiled noChecks supported valid _).mp (by decide)
 
 example : ¬ Safe oneTick [[tick]] := by
   intro h
   have contradicts := (check_correct compiled noChecks supported valid _).mpr h
-  cases contradicts
+  exact (show check compiled noChecks supported valid [[tick]] ≠ true by decide) contradicts
 
 -- A guarded recursive universal process over one reconfiguration letter.
 private def loop := translate [tick] []
@@ -189,12 +189,12 @@ private def positiveEither : Formula alphabet :=
 #guard !(checkPositive compiled noChecks supported valid positiveEither)
 
 example : PositiveAbsorption oneTick positiveTick :=
-  (checkPositive_correct compiled noChecks supported valid positiveTick).mp rfl
+  (checkPositive_correct compiled noChecks supported valid positiveTick).mp (by decide)
 
 example : ¬ PositiveAbsorption oneTick positiveEither := by
   intro h
   have verdict := (checkPositive_correct compiled noChecks supported valid positiveEither).mpr h
-  cases verdict
+  exact (show checkPositive compiled noChecks supported valid positiveEither ≠ true by decide) verdict
 
 #print axioms ExtendedRegexp.desugar_correct
 #print axioms Regexp.matches_repeatPositive

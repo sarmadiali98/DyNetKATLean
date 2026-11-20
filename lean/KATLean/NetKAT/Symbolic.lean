@@ -8,33 +8,33 @@ namespace KATLean.NetKAT.Symbolic
 
 open Native.Boolean
 
-variable {F V : Type}
+variable {F : Type} {V : F → Type}
 
 /-- Executable enumeration of individual fields and individual values, and
 an ordering for the bit variables. No enumeration of packets is required. -/
-structure Schema (F V : Type) where
+structure Schema (F : Type) (V : F → Type) where
   fields : List F
-  values : List V
+  values : (f : F) → List (V f)
   fields_complete : ∀ f, f ∈ fields
-  values_complete : ∀ a, a ∈ values
+  values_complete : ∀ f a, a ∈ values f
   width : Nat
-  index : ((F × V) × Fin 3) ≃ Fin width
+  index : ((Sigma V) × Fin 3) ≃ Fin width
 
 namespace Schema
 
-variable (s : Schema F V) [DecidableEq V]
+variable (s : Schema F V) [∀ f, DecidableEq (V f)]
 
 abbrev Bits := Fin s.width → Bool
 abbrev DiagramGuard := Guard s.width
 
-private def bit (b : Fin 3) (f : F) (a : V) : Fin s.width := s.index ((f, a), b)
+private def bit (b : Fin 3) (f : F) (a : V f) : Fin s.width := s.index (⟨f, a⟩, b)
 
 /-- A bank represents one packet when its bits are the exactly-one encoding
 of each field's value. -/
-def Matches (b : Fin 3) (v : s.Bits) (p : F → V) : Prop :=
+def Matches (b : Fin 3) (v : s.Bits) (p : (f : F) → V f) : Prop :=
   ∀ f a, v (s.bit b f a) = decide (p f = a)
 
-theorem matches_unique {b : Fin 3} {v : s.Bits} {p q : F → V}
+theorem matches_unique {b : Fin 3} {v : s.Bits} {p q : (f : F) → V f}
     (hp : s.Matches b v p) (hq : s.Matches b v q) : p = q := by
   funext f
   have h := (hp f (q f)).symm.trans (hq f (q f))
@@ -42,99 +42,96 @@ theorem matches_unique {b : Fin 3} {v : s.Bits} {p q : F → V}
 
 /-- Encode selected packets into the three banks. This operation describes
 a single valuation, for use in proofs relating diagrams to packets. -/
-def encode (p : Fin 3 → F → V) : s.Bits := fun i =>
+def encode (p : Fin 3 → (f : F) → V f) : s.Bits := fun i =>
   let x := s.index.symm i
   decide (p x.2 x.1.1 = x.1.2)
 
-theorem matches_encode (p : Fin 3 → F → V) (b : Fin 3) :
+theorem matches_encode (p : Fin 3 → (f : F) → V f) (b : Fin 3) :
     s.Matches b (s.encode p) (p b) := by
   intro f a
-  simp [encode, bit]
+  unfold encode bit
+  rw [s.index.symm_apply_apply]
 
 /-- A binary diagram accepts exactly the encodings of related packet pairs. -/
-def Represents (g : s.DiagramGuard) (r : Rel (F → V)) : Prop :=
+def Represents (g : s.DiagramGuard) (r : Rel ((f : F) → V f)) : Prop :=
   ∀ v : s.Bits, eval g.1 v = true ↔
     ∃ p q, s.Matches 0 v p ∧ s.Matches 1 v q ∧ r.holds p q
 
-private def decodeField (fallback : V) (b : Fin 3) (v : s.Bits) : F → V :=
-  fun f => (s.values.find? (fun a => v (s.bit b f a))).getD fallback
+private def decodeField (fallback : (f : F) → V f) (b : Fin 3) (v : s.Bits) : (f : F) → V f :=
+  fun f => ((s.values f).find? (fun a => v (s.bit b f a))).getD (fallback f)
 
-private theorem decodeField_correct {b : Fin 3} {v : s.Bits} {p : F → V}
-    (fallback : V) (h : s.Matches b v p) : s.decodeField fallback b v = p := by
+private theorem decodeField_correct {b : Fin 3} {v : s.Bits} {p : (f : F) → V f}
+    (fallback : (f : F) → V f) (h : s.Matches b v p) : s.decodeField fallback b v = p := by
   funext f
   unfold decodeField
-  cases he : s.values.find? (fun a => v (s.bit b f a)) with
+  cases he : (s.values f).find? (fun a => v (s.bit b f a)) with
   | none =>
-    have hn := List.find?_eq_none.mp he (p f) (s.values_complete (p f))
+    have hn := List.find?_eq_none.mp he (p f) (s.values_complete f (p f))
     exact False.elim (hn (by simp [h f (p f)]))
   | some a =>
     have ht : v (s.bit b f a) = true := List.find?_some (p := fun a => v (s.bit b f a)) he
     rw [h f a, decide_eq_true_eq] at ht
     exact ht.symm
 
-private theorem matches_of_true_subset {b : Fin 3} {v w : s.Bits} {p q : F → V}
+private theorem matches_of_true_subset {b : Fin 3} {v w : s.Bits} {p q : (f : F) → V f}
     (hp : s.Matches b v p) (hq : s.Matches b w q)
     (sub : ∀ i, w i = true → v i = true) : p = q := by
   funext f
   have h : v (s.bit b f (q f)) = true := sub _ (by simp [hq f (q f)])
   rwa [hp f (q f), decide_eq_true_eq] at h
 
-section
-
-variable [DecidableEq F]
-
-/-- Cache the decoded fields once. Packet expressions can then read the
-same packet repeatedly without following the decision path again. -/
-private def decodeBank (fallback : V) (b : Fin 3) (v : s.Bits) : F → V :=
-  let fields := s.fields.map fun f => (f, s.decodeField fallback b v f)
-  fun f => (fields.lookup f).getD fallback
-
-omit [DecidableEq V] in
-private theorem lookup_fields (fields : List F) (p : F → V) (f : F) (h : f ∈ fields) :
-    (fields.map fun g => (g, p g)).lookup f = some (p f) := by
-  induction fields with
-  | nil => simp at h
-  | cons g gs ih =>
-    by_cases e : f = g
-    · subst g
-      simp
-    · have hm : f ∈ gs := by simpa [e] using h
-      simp [List.lookup_cons, beq_false_of_ne e, ih hm]
-
-private theorem decodeBank_correct {b : Fin 3} {v : s.Bits} {p : F → V}
-    (fallback : V) (h : s.Matches b v p) : s.decodeBank fallback b v = p := by
-  funext f
-  simp only [decodeBank, s.decodeField_correct fallback h,
-    lookup_fields _ _ _ (s.fields_complete f), Option.getD_some]
-
 /-- Materialize only the packet pairs on accepting diagram paths.
 The fallback is unreachable for represented relations. -/
-def acceptedPairs (fallback : V) (g : s.DiagramGuard) : List ((F → V) × (F → V)) :=
+def acceptedPairs (fallback : (f : F) → V f) (g : s.DiagramGuard) : List (((f : F) → V f) × ((f : F) → V f)) :=
   (Guard.acceptingReps g.1).map fun v =>
-    (s.decodeBank fallback 0 v, s.decodeBank fallback 1 v)
+    (s.decodeField fallback 0 v, s.decodeField fallback 1 v)
 
-theorem mem_acceptedPairs (fallback : V) {g : s.DiagramGuard} {r : Rel (F → V)}
-    (h : s.Represents g r) (p q : F → V) :
+theorem mem_acceptedPairs (fallback : (f : F) → V f) {g : s.DiagramGuard} {r : Rel ((f : F) → V f)}
+    (h : s.Represents g r) (p q : (f : F) → V f) :
     (p, q) ∈ s.acceptedPairs fallback g ↔ r.holds p q := by
   constructor
   · intro hm
     obtain ⟨w, hw, eq⟩ := List.mem_map.mp hm
     obtain ⟨a, b, ha, hb, step⟩ := (h w).mp (Guard.acceptingReps_sound hw)
-    rw [s.decodeBank_correct fallback ha, s.decodeBank_correct fallback hb] at eq
+    rw [s.decodeField_correct fallback ha, s.decodeField_correct fallback hb] at eq
     cases eq
     exact step
   · intro step
-    let banks : Fin 3 → F → V := fun b => if b = 0 then p else q
+    let banks : Fin 3 → (f : F) → V f := fun b => if b = 0 then p else q
     let v := s.encode banks
     have hp : s.Matches 0 v p := by simpa [v, banks] using s.matches_encode banks 0
     have hq : s.Matches 1 v q := by simpa [v, banks] using s.matches_encode banks 1
     obtain ⟨w, hw, sub⟩ := Guard.acceptingReps_complete v ((h v).mpr ⟨p, q, hp, hq, step⟩)
     obtain ⟨a, b, ha, hb, _⟩ := (h w).mp (Guard.acceptingReps_sound hw)
     exact List.mem_map.mpr ⟨w, hw, Prod.ext
-      ((s.decodeBank_correct fallback ha).trans (s.matches_of_true_subset hp ha sub).symm)
-      ((s.decodeBank_correct fallback hb).trans (s.matches_of_true_subset hq hb sub).symm)⟩
+      ((s.decodeField_correct fallback ha).trans (s.matches_of_true_subset hp ha sub).symm)
+      ((s.decodeField_correct fallback hb).trans (s.matches_of_true_subset hq hb sub).symm)⟩
 
-end
+private def fallbackPacket : Option ((f : F) → V f) :=
+  if h : s.fields.all (fun f => (s.values f).head?.isSome) then
+    some fun f => (s.values f).head?.get (List.all_eq_true.mp h f (s.fields_complete f))
+  else none
+
+/-- Extract explicitly requested accepted pairs, including for schemas
+with an empty field domain. The fallback is selected one field at a time. -/
+def pairs (g : s.DiagramGuard) : List (((f : F) → V f) × ((f : F) → V f)) :=
+  match s.fallbackPacket with
+  | some p => s.acceptedPairs p g
+  | none => []
+
+theorem mem_pairs {g : s.DiagramGuard} {r : Rel ((f : F) → V f)}
+    (h : s.Represents g r) (p q : (f : F) → V f) :
+    (p, q) ∈ s.pairs g ↔ r.holds p q := by
+  have present : s.fields.all (fun f => (s.values f).head?.isSome) = true := by
+    apply List.all_eq_true.mpr
+    intro f _
+    have mem := s.values_complete f (p f)
+    cases eq : s.values f with
+    | nil => simp [eq] at mem
+    | cons => simp [eq]
+  unfold pairs fallbackPacket
+  rw [dif_pos present]
+  exact s.mem_acceptedPairs _ h p q
 
 private def every (xs : List X) (f : X → Guard n) : Guard n :=
   xs.foldr (fun x acc => conj (f x) acc) truth
@@ -161,37 +158,39 @@ private theorem eval_some (xs : List X) (f : X → Guard n) (v : Fin n → Bool)
 
 /-- A symbolic field equality. The primitive relation constructors below
 restrict these bits to the one-hot encodings. -/
-def fieldTest (b : Fin 3) (f : F) (a : V) : s.DiagramGuard :=
+def fieldTest (b : Fin 3) (f : F) (a : V f) : s.DiagramGuard :=
   atom s.width (s.bit b f a)
 
-omit [DecidableEq V] in
-@[simp] theorem eval_fieldTest (b : Fin 3) (f : F) (a : V) (v : s.Bits) :
+omit [∀ f, DecidableEq (V f)] in
+@[simp] theorem eval_fieldTest (b : Fin 3) (f : F) (a : V f) (v : s.Bits) :
     eval (s.fieldTest b f a).1 v = v (s.bit b f a) := atom_correct _ _ _
 
-theorem fieldTest_correct {v : s.Bits} {p : F → V} {b : Fin 3} (h : s.Matches b v p)
-    (f : F) (a : V) :
+theorem fieldTest_correct {v : s.Bits} {p : (f : F) → V f} {b : Fin 3} (h : s.Matches b v p)
+    (f : F) (a : V f) :
     eval (s.fieldTest b f a).1 v = decide (p f = a) := by
   rw [eval_fieldTest, h]
 
-private def fieldCode (b : Fin 3) (f : F) (a : V) : s.DiagramGuard :=
-  every s.values (fun w => if a = w then s.fieldTest b f w else neg (s.fieldTest b f w))
+private def fieldCode (b : Fin 3) (f : F) (values : List (V f)) (a : V f) : s.DiagramGuard :=
+  every values (fun w => if a = w then s.fieldTest b f w else neg (s.fieldTest b f w))
 
-private theorem fieldCode_correct (b : Fin 3) (f : F) (a : V) (v : s.Bits) :
-    eval (s.fieldCode b f a).1 v = true ↔ ∀ w, v (s.bit b f w) = decide (a = w) := by
+private theorem fieldCode_correct (b : Fin 3) (f : F) (a : V f) (v : s.Bits) :
+    eval (s.fieldCode b f (s.values f) a).1 v = true ↔
+      ∀ w, v (s.bit b f w) = decide (a = w) := by
   rw [fieldCode, eval_every]
   constructor
   · intro h w
-    specialize h w (s.values_complete w)
+    specialize h w (s.values_complete f w)
     by_cases hEq : a = w <;> simpa [hEq] using h
   · intro h w _
     by_cases hEq : a = w <;> simp [hEq, h]
 
-private def fieldRelation (f : F) (allowed : V → V → Bool) : s.DiagramGuard :=
-  some s.values (fun a =>
-    conj (s.fieldCode 0 f a)
-      (some s.values (fun b => if allowed a b then s.fieldCode 1 f b else falsity)))
+private def fieldRelation (f : F) (allowed : V f → V f → Bool) : s.DiagramGuard :=
+  let values := s.values f
+  some values (fun a =>
+    conj (s.fieldCode 0 f values a)
+      (some values (fun b => if allowed a b then s.fieldCode 1 f values b else falsity)))
 
-private theorem fieldRelation_correct (f : F) (allowed : V → V → Bool) (v : s.Bits) :
+private theorem fieldRelation_correct (f : F) (allowed : V f → V f → Bool) (v : s.Bits) :
     eval (s.fieldRelation f allowed).1 v = true ↔
       ∃ a b, (∀ w, v (s.bit 0 f w) = decide (a = w)) ∧
         (∀ w, v (s.bit 1 f w) = decide (b = w)) ∧ allowed a b = true := by
@@ -202,15 +201,15 @@ private theorem fieldRelation_correct (f : F) (allowed : V → V → Bool) (v : 
     · simp [he] at h
     · exact ⟨a, b, ha, by simpa [he, fieldCode_correct] using h, he⟩
   · rintro ⟨a, b, ha, hb, h⟩
-    exact ⟨a, s.values_complete a, ha, b, s.values_complete b,
+    exact ⟨a, s.values_complete f a, ha, b, s.values_complete f b,
       by simpa [h, fieldCode_correct] using hb⟩
 
 /-- Independent field transfers compose to a primitive packet relation.
 Only the two values of one field are considered at a time. -/
-def primitive (allowed : F → V → V → Bool) : s.DiagramGuard :=
+def primitive (allowed : (f : F) → V f → V f → Bool) : s.DiagramGuard :=
   every s.fields (fun f => s.fieldRelation f (allowed f))
 
-theorem primitive_correct (allowed : F → V → V → Bool) :
+theorem primitive_correct (allowed : (f : F) → V f → V f → Bool) :
     s.Represents (s.primitive allowed) ⟨fun p q => ∀ f, allowed f (p f) (q f) = true⟩ := by
   intro v
   rw [primitive, eval_every]
@@ -226,47 +225,51 @@ theorem primitive_correct (allowed : F → V → V → Bool) :
 
 def skip : s.DiagramGuard := s.primitive (fun _ a b => decide (a = b))
 
-theorem skip_correct : s.Represents s.skip (1 : Rel (F → V)) := by
+theorem skip_correct : s.Represents s.skip (1 : Rel ((f : F) → V f)) := by
   intro v
   rw [skip, s.primitive_correct]
   simp only [Rel.one_holds, decide_eq_true_eq]
   exact ⟨fun ⟨p, q, hp, hq, h⟩ => ⟨p, q, hp, hq, funext h⟩,
     fun ⟨p, q, hp, hq, h⟩ => ⟨p, q, hp, hq, congrFun h⟩⟩
 
-theorem drop_correct : s.Represents falsity (0 : Rel (F → V)) := by
+theorem drop_correct : s.Represents falsity (0 : Rel ((f : F) → V f)) := by
   intro v
   simp
 
 /-- Symbolic single-field update. Unwritten fields retain their values. -/
-def assign [DecidableEq F] (f : F) (a : V) : s.DiagramGuard :=
-  s.primitive (fun g x y => if f = g then decide (a = y) else decide (x = y))
+def assign [DecidableEq F] (f : F) (a : V f) : s.DiagramGuard :=
+  s.primitive (fun g x y => if h : f = g then decide (h ▸ a = y) else decide (x = y))
 
-theorem assign_correct [DecidableEq F] (model : PacketModel F (fun _ => V) (F → V))
-    (lookup : ∀ f p, model.lookup f p = p f) (f : F) (a : V) :
+theorem assign_correct [DecidableEq F] (model : PacketModel F V ((f : F) → V f))
+    (lookup : ∀ f p, model.lookup f p = p f) (f : F) (a : V f) :
     s.Represents (s.assign f a) (model.assign f a) := by
   intro v
   rw [assign, s.primitive_correct]
   simp only [PacketModel.assign_holds]
-  have upd (p : F → V) (g : F) : model.update f a p g = if f = g then a else p g := by
+  have upd (p : (f : F) → V f) (g : F) : model.update f a p g = if h : f = g then h ▸ a else p g := by
     rw [← lookup g (model.update f a p)]
     split
     · next h => subst g; exact model.lookup_update f a p
     · next h => rw [model.lookup_update_other f g a p h, lookup]
-  have equiv (p q : F → V) :
-      (∀ g, (if f = g then decide (a = q g) else decide (p g = q g)) = true) ↔
+  have equiv (p q : (f : F) → V f) :
+      (∀ g, (if h : f = g then decide (h ▸ a = q g) else decide (p g = q g)) = true) ↔
         q = model.update f a p := by
     constructor
     · intro h
       funext g
       rw [upd]
       specialize h g
-      by_cases he : f = g <;> simpa [he, eq_comm (a := q g)] using h
+      by_cases he : f = g
+      · subst g; simpa [eq_comm] using h
+      · simpa [he, eq_comm (a := q g)] using h
     · rintro rfl g
       rw [upd]
-      by_cases h : f = g <;> simp [h]
+      by_cases h : f = g
+      · subst g; simp
+      · simp [h]
   simp only [equiv]
 
-theorem filter_correct {test : s.DiagramGuard} {pred : Set (F → V)}
+theorem filter_correct {test : s.DiagramGuard} {pred : Set ((f : F) → V f)}
     (h : ∀ v p, s.Matches 0 v p → (eval test.1 v = true ↔ p ∈ pred)) :
     s.Represents (conj s.skip test) (Rel.test pred) := by
   intro v
@@ -277,7 +280,7 @@ theorem filter_correct {test : s.DiagramGuard} {pred : Set (F → V)}
   · rintro ⟨p, q, hp, hq, ht, he⟩
     exact ⟨⟨p, q, hp, hq, he⟩, (h v p hp).mpr ht⟩
 
-theorem union_correct {g h : s.DiagramGuard} {r t : Rel (F → V)}
+theorem union_correct {g h : s.DiagramGuard} {r t : Rel ((f : F) → V f)}
     (hg : s.Represents g r) (hh : s.Represents h t) :
     s.Represents (disj g h) (r + t) := by
   intro v
@@ -285,10 +288,10 @@ theorem union_correct {g h : s.DiagramGuard} {r t : Rel (F → V)}
   aesop
 
 /-- Conjunction of a single complete test's field equalities. -/
-def completeTest (p : F → V) : s.DiagramGuard :=
+def completeTest (p : (f : F) → V f) : s.DiagramGuard :=
   every s.fields (fun f => s.fieldTest 0 f (p f))
 
-theorem completeTest_correct {v : s.Bits} {p q : F → V} (h : s.Matches 0 v p) :
+theorem completeTest_correct {v : s.Bits} {p q : (f : F) → V f} (h : s.Matches 0 v p) :
     eval (s.completeTest q).1 v = true ↔ p = q := by
   rw [completeTest, eval_every]
   simp only [s.fieldTest_correct h, decide_eq_true_eq]
@@ -302,24 +305,26 @@ private def move (f : Fin 3 → Fin 3) (i : Fin s.width) : Fin s.width :=
   let x := s.index.symm i
   s.index (x.1, f x.2)
 
-private theorem matches_move (f : Fin 3 → Fin 3) (b : Fin 3) (v : s.Bits) (p : F → V) :
+private theorem matches_move (f : Fin 3 → Fin 3) (b : Fin 3) (v : s.Bits) (p : (f : F) → V f) :
     s.Matches b (v ∘ s.move f) p ↔ s.Matches (f b) v p := by
   simp [Matches, move, bit, Function.comp_def]
 
 private def middle (i : Fin s.width) : Bool := decide ((s.index.symm i).2 = 2)
 
-omit [DecidableEq V] in
-private theorem middle_bit (b : Fin 3) (f : F) (a : V) :
+omit [∀ f, DecidableEq (V f)] in
+private theorem middle_bit (b : Fin 3) (f : F) (a : V f) :
     s.middle (s.bit b f a) = decide (b = 2) := by
   simp [middle, bit]
 
-private def setMiddle (v : s.Bits) (p : F → V) : s.Bits := fun i =>
+private def setMiddle (v : s.Bits) (p : (f : F) → V f) : s.Bits := fun i =>
   if s.middle i then decide (p (s.index.symm i).1.1 = (s.index.symm i).1.2) else v i
 
-private theorem matches_setMiddle (v : s.Bits) (p : F → V) :
+private theorem matches_setMiddle (v : s.Bits) (p : (f : F) → V f) :
     s.Matches 2 (s.setMiddle v p) p := by
   intro f a
-  simp [setMiddle, middle, bit]
+  unfold setMiddle middle bit
+  rw [s.index.symm_apply_apply]
+  rfl
 
 /-- Relational composition by joining at the middle bank and projecting
 that bank out. Projection walks the symbolic diagram. -/
@@ -327,7 +332,7 @@ def seq (g h : s.DiagramGuard) : s.DiagramGuard :=
   let join := conj (Guard.rename g.1 (s.move leftBank)) (Guard.rename h.1 (s.move rightBank))
   Guard.project join.1 s.middle
 
-theorem seq_correct {g h : s.DiagramGuard} {r t : Rel (F → V)}
+theorem seq_correct {g h : s.DiagramGuard} {r t : Rel ((f : F) → V f)}
     (hg : s.Represents g r) (hh : s.Represents h t) :
     s.Represents (s.seq g h) (r * t) := by
   simp only [Represents] at hg hh

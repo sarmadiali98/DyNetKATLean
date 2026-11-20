@@ -8,9 +8,10 @@ local instance : DecidableEq CompleteTest := (inferInstance : DecidableEq CtxPkt
 local instance : DecidableEq CompleteAssignmentValuation := (inferInstance : DecidableEq CtxPkt)
 
 /-- The complete test succeeds exactly on its own valuation and preserves it. -/
-theorem completeTest_singleton (α : CompleteTest) (σ τ : CtxPkt) :
+theorem completeTest_singleton {schema : PacketSchema} (α σ τ : schema.Packet) :
     Semantics (.completeTest α) σ τ ↔ σ = α ∧ σ = τ := by
-  rw [← NetKAT.completeTestEmbed, completeTest_sem, holdsComplete_iff_eq]
+  change (holdsComplete α σ ∧ σ = τ) ↔ _
+  rw [holdsComplete_iff_eq]
 
 /-- A complete branch denotes exactly one ordered packet pair. -/
 theorem ofSummand_singleton (α : CompleteTest) (π : CompleteAssignmentValuation)
@@ -29,25 +30,133 @@ theorem NormalForm.interpret_iff_mem (nf : NormalForm) (σ τ : CtxPkt) :
   · intro hm
     exact ⟨σ, τ, hm, (holdsComplete_iff_eq σ σ).mpr rfl, rfl⟩
 
-private def values : List FieldValueEnum := [.v0, .v1, .v8, .v9]
+section FiniteSchema
+
+variable {schema : PacketSchema} [diagram : DiagramLayout schema]
+
+local instance (f : schema.Field) : DecidableEq (schema.Value f) := schema.valueEq f
+
+/-- The symbolic normal form stores a reduced relation diagram. -/
+def symbolicNormalFormFor (p : NetKAT schema) : diagram.layout.DiagramGuard :=
+  compileSymbolic p
+
+theorem symbolicNormalFormFor_correct (p : NetKAT schema) :
+    diagram.layout.Represents (symbolicNormalFormFor p) (katInterp p) :=
+  compileSymbolic_correct p
+
+/-- Expand a symbolic normal form when concrete paper summands are requested. -/
+def symbolicPairsFor (p : NetKAT schema) : List (schema.Packet × schema.Packet) :=
+  diagram.layout.pairs (symbolicNormalFormFor p)
+
+theorem mem_symbolicPairsFor (p : NetKAT schema) (input output : schema.Packet) :
+    (input, output) ∈ symbolicPairsFor p ↔ Semantics p input output :=
+  (diagram.layout.mem_pairs (symbolicNormalFormFor_correct p) input output).trans
+    (katInterp_correct p input output)
+
+private def assignFields (fields : List schema.Field) (target : schema.Packet) : NetKAT schema :=
+  fields.foldr (fun f rest => .seq (.assign1 f (target f)) rest) .id
+
+omit diagram in
+private theorem assignFields_sem (fields : List schema.Field) (target input output : schema.Packet) :
+    Semantics (assignFields fields target) input output ↔
+      output = fields.foldl (fun p f => schema.model.update f (target f) p) input := by
+  induction fields generalizing input with
+  | nil => exact eq_comm
+  | cons f tail ih =>
+    change (∃ mid, mid = schema.model.update f (target f) input ∧
+      Semantics (assignFields tail target) mid output) ↔ _
+    simp [ih]
+
+omit diagram in
+private theorem fold_update_apply (fields : List schema.Field) (target input : schema.Packet)
+    (f : schema.Field) (h : f ∈ fields) :
+    (fields.foldl (fun p g => schema.model.update g (target g) p) input) f = target f := by
+  have untouched (xs : List schema.Field) (p : schema.Packet) (absent : f ∉ xs) :
+      (xs.foldl (fun p g => schema.model.update g (target g) p) p) f = p f := by
+    induction xs generalizing p with
+    | nil => rfl
+    | cons g xs ih =>
+      have differ : g ≠ f := fun e => absent (e ▸ List.mem_cons_self)
+      rw [List.foldl_cons, ih _ (fun mem => absent (List.mem_cons_of_mem _ mem))]
+      exact (schema.lookup_eq f _).symm.trans
+        ((schema.model.lookup_update_other g f (target g) p differ).trans (schema.lookup_eq f p))
+  induction fields generalizing input with
+  | nil => cases h
+  | cons g xs ih =>
+    rw [List.foldl_cons]
+    by_cases later : f ∈ xs
+    · exact ih _ later
+    · have equal := (List.mem_cons.mp h).resolve_right later
+      subst g
+      rw [untouched _ _ later]
+      exact (schema.lookup_eq f _).symm.trans (schema.model.lookup_update f (target f) input)
+
+/-- Write all fields of one specified packet. -/
+def assignPacket (target : schema.Packet) : NetKAT schema :=
+  assignFields diagram.layout.fields target
+
+theorem assignPacket_sem (target input output : schema.Packet) :
+    Semantics (assignPacket target) input output ↔ output = target := by
+  have update : diagram.layout.fields.foldl
+      (fun p f => schema.model.update f (target f) p) input = target :=
+    funext fun f => fold_update_apply _ _ _ f (diagram.layout.fields_complete f)
+  rw [assignPacket, assignFields_sem, update]
+
+/-- One complete-test/assignment branch of the paper's normal form. -/
+def packetSummand (pair : schema.Packet × schema.Packet) : NetKAT schema :=
+  .seq (.completeTest pair.1) (assignPacket pair.2)
+
+theorem packetSummand_sem (input output : schema.Packet) (pair : schema.Packet × schema.Packet) :
+    Semantics (packetSummand pair) input output ↔ (input, output) = pair := by
+  rcases pair with ⟨i, o⟩
+  change (∃ mid, Semantics (.completeTest i) input mid ∧
+    Semantics (assignPacket o) mid output) ↔ _
+  simp [completeTest_singleton, assignPacket_sem, Prod.mk.injEq]
+
+/-- Paper-form syntax for an explicitly supplied list of packet pairs. -/
+def pairSumFor (pairs : List (schema.Packet × schema.Packet)) : NetKAT schema :=
+  pairs.foldr (fun pair rest => .union (packetSummand pair) rest) .drop
+
+theorem pairSumFor_sem (pairs : List (schema.Packet × schema.Packet)) (input output : schema.Packet) :
+    Semantics (pairSumFor pairs) input output ↔ (input, output) ∈ pairs := by
+  induction pairs with
+  | nil => simp [pairSumFor, Semantics]
+  | cons pair rest ih =>
+    obtain ⟨a, b⟩ := pair
+    change ((∃ mid, (holdsComplete a input ∧ input = mid) ∧
+      Semantics (assignPacket b) mid output) ∨ Semantics (pairSumFor rest) input output) ↔ _
+    simp [assignPacket_sem, holdsComplete_iff_eq, ih]
+
+theorem symbolicPairsFor_sum_correct (p : NetKAT schema) (input output : schema.Packet) :
+    Semantics (pairSumFor (symbolicPairsFor p)) input output ↔ Semantics p input output :=
+  (pairSumFor_sem _ _ _).trans (mem_symbolicPairsFor _ _ _)
+
+theorem symbolicPairsFor_history_correct (p : NetKAT schema) (input output : History schema.Packet) :
+    HistorySemantics (pairSumFor (symbolicPairsFor p)) input output ↔
+      HistorySemantics p input output := by
+  obtain ⟨i, it⟩ := input
+  obtain ⟨o, ot⟩ := output
+  rw [historySemantics_iff_packetSemantics, historySemantics_iff_packetSemantics]
+  exact and_congr_right (fun _ => symbolicPairsFor_sum_correct p i o)
+
+end FiniteSchema
 
 /-- The compact normal form is the reduced packet relation diagram.
 Only the paper's explicit pair syntax and heads require materialization. -/
 def symbolicNormalForm (p : NetKAT) : symbolicSchema.DiagramGuard :=
-  compileSymbolic p
+  symbolicNormalFormFor p
 
 theorem symbolicNormalForm_correct (p : NetKAT) :
     symbolicSchema.Represents (symbolicNormalForm p) (katInterp p) :=
-  compileSymbolic_correct p
+  symbolicNormalFormFor_correct p
 
 /-- Materialize the exact paper branches from accepting paths only. -/
 def symbolicPairs (p : NetKAT) : List (CompleteTest × CompleteAssignmentValuation) :=
-  symbolicSchema.acceptedPairs .v0 (symbolicNormalForm p)
+  symbolicPairsFor p
 
 theorem mem_symbolicPairs (p : NetKAT) (σ τ : CtxPkt) :
     (σ, τ) ∈ symbolicPairs p ↔ Semantics p σ τ :=
-  (symbolicSchema.mem_acceptedPairs .v0 (symbolicNormalForm_correct p) σ τ).trans
-    (katInterp_correct p σ τ)
+  mem_symbolicPairsFor p σ τ
 
 /-- Finite-set compatibility view of the symbolic normal form. -/
 def netkatNormalForm (p : NetKAT) : NormalForm :=
@@ -73,106 +182,108 @@ theorem netkatNormalForm_eq_iff (p q : NetKAT) :
     rw [netkatNormalForm_mem, netkatNormalForm_mem]
     exact he σ τ
 
-/-- Ordered syntax for a finite sum of complete branches. -/
-def pairSum (xs : List (CompleteTest × CompleteAssignmentValuation)) : NetKAT :=
-  xs.foldr (fun pair acc => .union (NormalForm.ofSummand pair) acc) .drop
+section FiniteAlgebra
 
-theorem pairSum_sem (xs : List (CompleteTest × CompleteAssignmentValuation)) (σ τ : CtxPkt) :
-    Semantics (pairSum xs) σ τ ↔ (σ, τ) ∈ xs := by
-  unfold pairSum
-  rw [fold_sem]
-  simp only [holdsComplete_iff_eq]
-  constructor
-  · rintro ⟨α, π, hm, rfl, rfl⟩
-    exact hm
-  · intro h
-    exact ⟨σ, τ, h, rfl, rfl⟩
+variable {schema : PacketSchema} [diagram : DiagramLayout schema]
+
+local instance (f : schema.Field) : DecidableEq (schema.Value f) := schema.valueEq f
+local instance : DecidableEq schema.Field := schema.fieldEq
+local instance : DecidableEq schema.Packet := schema.packetEq
+
+/-- Ordered syntax for a finite sum of complete branches. -/
+def pairSum (xs : List (schema.Packet × schema.Packet)) : NetKAT schema :=
+  pairSumFor xs
+
+theorem pairSum_sem (xs : List (schema.Packet × schema.Packet)) (σ τ : schema.Packet) :
+    Semantics (pairSum xs) σ τ ↔ (σ, τ) ∈ xs :=
+  pairSumFor_sem xs σ τ
 
 /-- A syntax-level witness for a sum of complete branches. The empty sum is drop. -/
-def IsPairSum (p : NetKAT) : Prop :=
-  ∃ xs : List (CompleteTest × CompleteAssignmentValuation),
+def IsPairSum (p : NetKAT schema) : Prop :=
+  ∃ xs : List (schema.Packet × schema.Packet),
     p = pairSum xs
 
 /-- Exact finite sum of complete tests followed by complete assignments. -/
-def symbolicNormalize (p : NetKAT) : NetKAT :=
-  pairSum (symbolicPairs p)
+def symbolicNormalize (p : NetKAT schema) : NetKAT schema :=
+  pairSum (symbolicPairsFor p)
 
-abbrev normalize := symbolicNormalize
+abbrev normalize (p : NetKAT schema) := symbolicNormalize p
 
-theorem symbolic_normalize_pairSum (p : NetKAT) : IsPairSum (symbolicNormalize p) :=
-  ⟨symbolicPairs p, rfl⟩
+theorem symbolic_normalize_pairSum (p : NetKAT schema) : IsPairSum (symbolicNormalize p) :=
+  ⟨symbolicPairsFor p, rfl⟩
 
-theorem normalize_pairSum (p : NetKAT) : IsPairSum (normalize p) :=
+theorem normalize_pairSum (p : NetKAT schema) : IsPairSum (normalize p) :=
   symbolic_normalize_pairSum p
 
-theorem normalize_correct (p : NetKAT) (σ τ : CtxPkt) :
+theorem normalize_correct (p : NetKAT schema) (σ τ : schema.Packet) :
     Semantics (normalize p) σ τ ↔ Semantics p σ τ :=
-  (pairSum_sem _ σ τ).trans (mem_symbolicPairs p σ τ)
+  (pairSum_sem _ σ τ).trans (mem_symbolicPairsFor p σ τ)
 
-theorem normalize_history_correct (p : NetKAT) (h h' : History) :
+theorem normalize_history_correct (p : NetKAT schema) (h h' : History schema.Packet) :
     HistorySemantics (normalize p) h h' ↔ HistorySemantics p h h' :=
-  (netkatEquiv_history_correct (normalize p) p).mp
-    ((netkatEquiv_correct (normalize p) p).mpr (normalize_correct p)) h h'
+  symbolicPairsFor_history_correct p h h'
 
-/-- Star-free is a strict subfragment of the dup-free NetKAT AST. -/
-def StarFree : NetKAT → Prop
+/-- Star-free is a strict subfragment of the dup-free NetKAT schema AST. -/
+def StarFree : NetKAT schema → Prop
   | .union p q | .seq p q => StarFree p ∧ StarFree q
   | .star _ => False
   | _ => True
 
-private theorem completeAssignExpr_starFree (π : CompleteAssignmentValuation) :
-    StarFree (NetKAT.completeAssignExpr π) := by
-  unfold NetKAT.completeAssignExpr
-  split
-  · trivial
-  · rename_i f fs he
-    refine ⟨trivial, ?_⟩
-    clear he
-    induction fs with
-    | nil => trivial
-    | cons g fs ih => exact ⟨trivial, ih⟩
+private theorem completeAssignExpr_starFree (π : schema.Packet) :
+    StarFree (assignPacket π) := by
+  unfold assignPacket
+  generalize diagram.layout.fields = fields
+  induction fields with
+  | nil => trivial
+  | cons g fs ih => exact ⟨trivial, ih⟩
 
-theorem IsPairSum.starFree {p : NetKAT} (hp : IsPairSum p) : StarFree p := by
+theorem IsPairSum.starFree {p : NetKAT schema} (hp : IsPairSum p) : StarFree p := by
   obtain ⟨xs, rfl⟩ := hp
   induction xs with
   | nil => trivial
   | cons pair xs ih => exact ⟨⟨trivial, completeAssignExpr_starFree pair.2⟩, ih⟩
 
-theorem normalize_starFree (p : NetKAT) : StarFree (normalize p) :=
+theorem normalize_starFree (p : NetKAT schema) : StarFree (normalize p) :=
   (normalize_pairSum p).starFree
 
 local infixl:65 " ⊕ " => NetKAT.union
 local infixl:70 " ⨟ " => NetKAT.seq
 
-private def Below (p q : NetKAT) : Prop := Derives (p ⊕ q) q
+private def Below (p q : NetKAT schema) : Prop := Derives (p ⊕ q) q
 
-private theorem below_trans {a b c : NetKAT} (h : Below a b) (k : Below b c) : Below a c :=
+omit diagram in
+private theorem below_trans {a b c : NetKAT schema} (h : Below a b) (k : Below b c) : Below a c :=
   .trans (.unionCongr (.refl _) k.symm)
     (.trans (.plusAssoc _ _ _) (.trans (.unionCongr h (.refl _)) k))
 
-private theorem below_left (a b : NetKAT) : Below a (a ⊕ b) :=
+omit diagram in
+private theorem below_left (a b : NetKAT schema) : Below a (a ⊕ b) :=
   .trans (.plusAssoc _ _ _) (.unionCongr (.plusIdem _) (.refl _))
 
-private theorem below_right (a b : NetKAT) : Below b (a ⊕ b) :=
+private theorem below_right (a b : NetKAT schema) : Below b (a ⊕ b) :=
   .trans (.unionCongr (.refl _) (.plusComm _ _))
     (.trans (below_left _ _) (.plusComm _ _))
 
-private theorem below_of_derives {a b : NetKAT} (h : Derives a b) : Below a b :=
+omit diagram in
+private theorem below_of_derives {a b : NetKAT schema} (h : Derives a b) : Below a b :=
   .trans (.unionCongr h (.refl _)) (.plusIdem _)
 
-private theorem below_union {a b c : NetKAT} (h : Below a c) (k : Below b c) : Below (a ⊕ b) c :=
+omit diagram in
+private theorem below_union {a b c : NetKAT schema} (h : Below a c) (k : Below b c) : Below (a ⊕ b) c :=
   .trans (.symm (.plusAssoc _ _ _)) (.trans (.unionCongr (.refl _) k) h)
 
-private theorem below_seq_right {a b : NetKAT} (h : Below a b) (p : NetKAT) :
+omit diagram in
+private theorem below_seq_right {a b : NetKAT schema} (h : Below a b) (p : NetKAT schema) :
     Below (a ⨟ p) (b ⨟ p) :=
   .trans (.symm (.seqDistR _ _ _)) (.seqCongr h (.refl _))
 
-private theorem derives_of_below {a b : NetKAT} (h : Below a b) (k : Below b a) : Derives a b :=
+omit diagram in
+private theorem derives_of_below {a b : NetKAT schema} (h : Below a b) (k : Below b a) : Derives a b :=
   .trans k.symm (.trans (.plusComm _ _) h)
 
-private theorem summand_below_sum {a : CompleteTest × CompleteAssignmentValuation}
-    {xs : List (CompleteTest × CompleteAssignmentValuation)} (h : a ∈ xs) :
-    Below (NormalForm.ofSummand a) (pairSum xs) := by
+private theorem summand_below_sum {a : schema.Packet × schema.Packet}
+    {xs : List (schema.Packet × schema.Packet)} (h : a ∈ xs) :
+    Below (packetSummand a) (pairSum xs) := by
   induction xs with
   | nil => cases h
   | cons b xs ih =>
@@ -180,7 +291,7 @@ private theorem summand_below_sum {a : CompleteTest × CompleteAssignmentValuati
     · exact below_left _ _
     · exact below_trans (ih h) (below_right _ _)
 
-private theorem pairSum_below {xs ys : List (CompleteTest × CompleteAssignmentValuation)}
+private theorem pairSum_below {xs ys : List (schema.Packet × schema.Packet)}
     (h : ∀ a ∈ xs, a ∈ ys) : Below (pairSum xs) (pairSum ys) := by
   induction xs with
   | nil => exact .trans (.plusComm _ _) (.plusZero _)
@@ -190,11 +301,11 @@ private theorem pairSum_below {xs ys : List (CompleteTest × CompleteAssignmentV
 
 /-- Finite sums with the same pairs are derivably equal, regardless of order
 or duplicate branches. -/
-theorem pairSum_derives {xs ys : List (CompleteTest × CompleteAssignmentValuation)}
+theorem pairSum_derives {xs ys : List (schema.Packet × schema.Packet)}
     (h : ∀ a, a ∈ xs ↔ a ∈ ys) : Derives (pairSum xs) (pairSum ys) :=
   derives_of_below (pairSum_below (fun a => (h a).mp)) (pairSum_below (fun a => (h a).mpr))
 
-theorem IsPairSum.derives_of_equiv {p q : NetKAT} (hp : IsPairSum p) (hq : IsPairSum q)
+theorem IsPairSum.derives_of_equiv {p q : NetKAT schema} (hp : IsPairSum p) (hq : IsPairSum q)
     (h : ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ) : Derives p q := by
   obtain ⟨xs, rfl⟩ := hp
   obtain ⟨ys, rfl⟩ := hq
@@ -202,31 +313,31 @@ theorem IsPairSum.derives_of_equiv {p q : NetKAT} (hp : IsPairSum p) (hq : IsPai
   rintro ⟨σ, τ⟩
   exact (pairSum_sem xs σ τ).symm.trans ((h σ τ).trans (pairSum_sem ys σ τ))
 
-theorem IsPairSum.derives_normalize {p : NetKAT} (hp : IsPairSum p) :
+theorem IsPairSum.derives_normalize {p : NetKAT schema} (hp : IsPairSum p) :
     Derives p (normalize p) :=
   hp.derives_of_equiv (normalize_pairSum p) (fun σ τ => (normalize_correct p σ τ).symm)
 
-theorem normalize_derives_drop : Derives .drop (normalize .drop) :=
+theorem normalize_derives_drop : Derives (schema := schema) .drop (normalize .drop) :=
   IsPairSum.derives_normalize ⟨[], rfl⟩
 
-theorem normalize_derives_summand (α : CompleteTest) (π : CompleteAssignmentValuation) :
-    Derives (NormalForm.ofSummand (α, π)) (normalize (NormalForm.ofSummand (α, π))) := by
-  let p := NormalForm.ofSummand (α, π)
+theorem normalize_derives_summand (α : schema.Packet) (π : schema.Packet) :
+    Derives (packetSummand (α, π)) (normalize (packetSummand (α, π))) := by
+  let p := packetSummand (α, π)
   have hd : Derives p (pairSum [(α, π)]) := .symm (.plusZero p)
   have hs : IsPairSum (pairSum [(α, π)]) := ⟨_, rfl⟩
   exact .trans hd (hs.derives_of_equiv (normalize_pairSum p) (fun σ τ =>
     (hd.sound σ τ).symm.trans (normalize_correct p σ τ).symm))
 
-private theorem pairSum_append (xs ys : List (CompleteTest × CompleteAssignmentValuation)) :
+private theorem pairSum_append (xs ys : List (schema.Packet × schema.Packet)) :
     Derives (pairSum xs ⊕ pairSum ys) (pairSum (xs ++ ys)) := by
   induction xs with
   | nil => exact .trans (.plusComm _ _) (.plusZero _)
   | cons a xs ih => exact .trans (.symm (.plusAssoc _ _ _)) (.unionCongr (.refl _) ih)
 
-theorem normalize_derives_union {p q : NetKAT} (hp : Derives p (normalize p))
+theorem normalize_derives_union {p q : NetKAT schema} (hp : Derives p (normalize p))
     (hq : Derives q (normalize q)) : Derives (p ⊕ q) (normalize (p ⊕ q)) := by
-  let xs := symbolicPairs p
-  let ys := symbolicPairs q
+  let xs := symbolicPairsFor p
+  let ys := symbolicPairsFor q
   have hd : Derives (p ⊕ q) (pairSum (xs ++ ys)) :=
     .trans (.unionCongr hp hq) (pairSum_append xs ys)
   have hshape : IsPairSum (pairSum (xs ++ ys)) := ⟨_, rfl⟩
@@ -234,23 +345,25 @@ theorem normalize_derives_union {p q : NetKAT} (hp : Derives p (normalize p))
     (hd.sound σ τ).symm.trans (normalize_correct _ σ τ).symm))
 
 /-- Finite unrolling with zero iterations represented by identity. -/
-def boundedPolicy (p : NetKAT) : Nat → NetKAT
+def boundedPolicy (p : NetKAT schema) : Nat → NetKAT schema
   | 0 => .id
   | n + 1 => let q := boundedPolicy p n; q ⊕ (q ⨟ p)
 
-theorem boundedPolicy_sem (p : NetKAT) (n : Nat) (σ τ : CtxPkt) :
+omit diagram in
+theorem boundedPolicy_sem (p : NetKAT schema) (n : Nat) (σ τ : schema.Packet) :
     Semantics (boundedPolicy p n) σ τ ↔ ReachableWithin p n σ τ := by
   induction n generalizing τ with
   | zero => exact eq_comm
   | succ n ih => simp only [boundedPolicy, union_sem, seq_sem, reachableWithin_succ_iff, ih]
 
-theorem boundedPolicy_starFree {p : NetKAT} (hp : StarFree p) (n : Nat) :
+omit diagram in
+theorem boundedPolicy_starFree {p : NetKAT schema} (hp : StarFree p) (n : Nat) :
     StarFree (boundedPolicy p n) := by
   induction n with
   | zero => trivial
   | succ n ih => exact ⟨ih, ih, hp⟩
 
-private theorem boundedPolicy_below_star (p : NetKAT) (n : Nat) :
+private theorem boundedPolicy_below_star (p : NetKAT schema) (n : Nat) :
     Below (boundedPolicy p n) (.star p) := by
   have hu := below_of_derives (Derives.unrollR p)
   induction n with
@@ -258,7 +371,7 @@ private theorem boundedPolicy_below_star (p : NetKAT) (n : Nat) :
   | succ n ih =>
     exact below_union ih (below_trans (below_seq_right ih p) (below_trans (below_right _ _) hu))
 
-private theorem id_below_boundedPolicy (p : NetKAT) (n : Nat) :
+private theorem id_below_boundedPolicy (p : NetKAT schema) (n : Nat) :
     Below .id (boundedPolicy p n) := by
   induction n with
   | zero => exact .plusIdem _
@@ -266,7 +379,7 @@ private theorem id_below_boundedPolicy (p : NetKAT) (n : Nat) :
 
 /-- An equational stabilization certificate gives an actual star derivation
 via the existing right least-fixpoint rule. -/
-theorem derives_star_boundedPolicy {p : NetKAT} {n : Nat}
+theorem derives_star_boundedPolicy {p : NetKAT schema} {n : Nat}
     (h : Derives (boundedPolicy p (n + 1)) (boundedPolicy p n)) :
     Derives (.star p) (boundedPolicy p n) := by
   let q := boundedPolicy p n
@@ -277,14 +390,14 @@ theorem derives_star_boundedPolicy {p : NetKAT} {n : Nat}
     (boundedPolicy_below_star p n)
 
 /-- Equational completeness restricted to star-free policies. -/
-def StarFreeComplete : Prop :=
-  ∀ {p q : NetKAT}, StarFree p → StarFree q →
+def StarFreeComplete (schema : PacketSchema := ctxSchema) : Prop :=
+  ∀ {p q : NetKAT schema}, StarFree p → StarFree q →
     (∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ) → Derives p q
 
 /-- Pair-sum extensionality upgrades star-free normalization to star-free
 semantic completeness. -/
 theorem starFreeComplete_iff_normalize :
-    StarFreeComplete ↔ ∀ p, StarFree p → Derives p (normalize p) := by
+    StarFreeComplete schema ↔ ∀ p : NetKAT schema, StarFree p → Derives p (normalize p) := by
   constructor
   · intro complete p hp
     exact complete hp (normalize_starFree p) (fun σ τ => (normalize_correct p σ τ).symm)
@@ -294,20 +407,22 @@ theorem starFreeComplete_iff_normalize :
         (normalize_correct p σ τ).trans ((he σ τ).trans (normalize_correct q σ τ).symm))
     exact .trans (normalizeProof p hp) (.trans hn (.symm (normalizeProof q hq)))
 
-private def word (f : FieldName → NetKAT) (xs : List FieldName) : NetKAT :=
+private def word (f : schema.Field → NetKAT schema) (xs : List schema.Field) : NetKAT schema :=
   xs.foldr (fun x acc => f x ⨟ acc) .id
 
-private def reads (σ : CtxPkt) (f : FieldName) : NetKAT := NetKAT.fieldTest f (σ f)
-private def writes (σ : CtxPkt) (f : FieldName) : NetKAT := NetKAT.assign1 f (σ f)
+private def reads (σ : schema.Packet) (f : schema.Field) : NetKAT schema := NetKAT.fieldTestFor f (σ f)
+private def writes (σ : schema.Packet) (f : schema.Field) : NetKAT schema := NetKAT.assign1 f (σ f)
 
-private theorem word_congr {f g : FieldName → NetKAT} {xs : List FieldName}
+omit diagram in
+private theorem word_congr {f g : schema.Field → NetKAT schema} {xs : List schema.Field}
     (h : ∀ x ∈ xs, Derives (f x) (g x)) : Derives (word f xs) (word g xs) := by
   induction xs with
   | nil => exact .refl _
   | cons x xs ih =>
     exact .seqCongr (h x List.mem_cons_self) (ih (fun y hy => h y (List.mem_cons_of_mem _ hy)))
 
-private theorem word_commute (a : NetKAT) (f : FieldName → NetKAT) (xs : List FieldName)
+omit diagram in
+private theorem word_commute (a : NetKAT schema) (f : schema.Field → NetKAT schema) (xs : List schema.Field)
     (h : ∀ x ∈ xs, Derives (a ⨟ f x) (f x ⨟ a)) :
     Derives (a ⨟ word f xs) (word f xs ⨟ a) := by
   induction xs with
@@ -318,8 +433,8 @@ private theorem word_commute (a : NetKAT) (f : FieldName → NetKAT) (xs : List 
         (.trans (.seqCongr (.refl _) (ih (fun y hy => h y (List.mem_cons_of_mem _ hy))))
           (.seqAssoc _ _ _))))
 
-private theorem word_append_at {f g : FieldName → NetKAT} {xs : List FieldName}
-    {k : FieldName} {a : NetKAT} (hn : xs.Nodup) (hk : k ∈ xs)
+private theorem word_append_at {f g : schema.Field → NetKAT schema} {xs : List schema.Field}
+    {k : schema.Field} {a : NetKAT schema} (hn : xs.Nodup) (hk : k ∈ xs)
     (hit : Derives (f k ⨟ a) (g k)) (keep : ∀ x, x ≠ k → f x = g x)
     (comm : ∀ x, x ≠ k → Derives (a ⨟ f x) (f x ⨟ a)) :
     Derives (word f xs ⨟ a) (word g xs) := by
@@ -336,8 +451,8 @@ private theorem word_append_at {f g : FieldName → NetKAT} {xs : List FieldName
     · have he := keep x (fun he => hnot (he.symm ▸ hmem))
       exact .trans (.symm (.seqAssoc _ _ _)) (.seqCongr (he ▸ Derives.refl (f x)) (ih hn' hmem))
 
-private theorem word_append_reject {f : FieldName → NetKAT} {xs : List FieldName}
-    {k : FieldName} {a : NetKAT} (hn : xs.Nodup) (hk : k ∈ xs)
+private theorem word_append_reject {f : schema.Field → NetKAT schema} {xs : List schema.Field}
+    {k : schema.Field} {a : NetKAT schema} (hn : xs.Nodup) (hk : k ∈ xs)
     (hit : Derives (f k ⨟ a) .drop)
     (comm : ∀ x, x ≠ k → Derives (a ⨟ f x) (f x ⨟ a)) :
     Derives (word f xs ⨟ a) .drop := by
@@ -352,8 +467,9 @@ private theorem word_append_reject {f : FieldName → NetKAT} {xs : List FieldNa
     · exact .trans (.symm (.seqAssoc _ _ _))
         (.trans (.seqCongr (.refl _) (ih hn' hmem)) (.seqZero _))
 
-private theorem word_prepend_absorb {f : FieldName → NetKAT} {xs : List FieldName}
-    {k : FieldName} {a : NetKAT} (hk : k ∈ xs)
+omit diagram in
+private theorem word_prepend_absorb {f : schema.Field → NetKAT schema} {xs : List schema.Field}
+    {k : schema.Field} {a : NetKAT schema} (hk : k ∈ xs)
     (hit : Derives (a ⨟ f k) (f k))
     (comm : ∀ x, x ≠ k → Derives (a ⨟ f x) (f x ⨟ a)) :
     Derives (a ⨟ word f xs) (word f xs) := by
@@ -366,7 +482,8 @@ private theorem word_prepend_absorb {f : FieldName → NetKAT} {xs : List FieldN
     · exact .trans (.seqAssoc _ _ _) (.trans (.seqCongr (comm x h) (.refl _))
         (.trans (.symm (.seqAssoc _ _ _)) (.seqCongr (.refl _) (ih ((List.mem_cons.mp hk).resolve_left (Ne.symm h))))))
 
-private theorem word_fields_prepend {f : FieldName → NetKAT} (xs : List FieldName) (q : NetKAT)
+omit diagram in
+private theorem word_fields_prepend {f : schema.Field → NetKAT schema} (xs : List schema.Field) (q : NetKAT schema)
     (h : ∀ x ∈ xs, Derives (f x ⨟ q) q) : Derives (word f xs ⨟ q) q := by
   induction xs with
   | nil => exact .oneSeq _
@@ -375,7 +492,8 @@ private theorem word_fields_prepend {f : FieldName → NetKAT} (xs : List FieldN
       (.trans (.seqCongr (.refl _) (ih (fun y hy => h y (List.mem_cons_of_mem _ hy))))
         (h x List.mem_cons_self))
 
-private theorem word_fields_append (q : NetKAT) {f : FieldName → NetKAT} (xs : List FieldName)
+omit diagram in
+private theorem word_fields_append (q : NetKAT schema) {f : schema.Field → NetKAT schema} (xs : List schema.Field)
     (h : ∀ x ∈ xs, Derives (q ⨟ f x) q) : Derives (q ⨟ word f xs) q := by
   induction xs with
   | nil => exact .seqOne _
@@ -383,103 +501,119 @@ private theorem word_fields_append (q : NetKAT) {f : FieldName → NetKAT} (xs :
     exact .trans (.seqAssoc _ _ _) (.trans (.seqCongr (h x List.mem_cons_self) (.refl _))
       (ih (fun y hy => h y (List.mem_cons_of_mem _ hy))))
 
-private theorem read_eq (σ : CtxPkt) :
-    Derives (.completeTest σ) (word (reads σ) NetKAT.fieldEnum) :=
-  .completeTestExpand σ
+private theorem read_eq (σ : schema.Packet) :
+    Derives (.completeTest σ) (word (reads σ) diagram.layout.fields) :=
+  .completeTestExpandFor σ diagram.layout.fields diagram.layout.fields_complete
 
-private theorem read_write_self (σ : CtxPkt) :
-    Derives (.completeTest σ ⨟ NetKAT.completeAssignExpr σ) (.completeTest σ) := by
+private theorem read_write_self (σ : schema.Packet) :
+    Derives (.completeTest σ ⨟ assignPacket σ) (.completeTest σ) := by
   refine .trans (.seqCongr (read_eq σ) (.refl _)) (.trans ?_ (.symm (read_eq σ)))
-  change Derives (word (reads σ) NetKAT.fieldEnum ⨟ word (writes σ) NetKAT.fieldEnum) _
+  change Derives (word (reads σ) diagram.layout.fields ⨟ word (writes σ) diagram.layout.fields) _
   apply word_fields_append
   intro f _
-  apply word_append_at NetKAT.fieldEnum_nodup (NetKAT.fieldEnum_complete f)
+  apply word_append_at diagram.fields_nodup (diagram.layout.fields_complete f)
   · exact .paFilterMod f (σ f)
   · intro _ _
     rfl
   · intro g hg
     exact .paModFilterComm f g _ _ (Ne.symm hg)
 
-private theorem write_write (β δ : CtxPkt) :
-    Derives (NetKAT.completeAssignExpr β ⨟ NetKAT.completeAssignExpr δ)
-      (NetKAT.completeAssignExpr δ) := by
-  change Derives (word (writes β) NetKAT.fieldEnum ⨟ word (writes δ) NetKAT.fieldEnum) _
+private theorem write_write (β δ : schema.Packet) :
+    Derives (assignPacket β ⨟ assignPacket δ)
+      (assignPacket δ) := by
+  change Derives (word (writes β) diagram.layout.fields ⨟ word (writes δ) diagram.layout.fields) _
   apply word_fields_prepend
   intro f _
-  exact word_prepend_absorb (NetKAT.fieldEnum_complete f) (.paModMod f (β f) (δ f))
+  exact word_prepend_absorb (diagram.layout.fields_complete f) (.paModMod f (β f) (δ f))
     (fun g hg => .paModModComm f g _ _ (Ne.symm hg))
 
-private theorem write_fieldTest (β : CtxPkt) (f : FieldName) (v : FieldValueEnum) :
-    Derives (NetKAT.completeAssignExpr β ⨟ NetKAT.fieldTest f v)
-      (if β f = v then NetKAT.completeAssignExpr β else .drop) := by
-  change Derives (word (writes β) NetKAT.fieldEnum ⨟ _) (if β f = v then word (writes β) NetKAT.fieldEnum else .drop)
+private theorem write_fieldTest (β : schema.Packet) (f : schema.Field) (v : schema.Value f) :
+    Derives (assignPacket β ⨟ NetKAT.fieldTestFor f v)
+      (if β f = v then assignPacket β else .drop) := by
+  change Derives (word (writes β) diagram.layout.fields ⨟ _) (if β f = v then word (writes β) diagram.layout.fields else .drop)
   split
   · rename_i h
     subst v
-    apply word_append_at NetKAT.fieldEnum_nodup (NetKAT.fieldEnum_complete f)
+    apply word_append_at diagram.fields_nodup (diagram.layout.fields_complete f)
     · exact .paModFilter f (β f)
     · intro _ _
       rfl
     · intro g hg
       exact .symm (.paModFilterComm g f _ _ hg)
   · rename_i h
-    have hit : Derives (NetKAT.assign1 f (β f) ⨟ NetKAT.fieldTest f v) .drop :=
+    have hit : Derives (NetKAT.assign1 f (β f) ⨟ NetKAT.fieldTestFor f v) .drop :=
       .trans (.seqCongr (.symm (.paModFilter f (β f))) (.refl _))
         (.trans (.symm (.seqAssoc _ _ _)) (.trans (.seqCongr (.refl _) (.paContra f _ _ h)) (.seqZero _)))
-    exact word_append_reject NetKAT.fieldEnum_nodup (NetKAT.fieldEnum_complete f) hit
+    exact word_append_reject diagram.fields_nodup (diagram.layout.fields_complete f) hit
       (fun g hg => .symm (.paModFilterComm g f _ _ hg))
 
-private theorem write_assign (β : CtxPkt) (f : FieldName) (v : FieldValueEnum) :
-    Derives (NetKAT.completeAssignExpr β ⨟ .assign1 f v)
-      (NetKAT.completeAssignExpr (Packet.update β f v)) := by
-  change Derives (word (writes β) NetKAT.fieldEnum ⨟ _) (word (writes (Packet.update β f v)) NetKAT.fieldEnum)
-  apply word_append_at NetKAT.fieldEnum_nodup (NetKAT.fieldEnum_complete f)
-  · simpa [writes, Packet.update] using Derives.paModMod f (β f) v
+omit diagram in
+private theorem updateAt (f : schema.Field) (v : schema.Value f) (p : schema.Packet) :
+    schema.model.update f v p f = v :=
+  (schema.lookup_eq f _).symm.trans (schema.model.lookup_update f v p)
+
+omit diagram in
+private theorem updateAtOther (f g : schema.Field) (v : schema.Value f) (p : schema.Packet)
+    (different : f ≠ g) : schema.model.update f v p g = p g :=
+  (schema.lookup_eq g _).symm.trans
+    ((schema.model.lookup_update_other f g v p different).trans (schema.lookup_eq g p))
+
+private theorem write_assign (β : schema.Packet) (f : schema.Field) (v : schema.Value f) :
+    Derives (assignPacket β ⨟ .assign1 f v)
+      (assignPacket (schema.model.update f v β)) := by
+  change Derives (word (writes β) diagram.layout.fields ⨟ _) (word (writes (schema.model.update f v β)) diagram.layout.fields)
+  apply word_append_at diagram.fields_nodup (diagram.layout.fields_complete f)
+  · simpa [writes, updateAt] using Derives.paModMod f (β f) v
   · intro g hg
-    simp [writes, Packet.update, hg, Ne.symm hg]
+    simp [writes, updateAtOther _ _ _ _ (Ne.symm hg)]
   · intro g hg
     exact .paModModComm f g _ _ (Ne.symm hg)
 
 
 /-- A finite union of policies, with drop as the empty sum. -/
-def sumOn {α : Type} (xs : List α) (f : α → NetKAT) : NetKAT :=
+def sumOn {α : Type} (xs : List α) (f : α → NetKAT schema) : NetKAT schema :=
   xs.foldr (fun x acc => f x ⊕ acc) .drop
 
-private theorem sumOn_congr {α : Type} {xs : List α} {f g : α → NetKAT}
+omit diagram in
+private theorem sumOn_congr {α : Type} {xs : List α} {f g : α → NetKAT schema}
     (h : ∀ x ∈ xs, Derives (f x) (g x)) : Derives (sumOn xs f) (sumOn xs g) := by
   induction xs with
   | nil => exact .refl _
   | cons x xs ih =>
     exact .unionCongr (h x List.mem_cons_self) (ih (fun y hy => h y (List.mem_cons_of_mem _ hy)))
 
-private theorem sumOn_seq_right {α : Type} (xs : List α) (f : α → NetKAT) (p : NetKAT) :
+omit diagram in
+private theorem sumOn_seq_right {α : Type} (xs : List α) (f : α → NetKAT schema) (p : NetKAT schema) :
     Derives (sumOn xs f ⨟ p) (sumOn xs (fun x => f x ⨟ p)) := by
   induction xs with
   | nil => exact .zeroSeq _
   | cons x xs ih => exact .trans (.seqDistR _ _ _) (.unionCongr (.refl _) ih)
 
-private theorem sumOn_seq_left {α : Type} (p : NetKAT) (xs : List α) (f : α → NetKAT) :
+omit diagram in
+private theorem sumOn_seq_left {α : Type} (p : NetKAT schema) (xs : List α) (f : α → NetKAT schema) :
     Derives (p ⨟ sumOn xs f) (sumOn xs (fun x => p ⨟ f x)) := by
   induction xs with
   | nil => exact .seqZero _
   | cons x xs ih => exact .trans (.seqDistL _ _ _) (.unionCongr (.refl _) ih)
 
-private theorem derives_to_normalize {p : NetKAT} {xs : List (CompleteTest × CompleteAssignmentValuation)}
+private theorem derives_to_normalize {p : NetKAT schema} {xs : List (schema.Packet × schema.Packet)}
     (h : Derives p (pairSum xs)) : Derives p (normalize p) :=
   .trans h ((show IsPairSum (pairSum xs) from ⟨xs, rfl⟩).derives_of_equiv (normalize_pairSum p)
     (fun σ τ => (h.sound σ τ).symm.trans (normalize_correct p σ τ).symm))
 
-private def TestResult (a p : NetKAT) : Prop :=
+private def TestResult (a p : NetKAT schema) : Prop :=
   Derives (a ⨟ p) a ∨ Derives (a ⨟ p) .drop
 
-private theorem testResult_seq {a p q : NetKAT} (hp : TestResult a p) (hq : TestResult a q) :
+omit diagram in
+private theorem testResult_seq {a p q : NetKAT schema} (hp : TestResult a p) (hq : TestResult a q) :
     TestResult a (p ⨟ q) := by
   rcases hp with hp | hp
   · have h := Derives.trans (.seqAssoc a p q) (.seqCongr hp (.refl q))
     exact hq.imp (fun k => .trans h k) (fun k => .trans h k)
   · exact .inr (.trans (.seqAssoc _ _ _) (.trans (.seqCongr hp (.refl _)) (.zeroSeq _)))
 
-private theorem testResult_union {a p q : NetKAT} (hp : TestResult a p) (hq : TestResult a q) :
+omit diagram in
+private theorem testResult_union {a p q : NetKAT schema} (hp : TestResult a p) (hq : TestResult a q) :
     TestResult a (p ⊕ q) := by
   rcases hp with hp | hp <;> rcases hq with hq | hq
   · exact .inl (.trans (.seqDistL _ _ _) (.trans (.unionCongr hp hq) (.plusIdem _)))
@@ -488,9 +622,9 @@ private theorem testResult_union {a p q : NetKAT} (hp : TestResult a p) (hq : Te
       (.trans (.plusComm _ _) (.plusZero _))))
   · exact .inr (.trans (.seqDistL _ _ _) (.trans (.unionCongr hp hq) (.plusZero _)))
 
-private theorem write_testResult (β : CtxPkt) (p : Predicate) :
-    TestResult (NetKAT.completeAssignExpr β) (.test p) := by
-  let a := NetKAT.completeAssignExpr β
+private theorem write_testResult (β : schema.Packet) (p : Predicate schema) :
+    TestResult (assignPacket β) (.test p) := by
+  let a := assignPacket β
   induction p with
   | pFalse => exact .inr (.trans (.seqCongr (.refl _) .testFalse) (.seqZero _))
   | pTrue => exact .inl (.trans (.seqCongr (.refl _) .testTrue) (.seqOne _))
@@ -520,10 +654,10 @@ private theorem write_testResult (β : CtxPkt) (p : Predicate) :
           (.trans (.plusComm _ _) (.plusZero _)))
       exact .inl (.trans (.symm hu) he)
 
-private theorem write_completeTest_result (β γ : CtxPkt) :
-    TestResult (NetKAT.completeAssignExpr β) (.completeTest γ) := by
-  have h (xs : List FieldName) :
-      TestResult (NetKAT.completeAssignExpr β) (word (reads γ) xs) := by
+private theorem write_completeTest_result (β γ : schema.Packet) :
+    TestResult (assignPacket β) (.completeTest γ) := by
+  have h (xs : List schema.Field) :
+      TestResult (assignPacket β) (word (reads γ) xs) := by
     induction xs with
     | nil => exact .inl (.seqOne _)
     | cons f fs ih =>
@@ -531,20 +665,20 @@ private theorem write_completeTest_result (β γ : CtxPkt) :
       by_cases he : β f = γ f
       · exact testResult_seq (p := reads γ f) (.inl (by simpa only [if_pos he] using hd)) ih
       · exact testResult_seq (p := reads γ f) (.inr (by simpa only [if_neg he] using hd)) ih
-  have hd : Derives (NetKAT.completeAssignExpr β ⨟ .completeTest γ)
-      (NetKAT.completeAssignExpr β ⨟ word (reads γ) NetKAT.fieldEnum) :=
+  have hd : Derives (assignPacket β ⨟ .completeTest γ)
+      (assignPacket β ⨟ word (reads γ) diagram.layout.fields) :=
     .seqCongr (.refl _) (read_eq γ)
-  exact (h NetKAT.fieldEnum).imp (fun k => .trans hd k) (fun k => .trans hd k)
+  exact (h diagram.layout.fields).imp (fun k => .trans hd k) (fun k => .trans hd k)
 
-private theorem write_completeTest (β γ : CtxPkt) :
-    Derives (NetKAT.completeAssignExpr β ⨟ .completeTest γ)
-      (if β = γ then NetKAT.completeAssignExpr β else .drop) := by
+private theorem write_completeTest (β γ : schema.Packet) :
+    Derives (assignPacket β ⨟ .completeTest γ)
+      (if β = γ then assignPacket β else .drop) := by
   classical
-  have output : Semantics (NetKAT.completeAssignExpr β) β β :=
-    (completeAssignExpr_sem β β β).mpr rfl
+  have output : Semantics (assignPacket β) β β :=
+    (assignPacket_sem β β β).mpr rfl
   rcases write_completeTest_result β γ with h | h
   · obtain ⟨ρ, hρ, htest⟩ := (h.sound β β).mpr output
-    have hρ' := (completeAssignExpr_sem β β ρ).mp hρ
+    have hρ' := (assignPacket_sem β β ρ).mp hρ
     subst ρ
     have he := ((completeTest_singleton γ β β).mp htest).1
     simpa only [if_pos he] using h
@@ -553,28 +687,28 @@ private theorem write_completeTest (β γ : CtxPkt) :
       exact False.elim ((h.sound β β).mp ⟨β, output, (completeTest_singleton β β β).mpr ⟨rfl, rfl⟩⟩)
     · simpa only [if_neg he] using h
 
-theorem branch_seq_match (α β δ : CtxPkt) :
-    Derives (NormalForm.ofSummand (α, β) ⨟ NormalForm.ofSummand (β, δ))
-      (NormalForm.ofSummand (α, δ)) := by
+theorem branch_seq_match (α β δ : schema.Packet) :
+    Derives (packetSummand (α, β) ⨟ packetSummand (β, δ))
+      (packetSummand (α, δ)) := by
   have h := write_completeTest β β
   simp only [if_pos rfl] at h
-  change Derives ((.completeTest α ⨟ NetKAT.completeAssignExpr β) ⨟
-    (.completeTest β ⨟ NetKAT.completeAssignExpr δ)) _
+  change Derives ((.completeTest α ⨟ assignPacket β) ⨟
+    (.completeTest β ⨟ assignPacket δ)) _
   exact .trans (.symm (.seqAssoc _ _ _))
     (.seqCongr (.refl _) (.trans (.seqAssoc _ _ _)
       (.trans (.seqCongr h (.refl _)) (write_write β δ))))
 
-theorem branch_seq_mismatch (α β γ δ : CtxPkt) (h : β ≠ γ) :
-    Derives (NormalForm.ofSummand (α, β) ⨟ NormalForm.ofSummand (γ, δ)) .drop := by
+theorem branch_seq_mismatch (α β γ δ : schema.Packet) (h : β ≠ γ) :
+    Derives (packetSummand (α, β) ⨟ packetSummand (γ, δ)) .drop := by
   have hd := write_completeTest β γ
   simp only [if_neg h] at hd
-  change Derives ((.completeTest α ⨟ NetKAT.completeAssignExpr β) ⨟
-    (.completeTest γ ⨟ NetKAT.completeAssignExpr δ)) _
+  change Derives ((.completeTest α ⨟ assignPacket β) ⨟
+    (.completeTest γ ⨟ assignPacket δ)) _
   exact .trans (.symm (.seqAssoc _ _ _))
     (.trans (.seqCongr (.refl _) (.trans (.seqAssoc _ _ _)
       (.trans (.seqCongr hd (.refl _)) (.zeroSeq _)))) (.seqZero _))
 
-private theorem sumOn_to_pairs {α : Type} {xs : List α} {f : α → NetKAT}
+private theorem sumOn_to_pairs {α : Type} {xs : List α} {f : α → NetKAT schema}
     (h : ∀ x ∈ xs, ∃ ys, Derives (f x) (pairSum ys)) :
     ∃ ys, Derives (sumOn xs f) (pairSum ys) := by
   induction xs with
@@ -584,23 +718,23 @@ private theorem sumOn_to_pairs {α : Type} {xs : List α} {f : α → NetKAT}
     obtain ⟨zs, hz⟩ := ih (fun y hy => h y (List.mem_cons_of_mem _ hy))
     exact ⟨ys ++ zs, .trans (.unionCongr hy hz) (pairSum_append ys zs)⟩
 
-private theorem branch_post_test (α β : CtxPkt) (t : NetKAT)
-    (ht : TestResult (NetKAT.completeAssignExpr β) t) :
-    ∃ xs, Derives (NormalForm.ofSummand (α, β) ⨟ t) (pairSum xs) := by
+private theorem branch_post_test (α β : schema.Packet) (t : NetKAT schema)
+    (ht : TestResult (assignPacket β) t) :
+    ∃ xs, Derives (packetSummand (α, β) ⨟ t) (pairSum xs) := by
   rcases ht with ht | ht
   · exact ⟨[(α, β)], .trans (.symm (.seqAssoc _ _ _))
       (.trans (.seqCongr (.refl _) ht) (.symm (.plusZero _)))⟩
   · exact ⟨[], .trans (.symm (.seqAssoc _ _ _)) (.trans (.seqCongr (.refl _) ht) (.seqZero _))⟩
 
-theorem pairSum_seq (xs ys : List (CompleteTest × CompleteAssignmentValuation)) :
+theorem pairSum_seq (xs ys : List (schema.Packet × schema.Packet)) :
     ∃ zs, Derives (pairSum xs ⨟ pairSum ys) (pairSum zs) := by
-  have hd := sumOn_seq_right xs NormalForm.ofSummand (pairSum ys)
+  have hd := sumOn_seq_right xs packetSummand (pairSum ys)
   obtain ⟨zs, hz⟩ := sumOn_to_pairs (xs := xs)
-    (f := fun b => NormalForm.ofSummand b ⨟ pairSum ys) (by
+    (f := fun b => packetSummand b ⨟ pairSum ys) (by
       rintro ⟨α, β⟩ _
-      have hleft := sumOn_seq_left (NormalForm.ofSummand (α, β)) ys NormalForm.ofSummand
+      have hleft := sumOn_seq_left (packetSummand (α, β)) ys packetSummand
       obtain ⟨bs, hb⟩ := sumOn_to_pairs (xs := ys)
-        (f := fun b => NormalForm.ofSummand (α, β) ⨟ NormalForm.ofSummand b) (by
+        (f := fun b => packetSummand (α, β) ⨟ packetSummand b) (by
           rintro ⟨γ, δ⟩ _
           classical
           by_cases he : β = γ
@@ -610,23 +744,23 @@ theorem pairSum_seq (xs ys : List (CompleteTest × CompleteAssignmentValuation))
       exact ⟨bs, .trans hleft hb⟩)
   exact ⟨zs, .trans hd hz⟩
 
-theorem normalize_derives_seq {p q : NetKAT} (hp : Derives p (normalize p))
+theorem normalize_derives_seq {p q : NetKAT schema} (hp : Derives p (normalize p))
     (hq : Derives q (normalize q)) : Derives (p ⨟ q) (normalize (p ⨟ q)) := by
-  obtain ⟨zs, hz⟩ := pairSum_seq (symbolicPairs p) (symbolicPairs q)
+  obtain ⟨zs, hz⟩ := pairSum_seq (symbolicPairsFor p) (symbolicPairsFor q)
   exact derives_to_normalize (.trans (.seqCongr hp hq) hz)
 
 /-- Reduce a star-free policy starting from one known packet. The
 resulting branches arise from the policy's syntax and assignments. -/
-private theorem branch_derives_pairSum (p : NetKAT) (free : StarFree p)
-    (α β : CtxPkt) :
-    ∃ xs, Derives (NormalForm.ofSummand (α, β) ⨟ p) (pairSum xs) := by
+private theorem branch_derives_pairSum (p : NetKAT schema) (free : StarFree p)
+    (α β : schema.Packet) :
+    ∃ xs, Derives (packetSummand (α, β) ⨟ p) (pairSum xs) := by
   induction p generalizing α β with
   | drop => exact ⟨[], .seqZero _⟩
   | id => exact ⟨[(α, β)], .trans (.seqOne _) (.symm (.plusZero _))⟩
   | test p => exact branch_post_test α β _ (write_testResult β p)
   | completeTest γ => exact branch_post_test α β _ (write_completeTest_result β γ)
   | assign1 f v =>
-    exact ⟨[(α, Packet.update β f v)], .trans (.symm (.seqAssoc _ _ _))
+    exact ⟨[(α, schema.model.update f v β)], .trans (.symm (.seqAssoc _ _ _))
       (.trans (.seqCongr (.refl _) (write_assign β f v)) (.symm (.plusZero _)))⟩
   | union p q ihp ihq =>
     obtain ⟨xs, hx⟩ := ihp free.1 α β
@@ -635,32 +769,33 @@ private theorem branch_derives_pairSum (p : NetKAT) (free : StarFree p)
   | seq p q ihp ihq =>
     obtain ⟨xs, hx⟩ := ihp free.1 α β
     obtain ⟨ys, hy⟩ := sumOn_to_pairs (xs := xs)
-      (f := fun a => NormalForm.ofSummand a ⨟ q)
+      (f := fun a => packetSummand a ⨟ q)
       (fun (a, b) _ => ihq free.2 a b)
     exact ⟨ys, .trans (.seqAssoc _ _ _) (.trans (.seqCongr hx (.refl _))
-      (.trans (sumOn_seq_right xs NormalForm.ofSummand q) hy))⟩
+      (.trans (sumOn_seq_right xs packetSummand q) hy))⟩
   | star => exact False.elim free
 
-private theorem word_snoc (f : FieldName → NetKAT) (fs : List FieldName) (g : FieldName) :
+omit diagram in
+private theorem word_snoc (f : schema.Field → NetKAT schema) (fs : List schema.Field) (g : schema.Field) :
     Derives (word f (fs ++ [g])) (word f fs ⨟ f g) := by
   induction fs with
   | nil => exact .trans (.seqOne _) (.symm (.oneSeq _))
   | cons x xs ih => exact .trans (.seqCongr (.refl _) ih) (.seqAssoc _ _ _)
 
-private theorem lift_field_agreement (readPart p q : NetKAT) (f : FieldName)
-    (h : ∀ v, Derives ((readPart ⨟ NetKAT.fieldTest f v) ⨟ p)
-      ((readPart ⨟ NetKAT.fieldTest f v) ⨟ q)) :
+private theorem lift_field_agreement (readPart p q : NetKAT schema) (f : schema.Field)
+    (h : ∀ v, Derives ((readPart ⨟ NetKAT.fieldTestFor f v) ⨟ p)
+      ((readPart ⨟ NetKAT.fieldTestFor f v) ⨟ q)) :
     Derives (readPart ⨟ p) (readPart ⨟ q) := by
-  have reduce (t : NetKAT) :
-      Derives (sumOn values (fun v => (readPart ⨟ NetKAT.fieldTest f v) ⨟ t)) (readPart ⨟ t) :=
+  have reduce (t : NetKAT schema) :
+      Derives (sumOn (diagram.layout.values f) (fun v => (readPart ⨟ NetKAT.fieldTestFor f v) ⨟ t)) (readPart ⨟ t) :=
     .trans (.symm (sumOn_seq_right _ _ _))
       (.seqCongr (.trans (.symm (sumOn_seq_left _ _ _))
-        (.trans (.seqCongr (.refl _) (.paMatchAll f)) (.seqOne _))) (.refl _))
+        (.trans (.seqCongr (.refl _) (.paMatchAllFor f _ (diagram.layout.values_complete f))) (.seqOne _))) (.refl _))
   exact (reduce p).symm.trans ((sumOn_congr (fun v _ => h v)).trans (reduce q))
 
 /-- Discharge observations one field at a time using PA-MATCH-ALL.
 The induction ranges over fields and the local value list only. -/
-private theorem lift_read_agreement {p q : NetKAT} (fs gs : List FieldName) (σ : CtxPkt)
+private theorem lift_read_agreement {p q : NetKAT schema} (fs gs : List schema.Field) (σ : schema.Packet)
     (distinct : (fs ++ gs).Nodup)
     (h : ∀ τ, (∀ f ∈ fs, τ f = σ f) →
       Derives (word (reads τ) (fs ++ gs) ⨟ p) (word (reads τ) (fs ++ gs) ⨟ q)) :
@@ -670,24 +805,24 @@ private theorem lift_read_agreement {p q : NetKAT} (fs gs : List FieldName) (σ 
   | cons g gs ih =>
     apply lift_field_agreement _ p q g
     intro v
-    let τ := Packet.update σ g v
+    let τ := schema.model.update g v σ
     have hdistinct : (fs ++ [g] ++ gs).Nodup := by simpa [List.append_assoc] using distinct
     have hg : g ∉ fs := by
       have hn := (List.nodup_append.mp distinct).2.2
       exact fun hm => hn hm (by simp)
-    have agree (f : FieldName) (hf : f ∈ fs) : τ f = σ f :=
-      Packet.get_update_diff σ g f v (fun eq => hg (eq ▸ hf))
+    have agree (f : schema.Field) (hf : f ∈ fs) : τ f = σ f :=
+      updateAtOther g f v σ (fun eq => hg (eq ▸ hf))
     have more := ih (fs ++ [g]) τ hdistinct (by
       intro ρ hρ
       have hh := h ρ (fun f hf => (hρ f (List.mem_append_left _ hf)).trans (agree f hf))
       simpa [List.append_assoc] using hh)
     have tail : Derives (word (reads τ) (fs ++ [g]))
-        (word (reads σ) fs ⨟ NetKAT.fieldTest g v) := by
+        (word (reads σ) fs ⨟ NetKAT.fieldTestFor g v) := by
       refine (word_snoc _ fs g).trans (.seqCongr (word_congr ?_) ?_)
       · intro f hf
         rw [reads, reads, agree f hf]
         exact .refl _
-      · rw [reads, show τ g = v from Packet.get_update_same σ g v]
+      · rw [reads, show τ g = v from updateAt g v σ]
         exact .refl _
     exact (.seqCongr tail.symm (.refl p) : Derives _ _).trans
       (more.trans (.seqCongr tail (.refl q)))
@@ -695,9 +830,9 @@ private theorem lift_read_agreement {p q : NetKAT} (fs gs : List FieldName) (σ 
 /-- Packet-specific completeness for star-free syntax. Compare branches
 under one input observation, then discharge those observations using only
 the field-level partition axiom. -/
-theorem derives_of_equiv_starFree {p q : NetKAT} (hp : StarFree p) (hq : StarFree q)
+theorem derives_of_equiv_starFree {p q : NetKAT schema} (hp : StarFree p) (hq : StarFree q)
     (h : ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ) : Derives p q := by
-  have prefixed (σ : CtxPkt) :
+  have prefixed (σ : schema.Packet) :
       Derives (.completeTest σ ⨟ p) (.completeTest σ ⨟ q) := by
     obtain ⟨xs, hx⟩ := branch_derives_pairSum p hp σ σ
     obtain ⟨ys, hy⟩ := branch_derives_pairSum q hq σ σ
@@ -709,19 +844,36 @@ theorem derives_of_equiv_starFree {p q : NetKAT} (hp : StarFree p) (hq : StarFre
           ((seq_sem _ _ x y).symm.trans (hy.sound x y)))))
     exact (.seqCongr (read_write_self σ).symm (.refl p) : Derives _ _).trans
       (hx.trans (eq.trans (hy.symm.trans (.seqCongr (read_write_self σ) (.refl q)))))
-  have lifted := lift_read_agreement (p := p) (q := q) [] NetKAT.fieldEnum examplePacket
-    (by simpa using NetKAT.fieldEnum_nodup) (by
-      intro σ _
-      exact (.seqCongr (read_eq σ).symm (.refl p) : Derives _ _).trans
-        ((prefixed σ).trans (.seqCongr (read_eq σ) (.refl q))))
-  exact (Derives.oneSeq p).symm.trans (lifted.trans (.oneSeq q))
+  classical
+  by_cases inhabited : Nonempty schema.Packet
+  · obtain ⟨packet⟩ := inhabited
+    have lifted := lift_read_agreement (p := p) (q := q) [] diagram.layout.fields packet
+      (by simpa using diagram.fields_nodup) (by
+        intro σ _
+        exact (.seqCongr (read_eq σ).symm (.refl p) : Derives _ _).trans
+          ((prefixed σ).trans (.seqCongr (read_eq σ) (.refl q))))
+    exact (Derives.oneSeq p).symm.trans (lifted.trans (.oneSeq q))
+  · have emptyDomain : ∃ f, diagram.layout.values f = [] := by
+      by_contra anyEmpty
+      push_neg at anyEmpty
+      apply inhabited
+      exact ⟨fun f => (diagram.layout.values f).head (anyEmpty f)⟩
+    obtain ⟨f, empty⟩ := emptyDomain
+    have all : Derives (matchAllFor f (diagram.layout.values f)) .id :=
+      .paMatchAllFor f _ (diagram.layout.values_complete f)
+    have collapse : Derives (schema := schema) .drop .id := by
+      simpa [empty, matchAllFor] using all
+    have zero (s : NetKAT schema) : Derives s .drop :=
+      (Derives.oneSeq s).symm.trans ((Derives.seqCongr collapse.symm (.refl s)).trans (.zeroSeq s))
+    exact (zero p).trans (zero q).symm
 
-private theorem below_seq_left (p : NetKAT) {a b : NetKAT} (h : Below a b) :
+omit diagram in
+private theorem below_seq_left (p : NetKAT schema) {a b : NetKAT schema} (h : Below a b) :
     Below (p ⨟ a) (p ⨟ b) :=
   .trans (.symm (.seqDistL _ _ _)) (.seqCongr (.refl _) h)
 
 /-- The first symbolic star approximation lies below the original star. -/
-theorem star_seed_below (p : NetKAT) : Derives ((.id ⊕ p) ⊕ .star p) (.star p) := by
+theorem star_seed_below (p : NetKAT schema) : Derives ((.id ⊕ p) ⊕ .star p) (.star p) := by
   have unfoldLeft := below_of_derives (Derives.unrollL p)
   have hid := below_trans (below_left _ _) unfoldLeft
   have hp : Below p (.star p) :=
@@ -730,7 +882,7 @@ theorem star_seed_below (p : NetKAT) : Derives ((.id ⊕ p) ⊕ .star p) (.star 
   exact below_union hid hp
 
 /-- A symbolic squaring round preserves the algebraic upper bound by star. -/
-theorem star_square_below {p r : NetKAT} (h : Derives (r ⊕ .star p) (.star p)) :
+theorem star_square_below {p r : NetKAT schema} (h : Derives (r ⊕ .star p) (.star p)) :
     Derives ((r ⊕ (r ⨟ r)) ⊕ .star p) (.star p) := by
   have hright := below_trans (below_right _ _) (below_of_derives (Derives.unrollR p))
   have hstar : Below (.star p ⨟ .star p) (.star p) :=
@@ -739,7 +891,7 @@ theorem star_square_below {p r : NetKAT} (h : Derives (r ⊕ .star p) (.star p))
     (below_trans (below_seq_left (.star p) h) hstar))
 
 /-- A right-star fixed point below star is derivably equal to star. -/
-theorem derives_star_of_fixed {p r : NetKAT}
+theorem derives_star_of_fixed {p r : NetKAT schema}
     (lower : Derives (r ⊕ .star p) (.star p)) (fixed : Derives (.id ⊕ (r ⨟ p)) r) :
     Derives (.star p) r := by
   have upper : Below (.id ⨟ .star p) r := Derives.lfpR (below_of_derives fixed)
@@ -751,7 +903,7 @@ open KATLean.Native.Boolean in
 /-- Exact symbolic closure gives a star-free derivation representative.
 The invariant tracks a syntactic unfolding below star for each reached
 diagram. Star induction certifies the final fixed point. -/
-theorem exists_derives_starFree_symbolic (p : NetKAT) :
+theorem exists_derives_starFree_symbolic (p : NetKAT schema) :
     ∃ r, StarFree r ∧ Derives p r := by
   induction p with
   | drop | id | test | completeTest | assign1 => exact ⟨_, by trivial, .refl _⟩
@@ -765,64 +917,69 @@ theorem exists_derives_starFree_symbolic (p : NetKAT) :
     exact ⟨r ⨟ t, ⟨hrf, htf⟩, .seqCongr hr ht⟩
   | star p ih =>
     obtain ⟨body, hfree, hbody⟩ := ih
-    let Inv (g : symbolicSchema.DiagramGuard) := ∃ r,
-      StarFree r ∧ symbolicSchema.Represents g (katInterp r) ∧
+    let Inv (g : diagram.layout.DiagramGuard) := ∃ r,
+      StarFree r ∧ diagram.layout.Represents g (katInterp r) ∧
         Derives (r ⊕ .star p) (.star p)
-    have base : Inv (disj symbolicSchema.skip (compileSymbolic p)) := by
+    have base : Inv (disj diagram.layout.skip (compileSymbolic p)) := by
       have hrep := compileSymbolic_correct p
       rw [hbody.katSound] at hrep
       exact ⟨.id ⊕ body, ⟨trivial, hfree⟩,
-        symbolicSchema.union_correct symbolicSchema.skip_correct hrep,
+        diagram.layout.union_correct diagram.layout.skip_correct hrep,
         Derives.trans (.unionCongr (.unionCongr (.refl _) hbody.symm) (.refl _)) (star_seed_below p)⟩
-    have step (g) (h : Inv g) : Inv (disj g (symbolicSchema.seq g g)) := by
+    have step (g) (h : Inv g) : Inv (disj g (diagram.layout.seq g g)) := by
       obtain ⟨r, hf, hr, hu⟩ := h
       exact ⟨r ⊕ (r ⨟ r), ⟨hf, hf, hf⟩,
-        symbolicSchema.union_correct hr (symbolicSchema.seq_correct hr hr), star_square_below hu⟩
-    obtain ⟨r, hf, hr, hu⟩ := symbolicSchema.star_induction base step
+        diagram.layout.union_correct hr (diagram.layout.seq_correct hr hr), star_square_below hu⟩
+    obtain ⟨r, hf, hr, hu⟩ := diagram.layout.star_induction base step
     have heq : katInterp r = katInterp (.star p) :=
-      symbolicSchema.represents_unique hr (compileSymbolic_correct (.star p))
+      diagram.layout.represents_unique hr (compileSymbolic_correct (.star p))
     have hfixed : Derives (.id ⊕ (r ⨟ body)) r := by
       apply derives_of_equiv_starFree (p := .id ⊕ (r ⨟ body)) ⟨trivial, hf, hfree⟩ hf
-      apply katInterp_eq_iff.mp
-      rw [katInterp_union, katInterp_seq, ← hbody.katSound, heq, katInterp_star]
-      exact KATLean.star_unfold_right _
+      have eq : katInterp (.id ⊕ (r ⨟ body)) = katInterp r := by
+        change 1 + katInterp r * katInterp body = katInterp r
+        rw [← hbody.katSound, heq]
+        exact KATLean.star_unfold_right _
+      intro i o
+      rw [← katInterp_correct, ← katInterp_correct, eq]
     have hfixed' : Derives (.id ⊕ (r ⨟ p)) r :=
       Derives.trans (.unionCongr (.refl _) (.seqCongr (.refl _) hbody)) hfixed
     exact ⟨r, hf, derives_star_of_fixed hu hfixed'⟩
 
 /-- Lift star-free completeness to normalization using exact symbolic closure. -/
-theorem normalize_derives_of_starFree_complete (complete : StarFreeComplete) (p : NetKAT) :
+theorem normalize_derives_of_starFree_complete (complete : StarFreeComplete schema) (p : NetKAT schema) :
     Derives p (normalize p) := by
   obtain ⟨r, hf, hr⟩ := exists_derives_starFree_symbolic p
   exact hr.trans (complete hf (normalize_starFree p)
     (fun σ τ => (hr.sound σ τ).symm.trans (normalize_correct p σ τ).symm))
 
-theorem symbolic_normalize_correct (p : NetKAT) : Derives p (symbolicNormalize p) :=
-  normalize_derives_of_starFree_complete (@derives_of_equiv_starFree) p
+theorem symbolic_normalize_correct (p : NetKAT schema) : Derives p (symbolicNormalize p) :=
+  normalize_derives_of_starFree_complete (fun hp hq eq => derives_of_equiv_starFree hp hq eq) p
 
-theorem normalize_derives (p : NetKAT) : Derives p (normalize p) :=
+theorem normalize_derives (p : NetKAT schema) : Derives p (normalize p) :=
   symbolic_normalize_correct p
 
-theorem normalize_derives_starFree (p : NetKAT) (h : StarFree p) : Derives p (normalize p) :=
+theorem normalize_derives_starFree (p : NetKAT schema) (h : StarFree p) : Derives p (normalize p) :=
   derives_of_equiv_starFree h (normalize_starFree p) (fun σ τ => (normalize_correct p σ τ).symm)
 
-theorem starFree_complete : StarFreeComplete := @derives_of_equiv_starFree
+theorem starFree_complete : StarFreeComplete schema := fun hp hq eq => derives_of_equiv_starFree hp hq eq
 
-theorem normalize_derives_id : Derives .id (normalize .id) := normalize_derives .id
+theorem normalize_derives_id : Derives (schema := schema) .id (normalize .id) := normalize_derives .id
 
-theorem normalize_derives_test (p : Predicate) : Derives (.test p) (normalize (.test p)) :=
+theorem normalize_derives_test (p : Predicate schema) : Derives (.test p) (normalize (.test p)) :=
   normalize_derives (.test p)
 
-theorem normalize_derives_completeTest (γ : CtxPkt) :
+theorem normalize_derives_completeTest (γ : schema.Packet) :
     Derives (.completeTest γ) (normalize (.completeTest γ)) :=
   normalize_derives (.completeTest γ)
 
-theorem normalize_derives_assign1 (f : FieldName) (v : FieldValueEnum) :
+theorem normalize_derives_assign1 (f : schema.Field) (v : schema.Value f) :
     Derives (.assign1 f v) (normalize (.assign1 f v)) :=
   normalize_derives (.assign1 f v)
 
 /-- DyNetKAT v4 Lemma 5 with the original complete-pair syntax. -/
-theorem exists_derives_pairSum (p : NetKAT) : ∃ q, IsPairSum q ∧ Derives p q :=
+theorem exists_derives_pairSum (p : NetKAT schema) : ∃ q, IsPairSum q ∧ Derives p q :=
   ⟨normalize p, normalize_pairSum p, normalize_derives p⟩
+
+end FiniteAlgebra
 
 end DyNetKAT.NetKAT

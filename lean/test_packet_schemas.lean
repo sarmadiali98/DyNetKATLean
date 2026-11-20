@@ -65,6 +65,50 @@ private theorem forward_semantics (output : large.Packet) :
 example : (katInterp forward).holds (atSwitch 0) arrived :=
   (katInterp_correct ..).mpr ((forward_semantics _).mpr rfl)
 
+example [DiagramLayout large] :
+    Semantics (pairSumFor (symbolicPairsFor forward)) (atSwitch 0) arrived :=
+  (symbolicPairsFor_sum_correct forward _ _).mpr ((forward_semantics _).mpr rfl)
+
+example [DiagramLayout large] : NetKAT.Derives forward (normalize forward) :=
+  normalize_derives forward
+
+-- Construct a diagram layout on the full switch domain without building a
+-- packet table. The size is three banks of local field values.
+#guard netkatNativeEquivFinite (NetKAT.drop : NetKAT large) .drop
+
+private def SmallValue : Bool → Type
+  | false => Bool
+  | true => Fin 3
+
+private instance (f : Bool) : Fintype (SmallValue f) := by
+  cases f
+  · exact inferInstanceAs (Fintype Bool)
+  · exact inferInstanceAs (Fintype (Fin 3))
+
+private instance (f : Bool) : DecidableEq (SmallValue f) := by
+  cases f
+  · exact inferInstanceAs (DecidableEq Bool)
+  · exact inferInstanceAs (DecidableEq (Fin 3))
+
+private abbrev small := PacketSchema.ofFields Bool SmallValue
+
+private def smallStep : NetKAT small :=
+  .seq (NetKAT.fieldTestFor true (0 : Fin 3)) (.assign1 true (2 : Fin 3))
+
+#guard netkatNativeEquivFinite (.star smallStep) (.union .id smallStep)
+#guard !netkatNativeEquivFinite smallStep .drop
+
+example (verdict : netkatNativeEquivFinite (.star smallStep) (.union .id smallStep) = true) :
+    NetKAT.Derives (.star smallStep) (.union .id smallStep) :=
+  (netkatNativeEquivFinite_iff_derives _ _).mp verdict
+
+private abbrev emptyPackets := PacketSchema.ofFields Unit (fun _ => Empty)
+
+#guard netkatNativeEquivFinite (NetKAT.id : NetKAT emptyPackets) .drop
+
+example : NetKAT.Derives (NetKAT.id : NetKAT emptyPackets) .drop :=
+  (netkatNativeEquivFinite_iff_derives _ _).mp (by decide)
+
 -- Run a policy with Kleene star on one supplied packet. The closure stabilizes
 -- after reaching locations 0 and 1343, with the other fields unchanged.
 #guard (execute (.star forward) (atSwitch 0)).outputs.map Finset.card == some 2
@@ -97,6 +141,12 @@ theorem loop_admitted {schema : PacketSchema} (p : NetKAT schema) :
 private def loop {schema : PacketSchema} (p : NetKAT schema) : Program false (loopEnv p) :=
   ⟨.var "loop", loop_admitted p⟩
 
+example [DiagramLayout large] :
+    Bisimilar (loopEnv forward) (.nSeq forward (loop forward).term)
+      (choiceOf ((symbolicPairsFor forward).map fun pair =>
+        .nSeq (packetSummand pair) (loop forward).term)) :=
+  Equations.packetHeads_bisimilar _ _ _
+
 theorem large_packet_step (tail handled : List large.Packet) :
     Step (loopEnv forward) ⟨(loop forward).term, atSwitch 0 :: tail, handled⟩
       (.packet (atSwitch 0) arrived) ⟨(loop forward).term, tail, arrived :: handled⟩ := by
@@ -109,6 +159,13 @@ theorem large_trace :
     (loop forward).Trace [.packet (atSwitch 0) arrived, .packet (atSwitch 0) arrived] :=
   ⟨[atSwitch 0, atSwitch 0], [], ⟨(loop forward).term, [], [arrived, arrived]⟩,
     .cons _ _ _ _ _ (large_packet_step _ _) (.cons _ _ _ _ _ (large_packet_step _ _) (.nil _))⟩
+
+private def forwardLetter : TraceSafety.Letter large := .packet (atSwitch 0) arrived
+
+example : ¬ TraceSafety.Safe (loop forward) [[forwardLetter]] := by
+  intro safe
+  exact safe [forwardLetter] (by simp)
+    ⟨[atSwitch 0], [], _, .cons _ _ _ _ _ (large_packet_step _ _) (.nil _)⟩
 
 example : EndpointReachable (loop forward) none [] .id .id := by
   refine ⟨atSwitch 0, atSwitch 0, arrived, arrived, rfl, ?_, rfl⟩
@@ -146,5 +203,19 @@ example : Step RecEnv.empty
 #print axioms Program.trace_iff_reaches_residual
 #print axioms historySemantics_iff_packetSemantics
 #print axioms Program.historySemantics_iff_packetPrefix_bisimilar
+#print axioms compileSymbolic_correct
+#print axioms netkatNativeEquivFinite_correct
+#print axioms symbolicNormalFormFor_correct
+#print axioms symbolicPairsFor_sum_correct
+#print axioms netkatNativeEquivFinite_iff_derives
+#print axioms exists_derives_pairSum
+#print axioms Equations.packetHeads_bisimilar
+#print axioms QueryWord.visible
+#print axioms trace_a16
+#print axioms TraceSafety.translate_trace_iff
+#print axioms TraceSafety.safe_iff_trace_absorption
+#print axioms TraceSafety.safe_iff_project_maxLength
+#print axioms TraceSafety.safe_padded_all_iff_no_occurrence
+#print axioms TraceSafety.positiveSpecification_trace_iff
 
 end DyNetKAT.DyNetKAT.PacketSchemaTests

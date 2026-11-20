@@ -562,10 +562,30 @@ The large-schema regression gives the switch field type `Fin 1344`
 and gives the port and SSH fields independent domains. It proves
 injective switch representation, lookup and update behavior, policy
 semantics, recursive admission, and a two-step source trace. It also
-executes a starred policy from one supplied packet. This closes the
-foundational capacity prerequisite only. The general symbolic diagram
-frontend, analysis transfer theorems, and full FatTree benchmark
-remain open.
+executes a starred policy from one supplied packet. The symbolic compiler
+now handles field-dependent domains. `compileSymbolic_correct` covers
+every dup-free constructor. `netkatNativeEquivFinite_correct` gives an
+executable equivalence decision from the packet schema alone.
+
+| Analysis path | Remaining specialization |
+|---|---|
+| Symbolic compilation and equivalence | The original `symbolicSchema` supplies the `CtxPkt` compatibility layout. `DiagramLayout` and `PacketSchema.diagramLayouts` supply bit orderings for arbitrary schemas. |
+| Semantic normalization | `symbolicNormalFormFor_correct`, `symbolicPairsFor_sum_correct`, and `symbolicPairsFor_history_correct` are generic. The exact finite sum is obtained from accepting paths only and is expanded on request. |
+| Algebraic Lemma 5 | `Derives.katSound`, `normalize_derives`, `exists_derives_pairSum`, and `netkatNativeEquivFinite_iff_derives` are generic. Complete test expansion and PA-MATCH-ALL use proofs of coverage for field-local lists. A field with no values yields the paper equation that the empty sum is identity, so policies over an empty packet domain are covered. |
+| Lemma 9 and algebraic projection | `Equations.packetHeads_bisimilar` is generic for a single packet prefix and its complete head choice at the SOS level. `HeadNormalForm`, `DerivesNoAIP`, and `ground_complete` still specialize to `CtxPkt`. `ProjectionDerivation.lean` uses those results to derive the rendered projection without AIP. |
+| Trace safety, A16, Eqs. (27) and (28) | `TraceSafety.Letter`, the regular expressions, `trace_a16`, and the translation are generic. `TraceSafety.translate_trace_iff`, `TraceSafety.safe_iff_trace_absorption`, and `TraceSafety.safe_padded_all_iff_no_occurrence` establish the source trace results. `TraceEnvironment` and `TraceDerives` still specialize to `CtxPkt`, as do the equational versions of (27) and (28) and the certified word checker. The printed nested-negation ambiguity is unchanged. |
+| Positive reachability and head/tail extraction | `TraceSafety.positiveSpecification_trace_iff`, source `EndpointReachable`, and the visibility of `TailWord`, `TailSegments`, and `QueryWord` are generic. The executable `graphReachability`, `GraphHeadSpec`, `GraphTailSpec`, and the graph-to-source correspondence proofs use concrete graphs. |
+| Finite projection and certified graph analysis | Source SOS projections already use generic packet lists. `GProc`, `ProcessGraph`, `Corr`, `MoveLabel`, and the exact move rows still carry concrete policies and packets. `CheckedResidual`, `ProjectionSupport`, the renderer, and the certified verdicts depend on that layer. |
+| Example, compatibility, and auxiliary code | `DistributedControllers.lean` and the fixed field fixtures are concrete instances. The concrete cardinality lemma, optional Legacy and KATch code, and experimental certificates are outside the generic compiler and normalization proof. |
+
+The synthetic schema checks semantic and algebraic normalization for a
+forwarding policy, proves a trace-safety violation, and exhibits source
+reachability. Its executable 1,344-switch solver check compiles drop.
+Executable compound-policy cases exercise test, assignment, composition,
+union, and star on a smaller dependent schema. The full large-schema
+certified-analysis test and FatTree remain open. The FatTree waypoint
+claim concerns endpoint relation inclusion. All-trace traversal would
+require a distinct property and proof.
 
 ## FatTree migration in arXiv v4
 

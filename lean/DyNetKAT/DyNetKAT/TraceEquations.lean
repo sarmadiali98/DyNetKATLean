@@ -8,10 +8,11 @@ open DyNetKAT.NetKAT
 
 /-- Both sends and receives remain observable here, so the trace equivalence
 can be used before restriction and synchronization. -/
-def TraceEquivalent (env : RecEnv) (p q : DyNetKAT) : Prop :=
+def TraceEquivalent {schema : PacketSchema} (env : RecEnv schema) (p q : DyNetKAT schema) : Prop :=
   ∀ w, SourceTrace env p w ↔ SourceTrace env q w
 
-theorem trace_a16 (env : RecEnv) (l : MoveLabel) (p q : DyNetKAT) :
+theorem trace_a16 {schema : PacketSchema} (env : RecEnv schema) (l : MoveLabel schema)
+    (p q : DyNetKAT schema) :
     TraceEquivalent env (l.prefix (.choice p q)) (.choice (l.prefix p) (l.prefix q)) := by
   intro w
   cases w with

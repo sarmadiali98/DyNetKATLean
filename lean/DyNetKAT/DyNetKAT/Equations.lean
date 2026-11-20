@@ -1,6 +1,6 @@
 import DyNetKAT.DyNetKAT.FiniteProjection
 import DyNetKAT.DyNetKAT.NetKATBridge
-import DyNetKAT.NetKAT.Axioms
+import DyNetKAT.NetKAT.Normalization
 
 set_option linter.dupNamespace false
 
@@ -101,9 +101,39 @@ theorem historySemantics_iff_nSeq_bisimilar {schema : PacketSchema} (env : RecEn
       Bisimilar env (.nSeq p d) (.nSeq q d) :=
   ⟨nSeq_bisimilar_of_historySemantics env d, historySemantics_of_nSeq_bisimilar⟩
 
-theorem netkat_sound (env : RecEnv) {z y : NetKAT} (h : NetKAT.Derives z y) (p : DyNetKAT) :
+theorem netkat_sound {schema : PacketSchema} (env : RecEnv schema)
+    {z y : NetKAT schema} (h : NetKAT.Derives z y) (p : DyNetKAT schema) :
     Bisimilar env (.nSeq z p) (.nSeq y p) :=
   nSeq_bisimilar_of_historySemantics env p h.historySound
+
+/-- A packet prefix may be rendered as a finite choice of its atomic
+complete-test/assignment prefixes, all with the same continuation. -/
+theorem packetHeads_bisimilar {schema : PacketSchema} [DiagramLayout schema] (env : RecEnv schema)
+    (policy : NetKAT schema) (continuation : DyNetKAT schema) :
+    Bisimilar env (.nSeq policy continuation)
+      (choiceOf ((symbolicPairsFor policy).map fun pair => .nSeq (packetSummand pair) continuation)) := by
+  apply bisimilar_of_step_iff
+  intro pending handled action next pending' handled'
+  rw [choiceOf_step_iff]
+  constructor
+  · intro step
+    cases step with
+    | cpol_seq_ok _ _ i o tail done evaluates =>
+      have hit := (mem_symbolicPairsFor policy i o).mpr
+        ((historySemantics_singleton_iff_packetSemantics ..).mp evaluates)
+      refine ⟨.nSeq (packetSummand (i, o)) continuation,
+        List.mem_map.mpr ⟨(i, o), hit, rfl⟩, .cpol_seq_ok _ _ _ _ _ _ ?_⟩
+      exact (historySemantics_singleton_iff_packetSemantics ..).mpr
+        ((packetSummand_sem i o _).mpr rfl)
+  · rintro ⟨_, hb, step⟩
+    obtain ⟨pair, hit, rfl⟩ := List.mem_map.mp hb
+    cases step with
+    | cpol_seq_ok _ _ i o tail done evaluates =>
+      have eq := (packetSummand_sem i o pair).mp
+        ((historySemantics_singleton_iff_packetSemantics ..).mp evaluates)
+      subst pair
+      exact .cpol_seq_ok _ _ _ _ _ _ ((historySemantics_singleton_iff_packetSemantics ..).mpr
+        ((mem_symbolicPairsFor policy i o).mp hit))
 
 theorem a2_sound (env : RecEnv) (p q : DyNetKAT) :
     Bisimilar env (.choice p q) (.choice q p) := by

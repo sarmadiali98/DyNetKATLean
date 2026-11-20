@@ -10,8 +10,10 @@ open scoped Finset
 local infixl:65 " ⊕ " => NetKAT.union
 local infixl:70 " ⨟ " => NetKAT.seq
 
-open private values word reads word_congr read_eq read_write_self write_assign
+open private word reads word_congr read_eq read_write_self write_assign
   sumOn_congr sumOn_seq_right from DyNetKAT.NetKAT.Normalization
+
+private def values : List FieldValueEnum := [.v0, .v1, .v8, .v9]
 
 /-- NetKAT semantic-equivalence checker over the finite packet domain.
 
@@ -812,7 +814,8 @@ theorem derives_id_diagonal : Derives .id (pairSum (packetList.map fun σ => (σ
   exact sumOn_congr (fun σ _ => .symm (read_write_self σ))
 
 theorem derives_assign1_pairs (f : FieldName) (v : FieldValueEnum) :
-    Derives (.assign1 f v) (pairSum (packetList.map fun σ => (σ, Packet.update σ f v))) := by
+    Derives (schema := ctxSchema) (.assign1 f v)
+      (pairSum (packetList.map fun σ => (σ, Packet.update σ f v))) := by
   let xs : List (CompleteTest × CompleteAssignmentValuation) := packetList.map fun σ => (σ, σ)
   have hd : Derives (.assign1 f v)
       (sumOn xs (fun b => NormalForm.ofSummand b ⨟ .assign1 f v)) :=

@@ -118,6 +118,10 @@ and the generic DyNetKATLean semantic foundation. The original
 `CtxPkt` API specializes this foundation to `ctxSchema`. The proof
 and test scope is recorded in the
 [packet-schema conformance entry](docs/PAPER_CONFORMANCE.md#finite-packet-schema-foundation).
+The dependent-field compiler, executable equivalence, and algebraic
+Lemma 5 now support finite schemas. Generalizing the remaining
+DyNetKATLean equations and certified analysis path is part of the
+FatTree prerequisite.
 
 Parameterize the finite field schema and each field's value type. Preserve a
 fixed-domain instance for existing regressions. Prove complete tests and
@@ -183,9 +187,10 @@ The §V positive witness equation and the feasible head/tail source bridge
 are machine checked. Both [distributed-controller variants](docs/PAPER_CONFORMANCE.md#distributed-controllers-in-arxiv-v4)
 are machine checked. The [FatTree migration audit](docs/PAPER_CONFORMANCE.md#fattree-migration-in-arxiv-v4)
 records all three v4 checks. The semantic foundation now represents
-1,344 distinct switch identities without changing `CtxPkt`. The full
-FatTree model, symbolic analysis over its schema, and the three
-case-study proofs remain open.
+1,344 distinct switch identities without changing `CtxPkt`. Symbolic
+policy equivalence and algebraic NetKATLean normalization are now
+schema-generic. The DyNetKATLean certified analysis transfer, full
+FatTree model, and three case-study proofs remain open.
 
 ### Phase 6 — Extraction and normalization
 

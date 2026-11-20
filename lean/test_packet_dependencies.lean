@@ -137,6 +137,14 @@ run_cmd do
   for forbidden in [``ctxPkt_card, ``DyNetKAT.NetKAT.instFintypeCtxPkt] do
     if executable.contains forbidden then
       throwError "generic execute depends on the concrete schema via {forbidden}"
+  let symbolicDecision := dependencies env [``netkatNativeEquivFinite]
+  for required in [``PacketSchema.diagramLayouts, ``compileSymbolic] do
+    unless symbolicDecision.contains required do
+      throwError "missing finite-schema compiler dependency: {required}"
+  for forbidden in [``ctxPkt_card, ``DyNetKAT.NetKAT.instFintypeCtxPkt, ``symbolicPairsFor,
+      ``KATLean.NetKAT.Symbolic.Schema.acceptedPairs, ``execute] do
+    if symbolicDecision.contains forbidden then
+      throwError "finite-schema symbolic decision materializes packets via {forbidden}"
   let graphProof := dependencies env [``exists_exactNormalization_iff]
   for required in [``netkatIsZero, ``compileSymbolic] do
     unless graphProof.contains required do throwError "missing graph proof dependency: {required}"

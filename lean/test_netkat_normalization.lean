@@ -39,7 +39,7 @@ private def path := NetKAT.union to8 to9
 #guard decide ((base, base) ∈ netkatNormalForm (.star path))
 #guard decide ((port9, base) ∉ netkatNormalForm (.star path))
 
-#guard match normalize .drop with | .drop => true | _ => false
+#guard match normalize (.drop : NetKAT) with | .drop => true | _ => false
 #guard netkatEquiv (normalize (.completeTest base)) (.completeTest base)
 
 example (σ τ : CtxPkt) : Semantics (normalize (.star path)) σ τ ↔
@@ -51,10 +51,10 @@ example : IsPairSum (normalize (.star path)) ∧ StarFree (normalize (.star path
 
 private def branch := NormalForm.ofSummand (base, port1)
 
-example : Derives .drop (normalize .drop) := normalize_derives_drop
+example : Derives (schema := ctxSchema) .drop (normalize .drop) := normalize_derives_drop
 
 example : Derives (.union branch branch) (normalize (.union branch branch)) :=
-  normalize_derives_union (normalize_derives_summand _ _) (normalize_derives_summand _ _)
+  normalize_derives_union (normalize_derives_summand base port1) (normalize_derives_summand base port1)
 
 example : Derives (pairSum [(base, port1), (base, port1)]) (pairSum [(base, port1)]) :=
   pairSum_derives (fun _ => by simp)
@@ -63,7 +63,7 @@ example : Derives (pairSum [(base, port1), (base, port1)]) (pairSum [(base, port
 example : Derives (.star enter) .id := by
   apply derives_star_boundedPolicy (n := 0)
   exact .trans (.unionCongr (.refl _) (.oneSeq _))
-    (.trans (.plusComm _ _) (.baPlusOne (.pFieldEq ⟨.port, .v0⟩)))
+    (.trans (.plusComm _ _) (.baPlusOne (schema := ctxSchema) (.pFieldEq ⟨.port, .v0⟩)))
 
 example : Derives .id (pairSum (packetList.map fun σ => (σ, σ))) :=
   derives_id_diagonal
@@ -72,15 +72,15 @@ example : Derives enter (normalize enter) := normalize_derives_test _
 example : Derives (.completeTest base) (normalize (.completeTest base)) :=
   normalize_derives_completeTest base
 
-example : Derives (.assign1 .port .v1) (normalize (.assign1 .port .v1)) :=
+example : Derives (schema := ctxSchema) (.assign1 .port .v1) (normalize (.assign1 .port .v1)) :=
   normalize_derives_assign1 _ _
 
 example : Derives (NetKAT.seq branch (NormalForm.ofSummand (port1, port9)))
     (NormalForm.ofSummand (base, port9)) :=
-  branch_seq_match _ _ _
+  branch_seq_match base port1 port9
 
 example : Derives (NetKAT.seq branch (NormalForm.ofSummand (port8, port9))) .drop :=
-  branch_seq_mismatch _ _ _ _ (by
+  branch_seq_mismatch base port1 port8 port9 (by
     intro h
     have hp := congrFun h .port
     change FieldValueEnum.v1 = FieldValueEnum.v8 at hp

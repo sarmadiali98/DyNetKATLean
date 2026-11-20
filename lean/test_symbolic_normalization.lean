@@ -44,7 +44,7 @@ private def observePair (pair : CtxPkt × CtxPkt) :
   for (label, p) in corpus do
     let start ← IO.monoNanosNow
     let diagram := symbolicNormalForm p
-    let branches := symbolicSchema.acceptedPairs .v0 diagram
+    let branches := symbolicSchema.acceptedPairs (fun _ => .v0) diagram
     let symbolicResult ← IO.mkRef (KATLean.Native.Boolean.nodes diagram.1, branches.length, branches)
     let symbolicEnd ← IO.monoNanosNow
     let legacy := legacyNetkatNormalForm p
@@ -92,7 +92,7 @@ run_cmd do
     ``DyNetKAT.DyNetKAT.Ground.exists_headNormalForm,
     ``DyNetKAT.DyNetKAT.WellFormed.normalizes, ``DyNetKAT.DyNetKAT.Program.normalizes]
   for n in [``KATLean.NetKAT.Symbolic.Schema.mem_acceptedPairs, ``exists_derives_starFree_symbolic,
-      ``KATLean.NetKAT.Symbolic.Schema.star_induction, ``Derives.paMatchAll, ``Derives.lfpR] do
+      ``KATLean.NetKAT.Symbolic.Schema.star_induction, ``Derives.paMatchAllFor, ``Derives.lfpR] do
     unless normalization.contains n && heads.contains n do
       throwError "missing symbolic normalization dependency: {n}"
   unless heads.contains ``DyNetKAT.DyNetKAT.HeadNormalForm.packetHeads_correct do

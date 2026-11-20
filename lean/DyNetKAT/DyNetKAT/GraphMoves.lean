@@ -9,21 +9,22 @@ open DyNetKAT.NetKAT
 
 /-- A policy denotes all packet actions in its relation. Reconfigurations
     have a single action and leave both packet lists unchanged. -/
-inductive SequentialLabel where
-  | packet (policy : NetKAT)
-  | rcfg (channel : Channel) (policy : NetKAT)
+inductive SequentialLabel (schema : PacketSchema := ctxSchema) where
+  | packet (policy : NetKAT schema)
+  | rcfg (channel : Channel) (policy : NetKAT schema)
   deriving DecidableEq
 
-inductive MoveLabel where
-  | visible (label : SequentialLabel)
-  | recv (channel : Channel) (policy : NetKAT)
-  | send (channel : Channel) (policy : NetKAT)
+inductive MoveLabel (schema : PacketSchema := ctxSchema) where
+  | visible (label : SequentialLabel schema)
+  | recv (channel : Channel) (policy : NetKAT schema)
+  | send (channel : Channel) (policy : NetKAT schema)
   deriving DecidableEq
 
 /-- Instantiate a symbolic edge with exactly the packet-list effects of
     the corresponding prefix in the SOS. -/
-inductive MoveLabel.Realizes :
-    MoveLabel → List CtxPkt → List CtxPkt → Action → List CtxPkt → List CtxPkt → Prop
+inductive MoveLabel.Realizes {schema : PacketSchema} :
+    MoveLabel schema → List schema.Packet → List schema.Packet → Action schema →
+      List schema.Packet → List schema.Packet → Prop
   | packet (h : HistorySemantics p (History.singleton σ) (History.singleton τ)) :
       Realizes (.visible (.packet p)) (σ :: pt) hl (.packet σ τ) pt (τ :: hl)
   | rcfg : Realizes (.visible (.rcfg x p)) pt hl (.rcfg x p) pt hl

@@ -18,7 +18,7 @@ example (env : RecEnv) (a : Predicate) :
 example (env : RecEnv) :
     Bisimilar env (.nSeq (.seq (.assign1 .port .v0) (.assign1 .port .v1)) .deadlock)
       (.nSeq (.assign1 .port .v1) .deadlock) :=
-  nSeq_bisimilar_of_historySemantics env _ (NetKAT.Derives.paModMod .port .v0 .v1).historySound
+  nSeq_bisimilar_of_historySemantics env _ (NetKAT.Derives.paModMod (schema := ctxSchema) .port .v0 .v1).historySound
 
 example (env : RecEnv) (p : NetKAT) :
     Bisimilar env (.nSeq (.union .id (.seq p (.star p))) .deadlock)

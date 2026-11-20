@@ -103,15 +103,30 @@ The same schema indexes the dup-free policy syntax and its packet
 and history semantics. The supplied-packet evaluator compares fields
 and visits only reachable output packets. Its star fuel is the product
 of the finite field cardinalities, and its iteration stops at a fixed
-point. KATLean's relational interpretation is generic. The native
-diagram frontend still compiles the fixed `CtxPkt` schema.
+point. KATLean's relational interpretation and native diagram frontend
+are generic. Each of the three diagram banks has one bit per legal
+field/value pair. `DiagramLayout` provides bit ordering for an existing
+`PacketSchema`. `PacketSchema.diagramLayouts` constructs an executable
+layout up to ordering by enumerating the fields and their disjoint
+sum of value domains. `netkatNativeEquivFinite` eliminates that choice
+using the proof that semantic equivalence is independent of layout.
 
 DyNetKATLean uses that policy and packet boundary for process
 and label syntax, `Step` and `Steps`, guarded declarations, admission,
 and source traces. The generic history correspondence and
 Proposition 1 retain syntactic communication payload matching.
-The graph compiler, projection renderer, normalization and
-trace-safety checkers remain concrete at this stage.
+`symbolicNormalFormFor` keeps the compact relation diagram.
+`symbolicPairsFor` expands accepting paths for the explicit paper
+syntax, which can itself be large for a dense relation. NetKATLean's
+`Derives` uses field-local coverage for complete test expansion and
+PA-MATCH-ALL. Its completeness proof uses only field partitions and
+symbolic star closure. `Equations.packetHeads_bisimilar` gives the
+source SOS meaning of the resulting choice of packet heads.
+The letter and trace-safety specification layer is generic, including
+the source translation and padded-word semantics. The full DyNetKATLean
+head normalization proofs, graph compiler, projection renderer,
+equational trace-safety results, and trace-safety checkers still use
+`CtxPkt`.
 
 ## Future supported package boundaries
 

@@ -1,6 +1,7 @@
 import KATLean.NetKAT.Closure
 import KATLean.Native
 import DyNetKAT.NetKAT.Denotation
+import Mathlib.Data.Fintype.Sigma
 import Mathlib.Logic.Equiv.Fin.Basic
 
 /-! The dup-free packet frontend for the native KAT solver. -/
@@ -40,131 +41,184 @@ private def valueNumber : FieldValueEnum ≃ Fin 4 where
   right_inv := by decide
 
 /-- Interleave the three banks for each field/value bit. -/
-def symbolicSchema : Schema FieldName FieldValueEnum where
+def symbolicSchema : Schema FieldName (fun _ => FieldValueEnum) where
   fields := NetKAT.fieldEnum
-  values := [.v0, .v1, .v8, .v9]
+  values := fun _ => [.v0, .v1, .v8, .v9]
   fields_complete := NetKAT.fieldEnum_complete
-  values_complete := by intro a; cases a <;> decide
+  values_complete := by intro _ a; cases a <;> decide
   width := 4 * 4 * 3
-  index := (Equiv.prodCongr (((Equiv.prodCongr fieldNumber valueNumber).trans finProdFinEquiv))
+  index := (Equiv.prodCongr (((Equiv.sigmaEquivProd FieldName FieldValueEnum).trans
+    (Equiv.prodCongr fieldNumber valueNumber)).trans finProdFinEquiv)
     (Equiv.refl (Fin 3))).trans finProdFinEquiv
 
+/-- A choice of field orders and diagram bit indices for an existing packet schema.
+The packet values and semantics are supplied by the schema itself. -/
+class DiagramLayout (schema : PacketSchema) where
+  layout : Schema schema.Field schema.Value
+  fields_nodup : layout.fields.Nodup
+
+instance : DiagramLayout ctxSchema := ⟨symbolicSchema, NetKAT.fieldEnum_nodup⟩
+
+/-- The bit indices range over the disjoint sum of local field domains. -/
+def DiagramLayout.ofIndices (schema : PacketSchema) {n m : Nat}
+    (fields : schema.Field ≃ Fin n) (atoms : Sigma schema.Value ≃ Fin m) :
+    DiagramLayout schema := by
+  letI := schema.fieldEq
+  let values (f : schema.Field) :=
+    (List.finRange m).filterMap fun i =>
+      let a := atoms.symm i
+      if h : a.1 = f then some (h ▸ a.2) else none
+  exact ⟨{
+    fields := (List.finRange n).map fields.symm
+    fields_complete := fun f => List.mem_map.mpr
+      ⟨fields f, List.mem_finRange _, fields.symm_apply_apply f⟩
+    values := values
+    values_complete := by
+      intro f v
+      apply List.mem_filterMap.mpr
+      refine ⟨atoms ⟨f, v⟩, List.mem_finRange _, ?_⟩
+      rw [atoms.symm_apply_apply]
+      simp
+    width := m * 3
+    index := (Equiv.prodCongr atoms (Equiv.refl (Fin 3))).trans finProdFinEquiv
+  }, (List.nodup_finRange n).map fields.symm.injective⟩
+
+/-- Finite enumeration gives an executable layout up to a choice of ordering.
+Order-independent computations can consume the truncation directly. -/
+def PacketSchema.diagramLayouts (schema : PacketSchema) : Trunc (DiagramLayout schema) := by
+  letI := schema.fieldEq
+  letI := schema.valueEq
+  letI := schema.fieldFinite
+  letI := schema.valueFinite
+  exact do
+    let fields ← Fintype.truncEquivFin schema.Field
+    let atoms ← Fintype.truncEquivFin (Sigma schema.Value)
+    pure (DiagramLayout.ofIndices schema fields atoms)
+
+section
+
+variable {schema : PacketSchema} [diagram : DiagramLayout schema]
+
+local instance (f : schema.Field) : DecidableEq (schema.Value f) := schema.valueEq f
+local instance : DecidableEq schema.Field := schema.fieldEq
+
+
 /-- Boolean guards refer only to the input bank. -/
-def compilePredicate : Predicate → symbolicSchema.DiagramGuard
+def compilePredicate : Predicate schema → (diagram.layout).DiagramGuard
   | .pFalse => falsity
   | .pTrue => truth
-  | .pFieldEq fe => symbolicSchema.fieldTest 0 fe.field fe.value
+  | .pFieldEq fe => (diagram.layout).fieldTest 0 fe.field fe.value
   | .pAnd p q => conj (compilePredicate p) (compilePredicate q)
   | .pOr p q => disj (compilePredicate p) (compilePredicate q)
   | .pNot p => neg (compilePredicate p)
 
-theorem compilePredicate_correct (p : Predicate) (v : symbolicSchema.Bits) (σ : CtxPkt)
-    (h : symbolicSchema.Matches 0 v σ) :
+theorem compilePredicate_correct (p : Predicate schema) (v : (diagram.layout).Bits) (σ : schema.Packet)
+    (h : (diagram.layout).Matches 0 v σ) :
     Native.Boolean.eval (compilePredicate p).1 v = p.eval σ := by
-  induction p <;> simp [compilePredicate, Predicate.eval, *, symbolicSchema.fieldTest_correct h]
+  induction p <;> simp [compilePredicate, Predicate.eval, *, (diagram.layout).fieldTest_correct h]
 
-private def identityDiagram : symbolicSchema.DiagramGuard := symbolicSchema.skip
+private def identityDiagram : (diagram.layout).DiagramGuard := (diagram.layout).skip
 
 /-- Avoid joining a diagram with the empty or identity relation. A guard
 can become empty or identity after compiling a composite policy. -/
-private def composeDiagrams (g h : symbolicSchema.DiagramGuard) : symbolicSchema.DiagramGuard :=
+private def composeDiagrams (g h : (diagram.layout).DiagramGuard) : (diagram.layout).DiagramGuard :=
   if g = falsity ∨ h = falsity then falsity
   else if g = identityDiagram then h
   else if h = identityDiagram then g
-  else symbolicSchema.seq g h
+  else (diagram.layout).seq g h
 
-private theorem composeDiagrams_correct {g h : symbolicSchema.DiagramGuard}
-    {r t : Rel CtxPkt} (hg : symbolicSchema.Represents g r)
-    (hh : symbolicSchema.Represents h t) :
-    symbolicSchema.Represents (composeDiagrams g h) (r * t) := by
+private theorem composeDiagrams_correct {g h : (diagram.layout).DiagramGuard}
+    {r t : Rel schema.Packet} (hg : (diagram.layout).Represents g r)
+    (hh : (diagram.layout).Represents h t) :
+    (diagram.layout).Represents (composeDiagrams g h) (r * t) := by
   unfold composeDiagrams
   split
   · rename_i empty
     rcases empty with rfl | rfl
-    · rw [symbolicSchema.represents_unique hg symbolicSchema.drop_correct, zero_mul]
-      exact symbolicSchema.drop_correct
-    · rw [symbolicSchema.represents_unique hh symbolicSchema.drop_correct, mul_zero]
-      exact symbolicSchema.drop_correct
+    · rw [(diagram.layout).represents_unique hg (diagram.layout).drop_correct, zero_mul]
+      exact (diagram.layout).drop_correct
+    · rw [(diagram.layout).represents_unique hh (diagram.layout).drop_correct, mul_zero]
+      exact (diagram.layout).drop_correct
   · split
     · rename_i hid
-      have he := symbolicSchema.represents_unique (hid ▸ hg)
-        (show symbolicSchema.Represents identityDiagram 1 from symbolicSchema.skip_correct)
+      have he := (diagram.layout).represents_unique (hid ▸ hg)
+        (show (diagram.layout).Represents identityDiagram 1 from (diagram.layout).skip_correct)
       simpa [he] using hh
     · split
       · rename_i hid
-        have he := symbolicSchema.represents_unique (hid ▸ hh)
-          (show symbolicSchema.Represents identityDiagram 1 from symbolicSchema.skip_correct)
+        have he := (diagram.layout).represents_unique (hid ▸ hh)
+          (show (diagram.layout).Represents identityDiagram 1 from (diagram.layout).skip_correct)
         simpa [he] using hg
-      · exact symbolicSchema.seq_correct hg hh
+      · exact (diagram.layout).seq_correct hg hh
 
 /-- NetKAT compilation computes one symbolic binary relation. Star closes
 the diagram under composition using a proved fixed point. -/
-def compileSymbolic : NetKAT → symbolicSchema.DiagramGuard
+def compileSymbolic : NetKAT schema → (diagram.layout).DiagramGuard
   | .drop => falsity
   | .id => identityDiagram
   | .test p => conj identityDiagram (compilePredicate p)
-  | .completeTest α => conj identityDiagram (symbolicSchema.completeTest α)
-  | .assign1 f a => symbolicSchema.assign f a
+  | .completeTest α => conj identityDiagram ((diagram.layout).completeTest α)
+  | .assign1 f a => (diagram.layout).assign f a
   | .union p q => disj (compileSymbolic p) (compileSymbolic q)
   | .seq p q => composeDiagrams (compileSymbolic p) (compileSymbolic q)
-  | .star p => symbolicSchema.star (compileSymbolic p)
+  | .star p => (diagram.layout).star (compileSymbolic p)
 
-theorem compile_test_correct (p : Predicate) :
-    symbolicSchema.Represents (compileSymbolic (.test p)) (katInterp (.test p)) :=
-  symbolicSchema.filter_correct (fun v σ h => by
+theorem compile_test_correct (p : Predicate schema) :
+    (diagram.layout).Represents (compileSymbolic (.test p)) (katInterp (.test p)) :=
+  (diagram.layout).filter_correct (fun v σ h => by
     rw [compilePredicate_correct p v σ h, predicateInterp_correct]
     rfl)
 
-theorem compile_assign_correct (f : FieldName) (a : FieldValueEnum) :
-    symbolicSchema.Represents (compileSymbolic (.assign1 f a)) (katInterp (schema := ctxSchema) (.assign1 f a)) :=
-  symbolicSchema.assign_correct ctxPacketModel (fun _ _ => rfl) f a
+theorem compile_assign_correct (f : schema.Field) (a : schema.Value f) :
+    (diagram.layout).Represents (compileSymbolic (.assign1 f a)) (katInterp (schema := schema) (.assign1 f a)) :=
+  (diagram.layout).assign_correct schema.model schema.lookup_eq f a
 
-theorem compile_completeTest_correct (α : CompleteTest) :
-    symbolicSchema.Represents (compileSymbolic (.completeTest α)) (katInterp (schema := ctxSchema) (.completeTest α)) :=
-  symbolicSchema.filter_correct (fun v σ h => by
-    rw [symbolicSchema.completeTest_correct h]
+theorem compile_completeTest_correct (α : schema.Packet) :
+    (diagram.layout).Represents (compileSymbolic (.completeTest α)) (katInterp (schema := schema) (.completeTest α)) :=
+  (diagram.layout).filter_correct (fun v σ h => by
+    rw [(diagram.layout).completeTest_correct h]
     exact ⟨fun e f => (congrFun e f).symm, fun e => funext (fun f => (e f).symm)⟩)
 
-theorem compileSymbolic_correct (p : NetKAT) :
-    symbolicSchema.Represents (compileSymbolic p) (katInterp p) := by
+theorem compileSymbolic_correct (p : NetKAT schema) :
+    (diagram.layout).Represents (compileSymbolic p) (katInterp p) := by
   induction p with
-  | drop => exact symbolicSchema.drop_correct
-  | id => exact symbolicSchema.skip_correct
+  | drop => exact (diagram.layout).drop_correct
+  | id => exact (diagram.layout).skip_correct
   | test p => exact compile_test_correct p
   | completeTest α => exact compile_completeTest_correct α
   | assign1 f a => exact compile_assign_correct f a
-  | union p q hp hq => exact symbolicSchema.union_correct hp hq
+  | union p q hp hq => exact (diagram.layout).union_correct hp hq
   | seq p q hp hq => exact composeDiagrams_correct hp hq
-  | star p hp => exact symbolicSchema.star_correct hp
+  | star p hp => exact (diagram.layout).star_correct hp
 
 /-- A pair encoding is accepted precisely when the original policy
 relates its input and output packets. -/
-theorem compileSymbolic_semantics (p : NetKAT) (σ τ : CtxPkt) :
-    Native.Boolean.eval (compileSymbolic p).1 (symbolicSchema.encodePair σ τ) = true ↔ Semantics p σ τ :=
-  (symbolicSchema.eval_pair (compileSymbolic_correct p) σ τ).trans (katInterp_correct p σ τ)
+theorem compileSymbolic_semantics (p : NetKAT schema) (σ τ : schema.Packet) :
+    Native.Boolean.eval (compileSymbolic p).1 ((diagram.layout).encodePair σ τ) = true ↔ Semantics p σ τ :=
+  ((diagram.layout).eval_pair (compileSymbolic_correct p) σ τ).trans (katInterp_correct p σ τ)
 
 /-- Embed the symbolic relation as a native test over pair encodings.
 Packet updates have already been interpreted before this embedding. -/
-def compileNative (p : NetKAT) : Native.Expr (Fin symbolicSchema.width) Empty :=
+def compileNative (p : NetKAT schema) : Native.Expr (Fin (diagram.layout).width) Empty :=
   .test ((compileSymbolic p).1.toTest id)
 
-theorem compileNative_accept (p : NetKAT) (v : symbolicSchema.Bits) :
+theorem compileNative_accept (p : NetKAT schema) (v : (diagram.layout).Bits) :
     Native.Accept (compileNative p) v [] ↔ Native.Boolean.eval (compileSymbolic p).1 v = true := by
   rw [← Native.nullable_correct, compileNative, Native.nullable, Diagram.toTest_correct]
   rfl
 
-theorem compileNative_correct (p : NetKAT) (σ τ : CtxPkt) :
-    Native.Accept (compileNative p) (symbolicSchema.encodePair σ τ) [] ↔ Semantics p σ τ :=
+theorem compileNative_correct (p : NetKAT schema) (σ τ : schema.Packet) :
+    Native.Accept (compileNative p) ((diagram.layout).encodePair σ τ) [] ↔ Semantics p σ τ :=
   (compileNative_accept p _).trans (compileSymbolic_semantics p σ τ)
 
 /-- The native solver's action-free case compares the already compiled
 output guards directly. -/
-def netkatNativeEquiv (p q : NetKAT) : Bool :=
+def netkatNativeEquiv (p q : NetKAT schema) : Bool :=
   Native.compareOutputGuards (compileSymbolic p) (compileSymbolic q)
 
 /-- The specialized executable entry point returns the full native solver's
 answer on the compiled policies. -/
-theorem netkatNativeEquiv_eq_solver (p q : NetKAT) :
+theorem netkatNativeEquiv_eq_solver (p q : NetKAT schema) :
     netkatNativeEquiv p q = Native.decideEquiv (compileNative p) (compileNative q) := by
   rw [Bool.eq_iff_iff, netkatNativeEquiv, Native.compareOutputGuards, decide_eq_true_eq,
     Native.decideEquiv_correct, Native.relational_iff_language]
@@ -179,15 +233,15 @@ theorem netkatNativeEquiv_eq_solver (p q : NetKAT) :
     rw [← compileNative_accept, ← compileNative_accept]
     exact equivalent v []
 
-theorem netkatNativeEquiv_sound {p q : NetKAT} (h : netkatNativeEquiv p q = true) :
+theorem netkatNativeEquiv_sound {p q : NetKAT schema} (h : netkatNativeEquiv p q = true) :
     ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ := by
   rw [netkatNativeEquiv_eq_solver] at h
   have langs := (Native.relational_iff_language _ _).mp (Native.decideEquiv_sound _ _ h)
   intro σ τ
   exact (compileNative_correct p σ τ).symm.trans
-    ((langs (symbolicSchema.encodePair σ τ) []).trans (compileNative_correct q σ τ))
+    ((langs ((diagram.layout).encodePair σ τ) []).trans (compileNative_correct q σ τ))
 
-theorem netkatNativeEquiv_complete {p q : NetKAT} (h : ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ) :
+theorem netkatNativeEquiv_complete {p q : NetKAT schema} (h : ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ) :
     netkatNativeEquiv p q = true := by
   rw [netkatNativeEquiv_eq_solver]
   apply Native.decideEquiv_complete
@@ -200,11 +254,11 @@ theorem netkatNativeEquiv_complete {p q : NetKAT} (h : ∀ σ τ, Semantics p σ
     simp only [katInterp_correct, h]
   | cons head _ => exact head.1.elim
 
-theorem netkatNativeEquiv_correct (p q : NetKAT) :
+theorem netkatNativeEquiv_correct (p q : NetKAT schema) :
     netkatNativeEquiv p q = true ↔ ∀ σ τ, Semantics p σ τ ↔ Semantics q σ τ :=
   ⟨netkatNativeEquiv_sound, netkatNativeEquiv_complete⟩
 
-theorem netkatNativeEquiv_false_iff (p q : NetKAT) :
+theorem netkatNativeEquiv_false_iff (p q : NetKAT schema) :
     netkatNativeEquiv p q = false ↔ ∃ σ τ, ¬ (Semantics p σ τ ↔ Semantics q σ τ) := by
   classical
   rw [← Bool.not_eq_true, netkatNativeEquiv_correct]
@@ -213,23 +267,23 @@ theorem netkatNativeEquiv_false_iff (p q : NetKAT) :
 
 /-- Symbolic constraints describing exactly the input/output pairs on which
 the policies disagree. Invalid one-hot encodings satisfy neither operand. -/
-def distinguishingGuard (p q : NetKAT) : symbolicSchema.DiagramGuard :=
+def distinguishingGuard (p q : NetKAT schema) : (diagram.layout).DiagramGuard :=
   binary (· != ·) (compileSymbolic p) (compileSymbolic q)
 
-theorem distinguishingGuard_correct (p q : NetKAT) (v : symbolicSchema.Bits) :
+theorem distinguishingGuard_correct (p q : NetKAT schema) (v : (diagram.layout).Bits) :
     Native.Boolean.eval (distinguishingGuard p q).1 v = true ↔
-      ∃ σ τ : CtxPkt, symbolicSchema.Matches 0 v σ ∧ symbolicSchema.Matches 1 v τ ∧
+      ∃ σ τ : schema.Packet, (diagram.layout).Matches 0 v σ ∧ (diagram.layout).Matches 1 v τ ∧
         ¬ (Semantics p σ τ ↔ Semantics q σ τ) := by
   rw [distinguishingGuard, binary, apply_correct]
   have hp := compileSymbolic_correct p
   have hq := compileSymbolic_correct q
-  have same (σ τ : CtxPkt) (hs : symbolicSchema.Matches 0 v σ)
-      (ht : symbolicSchema.Matches 1 v τ) :
+  have same (σ τ : schema.Packet) (hs : (diagram.layout).Matches 0 v σ)
+      (ht : (diagram.layout).Matches 1 v τ) :
       Native.Boolean.eval (compileSymbolic p).1 v =
         Native.Boolean.eval (compileSymbolic q).1 v ↔
         (Semantics p σ τ ↔ Semantics q σ τ) := by
-    rw [Bool.eq_iff_iff, symbolicSchema.eval_matched hp hs ht,
-      symbolicSchema.eval_matched hq hs ht, katInterp_correct, katInterp_correct]
+    rw [Bool.eq_iff_iff, (diagram.layout).eval_matched hp hs ht,
+      (diagram.layout).eval_matched hq hs ht, katInterp_correct, katInterp_correct]
   constructor
   · intro h
     have someGuard :
@@ -245,7 +299,7 @@ theorem distinguishingGuard_correct (p q : NetKAT) (v : symbolicSchema.Bits) :
     have ne := mt (same σ τ hs ht).mp h
     simpa using ne
 
-theorem distinguishingGuard_sat (p q : NetKAT) :
+theorem distinguishingGuard_sat (p q : NetKAT schema) :
     sat (distinguishingGuard p q).1 = true ↔ netkatNativeEquiv p q = false := by
   rw [sat_correct, netkatNativeEquiv_false_iff]
   constructor
@@ -253,11 +307,29 @@ theorem distinguishingGuard_sat (p q : NetKAT) :
     obtain ⟨σ, τ, _, _, hd⟩ := (distinguishingGuard_correct p q v).mp hv
     exact ⟨σ, τ, hd⟩
   · rintro ⟨σ, τ, hd⟩
-    refine ⟨symbolicSchema.encodePair σ τ, (distinguishingGuard_correct p q _).mpr ?_⟩
+    refine ⟨(diagram.layout).encodePair σ τ, (distinguishingGuard_correct p q _).mpr ?_⟩
     refine ⟨σ, τ, ?_, ?_, hd⟩
     · simpa [KATLean.NetKAT.Symbolic.Schema.encodePair] using
-        symbolicSchema.matches_encode (fun b => if b = 0 then σ else τ) 0
+        (diagram.layout).matches_encode (fun b => if b = 0 then σ else τ) 0
     · simpa [KATLean.NetKAT.Symbolic.Schema.encodePair] using
-        symbolicSchema.matches_encode (fun b => if b = 0 then σ else τ) 1
+        (diagram.layout).matches_encode (fun b => if b = 0 then σ else τ) 1
+
+end
+
+/-- Decide equivalence using only the finite packet schema. The order of
+field values can change the diagrams but cannot change the answer. -/
+def netkatNativeEquivFinite {schema : PacketSchema} (p q : NetKAT schema) : Bool :=
+  schema.diagramLayouts.liftOn (fun d => @netkatNativeEquiv schema d p q) (by
+    intro first second
+    apply Bool.eq_iff_iff.mpr
+    exact (@netkatNativeEquiv_correct schema first p q).trans
+      (@netkatNativeEquiv_correct schema second p q).symm)
+
+theorem netkatNativeEquivFinite_correct {schema : PacketSchema} (p q : NetKAT schema) :
+    netkatNativeEquivFinite p q = true ↔ ∀ i o, Semantics p i o ↔ Semantics q i o := by
+  unfold netkatNativeEquivFinite
+  generalize schema.diagramLayouts = layouts
+  induction layouts using Trunc.induction_on with
+  | _ d => exact @netkatNativeEquiv_correct schema d p q
 
 end DyNetKAT.NetKAT

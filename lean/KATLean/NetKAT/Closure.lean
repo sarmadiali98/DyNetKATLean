@@ -9,14 +9,14 @@ namespace KATLean.NetKAT.Symbolic.Schema
 open Native.Boolean
 open scoped Computability
 
-variable {F V : Type} (s : Schema F V) [DecidableEq V]
+variable {F : Type} {V : F → Type} (s : Schema F V) [∀ f, DecidableEq (V f)]
 
 /-- The encoding of an input and output packet, with a spare middle bank. -/
-def encodePair (p q : F → V) : s.Bits :=
+def encodePair (p q : (f : F) → V f) : s.Bits :=
   s.encode (fun b => if b = 0 then p else q)
 
-theorem eval_matched {g : s.DiagramGuard} {r : Rel (F → V)}
-    (h : s.Represents g r) {v : s.Bits} {p q : F → V}
+theorem eval_matched {g : s.DiagramGuard} {r : Rel ((f : F) → V f)}
+    (h : s.Represents g r) {v : s.Bits} {p q : (f : F) → V f}
     (hp : s.Matches 0 v p) (hq : s.Matches 1 v q) :
     eval g.1 v = true ↔ r.holds p q := by
   rw [h v]
@@ -25,14 +25,14 @@ theorem eval_matched {g : s.DiagramGuard} {r : Rel (F → V)}
     rwa [← s.matches_unique hp' hp, ← s.matches_unique hq' hq]
   · exact fun hr => ⟨p, q, hp, hq, hr⟩
 
-theorem eval_pair {g : s.DiagramGuard} {r : Rel (F → V)}
-    (h : s.Represents g r) (p q : F → V) :
+theorem eval_pair {g : s.DiagramGuard} {r : Rel ((f : F) → V f)}
+    (h : s.Represents g r) (p q : (f : F) → V f) :
     eval g.1 (s.encodePair p q) = true ↔ r.holds p q := by
   apply s.eval_matched h
   · simpa [encodePair] using s.matches_encode (fun b => if b = 0 then p else q) 0
   · simpa [encodePair] using s.matches_encode (fun b => if b = 0 then p else q) 1
 
-theorem represents_unique {g : s.DiagramGuard} {r t : Rel (F → V)}
+theorem represents_unique {g : s.DiagramGuard} {r t : Rel ((f : F) → V f)}
     (hr : s.Represents g r) (ht : s.Represents g t) : r = t :=
   Rel.ext_holds (fun p q => (s.eval_pair hr p q).symm.trans (s.eval_pair ht p q))
 
@@ -56,7 +56,7 @@ private theorem bits_finite (n : Nat) : Finite (Fin n → Bool) := by
     funext i
     refine Fin.cases (congrArg Prod.fst h) (fun j => congrFun (congrArg Prod.snd h) j) i
 
-omit [DecidableEq V] in
+omit [∀ f, DecidableEq (V f)] in
 private theorem rank_square_lt (g : s.DiagramGuard) (h : s.square g ≠ g) :
     s.rank (s.square g) < s.rank g := by
   letI : Finite s.Bits := bits_finite _
@@ -81,7 +81,7 @@ private def close (g : s.DiagramGuard) : s.DiagramGuard :=
 termination_by s.rank g
 decreasing_by exact s.rank_square_lt g _h
 
-private theorem close_spec (g : s.DiagramGuard) (r upper : Rel (F → V))
+private theorem close_spec (g : s.DiagramGuard) (r upper : Rel ((f : F) → V f))
     (hr : s.Represents g r) (hle : r ≤ upper) (hupper : upper * upper ≤ upper) :
     ∃ t, s.Represents (s.close g) t ∧ r ≤ t ∧ t ≤ upper ∧ t * t ≤ t := by
   induction g using (measure s.rank).wf.induction generalizing r with
@@ -120,7 +120,7 @@ theorem star_induction {g : s.DiagramGuard} {motive : s.DiagramGuard → Prop}
         exact ih (s.square h) (s.rank_square_lt h different) (step h hh)
   exact loop _ base
 
-theorem star_correct {g : s.DiagramGuard} {r : Rel (F → V)} (h : s.Represents g r) :
+theorem star_correct {g : s.DiagramGuard} {r : Rel ((f : F) → V f)} (h : s.Represents g r) :
     s.Represents (s.star g) r∗ := by
   obtain ⟨t, ht, hstart, hupper, hstable⟩ := s.close_spec _ _ r∗
     (s.union_correct s.skip_correct h) (add_le one_le_kstar le_kstar)

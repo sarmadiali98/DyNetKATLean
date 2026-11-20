@@ -19,14 +19,16 @@ def EndpointReachable {schema : PacketSchema} {extended : Bool} {env : RecEnv sc
   flowVia ingress egress fun i o =>
     ∃ word, QueryWord stages i o word ∧ p.Trace word ∧ ReachabilityBudget bound word
 
-theorem TailWord.visible {R : ReconfigSet} {w : List Action} (h : TailWord R w) :
+theorem TailWord.visible {schema : PacketSchema} {R : ReconfigSet schema}
+    {w : List (Action schema)} (h : TailWord R w) :
     ∀ a ∈ w, actionAllowed Set.univ a := by
   induction h with
   | last => simp [actionAllowed]
   | packet _ ih => simpa [actionAllowed, List.mem_cons, or_imp, forall_and] using ih
   | rcfg _ _ ih => simpa [actionAllowed, List.mem_cons, or_imp, forall_and] using ih
 
-theorem TailSegments.visible {stages : List ReconfigSet} {w : List Action}
+theorem TailSegments.visible {schema : PacketSchema} {stages : List (ReconfigSet schema)}
+    {w : List (Action schema)}
     (h : TailSegments stages w) : ∀ a ∈ w, actionAllowed Set.univ a := by
   induction stages generalizing w with
   | nil => subst w; simp
@@ -34,7 +36,8 @@ theorem TailSegments.visible {stages : List ReconfigSet} {w : List Action}
       obtain ⟨u, v, rfl, word, rest⟩ := h
       exact fun a mem => (List.mem_append.mp mem).elim (word.visible a) (ih rest a)
 
-theorem QueryWord.visible {stages : List ReconfigSet} {i o : CtxPkt} {w : List Action}
+theorem QueryWord.visible {schema : PacketSchema} {stages : List (ReconfigSet schema)}
+    {i o : schema.Packet} {w : List (Action schema)}
     (h : QueryWord stages i o w) : ∀ a ∈ w, actionAllowed Set.univ a := by
   obtain ⟨pre, head, sel, packets, rfl⟩ := h
   intro a mem

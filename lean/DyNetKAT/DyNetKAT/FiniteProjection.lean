@@ -7,15 +7,17 @@ namespace DyNetKAT.DyNetKAT
 
 open DyNetKAT.NetKAT
 
-def MoveLabel.prefix (l : MoveLabel) (p : DyNetKAT) : DyNetKAT :=
+def MoveLabel.prefix {schema : PacketSchema} (l : MoveLabel schema)
+    (p : DyNetKAT schema) : DyNetKAT schema :=
   match l with
   | .visible (.packet N) => .nSeq N p
   | .visible (.rcfg x N) => .rcfgPrefix x N p
   | .recv x N => .recv x N p
   | .send x N => .send x N p
 
-theorem MoveLabel.prefix_step_iff (env : RecEnv) (l : MoveLabel) (p q : DyNetKAT)
-    (pt hl : List CtxPkt) (a : Action) (pt' hl' : List CtxPkt) :
+theorem MoveLabel.prefix_step_iff {schema : PacketSchema} (env : RecEnv schema)
+    (l : MoveLabel schema) (p q : DyNetKAT schema)
+    (pt hl : List schema.Packet) (a : Action schema) (pt' hl' : List schema.Packet) :
     Step env ⟨l.prefix p, pt, hl⟩ a ⟨q, pt', hl'⟩ ↔
       q = p ∧ MoveLabel.Realizes l pt hl a pt' hl' := by
   constructor
@@ -34,8 +36,9 @@ theorem MoveLabel.prefix_step_iff (env : RecEnv) (l : MoveLabel) (p q : DyNetKAT
     | recv => exact .cpol_recv _ _ _ _ _
     | send => exact .cpol_send _ _ _ _ _
 
-theorem choiceOf_step_iff (env : RecEnv) (branches : List DyNetKAT)
-    (pt hl : List CtxPkt) (a : Action) (q : DyNetKAT) (pt' hl' : List CtxPkt) :
+theorem choiceOf_step_iff {schema : PacketSchema} (env : RecEnv schema)
+    (branches : List (DyNetKAT schema)) (pt hl : List schema.Packet) (a : Action schema)
+    (q : DyNetKAT schema) (pt' hl' : List schema.Packet) :
     Step env ⟨choiceOf branches, pt, hl⟩ a ⟨q, pt', hl'⟩ ↔
       ∃ b ∈ branches, Step env ⟨b, pt, hl⟩ a ⟨q, pt', hl'⟩ := by
   induction branches with

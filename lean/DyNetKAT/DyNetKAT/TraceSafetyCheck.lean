@@ -6,7 +6,11 @@ namespace DyNetKAT.DyNetKAT.TraceSafety
 
 open DyNetKAT.NetKAT
 
-private def matchesLetter : MoveLabel → Letter → Bool
+variable {schema : PacketSchema}
+
+local instance : DecidableEq schema.Packet := schema.packetEq
+
+private def matchesLetter : MoveLabel schema → Letter schema → Bool
   | .visible (.packet p), .packet i o =>
       match execute p i with
       | .supported outputs => decide (o ∈ outputs)
@@ -14,7 +18,7 @@ private def matchesLetter : MoveLabel → Letter → Bool
   | .visible (.rcfg x p), .rcfg y q => decide (x = y ∧ p = q)
   | _, _ => false
 
-private theorem matchesLetter_iff (l : MoveLabel) (letter : Letter) :
+private theorem matchesLetter_iff (l : MoveLabel schema) (letter : Letter schema) :
     matchesLetter l letter = true ↔
       l.Realizes (letter.action.pendingFor []) [] letter.action [] (letter.action.handledAfter []) := by
   cases letter with

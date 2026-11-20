@@ -141,8 +141,12 @@ valuations with point updates. A policy `NetKAT schema` supplies the
 packet operations for `DyNetKAT schema`. Its recursion environment
 determines the schema of `Program`, `Residual`, and `Program.Trace`.
 Omitting the schema on the original types selects `ctxSchema` and
-`CtxPkt`. The current symbolic diagram compiler and certified analysis
-pipeline still use that concrete instance.
+`CtxPkt`. The symbolic compiler and NetKATLean's algebraic
+normalization support dependent field domains. For a decision that
+takes only the packet schema, use `netkatNativeEquivFinite`.
+Source trace-safety specifications and their translation also support
+finite schemas. The certified graph and projection algorithms and the
+equational safety proofs still use the concrete instance.
 
 ## Building
 

@@ -160,8 +160,8 @@ theorem sourceTrace_choice_iff {env : (RecEnv schema)} {p q : (DyNetKAT schema)}
         · exact ⟨d, .cpol_choice_l _ _ _ _ _ _ _ _ step, rest⟩
         · exact ⟨d, .cpol_choice_r _ _ _ _ _ _ _ _ step, rest⟩
 
-theorem sourceTrace_movePrefix_iff {env : RecEnv} {l : MoveLabel} {p : DyNetKAT}
-    {a : Action} {w : List Action} :
+theorem sourceTrace_movePrefix_iff {env : RecEnv schema} {l : MoveLabel schema}
+    {p : DyNetKAT schema} {a : Action schema} {w : List (Action schema)} :
     SourceTrace env (l.prefix p) (a :: w) ↔
       l.Realizes (a.pendingFor []) [] a [] (a.handledAfter []) ∧ SourceTrace env p w := by
   rw [sourceTrace_cons_actionStep]
@@ -182,8 +182,8 @@ theorem Bisimilar.sourceTrace_iff {env : RecEnv} {p q : DyNetKAT}
   exact ⟨transfer related, transfer (bisim.1 _ _ related)⟩
 
 /-- The atomic prefix that emits exactly this SOS action. -/
-def Action.atomicLabel : Action → MoveLabel
-  | .packet i o => .visible (.packet (NormalForm.ofSummand (i, o)))
+def Action.atomicLabel [DiagramLayout schema] : Action schema → MoveLabel schema
+  | .packet i o => .visible (.packet (packetSummand (i, o)))
   | .rcfg x p => .visible (.rcfg x p)
   | .recv x p => .recv x p
   | .send x p => .send x p
@@ -196,8 +196,8 @@ theorem Equations.AtomicPrefix.exists_action {l : MoveLabel} (h : Equations.Atom
   | recv x p => exact ⟨.recv x p, rfl⟩
   | send x p => exact ⟨.send x p, rfl⟩
 
-private theorem atomicLabel_realizes_iff (l : Action) (pt hl : List CtxPkt) (a : Action)
-    (pt' hl' : List CtxPkt) :
+private theorem atomicLabel_realizes_iff [DiagramLayout schema] (l : Action schema)
+    (pt hl : List schema.Packet) (a : Action schema) (pt' hl' : List schema.Packet) :
     l.atomicLabel.Realizes pt hl a pt' hl' ↔
       a = l ∧ pt = a.pendingFor pt' ∧ hl' = a.handledAfter hl := by
   cases l with
@@ -207,13 +207,12 @@ private theorem atomicLabel_realizes_iff (l : Action) (pt hl : List CtxPkt) (a :
         cases h with
         | packet ev =>
             have sem := (historySemantics_singleton_iff_packetSemantics ..).mp ev
-            obtain ⟨ei, eo⟩ := (ofSummand_sem ..).mp sem
-            obtain rfl := (holdsComplete_iff_eq ..).mp ei
+            obtain ⟨ei, eo⟩ := Prod.mk.inj ((packetSummand_sem ..).mp sem)
             subst_vars
             exact ⟨rfl, rfl, rfl⟩
       · rintro ⟨rfl, rfl, rfl⟩
         exact .packet ((historySemantics_singleton_iff_packetSemantics ..).mpr
-          ((ofSummand_sem ..).mpr ⟨(holdsComplete_iff_eq ..).mpr rfl, rfl⟩))
+          ((packetSummand_sem ..).mpr rfl))
   | rcfg x p =>
       constructor
       · intro h; cases h; exact ⟨rfl, rfl, rfl⟩
@@ -228,8 +227,8 @@ private theorem atomicLabel_realizes_iff (l : Action) (pt hl : List CtxPkt) (a :
       · intro h; cases h; exact ⟨rfl, rfl, rfl⟩
       · rintro ⟨rfl, rfl, rfl⟩; exact .send
 
-theorem sourceTrace_atomicPrefix_iff {env : RecEnv} {l a : Action} {p : DyNetKAT}
-    {word : List Action} :
+theorem sourceTrace_atomicPrefix_iff [DiagramLayout schema] {env : RecEnv schema}
+    {l a : Action schema} {p : DyNetKAT schema} {word : List (Action schema)} :
     SourceTrace env (l.atomicLabel.prefix p) (a :: word) ↔ a = l ∧ SourceTrace env p word := by
   simp only [sourceTrace_movePrefix_iff, atomicLabel_realizes_iff, true_and, and_true]
 
