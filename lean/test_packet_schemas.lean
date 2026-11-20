@@ -6,6 +6,25 @@ namespace DyNetKAT.DyNetKAT.PacketSchemaTests
 
 open DyNetKAT.NetKAT
 
+private abbrev switchSchema (N : Nat) := PacketSchema.ofFields Unit (fun _ => Fin N)
+
+theorem arbitrary_switch_identifiers (N : Nat) :
+    Function.Injective (fun id : Fin N => (fun _ => id : (switchSchema N).Packet)) :=
+  fun _ _ h => congrFun h ()
+
+theorem arbitrary_switch_equivalence (N : Nat) (p q : NetKAT (switchSchema N)) :
+    netkatNativeEquivFinite p q = true ↔ NetKAT.Derives p q :=
+  netkatNativeEquivFinite_iff_derives p q
+
+theorem arbitrary_switch_projection (N depth : Nat) (env : RecEnv (switchSchema N))
+    (p : DyNetKAT (switchSchema N)) (word : List (Action (switchSchema N))) :
+    SourceTrace env (.project depth p) word ↔ SourceTrace env p word ∧ word.length ≤ depth :=
+  sourceTrace_project_iff
+
+#print axioms arbitrary_switch_identifiers
+#print axioms arbitrary_switch_equivalence
+#print axioms arbitrary_switch_projection
+
 private inductive Field
   | location | port | ssh
   deriving DecidableEq
