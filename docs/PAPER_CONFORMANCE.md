@@ -540,3 +540,86 @@ separate from those finite renderings.
 The controller case studies cover the paper's source semantics and
 queries. The pinned DyNetiKAT v1.1 JSON benchmark files and benchmark
 timings are separate parity work.
+
+## FatTree migration in arXiv v4
+
+The benchmark in §V and Figs. 12–13 remains open. Figure 12 shows
+core, aggregation, and top-of-rack (ToR) switches, with the ToRs
+grouped into pods. The workload uses shortest-path
+forwarding between all ToRs in six generated topologies. Section V
+reports the 931- and 1,344-switch instances. The selected ToRs
+`Ta` and `Tb` are in different pods, and their initial traffic passes
+through aggregation firewall `Ax`, which filters SSH traffic. The
+controller moves the firewall to aggregation switch `Ax'` by four
+updates to aggregation and core flow tables.
+
+The paper describes the scenario and the three checks. It does not
+give the full benchmark topology tables, a concrete selection of the
+firewall switches, the packet field layout or numeric SSH predicate,
+the four ordered payloads and event labels, or a recursive declaration
+environment. The [pinned DyNetiKAT v1.1 source audit](DYNETIKAT_REFERENCE_AUDIT.md#v11-feature-parity)
+records generator-specific data separately. Its 16-pod instance has
+1,024 ToR endpoints, 256 aggregation nodes, and 64 core nodes. It
+records four ordered updates and query depths 2, 3, 4, and 5 for the
+corresponding nonempty update prefixes. Those depths describe the
+reference runs. Source isolation quantifies over all feasible traces.
+
+| v4 item | Intended Lean model or proof | Status |
+|---|---|---|
+| §V and Fig. 12, generated topology and shortest-path forwarding | Retain the graph's actual switch and link-endpoint identities in the packet location. Use symbolic NetKAT location tests, link assignments, and per-phase forwarding policies. Preserve the SSH distinction independently of location. | Open. The full benchmark exceeds the `CtxPkt` capacity. |
+| §V, initial firewall and four updates | Define the initial, three intermediate, and final configurations in one admitted `Program` using `RecEnv`. Establish reachable `Residual` values and the actual update labels, order, and packet effects from source SOS. Use a synchronization theorem if the concrete controller encoding uses handshakes. | Open. The paper's four updates alone do not specify the source controller syntax or literal SOS events. |
+| §V (i), Reachability-I | Use `staticReachability_iff` for forwarding in each phase and `EndpointReachable` with the head/tail source bridge after selected migration events. Prove feasible non-SSH forwarding from `Ta` to `Tb` at each phase, including the initial and final configurations. | Open. The general endpoint bridges are machine checked. |
+| §V (ii), Reachability-II | Exclude a feasible SSH observation from `Ta` to `Tb` across every reachable phase, including traces with arbitrary preceding packet observations. Apply the existing Eq. (27) or Eq. (28) bridge if the property is rendered as a forbidden trace family. | Open. The general safety and equational bridges are machine checked. |
+| §V (iii), Waypointing | For the final phase, instantiate the printed NetKAT test `R + W ≡ W`. Here `R` is the ingress-to-egress relation and `W` is the relation factored through `Ax'` with the printed endpoint guards. The equality checks inclusion of endpoint pairs in `W`. A statement that excludes every individual bypass with the same endpoints needs a path-level argument. | Open. There is no FatTree waypoint theorem or regression. |
+| Fig. 13, experimental timings | Reproduce the benchmark instances, query groups, and measurement setup separately from proving the source properties. The figure reports measured checking and preprocessing times. | Open empirical work. |
+
+Eqs. (34)–(35) are the preceding stateful firewall example. Eq. (28)
+is introduced for the distributed controllers. Neither gives a
+FatTree-specific formula or names the four migration events. If a
+FatTree checker later uses projection, the existing
+`projectedReachability_correct` and `ProjectionDerivation` apply under
+their stated premises. The source claims do not call for an AIP
+argument.
+
+### Packet-schema obstruction
+
+`CtxPkt` has the four fields `tpSrc`, `tpDst`, `swId`, and `port`.
+Each field has four values, so the existing `ctxPkt_card` theorem
+gives 256 distinct complete packets. The packet step observes one
+input packet and one output packet. In the printed forwarding form
+`(p · t)*`, the intermediate location is consumed by NetKAT tests
+inside that same packet-processing step.
+
+A faithful location encoding for the full all-pairs workload must
+distinguish switch locations in these packet values. Even allowing
+all four fields to encode location gives only 256 states before
+accounting for link ports, ingress or egress identification, and
+traffic class. For example, assign a representative packet to
+each switch. Preserving location tests forces representatives of
+distinct switches to be distinct. The following Lean proof rules out
+even this injection.
+
+```lean
+import DyNetKAT.NetKAT.Packet
+
+open DyNetKAT.NetKAT
+
+theorem fatTree1344_exceeds_ctxPkt :
+    ¬ ∃ encode : Fin 1344 → CtxPkt, Function.Injective encode := by
+  rintro ⟨encode, injective⟩
+  have h := Fintype.card_le_of_injective encode injective
+  rw [Fintype.card_fin, ctxPkt_card] at h
+  omega
+
+#print axioms fatTree1344_exceeds_ctxPkt
+```
+
+The same check succeeds with 931 in place of 1344. This argument
+uses the existing cardinality theorem and does not select a packet
+representative by searching. Packing coordinates as in the small
+controller example, moving location information into the control
+term, or quotienting to a single selected route would not supply
+the distinguishable intermediate packet locations demanded by the
+full workload. A smaller topology may fit, but it would leave the
+reported larger instances open. No FatTree program, source
+transition theorem, or executable migration regression has been added.

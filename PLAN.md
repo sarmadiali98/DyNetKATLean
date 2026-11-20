@@ -175,7 +175,10 @@ derivability theorem use all source traces. See the
 [v4 crosswalk](docs/PAPER_CONFORMANCE.md#safety-property-theory).
 The §V positive witness equation and the feasible head/tail source bridge
 are machine checked. Both [distributed-controller variants](docs/PAPER_CONFORMANCE.md#distributed-controllers-in-arxiv-v4)
-are machine checked. The FatTree case study remains open.
+are machine checked. The [FatTree migration audit](docs/PAPER_CONFORMANCE.md#fattree-migration-in-arxiv-v4)
+records all three v4 checks. The full benchmark is blocked by the
+`CtxPkt` cardinality. Resume the full model after packet-schema support
+can distinguish the benchmark locations and packet fields.
 
 ### Phase 6 — Extraction and normalization
 
