@@ -382,6 +382,35 @@ theorem spawn_all_depth_no_packet_or_communication {p}
 private def spawnProgram : Program true spawnEnv := ⟨.var "X", spawnPaperAdmissible⟩
 private def compiledSpawn : spawnProgram.Compiled := ⟨_, spawnSupported⟩
 
+private theorem spawnProjectionSupport :
+    ProjectionSupport compiledSpawn.graph (fun _ => checks) (ProjectionLive spawnEnv spawnProgram.term) :=
+  toGraph_projectionSupport spawnSupported spawnWellFormed _ spawnBodyChecks
+
+private theorem spawnProjectionValid : (compiledSpawn.initial checks).checked.Valid
+    (ProjectionLive spawnEnv spawnProgram.term) :=
+  toGProc_projectionValid (env := spawnEnv) trivial
+
+-- The admitted spawning program has no finite global derivative graph,
+-- but every fixed-depth executable rendering is equationally derivable.
+example (n : Nat) : ¬ HasFiniteDerivatives compiledSpawn.graph ∧
+    ∃ q, renderProjection compiledSpawn.graph (fun _ => checks) n
+      (compiledSpawn.initial checks).checked = some q ∧
+      DerivesNoAIP spawnEnv (.project n spawnProgram.term) q :=
+  ⟨spawn_no_finite_derivatives,
+    compiledSpawn.renderProjection_derives checks spawnProjectionSupport spawnProjectionValid n⟩
+
+example : DerivesNoAIP spawnEnv (.project 2 spawnProgram.term)
+    (renderProjectionTotal spawnProjectionSupport 2 (compiledSpawn.initial checks).checked
+      spawnProjectionValid) :=
+  (compiledSpawn.initial checks).renderProjectionTotal_derives spawnProjectionSupport
+    spawnProjectionValid 2
+
+example : ∃ q stats, spawnMemo 2 = some (q, stats) ∧
+    DerivesNoAIP spawnEnv (.project 2 spawnProgram.term) q := by
+  obtain ⟨q, stats, hr⟩ := renderProjectionMemo_exists spawnProjectionSupport 2 spawnProjectionValid
+  exact ⟨q, stats, hr, (compiledSpawn.initial checks).renderProjectionMemo_derives
+    spawnProjectionSupport spawnProjectionValid hr⟩
+
 private def spawnStrategy (request : AnalysisRequest) :=
   compiledSpawn.analyze checks
     (toGraph_projectionSupport spawnSupported spawnWellFormed (fun _ => checks)

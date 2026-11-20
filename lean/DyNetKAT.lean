@@ -43,6 +43,7 @@ import DyNetKAT.DyNetKAT.FiniteBisimulation
 import DyNetKAT.DyNetKAT.FiniteAbstraction
 import DyNetKAT.DyNetKAT.AnalysisStrategy
 import DyNetKAT.DyNetKAT.Program
+import DyNetKAT.DyNetKAT.ProjectionDerivation
 import DyNetKAT.DyNetKAT.TraceSafetyCheck
 import DyNetKAT.DyNetKAT.Reachability
 import DyNetKAT.DyNetKAT.FiniteBranching

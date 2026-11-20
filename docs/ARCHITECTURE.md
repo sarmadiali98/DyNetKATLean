@@ -253,6 +253,16 @@ transport to source `Steps`. The bounded workflow renders an exact
 projection and prunes impossible packet prefixes using symbolic zero.
 The exact-row certificate provides a separate all-depth route.
 
+`renderProjection_bisimilar` proves semantic exactness against the source
+SOS. `ProjectionDerivation.lean` proves a separate E_DNK result for the
+same output. Depth induction derives a ground process using closed head
+normalization and the Π rules. Ground completeness then identifies its
+bisimulation class with that of the rendered term. The admitted compiled
+state API covers ordinary, total, and memoized rendering. The result
+supplies finite-depth derivations that can be composed at each depth before
+applying the existing all-depth rule `Derives.aip_guarded`.
+
+
 
 ## Python role
 

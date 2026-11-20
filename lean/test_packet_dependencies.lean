@@ -184,6 +184,20 @@ run_cmd do
   if traceCheckerProof.contains ``ctxPkt_card then
     throwError "trace checker proof uses the concrete 256-packet cardinality lemma"
 
+  let projection := dependencies env [``WellFormed.project_exists_ground,
+    ``renderProjection_derives, ``renderProjection_restricted_derives,
+    ``Program.Compiled.renderProjection_derives, ``Program.Compiled.State.renderProjectionTotal_derives,
+    ``Program.Compiled.State.renderProjectionMemo_derives]
+  for required in [``DerivesNoAIP.projectZero, ``HeadNormalForm.project_correct,
+      ``HeadNormalForm.packetHeads_correct, ``compileSymbolic, ``ground_complete,
+      ``renderProjection_bisimilar, ``renderProjectionMemo_eq] do
+    unless projection.contains required do
+      throwError "missing projection derivation dependency: {required}"
+  for forbidden in [``Derives.aip, ``approximation_induction,
+      ``DyNetKAT.NetKAT.instFintypeCtxPkt, ``ctxPkt_card, ``execute, ``discoverClosure] do
+    if projection.contains forbidden then
+      throwError "projection derivation depends on {forbidden}"
+
 #print axioms exists_exactNormalization_iff
 #print axioms reachableWithin_finite_stabilizes
 #print axioms execute_correct

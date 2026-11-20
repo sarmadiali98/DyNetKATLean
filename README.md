@@ -71,6 +71,13 @@ forms, and solver models are internal helper syntax.
 The [semantic-domain audit](docs/PAPER_CONFORMANCE.md#source-grammar-and-sos-residual-closure)
 lists the source constructors, reachability conditions and classified examples.
 
+Certified finite projection has both SOS exactness
+(`renderProjection_bisimilar`) and equational correctness
+(`renderProjection_derives`). The latter uses E_DNK without AIP and
+covers admitted guarded recursion, including processes with infinitely many
+global derivatives. AIP lifts comparisons at every depth to the original
+processes.
+
 KATLean supplies the Mathlib-based algebra beneath the NetKAT layer.
 It proves the KA/test laws and dup-free packet laws and connects the
 current AST and evaluator to a packet-relation model. `Derives` justifies

@@ -184,8 +184,11 @@ Exact projection and sequential preprocessing give
 source depth on guarded networks with finite definition support.
 `normalizedReachability_correct` gives the all-depth alternative under a
 finite derivative certificate. Both preserve the source actions and
-exclude impossible packet prefixes. General schemas, parser integration,
-and the projection derivation in the equational theory remain open.
+exclude impossible packet prefixes. The executable finite rendering is
+also derivable in E_DNK without AIP via `renderProjection_derives`.
+`Program.Compiled.State.renderProjectionTotal_derives` covers the total
+renderer used by the bounded strategy. Neither proof needs global finite
+derivative closure. General schemas and parser integration remain open.
 
 ### Paper-faithful recursive execution acceleration
 
