@@ -56,6 +56,13 @@ NetKAT E_NK; E_DNK and certified analysis build on the existing connected
 NetKAT proofs. KATch has no core proof obligation or completion gate.
 Backend experiments are tracked under optional tooling below.
 
+The paper theorem inventory is closed under the typed reading recorded in
+the conformance crosswalk. In particular, D5 uses one declaration system
+and A5 uses variable-free ground terms. S1 records the remaining
+Definition 17 ambiguity for nested negation. The open compilation,
+tool parity and stronger recursive-equivalence obligations extend that
+theorem inventory.
+
 ## NetKAT foundations
 
 | Obligation | Required statement and dependencies |
@@ -97,7 +104,7 @@ completion.
 | D2 Definition 7 and recursive declarations | Typed conformance is proved in `TypedGuardedness.lean`. `ProcessVarOccurrence` records prefix crossings, and `typedPaperGuarded_iff_guardedOccurrences` proves the occurrence interpretation equivalent to the structural predicate. `ClosedDefined.existsUnique_lookup` and `wellFormed_iff_closedDefined_and_typedPaperGuarded` characterize the reachable named equations. `Step.preserves_wellFormed` supplies derivative preservation. A separate executable validator for finite declaration input remains open. |
 | D3 Lemma 8 | `WellFormed.finite_targets_from` proves local finite branching at every reachable source state, uniformly over labels and packet lists. `WellFormed.imageFiniteFrom` discharges AIP without finite support or executable restriction classifiers. The theorem is schema-generic. |
 | D4 Definition 2 and Prop. 1 | `Bisimilar` gives the largest stateless bisimulation. `Equations.historySemantics_iff_nSeq_bisimilar` proves both directions over any finite schema in a fixed recursion environment. Forward uses equality on singleton histories to match steps. Reverse inverts matching packet steps in both directions and lifts packet-pair equivalence to every history by tail preservation. `Program.historySemantics_iff_packetPrefix_bisimilar` gives the admitted statement for a shared base-sorted continuation, including guarded recursive continuations. The theorem is schema-generic. |
-| D5 Lemma 3 | Lift process-context congruence through every constructor and well-scoped recursive bindings where substitution is claimed. Prove name invariance and graph/closed-source bisimilarity, including comparisons across independently compiled environments. The current constructor lemmas work in one fixed environment. Prove the stronger closure result with explicit relation and scope. |
+| D5 Lemma 3 | Proved by `paperLemma3` for Eq. (6) process operands over any finite schema in one declaration system. `Equations.unfold_sound` identifies a reference with its declared body in the same system. Bisimilarity transport under renaming, declaration replacement and independent source/graph comparisons are extensions beyond D5. |
 | D6 Compilation | For a finite parsed declaration map compute support, reject unresolved and duplicate names, and prove `compileGraph` accepts a support for every valid finite input. Prove both directions of step and residual correspondence for the full SOS and any optimized graph representation. Existing `Corr` and step correspondence apply after support is supplied. |
 
 ### Grammar boundary and preservation
@@ -282,7 +289,7 @@ claim, as witnessed by the spawning example.
 | A2 Lemma 10 | `DerivesNoAIP.sound` proves strong stateless bisimilarity by derivation induction. `CommMismatch` encodes the Appendix A cases and excludes both handshake orientations. The [Fig. 11 table](PAPER_CONFORMANCE.md#figure-11-and-a16) records the rule mapping. |
 | A3 Def. 6 and Lemma 9 | Proved for the typed `CtxPkt` domain in `HeadNormalForm.lean`. `guarded_normalizes` proves `DerivesNoAIP` from each `GuardedOccurrences` term to a finite choice of complete packet or communication/reconfiguration prefixes with arbitrary continuations. `WellFormed.normalizes` also handles exposed entry references using their guarded bodies. Packet heads use N5 and A0/A1, parallel uses A8 and A9–A15, and restriction and projection use their atomic prefix equations. Arbitrary restriction sets use classical membership in the algebraic proof. No derivative certificate or classifier is needed. |
 | A4 Lemma 11 and AIP | `Derives.sound` supplies soundness of all projected premises by derivation induction and invokes `approximation_induction`. Matching at depth n+1 yields residuals at depth n, and projection truncation and a finite bound on candidate failure depths give a common residual. `Derives.aip_guarded` supplies the endpoint evidence from `WellFormed`. |
-| A5 Theorem 1 | Proved for typed `CtxPkt` ground terms by `ground_derives_iff_bisimilar`. `Ground p` means `recursiveVars p = ∅`. `ground_complete` uses the strengthened Lemma 9 witness, exact head inversion, and both choice absorptions. Strong induction on the sum of process-prefix counts derives matched continuations in `DerivesNoAIP`. `derivability_sound` remains valid without the ground hypotheses. |
+| A5 Theorem 1 | Proved over arbitrary finite schemas for ground terms by `ground_derives_iff_bisimilar`. `Ground p` means `recursiveVars p = ∅`. `ground_complete` uses the strengthened Lemma 9 witness, exact head inversion, and both choice absorptions. Strong induction on the sum of process-prefix counts derives matched continuations in `DerivesNoAIP`. `derivability_sound` remains valid without the ground hypotheses. |
 | A6 Finite projection rendering | `renderProjection_zero_derives` applies Π₀. `WellFormed.project_exists_ground` uses `exists_headNormalForm_closed`, the Π equations and depth induction on the continuations. `renderProjection_derives` applies Theorem 1 on the ground witness and the recursion-free renderer, using `renderProjection_closed` and `renderProjection_bisimilar`. The restricted renderer uses restriction congruence, and the total and memoized variants use `renderProjectionTotal_eq_some` and `renderProjectionMemo_eq`. Finite rendering requires local move support and correct classifiers. It requires neither an AIP premise nor a finite global derivative or quotient certificate. |
 
 **Soundness boundaries.** The printed E_NK import cannot license unrestricted

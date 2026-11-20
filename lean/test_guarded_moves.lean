@@ -47,6 +47,18 @@ example : WellFormed env root ∧ TypedPaperGuarded hostBody ∧
   · intro _ h
     cases h
 
+-- Unfold both references inside parallel without spending projection depth.
+example :
+    Bisimilar env (.project 1 root) (.project 1 (.parallel hostBody switchBody)) := by
+  have hh : Bisimilar env host hostBody := Equations.unfold_sound env rfl
+  have hs : Bisimilar env switch switchBody := Equations.unfold_sound env rfl
+  obtain ⟨_, _, _, _, _, _, _, hp, _, _⟩ := paperLemma3 env hh hs .id "update" ∅ 1
+  obtain ⟨_, _, _, _, _, projected, _⟩ := paperLemma3 env hp hp .id "update" ∅ 1
+  exact projected
+
+#print axioms paperLemma3
+#print axioms Equations.unfold_sound
+
 private def dependencies := DependencyGraph.build env root support supported
 
 #guard dependencies.entries == {"Host", "Switch"}

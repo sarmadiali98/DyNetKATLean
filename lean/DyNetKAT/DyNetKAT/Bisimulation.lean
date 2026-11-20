@@ -691,4 +691,32 @@ theorem Bisimilar.project (env : RecEnv schema) {n : Nat} {p q : DyNetKAT schema
             simpa [hab] using step
         exact ⟨a', step_b, Or.inr (Or.inr (Or.inr rfl))⟩
 
+/-- ArXiv v4 Lemma 3 for the process operands of Eq. (6).
+    Prefix policies and channels, restriction sets, and projection depths stay fixed.
+    Deadlock and each declared reference are nullary, covered by `Bisimilar.refl`. -/
+theorem paperLemma3 (env : RecEnv schema) {p p' q q' : DyNetKAT schema}
+    (hp : Bisimilar env p p') (hq : Bisimilar env q q')
+    (n : NetKAT schema) (x : Channel) (actions : Set (CommunicationAction schema))
+    (depth : Nat) :
+    Bisimilar env (.nSeq n p) (.nSeq n p') ∧
+    Bisimilar env (.recv x n p) (.recv x n p') ∧
+    Bisimilar env (.send x n p) (.send x n p') ∧
+    Bisimilar env (.rcfgPrefix x n p) (.rcfgPrefix x n p') ∧
+    Bisimilar env (.restrict actions p) (.restrict actions p') ∧
+    Bisimilar env (.project depth p) (.project depth p') ∧
+    Bisimilar env (.choice p q) (.choice p' q') ∧
+    Bisimilar env (.parallel p q) (.parallel p' q') ∧
+    Bisimilar env (.leftMerge p q) (.leftMerge p' q') ∧
+    Bisimilar env (.commMerge p q) (.commMerge p' q') :=
+  ⟨Bisimilar.nSeq_left env hp,
+   Bisimilar.recv_left env hp,
+   Bisimilar.send_left env hp,
+   Bisimilar.rcfgPrefix_left env hp,
+   Bisimilar.restrict env hp,
+   Bisimilar.project env hp,
+   Bisimilar.trans env (Bisimilar.choice_left env hp) (Bisimilar.choice_right env hq),
+   Bisimilar.trans env (Bisimilar.parallel_right env hp) (Bisimilar.parallel_left env hq),
+   Bisimilar.trans env (Bisimilar.leftMerge_left env hp) (Bisimilar.leftMerge_right env hq),
+   Bisimilar.trans env (Bisimilar.commMerge_right env hp) (Bisimilar.commMerge_left env hq)⟩
+
 end DyNetKAT.DyNetKAT

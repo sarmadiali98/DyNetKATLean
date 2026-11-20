@@ -168,11 +168,12 @@ finite specifications. Prove guarded reference resolution and finite exact
 one-step enumeration under the paper's assumptions. Proposition 1 is proved
 for histories over any finite packet schema and a shared continuation in
 any fixed environment. `Program.historySemantics_iff_packetPrefix_bisimilar` covers
-admitted base-sorted continuations, including recursive ones. Complete the
-remaining recursive-binding scope of Lemma 3. The finite-support graph/SOS
-correspondence is schema-generic. Connections between independent closed
-graphs and the paper's bisimilarity still have open name-independence and
-environment-closure questions.
+admitted base-sorted continuations, including recursive ones. Lemma 3 is proved by
+`paperLemma3` for the process operands of Eq. (6) in one declaration system
+over any finite schema. The finite-support graph/SOS correspondence is
+schema-generic. Bisimilarity transport under consistent renaming, replacement
+of declarations, and a source bridge between independent closed graphs are
+separate extensions.
 
 ### Phase 5 — Full safety-property theory
 

@@ -184,19 +184,63 @@ standalone packet-prefix executable.
 | Lemma 8 | Finite branching of guarded policies, including reachable derivatives. | `WellFormed.finite_targets_from` bounds immediate source targets uniformly over actions and packet lists at every reachable `CtxPkt` state, with arbitrary restriction sets and no finite-support hypothesis. The executable `finite_branching_supported` route remains available. |
 | Def. 2 | Symmetric relation on policies. Match every step from every initial list pair with the same action and final lists, and relate the derivatives. Bisimilarity is the largest such relation. | `IsBisimulation`, `Bisimilar`, refl/sym/trans under a shared environment. Graph `GBisimilar` uses a shared graph. `GraphBisimilarBetween` compares two closed graphs. `gbisimilar_iff_bisimilar` and `compileGraph_bisimilar_iff` give a shared-source-environment bridge under correspondence/support. Cross-environment closure and name independence remain open. |
 | Prop. 1 | Equal NetKAT denotations iff `p;d ∼ q;d` for each continuation d. | Machine checked by `Equations.historySemantics_iff_nSeq_bisimilar` for dup-free `CtxPkt` policies in any fixed `RecEnv`. `Program.historySemantics_iff_packetPrefix_bisimilar` gives the admitted version with the base continuation sort. |
-| Lemma 3 | Bisimilarity is a congruence for process operators. | Fixed-environment congruence is proved per constructor in `Bisimulation` for process operands of four prefixes, parallel, choice, both merges, δ and π. Recursive binding congruence remains open. Payload labels require special care when importing E_NK. |
+| Lemma 3 | Bisimilarity is a congruence for the process operands of Eq. (6). | `paperLemma3` packages the fixed-environment constructor lemmas over arbitrary finite packet schemas. See the scope below. |
 | Def. 6 | A finite choice of complete packet prefixes α·π or send, receive and rcfg prefixes, with arbitrary continuations and optional deadlock. | `HeadNormalForm` and `IsDNKNormalForm` represent this algebraic form. `HeadNormalForm.step_iff` recovers an exact head and continuation from a rendered SOS transition. |
 | Lemma 9 | E_DNK derives equality from a guarded policy to a Def. 6 normal form. | Proved for the typed `CtxPkt` domain by `guarded_normalizes` in `DerivesNoAIP`. `WellFormed.normalizes` extends the result to closed entry terms with exposed references, by the fixed-environment unfolding rule. Both retain arbitrary continuations. The packet-prefix case emits the exact atomic heads from accepting symbolic paths using Lemma 5. The syntactic hypothesis is equivalent to `TypedPaperGuarded`. |
 | Lemma 10, Appendix A | Every derivation in E_DNK without AIP implies bisimilarity. Includes A0–A15 and δ/π equations. | `DerivesNoAIP.sound` proves soundness of the typed rules below in a fixed environment. |
 | Eq. (3), Fig. 11 Π rules and Lemma 9 | A positive projection takes one source step and projects the derivative one depth lower. The equations reduce zero and projected deadlock to deadlock, distribute over choice, and move successor projection under an atomic prefix. | `WellFormed.project_exists_ground` iterates the Lemma 9 head form and the Π rules to derive a ground term at each finite depth. `renderProjection_derives` identifies that ground term with the actual certified rendering by `ground_complete`. The executable renderer is a Lean integration of these paper results. |
 | Lemma 11, Eqs. (20)–(24) | Bisimilarity at every finite projection implies bisimilarity through descending sets of matching successors. | `Derives.aip` uses full derivation premises at every depth and reachable image finiteness at both endpoints. `Derives.sound` supplies premise soundness recursively and invokes `approximation_induction`. `Derives.aip_guarded` supplies image finiteness from `WellFormed`. |
-| Theorem 1, Eq. (25) | Soundness and ground completeness for strong bisimilarity. Proof 7 derives both choice absorptions by matching summands and comparing continuations. | `ground_derives_iff_bisimilar` proves the characterization for variable-free `CtxPkt` processes in any fixed environment. `ground_complete` derives the reverse direction without AIP. Soundness includes nested AIP and has no ground hypothesis. |
+| Theorem 1, Eq. (25) | Soundness and ground completeness for strong bisimilarity. Proof 7 derives both choice absorptions by matching summands and comparing continuations. | `ground_derives_iff_bisimilar` proves the characterization for variable-free processes over any finite packet schema in a fixed environment. `ground_complete` derives the reverse direction without AIP. Soundness includes nested AIP and has no ground hypothesis. |
 
 The projection derivation uses the printed equations at the algebraic
 level. The admitted wrappers take a `Program` or reachable `Residual`
 as the source. The result concerns the generated finite rendering in
 `DerivesNoAIP`, whose internal syntax can place a projected continuation
 under an atomic prefix as in Figure 11.
+
+### Lemma 3 and named declarations
+
+Eq. (6) lists references `X` as nullary process terms and gives their
+declarations separately. Section II requires a unique defining equation for
+each referenced name. Fig. 8's `cpolX` derives a transition of `X` directly
+from a transition of its declared body, preserving the label, derivative,
+and packet lists. Lean's `Equations.unfold_sound` proves bisimilarity of
+`X` and its looked-up body in that environment. Lookup adds no transition
+or projection depth. Definition 7 and the admitted `Program`/`Residual`
+domain continue to govern declarations and source terms.
+
+Proof 2 cites Mousavi, Reniers and Groote [19]. Their process-tyft
+format (Definition 13) governs process arguments of a rule's conclusion
+source and the distinct process variables used as premise targets.
+Theorem 14 preserves stateless bisimilarity under the operators of one
+transition-system specification. A fixed declaration gives a rule for a
+nullary source with its body in the premise. `paperLemma3` proves
+this process-operand closure directly for Eq. (6). Both operands of choice,
+parallel and the two merges can be replaced. The continuation of each
+prefix can be replaced with the same payload and channel, subject to the
+printed continuation sort. Restriction fixes its action set and projection
+fixes its depth. Reflexivity covers deadlock and references as nullary terms.
+
+Proof 4 (Lemma 9) uses equational congruence to normalize operands and
+discards the bare reference case in its structural argument. Lean's
+`guarded_normalizes` and `WellFormed.normalizes` use the equational rules,
+including same-environment unfolding when consulting a reachable guarded
+body. Proof 7 (Theorem 1) uses normalization, matches summands by bisimilarity
+and replaces matched continuations under fixed prefixes. In Lean,
+`ground_complete` does this in `DerivesNoAIP`, and
+`ground_derives_iff_bisimilar` uses `Derives.sound` for the forward direction.
+
+A consistent renaming changes the references and their declarations together.
+`TraceEnvironment.lean` already proves the step transport used for
+admission and trace preservation in disjoint embeddings. A public stateless
+bisimilarity transport theorem under consistent renaming remains an extension.
+Replacing an entry instead changes what `cpolX` can derive. A general
+replacement theorem would need hypotheses relating the declarations and a
+relation comparing two source systems. Likewise, `GraphBisimilarBetween`
+compares independent graphs, while the existing source transfer theorems use
+one environment. Neither changing entries nor comparing independent
+declaration systems is an operator of Eq. (6) or a premise of Proof 2.
+Lemma 3 has no freshness premise.
 
 Proposition 1 compares `NetKAT.HistorySemantics` on all input and output
 histories. The forward implication matches `Step.cpol_seq_ok` transitions
