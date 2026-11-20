@@ -4,6 +4,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 open DyNetKAT.NetKAT
 
 /-- The bound is on the entire source trace, including selected events and
@@ -50,8 +52,8 @@ theorem QueryWord.visible {schema : PacketSchema} {stages : List (ReconfigSet sc
     · obtain rfl := List.mem_singleton.mp final
       trivial
 
-private theorem corr_graphPath_iff {G : ProcessGraph} {env : RecEnv}
-    {q : DyNetKAT} {gp : GProc} (corr : Corr G env q gp) (w : List Action) :
+private theorem corr_graphPath_iff {G : ProcessGraph schema} {env : RecEnv schema}
+    {q : DyNetKAT schema} {gp : GProc schema} (corr : Corr G env q gp) (w : List (Action schema)) :
     (∃ dst, GraphPath G gp w dst) ↔ SourceTrace env q w := by
   constructor
   · rintro ⟨dst, path⟩
@@ -63,8 +65,8 @@ private theorem corr_graphPath_iff {G : ProcessGraph} {env : RecEnv}
     obtain ⟨q', path', _⟩ := steps_to_gsteps G env _ _ _ path gp corr
     exact ⟨q', path'⟩
 
-private theorem GraphBisimilarBetween.path_iff {G Q : ProcessGraph} {p q : GProc}
-    (h : GraphBisimilarBetween G Q p q) (w : List Action) :
+private theorem GraphBisimilarBetween.path_iff {G Q : ProcessGraph schema} {p q : GProc schema}
+    (h : GraphBisimilarBetween G Q p q) (w : List (Action schema)) :
     (∃ dst, GraphPath Q q w dst) ↔ ∃ dst, GraphPath G p w dst := by
   obtain ⟨R, root, fwd, back⟩ := h
   constructor
@@ -77,10 +79,10 @@ private theorem GraphBisimilarBetween.path_iff {G Q : ProcessGraph} {p q : GProc
     obtain ⟨d, run, _⟩ := fwd.traces path q root
     exact ⟨d, run⟩
 
-theorem preprocessGraph_bisimilarBetween {G Q : ProcessGraph}
+theorem preprocessGraph_bisimilarBetween {G Q : ProcessGraph schema}
     (h : preprocessGraph G = some Q) :
     GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root := by
-  let R (p q : GProc) := ∃ u, p = .restrict Set.univ u ∧
+  let R (p q : GProc schema) := ∃ u, p = .restrict Set.univ u ∧
     blockCommunication u = some q ∧ gprocRefs u ⊆ G.nodes
   refine ⟨R, ⟨G.root, rfl, (preprocessGraph_eq_some h).2.1, G.root_closed⟩, ?_, ?_⟩
   · rintro _ q ⟨p, rfl, prep, closed⟩ pt hl a dst pt' hl' step
@@ -97,14 +99,14 @@ theorem preprocessGraph_bisimilarBetween {G Q : ProcessGraph}
 
 /-- Eq. (34) uses an empty list of tail stages. Eq. (35) uses one stage.
 Multiple stages apply the existing structural tail in order. -/
-def graphReachability (G : ProcessGraph) (stages : List ReconfigSet)
-    (ingress egress : NetKAT) : Option Bool := do
+def graphReachability (G : ProcessGraph schema) (stages : List (ReconfigSet schema))
+    (ingress egress : NetKAT schema) : Option Bool := do
   let tail ← graphTails G stages
   let head ← graphHead tail
   return !netkatIsZero (reachabilityPolicy ingress head egress)
 
-theorem graphReachability_correct {G : ProcessGraph} (ready : TraceReady G)
-    (stages : List ReconfigSet) (ingress egress : NetKAT) :
+theorem graphReachability_correct {G : ProcessGraph schema} (ready : TraceReady G)
+    (stages : List (ReconfigSet schema)) (ingress egress : NetKAT schema) :
     graphReachability G stages ingress egress = some true ↔ flowVia ingress egress
       (fun i o => ∃ w dst, QueryWord stages i o w ∧ GraphPath G G.root w dst) := by
   obtain ⟨Q, H, tails, head⟩ := graphTails_head_exists ready stages
@@ -114,11 +116,11 @@ theorem graphReachability_correct {G : ProcessGraph} (ready : TraceReady G)
   simpa only [Option.some.injEq, Bool.not_eq_true', flowVia,
     ← graphTails_head_iff ready tails head] using netkatIsZero_reachabilityPolicy_false_iff ingress H egress
 
-private theorem endpoint_lift {extended : Bool} {env : RecEnv} {p : Program extended env}
-    {G : ProcessGraph} {stages : List ReconfigSet} {bound : Option Nat} (ready : TraceReady G)
+private theorem endpoint_lift {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    {G : ProcessGraph schema} {stages : List (ReconfigSet schema)} {bound : Option Nat} (ready : TraceReady G)
     (view : ∀ w i o, QueryWord stages i o w →
       ((∃ dst, GraphPath G G.root w dst) ↔ p.Trace w ∧ ReachabilityBudget bound w))
-    (ingress egress : NetKAT) :
+    (ingress egress : NetKAT schema) :
     graphReachability G stages ingress egress = some true ↔
       EndpointReachable p bound stages ingress egress := by
   rw [graphReachability_correct ready]
@@ -133,15 +135,15 @@ private theorem endpoint_lift {extended : Bool} {env : RecEnv} {p : Program exte
 /-- Exact source counterpart of the successive tail graphs. A nonempty
 suffix selects a continuation, and each removed segment accounts for its
 actual source actions before that suffix. -/
-theorem graphTails_source_iff {extended : Bool} {env : RecEnv} {p : Program extended env}
-    (compiled : p.Compiled) {G Q : ProcessGraph} (prep : preprocessGraph compiled.graph = some G)
-    {stages : List ReconfigSet} (tails : graphTails G stages = some Q) {w : List Action}
+theorem graphTails_source_iff {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    (compiled : p.Compiled) {G Q : ProcessGraph schema} (prep : preprocessGraph compiled.graph = some G)
+    {stages : List (ReconfigSet schema)} (tails : graphTails G stages = some Q) {w : List (Action schema)}
     (nonempty : w ≠ []) :
     (∃ dst, GraphPath Q Q.root w dst) ↔
       ∃ pre, TailSegments stages pre ∧ p.Trace (pre ++ w) ∧ ∀ a ∈ w, actionAllowed Set.univ a := by
-  have exactTail (dst : GProc) :=
+  have exactTail (dst : GProc schema) :=
     graphTails_feasible_iff (dst := dst) (preprocessGraph_traceReady prep) tails nonempty
-  have view (t : List Action) : (∃ dst, GraphPath G G.root t dst) ↔
+  have view (t : List (Action schema)) : (∃ dst, GraphPath G G.root t dst) ↔
       p.Trace t ∧ ∀ a ∈ t, actionAllowed Set.univ a := by
     rw [(preprocessGraph_bisimilarBetween prep).path_iff,
       corr_graphPath_iff (corr_restrict_intro (L := Set.univ) compiled.corr),
@@ -157,13 +159,13 @@ theorem graphTails_source_iff {extended : Bool} {env : RecEnv} {p : Program exte
       (List.mem_append.mp mem).elim (segments.visible a) (visible a)⟩
     exact ⟨dst, (exactTail dst).mpr ⟨pre, segments, run⟩⟩
 
-theorem graphHead_source_iff {extended : Bool} {env : RecEnv} {p : Program extended env}
-    (compiled : p.Compiled) {G : ProcessGraph} (prep : preprocessGraph compiled.graph = some G)
-    {Q : ProcessGraph} {stages : List ReconfigSet} (tails : graphTails G stages = some Q)
-    {H : NetKAT} (head : graphHead Q = some H) (i o : CtxPkt) :
+theorem graphHead_source_iff {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    (compiled : p.Compiled) {G : ProcessGraph schema} (prep : preprocessGraph compiled.graph = some G)
+    {Q : ProcessGraph schema} {stages : List (ReconfigSet schema)} (tails : graphTails G stages = some Q)
+    {H : NetKAT schema} (head : graphHead Q = some H) (i o : schema.Packet) :
     Semantics H i o ↔ ∃ w, QueryWord stages i o w ∧ p.Trace w := by
   rw [graphTails_head_iff (preprocessGraph_traceReady prep) tails head]
-  have view (w : List Action) (query : QueryWord stages i o w) :
+  have view (w : List (Action schema)) (query : QueryWord stages i o w) :
       (∃ dst, GraphPath G G.root w dst) ↔ p.Trace w := by
     rw [(preprocessGraph_bisimilarBetween prep).path_iff,
       corr_graphPath_iff (corr_restrict_intro (L := Set.univ) compiled.corr),
@@ -178,9 +180,9 @@ theorem graphHead_source_iff {extended : Bool} {env : RecEnv} {p : Program exten
 
 /-- The existing two-verdict API on sequential graphs reports source
 isolation (34) and source forwarding after a selected event (35). -/
-theorem compiledSafety_source_correct {extended : Bool} {env : RecEnv} {p : Program extended env}
-    (compiled : p.Compiled) {G : ProcessGraph} (prep : preprocessGraph compiled.graph = some G)
-    (R : ReconfigSet) (ingress egress : NetKAT) :
+theorem compiledSafety_source_correct {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    (compiled : p.Compiled) {G : ProcessGraph schema} (prep : preprocessGraph compiled.graph = some G)
+    (R : ReconfigSet schema) (ingress egress : NetKAT schema) :
     ((compiled.safety R ingress egress).initialCondition = .isZero true ↔
       ¬ EndpointReachable p none [] ingress egress) ∧
     ((compiled.safety R ingress egress).postReconfigurationCondition = .nonzero true ↔
@@ -193,20 +195,20 @@ theorem compiledSafety_source_correct {extended : Bool} {env : RecEnv} {p : Prog
   have single : graphTails G [R] = some Q := Option.bind_eq_some_iff.mpr ⟨Q, tail, rfl⟩
   constructor
   · rw [initial]
-    have spec (i o : CtxPkt) : GraphHeadSpec G G.root i o ↔ Semantics H i o :=
+    have spec (i o : schema.Packet) : GraphHeadSpec G G.root i o ↔ Semantics H i o :=
       ⟨graphHead_complete G H head i o, graphHead_sound G H head i o⟩
     simp only [EndpointReachable, ReachabilityBudget, and_true, flowVia, spec,
       ← graphHead_source_iff compiled prep empty head]
   · rw [post]
-    have spec (i o : CtxPkt) : GraphTailSpec G R G.root i o ↔ Semantics H' i o :=
+    have spec (i o : schema.Packet) : GraphTailSpec G R G.root i o ↔ Semantics H' i o :=
       ⟨graphTail_complete tail head', graphTail_sound tail head'⟩
     simp only [EndpointReachable, ReachabilityBudget, and_true, flowVia, spec,
       ← graphHead_source_iff compiled prep single head']
 
-theorem normalizedReachability_correct {extended : Bool} {env : RecEnv}
+theorem normalizedReachability_correct {extended : Bool} {env : RecEnv schema}
     {p : Program extended env} (compiled : p.Compiled) {n : Nat}
-    {C : NormalizationCandidate n} (exactRows : NormalizationExact compiled.graph C)
-    (stages : List ReconfigSet) (ingress egress : NetKAT) :
+    {C : NormalizationCandidate n (schema := schema)} (exactRows : NormalizationExact compiled.graph C)
+    (stages : List (ReconfigSet schema)) (ingress egress : NetKAT schema) :
     graphReachability (normalizeCertifiedGraph C exactRows) stages ingress egress = some true ↔
       EndpointReachable p none stages ingress egress := by
   apply endpoint_lift (normalizeCertifiedGraph_traceReady exactRows) _ ingress egress
@@ -217,34 +219,34 @@ theorem normalizedReachability_correct {extended : Bool} {env : RecEnv}
 
 /-- The static §V endpoint formula is existential over the NetKAT
 composition, including the zero-iteration case of star. -/
-theorem staticReachability_iff (ingress policy topology egress : NetKAT) :
+theorem staticReachability_iff (ingress policy topology egress : NetKAT schema) :
     netkatIsZero (reachabilityPolicy ingress (.star (.seq policy topology)) egress) = false ↔
       flowVia ingress egress (Semantics (.star (.seq policy topology))) :=
   netkatIsZero_reachabilityPolicy_false_iff ..
 
 
-private theorem projectionSupportEmpty {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
-    {n : Nat} {state : CheckedResidual} {q : DyNetKAT}
-    (render : renderProjection G bodyChecks n state = some q) (env : RecEnv) :
+private theorem projectionSupportEmpty {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
+    {n : Nat} {state : CheckedResidual schema} {q : DyNetKAT schema}
+    (render : renderProjection G bodyChecks n state = some q) (env : RecEnv schema) :
     FiniteSupport env q ∅ :=
   ⟨by rw [renderProjection_closed render], by simp⟩
 
 /-- The existing finite projection supplies the structural graph. Pruning
 unavailable prefixes after rendering is exact under the outer restriction. -/
-def projectedReachability {extended : Bool} {env : RecEnv} {p : Program extended env}
-    (compiled : p.Compiled) (rootChecks : RestrictionChecks)
-    (bodyChecks : NodeId → RestrictionChecks) (n : Nat)
-    (stages : List ReconfigSet) (ingress egress : NetKAT) : Option Bool :=
+def projectedReachability {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    (compiled : p.Compiled) (rootChecks : RestrictionChecks schema)
+    (bodyChecks : NodeId → RestrictionChecks schema) (n : Nat)
+    (stages : List (ReconfigSet schema)) (ingress egress : NetKAT schema) : Option Bool :=
   match h : renderProjection compiled.graph bodyChecks n (compiled.initial rootChecks).checked with
   | none => none
   | some q => (preprocessGraph (toGraph env q ∅ (projectionSupportEmpty h env))).bind
       (fun G => graphReachability G stages ingress egress)
 
-theorem projectedReachability_correct {extended : Bool} {env : RecEnv}
-    {p : Program extended env} (compiled : p.Compiled) (rootChecks : RestrictionChecks)
+theorem projectedReachability_correct {extended : Bool} {env : RecEnv schema}
+    {p : Program extended env} (compiled : p.Compiled) (rootChecks : RestrictionChecks schema)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : (compiled.initial rootChecks).checked.Valid live) (n : Nat)
-    (stages : List ReconfigSet) (ingress egress : NetKAT) :
+    (stages : List (ReconfigSet schema)) (ingress egress : NetKAT schema) :
     projectedReachability compiled rootChecks bodyChecks n stages ingress egress = some true ↔
       EndpointReachable p (some n) stages ingress egress := by
   obtain ⟨q, render⟩ := renderProjection_exists support n valid

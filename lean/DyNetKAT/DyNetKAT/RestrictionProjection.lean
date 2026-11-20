@@ -103,17 +103,17 @@ def actionAllowed (L : Set (CommunicationAction schema)) (action : Action schema
 /-- Two processes that admit no transitions at all (for every pending and
     handled list) are bisimilar: the relation consisting of the root pair
     and its swap is a bisimulation vacuously. -/
-theorem bisimilar_of_no_steps (env : RecEnv) (p q : DyNetKAT)
-    (hp : ∀ (pending handled : List CtxPkt) (action : Action) (dest : Config),
+theorem bisimilar_of_no_steps (env : RecEnv schema) (p q : DyNetKAT schema)
+    (hp : ∀ (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema),
       ¬ Step env
-        (show Config from { proc := p, pending := pending, handled := handled })
+        (show (Config schema) from { proc := p, pending := pending, handled := handled })
         action dest)
-    (hq : ∀ (pending handled : List CtxPkt) (action : Action) (dest : Config),
+    (hq : ∀ (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema),
       ¬ Step env
-        (show Config from { proc := q, pending := pending, handled := handled })
+        (show (Config schema) from { proc := q, pending := pending, handled := handled })
         action dest) :
     Bisimilar env p q := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = p ∧ b = q) ∨ (a = q ∧ b = p)
   refine ⟨R, ?_, Or.inl ⟨rfl, rfl⟩⟩
   constructor
@@ -151,37 +151,37 @@ theorem nSeq_step_inv (env : RecEnv schema) (N : NetKAT schema) (p : DyNetKAT sc
   | cpol_seq_ok _ _ σ σ' _ H ev => exact ⟨σ, σ', rfl, rfl, ev, pending', rfl, rfl, rfl⟩
 
 /-- Inversion for a step of `x?z ; D`. -/
-theorem recv_step_inv (env : RecEnv) (x : Channel) (z : NetKAT) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action)
-    (p' : DyNetKAT) (pending' handled' : List CtxPkt)
+theorem recv_step_inv (env : RecEnv schema) (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema)
+    (p' : DyNetKAT schema) (pending' handled' : List schema.Packet)
     (h : Step env
-      (show Config from { proc := .recv x z p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .recv x z p, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) :
+      (show (Config schema) from { proc := p', pending := pending', handled := handled' })) :
     action = Action.recv x z ∧ p' = p ∧ pending' = pending ∧ handled' = handled := by
   cases h with
   | cpol_recv _ _ _ _ _ => exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- Inversion for a step of `x!z ; D`. -/
-theorem send_step_inv (env : RecEnv) (x : Channel) (z : NetKAT) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action)
-    (p' : DyNetKAT) (pending' handled' : List CtxPkt)
+theorem send_step_inv (env : RecEnv schema) (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema)
+    (p' : DyNetKAT schema) (pending' handled' : List schema.Packet)
     (h : Step env
-      (show Config from { proc := .send x z p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .send x z p, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) :
+      (show (Config schema) from { proc := p', pending := pending', handled := handled' })) :
     action = Action.send x z ∧ p' = p ∧ pending' = pending ∧ handled' = handled := by
   cases h with
   | cpol_send _ _ _ _ _ => exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- Inversion for a step of `rcfg_{x,z} ; D`. -/
-theorem rcfgPrefix_step_inv (env : RecEnv) (x : Channel) (z : NetKAT) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action)
-    (p' : DyNetKAT) (pending' handled' : List CtxPkt)
+theorem rcfgPrefix_step_inv (env : RecEnv schema) (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema)
+    (p' : DyNetKAT schema) (pending' handled' : List schema.Packet)
     (h : Step env
-      (show Config from { proc := .rcfgPrefix x z p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .rcfgPrefix x z p, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) :
+      (show (Config schema) from { proc := p', pending := pending', handled := handled' })) :
     action = Action.rcfg x z ∧ p' = p ∧ pending' = pending ∧ handled' = handled := by
   cases h with
   | cpol_rcfg _ _ _ _ _ => exact ⟨rfl, rfl, rfl, rfl⟩
@@ -209,18 +209,18 @@ theorem choice_step_inv (env : RecEnv schema) (p q : DyNetKAT schema)
 /-- Inversion for a step of `δL(p)` (Eq. 2): the label is allowed and the
     inner process performs the corresponding step; the successor applies
     `δL` again.  Pending and handled lists are preserved by restriction. -/
-theorem restrict_step_inv (env : RecEnv) (L : Set CommunicationAction) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action)
-    (p' : DyNetKAT) (pending' handled' : List CtxPkt)
+theorem restrict_step_inv (env : RecEnv schema) (L : Set (CommunicationAction schema)) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema)
+    (p' : DyNetKAT schema) (pending' handled' : List schema.Packet)
     (h : Step env
-      (show Config from { proc := .restrict L p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .restrict L p, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) :
+      (show (Config schema) from { proc := p', pending := pending', handled := handled' })) :
     ∃ p'', p' = .restrict L p'' ∧ actionAllowed L action ∧
       Step env
-        (show Config from { proc := p, pending := pending, handled := handled })
+        (show (Config schema) from { proc := p, pending := pending, handled := handled })
         action
-        (show Config from { proc := p'', pending := pending', handled := handled' }) := by
+        (show (Config schema) from { proc := p'', pending := pending', handled := handled' }) := by
   cases h with
   | cpol_restrict _ _ q _ _ _ _ _ allowed inner => exact ⟨q, rfl, allowed, inner⟩
 
@@ -242,10 +242,10 @@ theorem project_step_inv (env : RecEnv schema) (n : Nat) (p : DyNetKAT schema)
   | cpol_project m q q2 _ _ _ _ _ inner => exact ⟨q2, rfl, inner⟩
 
 /-- No step is possible from `⊥`. -/
-theorem deadlock_no_step (env : RecEnv)
-    (pending handled : List CtxPkt) (action : Action) (dest : Config) :
+theorem deadlock_no_step (env : RecEnv schema)
+    (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema) :
     ¬ Step env
-      (show Config from { proc := .deadlock, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .deadlock, pending := pending, handled := handled })
       action dest := by
   intro hstep
   cases hstep
@@ -258,19 +258,19 @@ theorem deadlock_no_step (env : RecEnv)
     exactly the transitions of `p` whose label is allowed (`γ ∉ L`), with
     `δL` re-applied to the successor.  This is the iff form of
     `Step.cpol_restrict`, which matches Eq. (2) verbatim. -/
-theorem restrict_step_iff (env : RecEnv) (L : Set CommunicationAction) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action) (dest : Config) :
+theorem restrict_step_iff (env : RecEnv schema) (L : Set (CommunicationAction schema)) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema) :
     Step env
-      (show Config from { proc := .restrict L p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .restrict L p, pending := pending, handled := handled })
       action dest ↔
     ∃ p' pending' handled',
-      dest = (show Config from
+      dest = (show (Config schema) from
         { proc := .restrict L p', pending := pending', handled := handled' }) ∧
       actionAllowed L action ∧
       Step env
-        (show Config from { proc := p, pending := pending, handled := handled })
+        (show (Config schema) from { proc := p, pending := pending, handled := handled })
         action
-        (show Config from { proc := p', pending := pending', handled := handled' }) := by
+        (show (Config schema) from { proc := p', pending := pending', handled := handled' }) := by
   constructor
   · intro hstep
     cases hstep with
@@ -280,10 +280,10 @@ theorem restrict_step_iff (env : RecEnv) (L : Set CommunicationAction) (p : DyNe
     exact Step.cpol_restrict L p q action pending pending' handled handled' hallowed hstep
 
 /-- `δL(⊥)` admits no transitions: the inner `⊥` admits none. -/
-theorem restrict_deadlock_no_step (env : RecEnv) (L : Set CommunicationAction)
-    (pending handled : List CtxPkt) (action : Action) (dest : Config) :
+theorem restrict_deadlock_no_step (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema) :
     ¬ Step env
-      (show Config from
+      (show (Config schema) from
         { proc := .restrict L .deadlock, pending := pending, handled := handled })
       action dest := by
   intro hstep
@@ -291,7 +291,7 @@ theorem restrict_deadlock_no_step (env : RecEnv) (L : Set CommunicationAction)
   | cpol_restrict _ _ q _ _ _ _ _ _ inner => cases inner
 
 /-- Axiom (δ⊥), Fig. 11: `δL(⊥) ≡ ⊥`. -/
-theorem restrict_deadlock_bisim (env : RecEnv) (L : Set CommunicationAction) :
+theorem restrict_deadlock_bisim (env : RecEnv schema) (L : Set (CommunicationAction schema)) :
     Bisimilar env (.restrict L .deadlock) .deadlock :=
   bisimilar_of_no_steps env _ _
     (fun pending handled action dest => restrict_deadlock_no_step env L pending handled action dest)
@@ -303,10 +303,10 @@ theorem restrict_deadlock_bisim (env : RecEnv) (L : Set CommunicationAction) :
     (appendix (105)) never uses atomicity, so the theorem is stated for
     every `N ∈ NetKAT⁻ᵈᵘᵖ`.  No side condition is needed: packet labels
     are never in `L` by type (Eq. 6). -/
-theorem restrict_nSeq_bisim (env : RecEnv) (L : Set CommunicationAction)
-    (N : NetKAT) (p : DyNetKAT) :
+theorem restrict_nSeq_bisim (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (N : NetKAT schema) (p : DyNetKAT schema) :
     Bisimilar env (.restrict L (.nSeq N p)) (.nSeq N (.restrict L p)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .restrict L (.nSeq N p) ∧ b = .nSeq N (.restrict L p)) ∨
     (a = .nSeq N (.restrict L p) ∧ b = .restrict L (.nSeq N p)) ∨
     a = b
@@ -347,11 +347,11 @@ theorem restrict_nSeq_bisim (env : RecEnv) (L : Set CommunicationAction)
 
 /-- Axiom (δ;), Fig. 11, receive case: `δL(x?z ; p) ≡ x?z ; δL(p)` when
     `x?z ∉ L`. -/
-theorem restrict_recv_allowed_bisim (env : RecEnv) (L : Set CommunicationAction)
-    (x : Channel) (z : NetKAT) (p : DyNetKAT)
+theorem restrict_recv_allowed_bisim (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema)
     (h : CommunicationAction.recv x z ∉ L) :
     Bisimilar env (.restrict L (.recv x z p)) (.recv x z (.restrict L p)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .restrict L (.recv x z p) ∧ b = .recv x z (.restrict L p)) ∨
     (a = .recv x z (.restrict L p) ∧ b = .restrict L (.recv x z p)) ∨
     a = b
@@ -381,11 +381,11 @@ theorem restrict_recv_allowed_bisim (env : RecEnv) (L : Set CommunicationAction)
 
 /-- Axiom (δ;), Fig. 11, send case: `δL(x!z ; p) ≡ x!z ; δL(p)` when
     `x!z ∉ L`. -/
-theorem restrict_send_allowed_bisim (env : RecEnv) (L : Set CommunicationAction)
-    (x : Channel) (z : NetKAT) (p : DyNetKAT)
+theorem restrict_send_allowed_bisim (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema)
     (h : CommunicationAction.send x z ∉ L) :
     Bisimilar env (.restrict L (.send x z p)) (.send x z (.restrict L p)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .restrict L (.send x z p) ∧ b = .send x z (.restrict L p)) ∨
     (a = .send x z (.restrict L p) ∧ b = .restrict L (.send x z p)) ∨
     a = b
@@ -416,10 +416,10 @@ theorem restrict_send_allowed_bisim (env : RecEnv) (L : Set CommunicationAction)
 /-- Axiom (δ;), Fig. 11, reconfiguration case: `δL(rcfg_{x,z} ; p) ≡
     rcfg_{x,z} ; δL(p)`.  No side condition: reconfiguration labels are
     never in `L` by type (Eq. 6). -/
-theorem restrict_rcfgPrefix_bisim (env : RecEnv) (L : Set CommunicationAction)
-    (x : Channel) (z : NetKAT) (p : DyNetKAT) :
+theorem restrict_rcfgPrefix_bisim (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema) :
     Bisimilar env (.restrict L (.rcfgPrefix x z p)) (.rcfgPrefix x z (.restrict L p)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .restrict L (.rcfgPrefix x z p) ∧ b = .rcfgPrefix x z (.restrict L p)) ∨
     (a = .rcfgPrefix x z (.restrict L p) ∧ b = .restrict L (.rcfgPrefix x z p)) ∨
     a = b
@@ -449,8 +449,8 @@ theorem restrict_rcfgPrefix_bisim (env : RecEnv) (L : Set CommunicationAction)
 
 /-- Axiom (δ;⊥), Fig. 11, receive case: `δL(x?z ; p) ≡ ⊥` when `x?z ∈ L`:
     the restricted prefix admits no transitions at all. -/
-theorem restrict_recv_blocked_bisim (env : RecEnv) (L : Set CommunicationAction)
-    (x : Channel) (z : NetKAT) (p : DyNetKAT)
+theorem restrict_recv_blocked_bisim (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema)
     (h : CommunicationAction.recv x z ∈ L) :
     Bisimilar env (.restrict L (.recv x z p)) .deadlock := by
   apply bisimilar_of_no_steps
@@ -465,8 +465,8 @@ theorem restrict_recv_blocked_bisim (env : RecEnv) (L : Set CommunicationAction)
     cases hstep
 
 /-- Axiom (δ;⊥), Fig. 11, send case: `δL(x!z ; p) ≡ ⊥` when `x!z ∈ L`. -/
-theorem restrict_send_blocked_bisim (env : RecEnv) (L : Set CommunicationAction)
-    (x : Channel) (z : NetKAT) (p : DyNetKAT)
+theorem restrict_send_blocked_bisim (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema)
     (h : CommunicationAction.send x z ∈ L) :
     Bisimilar env (.restrict L (.send x z p)) .deadlock := by
   apply bisimilar_of_no_steps
@@ -481,9 +481,9 @@ theorem restrict_send_blocked_bisim (env : RecEnv) (L : Set CommunicationAction)
     cases hstep
 
 /-- Axiom (δ⊕), Fig. 11: `δL(p ⊕ q) ≡ δL(p) ⊕ δL(q)`. -/
-theorem restrict_choice_bisim (env : RecEnv) (L : Set CommunicationAction) (p q : DyNetKAT) :
+theorem restrict_choice_bisim (env : RecEnv schema) (L : Set (CommunicationAction schema)) (p q : DyNetKAT schema) :
     Bisimilar env (.restrict L (.choice p q)) (.choice (.restrict L p) (.restrict L q)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .restrict L (.choice p q) ∧ b = .choice (.restrict L p) (.restrict L q)) ∨
     (a = .choice (.restrict L p) (.restrict L q) ∧ b = .restrict L (.choice p q)) ∨
     a = b
@@ -537,26 +537,26 @@ theorem restrict_choice_bisim (env : RecEnv) (L : Set CommunicationAction) (p q 
 
 /-- Restriction preserves the set of directly occurring recursive
     variables: `δL` is not a variable-eliminating operation. -/
-theorem recursiveVars_restrict (L : Set CommunicationAction) (p : DyNetKAT) :
+theorem recursiveVars_restrict (L : Set (CommunicationAction schema)) (p : DyNetKAT schema) :
     recursiveVars (.restrict L p) = recursiveVars p := rfl
 
 /-- Restriction does not unfold variables: `δL(X)` still steps through the
     `(cpolX)` rule whenever the body of `X` affords an allowed transition.
     Unfolding remains the business of `RecEnv`, exactly as in H6A. -/
-theorem restrict_var_step (env : RecEnv) (L : Set CommunicationAction) (name : Var)
-    (body body' : DyNetKAT) (action : Action)
-    (pending pending' handled handled' : List CtxPkt)
+theorem restrict_var_step (env : RecEnv schema) (L : Set (CommunicationAction schema)) (name : Var)
+    (body body' : DyNetKAT schema) (action : Action schema)
+    (pending pending' handled handled' : List schema.Packet)
     (allowed : actionAllowed L action)
     (definition : env.lookup name = some body)
     (step : Step env
-      (show Config from { proc := body, pending := pending, handled := handled })
+      (show (Config schema) from { proc := body, pending := pending, handled := handled })
       action
-      (show Config from { proc := body', pending := pending', handled := handled' })) :
+      (show (Config schema) from { proc := body', pending := pending', handled := handled' })) :
     Step env
-      (show Config from
+      (show (Config schema) from
         { proc := .restrict L (.var name), pending := pending, handled := handled })
       action
-      (show Config from
+      (show (Config schema) from
         { proc := .restrict L body', pending := pending', handled := handled' }) :=
   Step.cpol_restrict L (.var name) body' action pending pending' handled handled'
     allowed
@@ -570,8 +570,8 @@ theorem restrict_var_step (env : RecEnv) (L : Set CommunicationAction) (name : V
     concludes transitions for `π_{n+1}`, so `π0(p)` is inert for every `p`.
     This is the operational content of axiom (Π0) and the precise sense in
     which zero-depth projection differs from unrestricted execution. -/
-theorem project_zero_no_step (env : (RecEnv schema)) (p : (DyNetKAT schema))
-    (pending handled : List schema.Packet) (action : (Action schema)) (dest : (Config schema)) :
+theorem project_zero_no_step (env : RecEnv schema) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema) :
     ¬ Step env
       (show (Config schema) from { proc := .project 0 p, pending := pending, handled := handled })
       action dest := by
@@ -579,10 +579,10 @@ theorem project_zero_no_step (env : (RecEnv schema)) (p : (DyNetKAT schema))
   cases hstep
 
 /-- `πn(⊥)` admits no transitions: the inner `⊥` admits none. -/
-theorem project_deadlock_no_step (env : RecEnv) (n : Nat)
-    (pending handled : List CtxPkt) (action : Action) (dest : Config) :
+theorem project_deadlock_no_step (env : RecEnv schema) (n : Nat)
+    (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema) :
     ¬ Step env
-      (show Config from
+      (show (Config schema) from
         { proc := .project n .deadlock, pending := pending, handled := handled })
       action dest := by
   intro hstep
@@ -590,14 +590,14 @@ theorem project_deadlock_no_step (env : RecEnv) (n : Nat)
   | cpol_project m q q2 _ _ _ _ _ inner => cases inner
 
 /-- Axiom (Π0), Fig. 11: `π0(p) ≡ ⊥`. -/
-theorem project_zero_bisim (env : RecEnv) (p : DyNetKAT) :
+theorem project_zero_bisim (env : RecEnv schema) (p : DyNetKAT schema) :
     Bisimilar env (.project 0 p) .deadlock :=
   bisimilar_of_no_steps env _ _
     (fun pending handled action dest => project_zero_no_step env p pending handled action dest)
     (fun pending handled action dest hstep => by cases hstep)
 
 /-- Axiom (Π⊥), Fig. 11: `πn(⊥) ≡ ⊥`. -/
-theorem project_deadlock_bisim (env : RecEnv) (n : Nat) :
+theorem project_deadlock_bisim (env : RecEnv schema) (n : Nat) :
     Bisimilar env (.project n .deadlock) .deadlock :=
   bisimilar_of_no_steps env _ _
     (fun pending handled action dest => project_deadlock_no_step env n pending handled action dest)
@@ -607,18 +607,18 @@ theorem project_deadlock_bisim (env : RecEnv) (n : Nat) :
     `π_{n+1}(p)` affords exactly the transitions of `p`, with the budget
     decreased by one in the successor.  This is the iff form of
     `Step.cpol_project`, which matches Eq. (3) verbatim. -/
-theorem project_step_succ_iff (env : RecEnv) (n : Nat) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action) (dest : Config) :
+theorem project_step_succ_iff (env : RecEnv schema) (n : Nat) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema) :
     Step env
-      (show Config from { proc := .project (n + 1) p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .project (n + 1) p, pending := pending, handled := handled })
       action dest ↔
     ∃ p' pending' handled',
-      dest = (show Config from
+      dest = (show (Config schema) from
         { proc := .project n p', pending := pending', handled := handled' }) ∧
       Step env
-        (show Config from { proc := p, pending := pending, handled := handled })
+        (show (Config schema) from { proc := p, pending := pending, handled := handled })
         action
-        (show Config from { proc := p', pending := pending', handled := handled' }) := by
+        (show (Config schema) from { proc := p', pending := pending', handled := handled' }) := by
   constructor
   · intro hstep
     cases hstep with
@@ -631,19 +631,19 @@ theorem project_step_succ_iff (env : RecEnv) (n : Nat) (p : DyNetKAT)
     affords a transition iff `n = m + 1` for some `m` and `p` affords the
     transition, in which case the successor is `πm` of the successor of
     `p`.  At `n = 0` no transition is possible (`project_zero_no_step`). -/
-theorem project_step_iff (env : RecEnv) (n : Nat) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action) (dest : Config) :
+theorem project_step_iff (env : RecEnv schema) (n : Nat) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema) :
     Step env
-      (show Config from { proc := .project n p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .project n p, pending := pending, handled := handled })
       action dest ↔
     ∃ m p' pending' handled',
       n = m + 1 ∧
-      dest = (show Config from
+      dest = (show (Config schema) from
         { proc := .project m p', pending := pending', handled := handled' }) ∧
       Step env
-        (show Config from { proc := p, pending := pending, handled := handled })
+        (show (Config schema) from { proc := p, pending := pending, handled := handled })
         action
-        (show Config from { proc := p', pending := pending', handled := handled' }) := by
+        (show (Config schema) from { proc := p', pending := pending', handled := handled' }) := by
   cases n with
   | zero =>
     constructor
@@ -665,9 +665,9 @@ theorem project_step_iff (env : RecEnv) (n : Nat) (p : DyNetKAT)
 
     As for (δ;), the paper states (Π;) for atomic `at ::= α·π`; the
     operational proof (appendix (122)) covers every `N ∈ NetKAT⁻ᵈᵘᵖ`. -/
-theorem project_nSeq_bisim (env : RecEnv) (n : Nat) (N : NetKAT) (p : DyNetKAT) :
+theorem project_nSeq_bisim (env : RecEnv schema) (n : Nat) (N : NetKAT schema) (p : DyNetKAT schema) :
     Bisimilar env (.project (n + 1) (.nSeq N p)) (.nSeq N (.project n p)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .project (n + 1) (.nSeq N p) ∧ b = .nSeq N (.project n p)) ∨
     (a = .nSeq N (.project n p) ∧ b = .project (n + 1) (.nSeq N p)) ∨
     a = b
@@ -707,9 +707,9 @@ theorem project_nSeq_bisim (env : RecEnv) (n : Nat) (N : NetKAT) (p : DyNetKAT) 
     · exact ⟨p', step, Or.inr (Or.inr rfl)⟩
 
 /-- Axiom (Π;), Fig. 11, receive case: `π_{n+1}(x?z ; p) ≡ x?z ; πn(p)`. -/
-theorem project_recv_bisim (env : RecEnv) (n : Nat) (x : Channel) (z : NetKAT) (p : DyNetKAT) :
+theorem project_recv_bisim (env : RecEnv schema) (n : Nat) (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema) :
     Bisimilar env (.project (n + 1) (.recv x z p)) (.recv x z (.project n p)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .project (n + 1) (.recv x z p) ∧ b = .recv x z (.project n p)) ∨
     (a = .recv x z (.project n p) ∧ b = .project (n + 1) (.recv x z p)) ∨
     a = b
@@ -738,9 +738,9 @@ theorem project_recv_bisim (env : RecEnv) (n : Nat) (x : Channel) (z : NetKAT) (
     · exact ⟨p', step, Or.inr (Or.inr rfl)⟩
 
 /-- Axiom (Π;), Fig. 11, send case: `π_{n+1}(x!z ; p) ≡ x!z ; πn(p)`. -/
-theorem project_send_bisim (env : RecEnv) (n : Nat) (x : Channel) (z : NetKAT) (p : DyNetKAT) :
+theorem project_send_bisim (env : RecEnv schema) (n : Nat) (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema) :
     Bisimilar env (.project (n + 1) (.send x z p)) (.send x z (.project n p)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .project (n + 1) (.send x z p) ∧ b = .send x z (.project n p)) ∨
     (a = .send x z (.project n p) ∧ b = .project (n + 1) (.send x z p)) ∨
     a = b
@@ -770,11 +770,11 @@ theorem project_send_bisim (env : RecEnv) (n : Nat) (x : Channel) (z : NetKAT) (
 
 /-- Axiom (Π;), Fig. 11, reconfiguration case:
     `π_{n+1}(rcfg_{x,z} ; p) ≡ rcfg_{x,z} ; πn(p)`. -/
-theorem project_rcfgPrefix_bisim (env : RecEnv) (n : Nat) (x : Channel) (z : NetKAT)
-    (p : DyNetKAT) :
+theorem project_rcfgPrefix_bisim (env : RecEnv schema) (n : Nat) (x : Channel) (z : NetKAT schema)
+    (p : DyNetKAT schema) :
     Bisimilar env (.project (n + 1) (.rcfgPrefix x z p))
       (.rcfgPrefix x z (.project n p)) := by
-  let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .project (n + 1) (.rcfgPrefix x z p) ∧ b = .rcfgPrefix x z (.project n p)) ∨
     (a = .rcfgPrefix x z (.project n p) ∧ b = .project (n + 1) (.rcfgPrefix x z p)) ∨
     a = b
@@ -807,7 +807,7 @@ theorem project_rcfgPrefix_bisim (env : RecEnv) (n : Nat) (x : Channel) (z : Net
     At `n = 0` both sides are inert (appendix (126): "if n = 0, then both
     of the terms do not afford any transition"); at `n = m + 1` the budget
     of the inner projection steps decreases uniformly on both sides. -/
-theorem project_choice_bisim (env : RecEnv) (n : Nat) (p q : DyNetKAT) :
+theorem project_choice_bisim (env : RecEnv schema) (n : Nat) (p q : DyNetKAT schema) :
     Bisimilar env (.project n (.choice p q)) (.choice (.project n p) (.project n q)) := by
   cases n with
   | zero =>
@@ -821,7 +821,7 @@ theorem project_choice_bisim (env : RecEnv) (n : Nat) (p q : DyNetKAT) :
       | cpol_choice_r _ _ r action pending pending' handled handled' rstep =>
         cases rstep
   | succ n =>
-    let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+    let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
       (a = .project (n + 1) (.choice p q) ∧
         b = .choice (.project (n + 1) p) (.project (n + 1) q)) ∨
       (a = .choice (.project (n + 1) p) (.project (n + 1) q) ∧
@@ -877,19 +877,19 @@ theorem project_choice_bisim (env : RecEnv) (n : Nat) (p q : DyNetKAT) :
     by a transition of `π_{n+1}(p)` (with the budget shifted up by one).
     This is a one-step simulation only — it is NOT a bisimulation, see
     `not_bisimilar_project_depths` below. -/
-theorem project_step_monotone (env : RecEnv) (n : Nat) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action) (dest : Config)
+theorem project_step_monotone (env : RecEnv schema) (n : Nat) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema)
     (h : Step env
-      (show Config from { proc := .project n p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .project n p, pending := pending, handled := handled })
       action dest) :
     ∃ dest', Step env
-      (show Config from
+      (show (Config schema) from
         { proc := .project (n + 1) p, pending := pending, handled := handled })
       action dest' := by
   obtain ⟨m, p', pending', handled', hn, _, hstep⟩ :=
     (project_step_iff env n p pending handled action dest).mp h
   subst hn
-  exact ⟨(show Config from
+  exact ⟨(show (Config schema) from
     { proc := .project (m + 1) p', pending := pending', handled := handled' }),
     Step.cpol_project (m + 1) p p' action pending pending' handled handled' hstep⟩
 
@@ -897,19 +897,19 @@ theorem project_step_monotone (env : RecEnv) (n : Nat) (p : DyNetKAT)
     through the `(cpolX)` rule whenever the body of `X` affords a
     transition.  Projection bounds the number of observed steps; it is not
     recursive resolution (H6A). -/
-theorem project_var_step (env : RecEnv) (n : Nat) (name : Var)
-    (body body' : DyNetKAT) (action : Action)
-    (pending pending' handled handled' : List CtxPkt)
+theorem project_var_step (env : RecEnv schema) (n : Nat) (name : Var)
+    (body body' : DyNetKAT schema) (action : Action schema)
+    (pending pending' handled handled' : List schema.Packet)
     (definition : env.lookup name = some body)
     (step : Step env
-      (show Config from { proc := body, pending := pending, handled := handled })
+      (show (Config schema) from { proc := body, pending := pending, handled := handled })
       action
-      (show Config from { proc := body', pending := pending', handled := handled' })) :
+      (show (Config schema) from { proc := body', pending := pending', handled := handled' })) :
     Step env
-      (show Config from
+      (show (Config schema) from
         { proc := .project (n + 1) (.var name), pending := pending, handled := handled })
       action
-      (show Config from
+      (show (Config schema) from
         { proc := .project n body', pending := pending', handled := handled' }) :=
   Step.cpol_project n (.var name) body' action pending pending' handled handled'
     (Step.cpol_var name body body' action pending pending' handled handled' definition step)
@@ -918,7 +918,7 @@ theorem project_var_step (env : RecEnv) (n : Nat) (name : Var)
     `πn(p) ∼ πn(q)` for all `n` (by `Bisimilar.project`).  This is the
     sound direction of the premise of AIP under bisimilarity; the converse
     (AIP itself, Lemma 11) remains an obligation. -/
-theorem project_bisim_all_depths (env : RecEnv) {p q : DyNetKAT}
+theorem project_bisim_all_depths (env : RecEnv schema) {p q : DyNetKAT schema}
     (h : Bisimilar env p q) (n : Nat) :
     Bisimilar env (.project n p) (.project n q) :=
   Bisimilar.project env h
@@ -932,7 +932,7 @@ theorem project_bisim_all_depths (env : RecEnv) {p q : DyNetKAT}
     style of the paper's appendix proofs: at each step both sides perform
     exactly the allowed transitions of `p` and land in `δL(π_{n-1}(p'))`
     resp. `π_{n-1}(δL(p'))`. -/
-theorem restrict_project_commute (env : RecEnv) (L : Set CommunicationAction) (p : DyNetKAT)
+theorem restrict_project_commute (env : RecEnv schema) (L : Set (CommunicationAction schema)) (p : DyNetKAT schema)
     (n : Nat) :
     Bisimilar env (.restrict L (.project n p)) (.project n (.restrict L p)) := by
   induction n with
@@ -945,7 +945,7 @@ theorem restrict_project_commute (env : RecEnv) (L : Set CommunicationAction) (p
     · intro pending handled action dest hstep
       cases hstep
   | succ n ih =>
-    let R : DyNetKAT → DyNetKAT → Prop := fun a b =>
+    let R : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
       (∃ k r, k ≤ n + 1 ∧ a = .restrict L (.project k r) ∧ b = .project k (.restrict L r)) ∨
       (∃ k r, k ≤ n + 1 ∧ a = .project k (.restrict L r) ∧ b = .restrict L (.project k r))
     refine ⟨R, ?_, Or.inl ⟨n + 1, p, Nat.le_refl _, rfl, rfl⟩⟩
@@ -1132,7 +1132,7 @@ deriving instance DecidableEq for CommunicationAction
     (Eq. 6: `L = {c | c ::= x?N | x!N}`).  Restricting by this set blocks
     every communication prefix of the process, which is how the paper
     ensures the `head`/`tail` precondition of §V. -/
-def commActions : DyNetKAT → Finset CommunicationAction
+def commActions : DyNetKAT schema → Finset (CommunicationAction schema)
   | .deadlock => ∅
   | .nSeq _ D => commActions D
   | .recv x N D => {CommunicationAction.recv x N} ∪ commActions D
@@ -1146,19 +1146,19 @@ def commActions : DyNetKAT → Finset CommunicationAction
   | .project _ D => commActions D
   | .var _ => ∅
 
-@[simp] theorem commActions_nSeq (N : NetKAT) (D : DyNetKAT) :
+@[simp] theorem commActions_nSeq (N : NetKAT schema) (D : DyNetKAT schema) :
     commActions (.nSeq N D) = commActions D := rfl
 
-@[simp] theorem commActions_recv (x : Channel) (N : NetKAT) (D : DyNetKAT) :
+@[simp] theorem commActions_recv (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) :
     commActions (.recv x N D) = {CommunicationAction.recv x N} ∪ commActions D := rfl
 
-@[simp] theorem commActions_send (x : Channel) (N : NetKAT) (D : DyNetKAT) :
+@[simp] theorem commActions_send (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) :
     commActions (.send x N D) = {CommunicationAction.send x N} ∪ commActions D := rfl
 
-@[simp] theorem commActions_rcfgPrefix (x : Channel) (N : NetKAT) (D : DyNetKAT) :
+@[simp] theorem commActions_rcfgPrefix (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) :
     commActions (.rcfgPrefix x N D) = commActions D := rfl
 
-@[simp] theorem commActions_choice (D Q : DyNetKAT) :
+@[simp] theorem commActions_choice (D Q : DyNetKAT schema) :
     commActions (.choice D Q) = commActions D ∪ commActions Q := rfl
 
 /-- The fragment on which the Fig. 11 axioms δ⊥, δ;, δ;⊥, δ⊕ determine
@@ -1168,22 +1168,22 @@ def commActions : DyNetKAT → Finset CommunicationAction
     composition, merges, nested restriction, projection, and recursive
     variables are outside it (the latter are never resolved by
     preprocessing — H6A). -/
-inductive PreprocessFragment : DyNetKAT → Prop
+inductive PreprocessFragment {schema : PacketSchema} : DyNetKAT schema → Prop
   | deadlock : PreprocessFragment .deadlock
-  | nSeq : ∀ (N : NetKAT) (D : DyNetKAT),
+  | nSeq : ∀ (N : NetKAT schema) (D : DyNetKAT schema),
       PreprocessFragment D → PreprocessFragment (.nSeq N D)
-  | recv : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT),
+  | recv : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema),
       PreprocessFragment D → PreprocessFragment (.recv x N D)
-  | send : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT),
+  | send : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema),
       PreprocessFragment D → PreprocessFragment (.send x N D)
-  | rcfgPrefix : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT),
+  | rcfgPrefix : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema),
       PreprocessFragment D → PreprocessFragment (.rcfgPrefix x N D)
-  | choice : ∀ (D Q : DyNetKAT),
+  | choice : ∀ (D Q : DyNetKAT schema),
       PreprocessFragment D → PreprocessFragment Q → PreprocessFragment (.choice D Q)
 
 /-- The paper's §V precondition for `head`/`tail`: the process contains no
     terms of shape `x?N` or `x!N`. -/
-def CommFree : DyNetKAT → Prop
+def CommFree : DyNetKAT schema → Prop
   | .deadlock => True
   | .nSeq _ D => CommFree D
   | .recv _ _ _ => False
@@ -1203,7 +1203,7 @@ def CommFree : DyNetKAT → Prop
     in particular recursive variables are NOT unfolded (H6A) and nested
     restriction/projection are not eliminated (no paper axiom covers
     them). -/
-def restrictElim (L : Finset CommunicationAction) : DyNetKAT → Option DyNetKAT
+def restrictElim (L : Finset (CommunicationAction schema)) : DyNetKAT schema → Option (DyNetKAT schema)
   | .deadlock => some .deadlock
   | .nSeq N D => (restrictElim L D).map (.nSeq N)
   | .recv x N D =>
@@ -1224,50 +1224,50 @@ def restrictElim (L : Finset CommunicationAction) : DyNetKAT → Option DyNetKAT
 
 /-- Equational rewrites for `restrictElim`, one per constructor, so that
     proofs can unfold exactly one layer at a time. -/
-theorem restrictElim_deadlock (L : Finset CommunicationAction) :
+theorem restrictElim_deadlock (L : Finset (CommunicationAction schema)) :
     restrictElim L .deadlock = some .deadlock := rfl
 
-theorem restrictElim_nSeq (L : Finset CommunicationAction) (N : NetKAT) (D : DyNetKAT) :
+theorem restrictElim_nSeq (L : Finset (CommunicationAction schema)) (N : NetKAT schema) (D : DyNetKAT schema) :
     restrictElim L (.nSeq N D) = (restrictElim L D).map (.nSeq N) := rfl
 
-theorem restrictElim_recv (L : Finset CommunicationAction) (x : Channel) (N : NetKAT)
-    (D : DyNetKAT) :
+theorem restrictElim_recv (L : Finset (CommunicationAction schema)) (x : Channel) (N : NetKAT schema)
+    (D : DyNetKAT schema) :
     restrictElim L (.recv x N D) =
       if CommunicationAction.recv x N ∈ L then some .deadlock
       else (restrictElim L D).map (.recv x N) := rfl
 
-theorem restrictElim_send (L : Finset CommunicationAction) (x : Channel) (N : NetKAT)
-    (D : DyNetKAT) :
+theorem restrictElim_send (L : Finset (CommunicationAction schema)) (x : Channel) (N : NetKAT schema)
+    (D : DyNetKAT schema) :
     restrictElim L (.send x N D) =
       if CommunicationAction.send x N ∈ L then some .deadlock
       else (restrictElim L D).map (.send x N) := rfl
 
-theorem restrictElim_rcfgPrefix (L : Finset CommunicationAction) (x : Channel) (N : NetKAT)
-    (D : DyNetKAT) :
+theorem restrictElim_rcfgPrefix (L : Finset (CommunicationAction schema)) (x : Channel) (N : NetKAT schema)
+    (D : DyNetKAT schema) :
     restrictElim L (.rcfgPrefix x N D) = (restrictElim L D).map (.rcfgPrefix x N) := rfl
 
-theorem restrictElim_choice (L : Finset CommunicationAction) (D Q : DyNetKAT) :
+theorem restrictElim_choice (L : Finset (CommunicationAction schema)) (D Q : DyNetKAT schema) :
     restrictElim L (.choice D Q) =
       (restrictElim L D).bind (fun D' => (restrictElim L Q).map (fun Q' => .choice D' Q')) :=
   rfl
 
-theorem restrictElim_parallel (L : Finset CommunicationAction) (D Q : DyNetKAT) :
+theorem restrictElim_parallel (L : Finset (CommunicationAction schema)) (D Q : DyNetKAT schema) :
     restrictElim L (.parallel D Q) = none := rfl
 
-theorem restrictElim_leftMerge (L : Finset CommunicationAction) (D Q : DyNetKAT) :
+theorem restrictElim_leftMerge (L : Finset (CommunicationAction schema)) (D Q : DyNetKAT schema) :
     restrictElim L (.leftMerge D Q) = none := rfl
 
-theorem restrictElim_commMerge (L : Finset CommunicationAction) (D Q : DyNetKAT) :
+theorem restrictElim_commMerge (L : Finset (CommunicationAction schema)) (D Q : DyNetKAT schema) :
     restrictElim L (.commMerge D Q) = none := rfl
 
-theorem restrictElim_restrict (L : Finset CommunicationAction) (M : Set CommunicationAction)
-    (D : DyNetKAT) :
+theorem restrictElim_restrict (L : Finset (CommunicationAction schema)) (M : Set (CommunicationAction schema))
+    (D : DyNetKAT schema) :
     restrictElim L (.restrict M D) = none := rfl
 
-theorem restrictElim_project (L : Finset CommunicationAction) (n : Nat) (D : DyNetKAT) :
+theorem restrictElim_project (L : Finset (CommunicationAction schema)) (n : Nat) (D : DyNetKAT schema) :
     restrictElim L (.project n D) = none := rfl
 
-theorem restrictElim_var (L : Finset CommunicationAction) (name : Var) :
+theorem restrictElim_var (L : Finset (CommunicationAction schema)) (name : Var) :
     restrictElim L (.var name) = none := rfl
 
 set_option linter.unusedVariables false in
@@ -1277,7 +1277,7 @@ set_option linter.unusedVariables false in
     environment argument is carried for uniformity with the integration
     theorems (the δ-axiom fragment contains no recursive variables, so the
     transformation itself is environment-free). -/
-def preprocess (env : RecEnv) (p : DyNetKAT) : Option DyNetKAT :=
+def preprocess (env : RecEnv schema) (p : DyNetKAT schema) : Option (DyNetKAT schema) :=
   restrictElim (commActions p) p
 
 /-- Preprocessing conditions for the S4A integration theorem: the process
@@ -1285,13 +1285,13 @@ def preprocess (env : RecEnv) (p : DyNetKAT) : Option DyNetKAT :=
     variable is defined (which is vacuous on this fragment — see
     `PreprocessFragment.defined` — but kept to mirror the target theorem
     shape and the H6A environment discipline). -/
-def PreprocessingConditions (env : RecEnv) (p : DyNetKAT) : Prop :=
+def PreprocessingConditions (env : RecEnv schema) (p : DyNetKAT schema) : Prop :=
   PreprocessFragment p ∧ Defined env p
 
 /-- Every process in the δ-axiom fragment has no recursive variables, so
     the `Defined` side condition of `PreprocessingConditions` is vacuous
     there. -/
-theorem PreprocessFragment.defined (env : RecEnv) (p : DyNetKAT) (hf : PreprocessFragment p) :
+theorem PreprocessFragment.defined (env : RecEnv schema) (p : DyNetKAT schema) (hf : PreprocessFragment p) :
     Defined env p := by
   induction hf with
   | deadlock => intro name hmem; exact absurd hmem (Finset.not_mem_empty name)
@@ -1319,7 +1319,7 @@ theorem PreprocessFragment.defined (env : RecEnv) (p : DyNetKAT) (hf : Preproces
       · exact ihQ name h
 
 /-- `restrictElim` succeeds on the whole δ-axiom fragment. -/
-theorem restrictElim_defined (L : Finset CommunicationAction) (p : DyNetKAT) :
+theorem restrictElim_defined (L : Finset (CommunicationAction schema)) (p : DyNetKAT schema) :
     PreprocessFragment p → ∃ q, restrictElim L p = some q := by
   intro hf
   induction hf with
@@ -1348,9 +1348,9 @@ theorem restrictElim_defined (L : Finset CommunicationAction) (p : DyNetKAT) :
 /-- Soundness of `restrictElim`: each elimination step is an instance of a
     Fig. 11 restriction axiom, so `δL(p)` is bisimilar to the eliminated
     process. -/
-theorem restrictElim_sound (env : RecEnv) (L : Finset CommunicationAction) (p : DyNetKAT) :
+theorem restrictElim_sound (env : RecEnv schema) (L : Finset (CommunicationAction schema)) (p : DyNetKAT schema) :
     ∀ q, restrictElim L p = some q →
-      Bisimilar env (.restrict (↑L : Set CommunicationAction) p) q := by
+      Bisimilar env (.restrict (↑L : Set (CommunicationAction schema)) p) q := by
   induction p with
   | deadlock =>
       intro q h
@@ -1371,10 +1371,10 @@ theorem restrictElim_sound (env : RecEnv) (L : Finset CommunicationAction) (p : 
         have hq : .deadlock = q := Option.some.inj h
         subst hq
         exact restrict_recv_blocked_bisim env _ x N D
-          (show CommunicationAction.recv x N ∈ (↑L : Set CommunicationAction) from hmem)
+          (show CommunicationAction.recv x N ∈ (↑L : Set (CommunicationAction schema)) from hmem)
       · rename_i hmem
         obtain ⟨D', hD', rfl⟩ := Option.map_eq_some.mp h
-        have hnotmem : CommunicationAction.recv x N ∉ (↑L : Set CommunicationAction) :=
+        have hnotmem : CommunicationAction.recv x N ∉ (↑L : Set (CommunicationAction schema)) :=
           fun hmem' => hmem hmem'
         exact Bisimilar.trans env (restrict_recv_allowed_bisim env _ x N D hnotmem)
           (Bisimilar.recv_left env (ih D' hD'))
@@ -1386,10 +1386,10 @@ theorem restrictElim_sound (env : RecEnv) (L : Finset CommunicationAction) (p : 
         have hq : .deadlock = q := Option.some.inj h
         subst hq
         exact restrict_send_blocked_bisim env _ x N D
-          (show CommunicationAction.send x N ∈ (↑L : Set CommunicationAction) from hmem)
+          (show CommunicationAction.send x N ∈ (↑L : Set (CommunicationAction schema)) from hmem)
       · rename_i hmem
         obtain ⟨D', hD', rfl⟩ := Option.map_eq_some.mp h
-        have hnotmem : CommunicationAction.send x N ∉ (↑L : Set CommunicationAction) :=
+        have hnotmem : CommunicationAction.send x N ∉ (↑L : Set (CommunicationAction schema)) :=
           fun hmem' => hmem hmem'
         exact Bisimilar.trans env (restrict_send_allowed_bisim env _ x N D hnotmem)
           (Bisimilar.send_left env (ih D' hD'))
@@ -1418,7 +1418,7 @@ theorem restrictElim_sound (env : RecEnv) (L : Finset CommunicationAction) (p : 
     communication action of the process is forbidden: the result contains
     no `x?N`/`x!N` terms (the §V precondition for `head`/`tail`) and lies
     in the S4A `HeadSupported` fragment. -/
-theorem restrictElim_effect (L : Finset CommunicationAction) (p : DyNetKAT) :
+theorem restrictElim_effect (L : Finset (CommunicationAction schema)) (p : DyNetKAT schema) :
     PreprocessFragment p → (∀ a ∈ commActions p, a ∈ L) →
     ∀ q, restrictElim L p = some q → CommFree q ∧ HeadSupported q := by
   intro hf
@@ -1473,9 +1473,9 @@ theorem restrictElim_effect (L : Finset CommunicationAction) (p : DyNetKAT) :
     precondition: a reconfiguration prefix may hide communication prefixes
     in its continuation.  This is why preprocessing (restriction δ) is
     required before `head`, exactly as the paper says. -/
-theorem headSupported_not_commFree :
-    HeadSupported (.rcfgPrefix "c" NetKAT.id (.recv "d" NetKAT.id .deadlock)) ∧
-      ¬ CommFree (.rcfgPrefix "c" NetKAT.id (.recv "d" NetKAT.id .deadlock)) := by
+theorem headSupported_not_commFree {schema : PacketSchema} :
+    HeadSupported (schema := schema) (.rcfgPrefix "c" NetKAT.id (.recv "d" NetKAT.id .deadlock)) ∧
+      ¬ CommFree (schema := schema) (.rcfgPrefix "c" NetKAT.id (.recv "d" NetKAT.id .deadlock)) := by
   constructor
   · exact HeadSupported.rcfgPrefix "c" NetKAT.id _
   · intro h
@@ -1488,7 +1488,7 @@ theorem headSupported_not_commFree :
     preprocessing can fail (explicit `none`) on processes outside the
     δ-axiom fragment — in particular on processes with recursive variables,
     which restriction must not resolve (H6A). -/
-theorem preprocess_head_supported (env : RecEnv) (p : DyNetKAT)
+theorem preprocess_head_supported (env : RecEnv schema) (p : DyNetKAT schema)
     (h : PreprocessingConditions env p) :
     ∃ q, preprocess env p = some q ∧ HeadSupported q := by
   obtain ⟨q, hq⟩ := restrictElim_defined (commActions p) p h.1
@@ -1497,7 +1497,7 @@ theorem preprocess_head_supported (env : RecEnv) (p : DyNetKAT)
 
 /-- The §V precondition (no `x?N`/`x!N` terms) is established by
     preprocessing. -/
-theorem preprocess_commFree (env : RecEnv) (p : DyNetKAT)
+theorem preprocess_commFree (env : RecEnv schema) (p : DyNetKAT schema)
     (h : PreprocessingConditions env p) :
     ∃ q, preprocess env p = some q ∧ CommFree q := by
   obtain ⟨q, hq⟩ := restrictElim_defined (commActions p) p h.1
@@ -1506,16 +1506,16 @@ theorem preprocess_commFree (env : RecEnv) (p : DyNetKAT)
 
 /-- Preprocessing is sound: the result is bisimilar to the restricted
     process `δ_{commActions(p)}(p)` of the paper. -/
-theorem preprocess_bisimilar (env : RecEnv) (p : DyNetKAT)
+theorem preprocess_bisimilar (env : RecEnv schema) (p : DyNetKAT schema)
     (h : PreprocessingConditions env p) :
     ∃ q, preprocess env p = some q ∧
-      Bisimilar env (.restrict (↑(commActions p) : Set CommunicationAction) p) q := by
+      Bisimilar env (.restrict (↑(commActions p) : Set (CommunicationAction schema)) p) q := by
   obtain ⟨q, hq⟩ := restrictElim_defined (commActions p) p h.1
   exact ⟨q, hq, restrictElim_sound env (commActions p) p q hq⟩
 
 /-- Full S4A integration: preprocessing yields a `HeadSupported` process on
     which S4A's `head` extraction succeeds. -/
-theorem preprocess_head_some (env : RecEnv) (p : DyNetKAT)
+theorem preprocess_head_some (env : RecEnv schema) (p : DyNetKAT schema)
     (h : PreprocessingConditions env p) :
     ∃ q H, preprocess env p = some q ∧ HeadSupported q ∧ head q = some H := by
   obtain ⟨q, hq, hsup⟩ := preprocess_head_supported env p h

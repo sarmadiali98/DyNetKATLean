@@ -151,7 +151,9 @@ theorem netkatEquiv_katch_restricted (p q : NetKAT) :
 theorem netkatIsZero_katch_restricted (p : NetKAT) :
     netkatIsZero p = true ↔
       ∀ σ ∈ Set.range katchPacket, ∀ τ, ¬ katchSemantics p σ τ := by
-  rw [netkatIsZero, netkatEquiv_katch_restricted]
+  rw [show netkatIsZero p = netkatEquiv p .drop from Bool.eq_iff_iff.mpr
+    ((netkatNativeEquivFinite_correct p .drop).trans (netkatEquiv_correct p .drop).symm),
+    netkatEquiv_katch_restricted]
   simp only [katchSemantics, iff_false]
 
 /- Text export is untrusted. `katchSemantics_encode` proves the mathematical

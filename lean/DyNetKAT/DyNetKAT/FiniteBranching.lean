@@ -5,8 +5,10 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 /-- The canonical translation distinguishes source syntax, including names. -/
-theorem toGProc_injective : Function.Injective toGProc := by
+theorem toGProc_injective : Function.Injective (toGProc (schema := schema)) := by
   intro p q h
   induction p generalizing q <;> cases q <;> simp [toGProc, varNode] at h
   all_goals
@@ -20,8 +22,8 @@ theorem toGProc_injective : Function.Injective toGProc := by
 /-- Source steps translate with their exact canonical targets. The general
 Corr simulation permits other correspondences, so its existential target
 alone does not give an injective map on source residuals. -/
-theorem Step.toGraph_canonical {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
-    (hsup : FiniteSupport env root S) {c d : Config} {a : Action}
+theorem Step.toGraph_canonical {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
+    (hsup : FiniteSupport env root S) {c d : Config schema} {a : Action schema}
     (hs : Step env c a d) (hc : recursiveVars c.proc ⊆ S) :
     GStep (toGraph env root S hsup) ⟨toGProc c.proc, c.pending, c.handled⟩ a
       ⟨toGProc d.proc, d.pending, d.handled⟩ := by
@@ -66,9 +68,9 @@ theorem Step.toGraph_canonical {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
 
 /-- One exact row bounds the set of graph targets uniformly over actions
 and both packet histories. -/
-theorem MovesExact.finite_graph_targets {G : ProcessGraph} {p : GProc} {row : List SymbolicMove}
+theorem MovesExact.finite_graph_targets {G : ProcessGraph schema} {p : GProc schema} {row : List (SymbolicMove schema)}
     (h : MovesExact G p row) :
-    {q : GProc | ∃ pt hl a pt' hl', GStep G ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩}.Finite := by
+    {q : (GProc schema) | ∃ pt hl a pt' hl', GStep G ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩}.Finite := by
   apply (row.map Prod.snd).finite_toSet.subset
   rintro q ⟨pt, hl, a, pt', hl', hs⟩
   obtain ⟨l, hm, _⟩ := (h pt hl a q pt' hl').mp hs
@@ -76,8 +78,8 @@ theorem MovesExact.finite_graph_targets {G : ProcessGraph} {p : GProc} {row : Li
 
 /-- A canonical exact row bounds all source residuals at once. This is
 stronger than finiteness for each fixed action and pair of histories. -/
-theorem MovesExact.finite_source_targets {env : RecEnv} {root p : DyNetKAT} {S : Finset Var}
-    {hsup : FiniteSupport env root S} {row : List SymbolicMove}
+theorem MovesExact.finite_source_targets {env : RecEnv schema} {root p : DyNetKAT schema} {S : Finset Var}
+    {hsup : FiniteSupport env root S} {row : List (SymbolicMove schema)}
     (hc : recursiveVars p ⊆ S) (h : MovesExact (toGraph env root S hsup) (toGProc p) row) :
     {q | ProcessStep env p q}.Finite := by
   apply (h.finite_graph_targets.preimage toGProc_injective.injOn).subset
@@ -86,16 +88,16 @@ theorem MovesExact.finite_source_targets {env : RecEnv} {root p : DyNetKAT} {S :
 
 /-- Supported source roots have finitely many targets at every reachable
 state, even when packet lists are chosen afresh at each transition. -/
-theorem finite_branching_supported {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem finite_branching_supported {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hsup : FiniteSupport env root S) (hw : WellFormed env root)
-    (checks : RestrictionChecks) (bodyChecks : NodeId → RestrictionChecks)
+    (checks : RestrictionChecks schema) (bodyChecks : NodeId → RestrictionChecks schema)
     (hc : AllRestrictionChecksCorrect (toGProc root) checks)
     (hb : ∀ x b, ReachableVar env root x → env.lookup x = some b →
       AllRestrictionChecksCorrect (toGProc b) (bodyChecks (varNode x))) :
     ∀ p, Relation.ReflTransGen (ProcessStep env) root p → {q | ProcessStep env p q}.Finite := by
   let live := ProjectionLive env root
   have hG := toGraph_projectionSupport hsup hw bodyChecks hb
-  have supported {p : DyNetKAT} {c : RestrictionChecks}
+  have supported {p : DyNetKAT schema} {c : RestrictionChecks schema}
       (hv : (CheckedResidual.mk (toGProc p) c).Valid live) : recursiveVars p ⊆ S := by
     intro x hx
     have hm : varNode x ∈ gprocRefs (toGProc p) := by
@@ -105,7 +107,7 @@ theorem finite_branching_supported {env : RecEnv} {root : DyNetKAT} {S : Finset 
     have hxy : x = y := Sum.inl.inj he
     subst y
     exact reachableVars_subset_of_finiteSupport env root S hsup x hy
-  have residual (p : DyNetKAT) (hr : Relation.ReflTransGen (ProcessStep env) root p) :
+  have residual (p : DyNetKAT schema) (hr : Relation.ReflTransGen (ProcessStep env) root p) :
       ∃ c, (CheckedResidual.mk (toGProc p) c).Valid live := by
     induction hr with
     | refl => exact ⟨checks, toGProc_projectionValid hc⟩
@@ -125,9 +127,9 @@ theorem finite_branching_supported {env : RecEnv} {root : DyNetKAT} {S : Finset 
   obtain ⟨row, hr⟩ := checkedMoves_exists hG hv
   exact (checkedMoves_spec hG hv hr).1.finite_source_targets (supported hv)
 
-theorem imageFinite_supported {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem imageFinite_supported {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hsup : FiniteSupport env root S) (hw : WellFormed env root)
-    (checks : RestrictionChecks) (bodyChecks : NodeId → RestrictionChecks)
+    (checks : RestrictionChecks schema) (bodyChecks : NodeId → RestrictionChecks schema)
     (hc : AllRestrictionChecksCorrect (toGProc root) checks)
     (hb : ∀ x b, ReachableVar env root x → env.lookup x = some b →
       AllRestrictionChecksCorrect (toGProc b) (bodyChecks (varNode x))) :
@@ -138,10 +140,10 @@ theorem imageFinite_supported {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
 
 /-- Supported-domain semantic AIP. The two roots may use different finite
 supports and classifiers in the same source definition environment. -/
-theorem approximation_induction_supported {env : RecEnv} {p q : DyNetKAT} {S T : Finset Var}
+theorem approximation_induction_supported {env : RecEnv schema} {p q : DyNetKAT schema} {S T : Finset Var}
     (hs : FiniteSupport env p S) (ht : FiniteSupport env q T)
     (hp : WellFormed env p) (hq : WellFormed env q)
-    (cp cq : RestrictionChecks) (bp bq : NodeId → RestrictionChecks)
+    (cp cq : RestrictionChecks schema) (bp bq : NodeId → RestrictionChecks schema)
     (hcp : AllRestrictionChecksCorrect (toGProc p) cp)
     (hcq : AllRestrictionChecksCorrect (toGProc q) cq)
     (hbp : ∀ x b, ReachableVar env p x → env.lookup x = some b →

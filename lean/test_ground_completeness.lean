@@ -90,7 +90,7 @@ example : DerivesNoAIP env (.nSeq testPort stop)
   rfl
 
 -- The spawning root has this syntax even when X is well formed in its environment.
-example : ¬ Ground (.var "X") := by unfold Ground; decide
+example : ¬ Ground (schema := ctxSchema) (.var "X") := by unfold Ground; decide
 example : ¬ Ground (.rcfgPrefix "a" .id (.parallel (.var "X") rcfg)) := by unfold Ground; decide
 
 #print axioms Ground.guarded

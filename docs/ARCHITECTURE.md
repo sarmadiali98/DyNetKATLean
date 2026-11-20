@@ -122,11 +122,15 @@ syntax, which can itself be large for a dense relation. NetKATLean's
 PA-MATCH-ALL. Its completeness proof uses only field partitions and
 symbolic star closure. `Equations.packetHeads_bisimilar` gives the
 source SOS meaning of the resulting choice of packet heads.
-The letter and trace-safety specification layer is generic, including
-the source translation and padded-word semantics. The full DyNetKATLean
-head normalization proofs, graph compiler, projection renderer,
-equational trace-safety results, and trace-safety checkers still use
-`CtxPkt`.
+The same schema indexes `GProc`, graph configurations, exact move rows and
+checked restriction classifiers. Graph compilation preserves both packet
+lists and syntactic labels. Projection and its no-AIP derivation use arbitrary
+natural depths. Head, tail and nested-tail queries, trace equations, and the
+certified safety and reachability checkers use the generic graph and source
+theory. Packet heads and atomic traces use one `DiagramLayout` to render
+complete assignments in a consistent order. The derivation relations
+preserve syntactic payload equality and do not choose an ordering on
+behalf of the caller. `CtxPkt` remains an instantiation of the hierarchy.
 
 ## Future supported package boundaries
 

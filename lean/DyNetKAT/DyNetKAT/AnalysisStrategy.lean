@@ -6,6 +6,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 inductive AnalysisGuarantee where
   | ground
   | boundedProjection (depth : Nat)
@@ -24,22 +26,22 @@ inductive AnalysisRequest where
   | allDepth (fallback : Option Nat := none)
   | exactModel (fallback : Option Nat := none)
 
-inductive SuppliedModel (G : ProcessGraph) (root : GProc) where
-  | simulation {n} (table : AbstractTable n) (cert : SimulationAbstraction G root table)
-  | quotient {n} (table : AbstractTable n) (cert : BisimulationQuotient G root table)
+inductive SuppliedModel {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) (root : GProc schema) where
+  | simulation {n} (table : (AbstractTable n (schema := schema))) (cert : SimulationAbstraction G root table)
+  | quotient {n} (table : (AbstractTable n (schema := schema))) (cert : BisimulationQuotient G root table)
 
-inductive AnalysisResult (G : ProcessGraph) (root : GProc) (env : RecEnv) (source : DyNetKAT) where
+inductive AnalysisResult {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) (root : GProc schema) (env : RecEnv schema) (source : DyNetKAT schema) where
   | ground (proof : ∃ q, Ground q ∧ DerivesNoAIP env source q)
   | closure (rows : ClosureCandidate G) (proof : ValidClosure root rows)
-  | simulation {n} (table : AbstractTable n) (cert : SimulationAbstraction G root table)
+  | simulation {n} (table : (AbstractTable n (schema := schema))) (cert : SimulationAbstraction G root table)
       (closureFailure : DiscoveryFailure)
-  | quotient {n} (table : AbstractTable n) (cert : BisimulationQuotient G root table)
+  | quotient {n} (table : (AbstractTable n (schema := schema))) (cert : BisimulationQuotient G root table)
       (closureFailure : DiscoveryFailure)
-  | bounded (depth : Nat) (term : DyNetKAT) (proof : Bisimilar env term (.project depth source))
+  | bounded (depth : Nat) (term : DyNetKAT schema) (proof : Bisimilar env term (.project depth source))
       (closureFailure : Option DiscoveryFailure)
   | unknown (closureFailure : DiscoveryFailure)
 
-def AnalysisResult.guarantee {G root env source} :
+def AnalysisResult.guarantee {G : ProcessGraph schema} {root env source} :
     AnalysisResult G root env source → AnalysisGuarantee
   | .ground _ => .ground
   | .closure rows _ => .finiteClosure rows.length
@@ -48,7 +50,7 @@ def AnalysisResult.guarantee {G root env source} :
   | .bounded depth .. => .boundedProjection depth
   | .unknown _ => .unknown
 
-def AnalysisResult.closureFailure {G root env source} :
+def AnalysisResult.closureFailure {G : ProcessGraph schema} {root env source} :
     AnalysisResult G root env source → Option DiscoveryFailure
   | .bounded _ _ _ reason => reason
   | .simulation _ _ reason | .quotient _ _ reason | .unknown reason => some reason
@@ -56,7 +58,7 @@ def AnalysisResult.closureFailure {G root env source} :
 
 /-- A property verdict distinguishes a certified all-depth fact from the
 available analysis model. Failure to discharge an invariant is inconclusive. -/
-inductive StatePropertyVerdict (G : ProcessGraph) (root : GProc) (Safe : GProc → Prop) where
+inductive StatePropertyVerdict {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) (root : GProc schema) (Safe : GProc schema → Prop) where
   | provedAllDepth (method : AnalysisGuarantee)
       (proof : ∀ p, Relation.ReflTransGen (ConcreteStep G) root p → Safe p)
   | unknown (available : AnalysisGuarantee) (closureFailure : Option DiscoveryFailure)
@@ -66,29 +68,29 @@ namespace AnalysisResult
 /-- Extract an exact model for the requested depth only. -/
 def projection? {G root env source} (depth : Nat) :
     AnalysisResult G root env source →
-      Option {term : DyNetKAT // Bisimilar env term (.project depth source)}
+      Option {term : (DyNetKAT schema) // Bisimilar env term (.project depth source)}
   | .bounded n term sound _ =>
     if h : n = depth then some ⟨term, h ▸ sound⟩ else none
   | _ => none
 
 theorem closureProperty {G root rows} (cert : ValidClosure (G := G) root rows)
-    {Safe : GProc → Prop} (safe : ∀ p, rows.Represents p → Safe p) :
+    {Safe : GProc schema → Prop} (safe : ∀ p, rows.Represents p → Safe p) :
     ∀ p, Relation.ReflTransGen (ConcreteStep G) root p → Safe p :=
   fun _ reach => cert.liftProperty safe reach
 
-theorem simulationProperty {G root n} {table : AbstractTable n}
-    (cert : SimulationAbstraction G root table) {Inv : Fin n → Prop} {Safe : GProc → Prop}
+theorem simulationProperty {G root n} {table : (AbstractTable n (schema := schema))}
+    (cert : SimulationAbstraction G root table) {Inv : Fin n → Prop} {Safe : GProc schema → Prop}
     (inv : ∀ i, table.Reaches i → Inv i)
     (safe : ∀ i p, Inv i → cert.represents i p → Safe p) :
     ∀ p, Relation.ReflTransGen (ConcreteStep G) root p → Safe p :=
   fun _ reach => cert.liftProperty inv safe reach
 
-theorem quotientModel {G root n env source} {table : AbstractTable n}
+theorem quotientModel {G root n env source} {table : (AbstractTable n (schema := schema))}
     (cert : BisimulationQuotient G root table) (corr : Corr G env source root) :
     ∃ R, IsBisimulation2 env table.environment R ∧ R source (table.process table.initial) :=
   cert.sourceModel corr table.environment_implements
 
-theorem groundModel {env source : _}
+theorem groundModel {env : RecEnv schema} {source : DyNetKAT schema}
     (proof : ∃ q, Ground q ∧ DerivesNoAIP env source q) :
     ∃ q, Ground q ∧ Bisimilar env source q := by
   obtain ⟨q, hg, hd⟩ := proof
@@ -96,10 +98,10 @@ theorem groundModel {env source : _}
 
 /-- The callbacks prove the requested property on the selected certificate.
 An abstract callback may discharge an invariant via `simulationProperty`. -/
-def proveStateProperty {G root env source} {Safe : GProc → Prop}
+def proveStateProperty {G root env source} {Safe : GProc schema → Prop}
     (result : AnalysisResult G root env source)
     (concrete : ∀ rows : ClosureCandidate G, Option (PLift (∀ p, rows.Represents p → Safe p)))
-    (abstract : ∀ {n} {table : AbstractTable n} (cert : SimulationAbstraction G root table),
+    (abstract : ∀ {n} {table : (AbstractTable n (schema := schema))} (cert : SimulationAbstraction G root table),
       Option (PLift (∀ i p, table.Reaches i → cert.represents i p → Safe p))) :
     StatePropertyVerdict G root Safe :=
   let unknown := StatePropertyVerdict.unknown result.guarantee result.closureFailure
@@ -121,7 +123,7 @@ def proveStateProperty {G root env source} {Safe : GProc → Prop}
 
 end AnalysisResult
 
-def Internal.boundedAnalysis {G env source bodyChecks live} {state : CheckedResidual}
+def Internal.boundedAnalysis {G env source bodyChecks live} {state : CheckedResidual schema}
     (support : ProjectionSupport G bodyChecks live) (valid : state.Valid live)
     (corr : Corr G env source state.proc) (depth : Nat) (reason : Option DiscoveryFailure := none) :
     AnalysisResult G state.proc env source :=
@@ -131,9 +133,9 @@ def Internal.boundedAnalysis {G env source bodyChecks live} {state : CheckedResi
 
 /-- Run discovery for an already compiled residual. Explicit bounded requests
 use projection directly. A simulation candidate serves only all-depth properties. -/
-def Internal.analyzeResidual {G env source bodyChecks live} {state : CheckedResidual}
+def Internal.analyzeResidual {G env source bodyChecks live} {state : CheckedResidual schema}
     (support : ProjectionSupport G bodyChecks live) (valid : state.Valid live)
-    (corr : Corr G env source state.proc) (id : ConcreteIdentity) (limits : ClosureLimits)
+    (corr : Corr G env source state.proc) (id : ConcreteIdentity schema) (limits : ClosureLimits)
     (request : AnalysisRequest) (model : Option (SuppliedModel G state.proc) := none) :
     AnalysisResult G state.proc env source :=
   match request with
@@ -152,7 +154,7 @@ def Internal.analyzeResidual {G env source bodyChecks live} {state : CheckedResi
 
 /-- Check dependency metadata before evaluating a residual-analysis thunk.
 The thunk can carry the guardedness and classifier evidence for cyclic analysis. -/
-def Internal.analyzeSource {env root S} (hs : FiniteSupport env root S)
+def Internal.analyzeSource {env : RecEnv schema} {root S} (hs : FiniteSupport env root S)
     (otherwise : Unit → AnalysisResult (toGraph env root S hs) (toGProc root) env root) :
     AnalysisResult (toGraph env root S hs) (toGProc root) env root :=
   if acyclic : (DependencyGraph.build env root S hs).cyclicSccs = ∅ then
@@ -160,16 +162,16 @@ def Internal.analyzeSource {env root S} (hs : FiniteSupport env root S)
       ((DependencyGraph.cyclicSccs_eq_empty_iff _).mp acyclic))
   else otherwise ()
 
-theorem Internal.analyzeSource_acyclic {env root S} (hs : FiniteSupport env root S) {otherwise}
+theorem Internal.analyzeSource_acyclic {env : RecEnv schema} {root S} (hs : FiniteSupport env root S) {otherwise}
     (h : (DependencyGraph.build env root S hs).cyclicSccs = ∅) :
     (Internal.analyzeSource hs otherwise).guarantee = .ground := by
   simp [Internal.analyzeSource, h, AnalysisResult.guarantee]
 
 def Internal.analyzeCompiledSource {env root S bodyChecks live} (hs : FiniteSupport env root S)
-    (checks : RestrictionChecks)
+    (checks : RestrictionChecks schema)
     (support : ProjectionSupport (toGraph env root S hs) bodyChecks live)
     (valid : (CheckedResidual.mk (toGProc root) checks).Valid live)
-    (id : ConcreteIdentity) (limits : ClosureLimits) (request : AnalysisRequest)
+    (id : ConcreteIdentity schema) (limits : ClosureLimits) (request : AnalysisRequest)
     (model : Option (SuppliedModel (toGraph env root S hs) (toGProc root)) := none) :
     AnalysisResult (toGraph env root S hs) (toGProc root) env root :=
   let run := fun () =>
@@ -180,46 +182,46 @@ def Internal.analyzeCompiledSource {env root S bodyChecks live} (hs : FiniteSupp
 
 /-- Pairwise equivalence has a distinct result type. In particular its
 constructors cannot accept a bounded projection or a forward simulation. -/
-inductive EquivalenceResult (env : RecEnv) (p q : DyNetKAT) where
+inductive EquivalenceResult {schema : NetKAT.PacketSchema} (env : RecEnv schema) (p q : DyNetKAT schema) where
   | finite {G gp gq} (pairs : BisimCandidate G) (cert : ValidBisimCertificate gp gq pairs)
       (left : Corr G env p gp) (right : Corr G env q gq)
-  | quotient {G root n} {table : AbstractTable n} (cert : BisimulationQuotient G root table)
+  | quotient {G root n} {table : (AbstractTable n (schema := schema))} (cert : BisimulationQuotient G root table)
       (left : Corr G env p root) (right : q = table.process table.initial)
       (implements : table.Implements env)
   | direct (proof : Bisimilar env p q)
-  | disproved (channel : Channel) (policy : DyNetKAT.NetKAT.NetKAT)
+  | disproved (channel : Channel) (policy : DyNetKAT.NetKAT.NetKAT schema)
       (proof : ¬ Bisimilar env p q)
   | unknown (reason : DiscoveryFailure)
 
-def EquivalenceResult.guarantee {env p q} : EquivalenceResult env p q → AnalysisGuarantee
+def EquivalenceResult.guarantee {env : RecEnv schema} {p q} : EquivalenceResult env p q → AnalysisGuarantee
   | .finite pairs .. => .finiteBisimulation pairs.length
   | .quotient (n := n) .. => .strongQuotient n
   | .direct _ => .directEquivalence
   | .disproved .. => .distinguishingWitness
   | .unknown _ => .unknown
 
-def EquivalenceResult.proof? {env p q} : EquivalenceResult env p q → Option (PLift (Bisimilar env p q))
+def EquivalenceResult.proof? {env : RecEnv schema} {p q} : EquivalenceResult env p q → Option (PLift (Bisimilar env p q))
   | .finite _ cert hp hq => some ⟨cert.bisimilar hp hq⟩
   | .quotient cert hp hq hm => some ⟨hq.symm ▸ cert.bisimilar hp hm⟩
   | .direct h => some ⟨h⟩
   | .disproved .. | .unknown _ => none
 
 /-- Exact evidence for a pair can be supplied if finite discovery is inconclusive. -/
-inductive SuppliedEquivalence (env : RecEnv) (p q : DyNetKAT) where
+inductive SuppliedEquivalence {schema : NetKAT.PacketSchema} (env : RecEnv schema) (p q : DyNetKAT schema) where
   | direct (proof : Bisimilar env p q)
-  | quotient {G root n} {table : AbstractTable n}
+  | quotient {G root n} {table : (AbstractTable n (schema := schema))}
       (cert : BisimulationQuotient G root table)
       (left : Corr G env p root) (right : q = table.process table.initial)
       (implements : table.Implements env)
 
 /-- Optional checked mismatch first, followed by finite concrete search.
 If the search is inconclusive, use supplied exact evidence for the pair. -/
-def Internal.analyzeEquivalence {G env p q bodyChecks live} {left right : CheckedResidual}
+def Internal.analyzeEquivalence {G env p q bodyChecks live} {left right : CheckedResidual schema}
     (support : ProjectionSupport G bodyChecks live)
     (lv : left.Valid live) (rv : right.Valid live)
     (lc : Corr G env p left.proc) (rc : Corr G env q right.proc)
-    (id : ConcreteIdentity) (limits : ClosureLimits) (maxPairs rounds : Nat)
-    (mismatch : Option (Channel × DyNetKAT.NetKAT.NetKAT) := none)
+    (id : ConcreteIdentity schema) (limits : ClosureLimits) (maxPairs rounds : Nat)
+    (mismatch : Option (Channel × DyNetKAT.NetKAT.NetKAT schema) := none)
     (supplied : Option (SuppliedEquivalence env p q) := none) :
     EquivalenceResult env p q := Id.run do
   if let some (channel, policy) := mismatch then

@@ -8,6 +8,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 open Relation
 
 namespace DependencyClosure
@@ -120,10 +122,10 @@ namespace DependencyGraph
 abbrev Edge (g : DependencyGraph) := DependencyClosure.Edge g.edges
 abbrev Path (g : DependencyGraph) := ReflTransGen g.Edge
 
-private def supportEdges (env : RecEnv) (S : Finset Var) : Finset (Var × Var) :=
+private def supportEdges (env : RecEnv schema) (S : Finset Var) : Finset (Var × Var) :=
   S.biUnion fun x => (recursiveVars ((env.lookup x).getD .deadlock)).image (x, ·)
 
-private theorem mem_supportEdges {env : RecEnv} {S : Finset Var} {x y : Var} :
+private theorem mem_supportEdges {env : RecEnv schema} {S : Finset Var} {x y : Var} :
     DependencyClosure.Edge (supportEdges env S) x y ↔
       x ∈ S ∧ ∃ b, env.lookup x = some b ∧ y ∈ recursiveVars b := by
   have he : (x, y) ∈ supportEdges env S ↔
@@ -133,7 +135,7 @@ private theorem mem_supportEdges {env : RecEnv} {S : Finset Var} {x y : Var} :
   rw [he]
   cases h : env.lookup x <;> simp [h]
 
-private theorem support_target {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+private theorem support_target {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) (x y : Var)
     (he : DependencyClosure.Edge (supportEdges env S) x y) : y ∈ S := by
   obtain ⟨hx, b, hb, hy⟩ := mem_supportEdges.mp he
@@ -141,7 +143,7 @@ private theorem support_target {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
   have eq := RecEnv.lookup_unique hb hc
   exact sub (eq ▸ hy)
 
-private theorem supportPath_iff {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+private theorem supportPath_iff {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) {y : Var} :
     (∃ x ∈ recursiveVars root, ReflTransGen (DependencyClosure.Edge (supportEdges env S)) x y) ↔
       ReachableVar env root y := by
@@ -160,16 +162,16 @@ private theorem supportPath_iff {env : RecEnv} {root : DyNetKAT} {S : Finset Var
       exact ⟨x, hx, hp.tail (mem_supportEdges.mpr
         ⟨reachableVars_subset_of_finiteSupport env root S hs _ source, _, hb, hy⟩)⟩
 
-private def reachable (env : RecEnv) (root : DyNetKAT) (S : Finset Var) :=
+private def reachable (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var) :=
   DependencyClosure.close S (supportEdges env S) (recursiveVars root)
 
-private theorem mem_reachable {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+private theorem mem_reachable {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) {x : Var} :
     x ∈ reachable env root S ↔ ReachableVar env root x :=
   (DependencyClosure.mem_close (support_target hs) hs.1).trans (supportPath_iff hs)
 
 /-- Compute the reachable subgraph of the supplied finite support. -/
-def build (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
+def build (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var)
     (hs : FiniteSupport env root S) : DependencyGraph :=
   let edges := supportEdges env S
   let nodes := DependencyClosure.close S edges (recursiveVars root)
@@ -184,12 +186,12 @@ def build (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
       obtain ⟨_, _, hb, hy⟩ := mem_supportEdges.mp he
       exact (mem_reachable hs).mpr (.throughDefinition ((mem_reachable hs).mp hx) hb hy) }
 
-theorem mem_build_nodes {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem mem_build_nodes {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) {x : Var} :
     x ∈ (build env root S hs).nodes ↔ ReachableVar env root x :=
   mem_reachable hs
 
-theorem build_edge_iff {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem build_edge_iff {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) {x y : Var} :
     (build env root S hs).Edge x y ↔
       ReachableVar env root x ∧ ∃ b, env.lookup x = some b ∧ y ∈ recursiveVars b := by
@@ -200,7 +202,7 @@ theorem build_edge_iff {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
   exact ⟨fun ⟨⟨_, he⟩, hx⟩ => ⟨hx, he⟩,
     fun ⟨hx, he⟩ => ⟨⟨reachableVars_subset_of_finiteSupport env root S hs x hx, he⟩, hx⟩⟩
 
-theorem reachableVar_iff_entry_path {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem reachableVar_iff_entry_path {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) {y : Var} :
     ReachableVar env root y ↔
       ∃ x ∈ (build env root S hs).entries, (build env root S hs).Path x y := by
@@ -235,7 +237,7 @@ theorem path_target {g : DependencyGraph} {x y : Var}
 
 /-- For a reachable name, paths from that name agree with following definitions
 from the singleton reference root. -/
-theorem path_iff_reachable_from_var {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem path_iff_reachable_from_var {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) {x y : Var} (hx : ReachableVar env root x) :
     (build env root S hs).Path x y ↔ ReachableVar env (.var x) y := by
   constructor
@@ -467,14 +469,14 @@ theorem dependency_wellFounded (g : DependencyGraph)
   Subrelation.wf (fun h => dependency_decreases acyclic h)
     (measure fun x => (g.pathsFrom x).card).wf
 
-theorem guarded_scc {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem guarded_scc {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) (hw : WellFormed env root) {C : Finset Var}
     (hC : C ∈ (build env root S hs).sccs) {x : Var} (hx : x ∈ C) :
     ∃ b, env.lookup x = some b ∧ TypedPaperGuarded b := by
   obtain ⟨b, hb, guard⟩ := hw.2 x ((mem_build_nodes hs).mp (scc_member_node hC hx))
   exact ⟨b, hb, (typedPaperGuarded_iff_guardedOccurrences b).mpr guard⟩
 
-private theorem expand_from_vars (env : RecEnv) (p : DyNetKAT)
+private theorem expand_from_vars (env : RecEnv schema) (p : DyNetKAT schema)
     (expand : ∀ x ∈ recursiveVars p, ∃ q, Ground q ∧ DerivesNoAIP env (.var x) q) :
     ∃ q, Ground q ∧ DerivesNoAIP env p q := by
   induction p with
@@ -511,7 +513,7 @@ private theorem expand_from_vars (env : RecEnv) (p : DyNetKAT)
 /-- Acyclic dependencies permit full finite expansion, even under prefixes.
 The derivation uses only environment unfolding, congruence, reflexivity and
 transitivity. No SOS transitions or guardedness hypothesis are needed. -/
-theorem acyclic_unfolds_ground {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem acyclic_unfolds_ground {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S)
     (acyclic : ∀ C ∈ (build env root S hs).sccs, (build env root S hs).isCyclic C = false) :
     ∃ q, Ground q ∧ DerivesNoAIP env root q := by

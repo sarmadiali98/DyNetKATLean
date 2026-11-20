@@ -108,28 +108,28 @@ theorem sem_drop_false (σ τ : CtxPkt) : ¬ Semantics (schema := ctxSchema) .dr
     The check reuses the verified equivalence checker against `drop`, whose
     relational semantics is empty; no separate packet-enumeration logic is
     introduced. -/
-def netkatIsZero (p : NetKAT) : Bool :=
-  netkatEquiv p .drop
+def netkatIsZero {schema : PacketSchema} (p : NetKAT schema) : Bool :=
+  netkatNativeEquivFinite p .drop
 
 /-- Main correctness theorem for the zero checker: the checker returns `true`
     exactly when `p` relates no input packet to any output packet, i.e. its
     relational semantics over the finite packet domain is empty. -/
 theorem netkatIsZero_correct
-    (p : NetKAT) :
+    {schema : PacketSchema} (p : NetKAT schema) :
     netkatIsZero p = true ↔
-      ∀ σ τ : CtxPkt,
+      ∀ σ τ : schema.Packet,
         ¬ Semantics p σ τ := by
   unfold netkatIsZero
-  rw [netkatEquiv_correct]
+  rw [netkatNativeEquivFinite_correct]
   constructor
   · intro h σ τ hp
-    exact sem_drop_false σ τ ((h σ τ).mp hp)
+    exact (h σ τ).mp hp
   · intro h σ τ
     constructor
     · intro hp
       exact absurd hp (h σ τ)
     · intro hd
-      exact absurd hd (sem_drop_false σ τ)
+      exact False.elim hd
 
 /-- The evaluator gives every output history by replacing its input head
     with one of the computed packets and retaining the input tail. -/
@@ -161,8 +161,13 @@ theorem netkatEquiv_history_correct (p q : NetKAT) :
 
 theorem netkatIsZero_history_correct (p : NetKAT) :
     netkatIsZero p = true ↔ ∀ h h' : History, ¬ HistorySemantics p h h' := by
-  rw [netkatIsZero, netkatEquiv_history_correct]
-  simp only [HistorySemantics, iff_false]
+  rw [netkatIsZero_correct]
+  constructor
+  · intro zero ⟨i, tail⟩ ⟨o, tail'⟩ h
+    exact zero i o ((historySemantics_iff_packetSemantics ..).mp h).2
+  · intro zero i o h
+    exact zero (History.singleton i) (History.singleton o)
+      ((historySemantics_iff_packetSemantics ..).mpr ⟨rfl, h⟩)
 
 /-- Elaborate the complete-test shorthand into the common NetKAT syntax
     of primitive field tests, sequencing and identity. -/

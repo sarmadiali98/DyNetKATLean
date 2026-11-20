@@ -5,11 +5,13 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 open DyNetKAT.NetKAT
 
 /-- Sequential normal forms with an actual packet move available at every
 packet prefix. The condition is relational and uses no packet enumeration. -/
-inductive EnabledSequential (G : ProcessGraph) : GProc → Prop
+inductive EnabledSequential {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → Prop
   | deadlock : EnabledSequential G .deadlock
   | packet : (∃ i o, Semantics N i o) → EnabledSequential G p →
       EnabledSequential G (.nSeq N p)
@@ -17,11 +19,11 @@ inductive EnabledSequential (G : ProcessGraph) : GProc → Prop
   | choice : EnabledSequential G p → EnabledSequential G q → EnabledSequential G (.choice p q)
   | ref : i ∈ G.nodes → EnabledSequential G (.ref i)
 
-structure TraceReady (G : ProcessGraph) : Prop where
+structure TraceReady {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : Prop where
   root : EnabledSequential G G.root
   label : ∀ i ∈ G.nodes, EnabledSequential G (G.label i)
 
-theorem EnabledSequential.shape {G : ProcessGraph} {p : GProc} (h : EnabledSequential G p) :
+theorem EnabledSequential.shape {G : ProcessGraph schema} {p : GProc schema} (h : EnabledSequential G p) :
     TailShapeOk G p := by
   induction h with
   | deadlock => exact .deadlock
@@ -30,7 +32,7 @@ theorem EnabledSequential.shape {G : ProcessGraph} {p : GProc} (h : EnabledSeque
   | choice _ _ ih₁ ih₂ => exact .choice ih₁ ih₂
   | ref mem => exact .ref mem
 
-theorem EnabledSequential.mono {G Q : ProcessGraph} {p : GProc} (nodes : G.nodes ⊆ Q.nodes)
+theorem EnabledSequential.mono {G Q : ProcessGraph schema} {p : GProc schema} (nodes : G.nodes ⊆ Q.nodes)
     (h : EnabledSequential G p) : EnabledSequential Q p := by
   induction h with
   | deadlock => exact .deadlock
@@ -39,7 +41,7 @@ theorem EnabledSequential.mono {G Q : ProcessGraph} {p : GProc} (nodes : G.nodes
   | choice _ _ ih₁ ih₂ => exact .choice ih₁ ih₂
   | ref mem => exact .ref (nodes mem)
 
-theorem GStep.enabledSequential {G : ProcessGraph} {c d : GConfig} {a : Action}
+theorem GStep.enabledSequential {G : ProcessGraph schema} {c d : GConfig schema} {a : Action schema}
     (ready : TraceReady G) (step : GStep G c a d) :
     EnabledSequential G c.proc → EnabledSequential G d.proc := by
   induction step with
@@ -51,7 +53,7 @@ theorem GStep.enabledSequential {G : ProcessGraph} {c d : GConfig} {a : Action}
   | recv | send | par_l | par_r | left_merge | comm_merge_recv_send | comm_merge_send_recv |
     sync_recv_send | sync_send_recv | project | restrict => intro h; cases h
 
-theorem GraphPath.enabledSequential {G : ProcessGraph} {p q : GProc} {w : List Action}
+theorem GraphPath.enabledSequential {G : ProcessGraph schema} {p q : GProc schema} {w : List (Action schema)}
     (ready : TraceReady G) (run : GraphPath G p w q) (shape : EnabledSequential G p) :
     EnabledSequential G q := by
   induction w generalizing p with
@@ -60,7 +62,7 @@ theorem GraphPath.enabledSequential {G : ProcessGraph} {p q : GProc} {w : List A
       obtain ⟨mid, step, rest⟩ := GraphPath.cons_iff.mp run
       exact ih rest (GStep.enabledSequential ready step shape)
 
-theorem GraphPath.map_first {G : ProcessGraph} {p p' q : GProc} {w : List Action}
+theorem GraphPath.map_first {G : ProcessGraph schema} {p p' q : GProc schema} {w : List (Action schema)}
     (run : GraphPath G p w q) (nonempty : w ≠ [])
     (transfer : ∀ a mid, GraphActionStep G p a mid → GraphActionStep G p' a mid) :
     GraphPath G p' w q := by
@@ -70,11 +72,11 @@ theorem GraphPath.map_first {G : ProcessGraph} {p p' q : GProc} {w : List Action
       obtain ⟨mid, first, succ⟩ := GraphPath.cons_iff.mp run
       exact GraphPath.cons_iff.mpr ⟨mid, transfer a mid first, succ⟩
 
-theorem GraphActionStep.packet {G : ProcessGraph} {N : NetKAT} {p : GProc} {i o : CtxPkt}
+theorem GraphActionStep.packet {G : ProcessGraph schema} {N : NetKAT schema} {p : GProc schema} {i o : schema.Packet}
     (ev : Semantics N i o) : GraphActionStep G (.nSeq N p) (.packet i o) p :=
   .seq_ok _ _ _ _ [] [] ((historySemantics_singleton_iff_packetSemantics ..).mpr ev)
 
-theorem GraphPath.single {G : ProcessGraph} {p q : GProc} {a : Action}
+theorem GraphPath.single {G : ProcessGraph schema} {p q : GProc schema} {a : Action schema}
     (step : GraphActionStep G p a q) : GraphPath G p [a] q :=
   GraphPath.cons_iff.mpr ⟨q, step, GraphPath.nil_iff.mpr rfl⟩
 
@@ -95,10 +97,10 @@ inductive TailWord {schema : PacketSchema} (R : ReconfigSet schema) : List (Acti
   | packet : TailWord R w → TailWord R (.packet i o :: w)
   | rcfg : (x, N) ∈ R → TailWord R w → TailWord R (.rcfg x N :: w)
 
-theorem TailWord.nonempty {R : ReconfigSet} {w : List Action} (h : TailWord R w) : w ≠ [] := by
+theorem TailWord.nonempty {R : ReconfigSet schema} {w : List (Action schema)} (h : TailWord R w) : w ≠ [] := by
   cases h <;> simp
 
-theorem TailSelect.feasible {G : ProcessGraph} {R : ReconfigSet} {p q : GProc}
+theorem TailSelect.feasible {G : ProcessGraph schema} {R : ReconfigSet schema} {p q : GProc schema}
     (ready : TraceReady G) (h : TailSelect G R p q) :
     EnabledSequential G p → ∃ w, TailWord R w ∧ GraphPath G p w q := by
   induction h with
@@ -136,8 +138,8 @@ theorem TailSelect.feasible {G : ProcessGraph} {R : ReconfigSet} {p q : GProc}
           obtain ⟨w, word, run⟩ := ih shape
           exact ⟨_, .rcfg mem word, GraphPath.cons_iff.mpr ⟨_, .rcfg _ _ _ [] [], run⟩⟩
 
-private theorem tail_of_step {G : ProcessGraph} {R : ReconfigSet} {c d : GConfig} {a : Action}
-    {q : GProc} (ready : TraceReady G) (step : GStep G c a d) :
+private theorem tail_of_step {G : ProcessGraph schema} {R : ReconfigSet schema} {c d : GConfig schema} {a : Action schema}
+    {q : GProc schema} (ready : TraceReady G) (step : GStep G c a d) :
     EnabledSequential G c.proc →
       ((SelectedReconfig R a ∧ d.proc = q) ∨
         ((PacketAction a ∨ SelectedReconfig R a) ∧ TailSelect G R d.proc q)) →
@@ -161,7 +163,7 @@ private theorem tail_of_step {G : ProcessGraph} {R : ReconfigSet} {c d : GConfig
   | recv | send | par_l | par_r | left_merge | comm_merge_recv_send | comm_merge_send_recv |
     sync_recv_send | sync_send_recv | project | restrict => intro h; cases h
 
-theorem TailWord.select {G : ProcessGraph} {R : ReconfigSet} {p q : GProc} {w : List Action}
+theorem TailWord.select {G : ProcessGraph schema} {R : ReconfigSet schema} {p q : GProc schema} {w : List (Action schema)}
     (ready : TraceReady G) (word : TailWord R w) (run : GraphPath G p w q)
     (shape : EnabledSequential G p) : TailSelect G R p q := by
   induction word generalizing p with
@@ -177,7 +179,7 @@ theorem TailWord.select {G : ProcessGraph} {R : ReconfigSet} {p q : GProc} {w : 
       exact tail_of_step ready first shape (.inr ⟨.inr mem,
         ih rest (GStep.enabledSequential ready first shape)⟩)
 
-private theorem head_feasible {G : ProcessGraph} {p : GProc} {i o : CtxPkt}
+private theorem head_feasible {G : ProcessGraph schema} {p : GProc schema} {i o : schema.Packet}
     (ready : TraceReady G) (h : GraphHeadSpec G p i o) :
     EnabledSequential G p → ∃ w q, w.Forall PacketAction ∧
       GraphPath G p (w ++ [.packet i o]) q := by
@@ -211,8 +213,8 @@ private theorem head_feasible {G : ProcessGraph} {p : GProc} {i o : CtxPkt}
           obtain ⟨w, q, word, run⟩ := ih (ready.label k mem)
           exact ⟨w, q, word, run.map_first (by simp) (fun _ _ s => .var _ _ _ _ _ _ _ s)⟩
 
-private theorem head_of_step {G : ProcessGraph} {c d : GConfig} {a : Action}
-    {i o : CtxPkt} (ready : TraceReady G) (step : GStep G c a d) :
+private theorem head_of_step {G : ProcessGraph schema} {c d : GConfig schema} {a : Action schema}
+    {i o : schema.Packet} (ready : TraceReady G) (step : GStep G c a d) :
     EnabledSequential G c.proc →
       (a = .packet i o ∨ (PacketAction a ∧ GraphHeadSpec G d.proc i o)) →
       GraphHeadSpec G c.proc i o := by
@@ -232,7 +234,7 @@ private theorem head_of_step {G : ProcessGraph} {c d : GConfig} {a : Action}
   | recv | send | par_l | par_r | left_merge | comm_merge_recv_send | comm_merge_send_recv |
     sync_recv_send | sync_send_recv | project | restrict => intro h; cases h
 
-theorem GraphHeadSpec.iff_feasible {G : ProcessGraph} {p : GProc} {i o : CtxPkt}
+theorem GraphHeadSpec.iff_feasible {G : ProcessGraph schema} {p : GProc schema} {i o : schema.Packet}
     (ready : TraceReady G) (shape : EnabledSequential G p) :
     GraphHeadSpec G p i o ↔ ∃ w q, w.Forall PacketAction ∧
       GraphPath G p (w ++ [.packet i o]) q := by
@@ -248,9 +250,9 @@ theorem GraphHeadSpec.iff_feasible {G : ProcessGraph} {p : GProc} {i o : CtxPkt}
         ih (GStep.enabledSequential ready first shape) ((List.forall_cons ..).mp word).2 rest⟩)
 
 
-private theorem tailCollect_enabled {G Q : ProcessGraph} {R : ReconfigSet} {L : List NodeId}
+private theorem tailCollect_enabled {G Q : ProcessGraph schema} {R : ReconfigSet schema} {L : List NodeId}
     (original : G.nodes ⊆ Q.nodes)
-    (renamed : ∀ i ∈ L, fresh G L i ∈ Q.nodes) {p : GProc} (shape : EnabledSequential G p) :
+    (renamed : ∀ i ∈ L, fresh G L i ∈ Q.nodes) {p : GProc schema} (shape : EnabledSequential G p) :
     ∀ {q}, tailCollectR G R (fresh G L) p = some q →
       (∀ i ∈ tailRefsR R p, i ∈ L) → EnabledSequential Q q := by
   induction shape with
@@ -274,7 +276,7 @@ private theorem tailCollect_enabled {G Q : ProcessGraph} {R : ReconfigSet} {L : 
       cases eq
       exact .ref (renamed i (live i (by simp [tailRefsR])))
 
-theorem graphTail_traceReady {G Q : ProcessGraph} {R : ReconfigSet}
+theorem graphTail_traceReady {G Q : ProcessGraph schema} {R : ReconfigSet schema}
     (ready : TraceReady G) (h : graphTail G R = some Q) : TraceReady Q := by
   obtain ⟨L, root, entries, hRun, hRoot, hEntries, rfl⟩ := graphTail_some_inv h
   let out := tailGraphOf G R L root entries hRun hRoot hEntries
@@ -295,8 +297,8 @@ theorem graphTail_traceReady {G Q : ProcessGraph} {R : ReconfigSet}
     exact tailCollect_enabled original renamed (ready.label j node) eq
       ((tailRun_root_refs_mem hRun).2 j mem)
 
-theorem graphTail_feasible_iff {G Q : ProcessGraph} {R : ReconfigSet} {w : List Action}
-    {dst : GProc} (ready : TraceReady G) (h : graphTail G R = some Q) (nonempty : w ≠ []) :
+theorem graphTail_feasible_iff {G Q : ProcessGraph schema} {R : ReconfigSet schema} {w : List (Action schema)}
+    {dst : GProc schema} (ready : TraceReady G) (h : graphTail G R = some Q) (nonempty : w ≠ []) :
     GraphPath Q Q.root w dst ↔ ∃ pre, TailWord R pre ∧ GraphPath G G.root (pre ++ w) dst := by
   cases w with
   | nil => exact (nonempty rfl).elim
@@ -312,7 +314,7 @@ theorem graphTail_feasible_iff {G Q : ProcessGraph} {R : ReconfigSet} {w : List 
 
 /-- Successive calls use the actual structural tail graph, including its
 fresh labels and its preserved original continuations. -/
-def graphTails (G : ProcessGraph) : List ReconfigSet → Option ProcessGraph
+def graphTails (G : ProcessGraph schema) : List (ReconfigSet schema) → Option (ProcessGraph schema)
   | [] => some G
   | R :: rest => (graphTail G R).bind (fun Q => graphTails Q rest)
 
@@ -320,7 +322,7 @@ def TailSegments {schema : PacketSchema} : List (ReconfigSet schema) → List (A
   | [], w => w = []
   | R :: rest, w => ∃ u v, w = u ++ v ∧ TailWord R u ∧ TailSegments rest v
 
-theorem graphTails_traceReady {G Q : ProcessGraph} {stages : List ReconfigSet}
+theorem graphTails_traceReady {G Q : ProcessGraph schema} {stages : List (ReconfigSet schema)}
     (ready : TraceReady G) (tails : graphTails G stages = some Q) : TraceReady Q := by
   induction stages generalizing G with
   | nil => cases tails; exact ready
@@ -328,8 +330,8 @@ theorem graphTails_traceReady {G Q : ProcessGraph} {stages : List ReconfigSet}
       obtain ⟨mid, first, last⟩ := Option.bind_eq_some_iff.mp tails
       exact ih (graphTail_traceReady ready first) last
 
-theorem graphTails_feasible_iff {G Q : ProcessGraph} {stages : List ReconfigSet}
-    {w : List Action} {dst : GProc} (ready : TraceReady G)
+theorem graphTails_feasible_iff {G Q : ProcessGraph schema} {stages : List (ReconfigSet schema)}
+    {w : List (Action schema)} {dst : GProc schema} (ready : TraceReady G)
     (tails : graphTails G stages = some Q) (nonempty : w ≠ []) :
     GraphPath Q Q.root w dst ↔ ∃ pre, TailSegments stages pre ∧
       GraphPath G G.root (pre ++ w) dst := by
@@ -355,8 +357,8 @@ def QueryWord {schema : PacketSchema} (stages : List (ReconfigSet schema))
   ∃ pre head, TailSegments stages pre ∧ head.Forall PacketAction ∧
     word = pre ++ (head ++ [.packet i o])
 
-theorem graphTails_head_iff {G Q : ProcessGraph} {stages : List ReconfigSet}
-    {H : NetKAT} {i o : CtxPkt} (ready : TraceReady G)
+theorem graphTails_head_iff {G Q : ProcessGraph schema} {stages : List (ReconfigSet schema)}
+    {H : NetKAT schema} {i o : schema.Packet} (ready : TraceReady G)
     (tails : graphTails G stages = some Q) (head : graphHead Q = some H) :
     Semantics H i o ↔ ∃ w dst, QueryWord stages i o w ∧ GraphPath G G.root w dst := by
   have hReady := graphTails_traceReady ready tails
@@ -372,7 +374,7 @@ theorem graphTails_head_iff {G Q : ProcessGraph} {stages : List ReconfigSet}
     apply (GraphHeadSpec.iff_feasible hReady hReady.root).mpr
     exact ⟨w, dst, packets, (graphTails_feasible_iff ready tails (by simp)).mpr ⟨pre, seg, run⟩⟩
 
-theorem graphTails_head_exists {G : ProcessGraph} (ready : TraceReady G) (stages : List ReconfigSet) :
+theorem graphTails_head_exists {G : ProcessGraph schema} (ready : TraceReady G) (stages : List (ReconfigSet schema)) :
     ∃ Q H, graphTails G stages = some Q ∧ graphHead Q = some H := by
   induction stages generalizing G with
   | nil =>
@@ -385,7 +387,7 @@ theorem graphTails_head_exists {G : ProcessGraph} (ready : TraceReady G) (stages
       obtain ⟨T, H, tails, head⟩ := ih (graphTail_traceReady ready tail)
       exact ⟨T, H, Option.bind_eq_some_iff.mpr ⟨Q, tail, tails⟩, head⟩
 
-theorem blockCommunication_enabled {Q : ProcessGraph} {p q : GProc}
+theorem blockCommunication_enabled {Q : ProcessGraph schema} {p q : GProc schema}
     (h : blockCommunication p = some q) (hc : gprocRefs q ⊆ Q.nodes) :
     EnabledSequential Q q := by
   induction p generalizing q with
@@ -412,7 +414,7 @@ theorem blockCommunication_enabled {Q : ProcessGraph} {p q : GProc}
   | deadlock | recv | send => cases h; exact .deadlock
   | parallel | leftMerge | commMerge | restrict | project => cases h
 
-theorem preprocessGraph_traceReady {G Q : ProcessGraph} (h : preprocessGraph G = some Q) :
+theorem preprocessGraph_traceReady {G Q : ProcessGraph schema} (h : preprocessGraph G = some Q) :
     TraceReady Q := by
   obtain ⟨nodes, root, labels⟩ := preprocessGraph_eq_some h
   exact ⟨blockCommunication_enabled root Q.root_closed, fun i hi =>

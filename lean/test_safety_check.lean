@@ -124,7 +124,7 @@ import DyNetKAT
  --    a zero core.
  ------------------------------------------------------------------------
 
- #eval netkatIsZero .drop == true                                      -- true
+ #eval netkatIsZero (schema := ctxSchema) .drop == true                                      -- true
  #eval netkatIsZero (reachabilityPolicy ingressP .drop egressP) == true    -- true
 
  ------------------------------------------------------------------------
@@ -132,7 +132,7 @@ import DyNetKAT
  --    core is nonzero.
  ------------------------------------------------------------------------
 
- #eval netkatIsZero .id == false                                       -- true
+ #eval netkatIsZero (schema := ctxSchema) .id == false                                       -- true
  #eval netkatIsZero (reachabilityPolicy ingressP Hpost egressP) == false   -- true
 
  ------------------------------------------------------------------------

@@ -4,10 +4,12 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
 open DyNetKAT.NetKAT
 
 /-- Change recursive names only. In particular channels and payloads are kept. -/
-def DyNetKAT.renameRefs (f : Var → Var) : DyNetKAT → DyNetKAT
+def DyNetKAT.renameRefs (f : Var → Var) : DyNetKAT schema → DyNetKAT schema
   | .deadlock => .deadlock
   | .var x => .var (f x)
   | .nSeq p q => .nSeq p (q.renameRefs f)
@@ -21,24 +23,24 @@ def DyNetKAT.renameRefs (f : Var → Var) : DyNetKAT → DyNetKAT
   | .restrict L p => .restrict L (p.renameRefs f)
   | .project n p => .project n (p.renameRefs f)
 
-private theorem recursiveVars_rename (f : Var → Var) (p : DyNetKAT) :
+private theorem recursiveVars_rename (f : Var → Var) (p : DyNetKAT schema) :
     recursiveVars (p.renameRefs f) = (recursiveVars p).image f := by
   induction p <;> simp [DyNetKAT.renameRefs, recursiveVars, *, Finset.image_union]
 
-private theorem paperSyntax_rename (f : Var → Var) (p : DyNetKAT) (mode : Bool) :
+private theorem paperSyntax_rename (f : Var → Var) (p : DyNetKAT schema) (mode : Bool) :
     PaperSyntax mode (p.renameRefs f) ↔ PaperSyntax mode p := by
   induction p generalizing mode <;> simp [DyNetKAT.renameRefs, PaperSyntax, *]
 
-private theorem guarded_rename (f : Var → Var) (p : DyNetKAT) :
+private theorem guarded_rename (f : Var → Var) (p : DyNetKAT schema) :
     GuardedOccurrences (p.renameRefs f) ↔ GuardedOccurrences p := by
   induction p <;> simp [DyNetKAT.renameRefs, GuardedOccurrences, *]
 
 /-- The target environment contains the renamed body at every renamed name. -/
-private def RenamesEnv (f : Var → Var) (env target : RecEnv) : Prop :=
+private def RenamesEnv (f : Var → Var) (env target : RecEnv schema) : Prop :=
   ∀ x, target.lookup (f x) = (env.lookup x).map (DyNetKAT.renameRefs f)
 
-private theorem rename_step {f : Var → Var} {env target : RecEnv}
-    (compat : RenamesEnv f env target) {c d : Config} {a : Action}
+private theorem rename_step {f : Var → Var} {env target : RecEnv schema}
+    (compat : RenamesEnv f env target) {c d : Config schema} {a : Action schema}
     (h : Step env c a d) :
     Step target {c with proc := c.proc.renameRefs f} a {d with proc := d.proc.renameRefs f} := by
   induction h with
@@ -65,8 +67,8 @@ private theorem rename_step {f : Var → Var} {env target : RecEnv}
   | cpol_restrict _ _ _ _ _ _ _ _ allowed _ ih =>
       exact .cpol_restrict _ _ _ _ _ _ _ _ allowed ih
 
-private theorem rename_step_inv {f : Var → Var} {env target : RecEnv}
-    (compat : RenamesEnv f env target) {c d : Config} {a : Action} (h : Step target c a d) :
+private theorem rename_step_inv {f : Var → Var} {env target : RecEnv schema}
+    (compat : RenamesEnv f env target) {c d : Config schema} {a : Action schema} (h : Step target c a d) :
     ∀ p, p.renameRefs f = c.proc →
       ∃ q, q.renameRefs f = d.proc ∧ Step env {c with proc := p} a {d with proc := q} := by
   induction h with
@@ -165,8 +167,8 @@ private theorem rename_step_inv {f : Var → Var} {env target : RecEnv}
       obtain ⟨q, same, step⟩ := ih _ eq
       exact ⟨.restrict _ q, congrArg _ same, .cpol_restrict _ _ _ _ _ _ _ _ allowed step⟩
 
-private theorem rename_trace {f : Var → Var} {env target : RecEnv}
-    (compat : RenamesEnv f env target) (p : DyNetKAT) (w : List Action) :
+private theorem rename_trace {f : Var → Var} {env target : RecEnv schema}
+    (compat : RenamesEnv f env target) (p : DyNetKAT schema) (w : List (Action schema)) :
     SourceTrace target (p.renameRefs f) w ↔ SourceTrace env p w := by
   induction w generalizing p with
   | nil => exact ⟨fun _ => sourceTrace_nil .., fun _ => sourceTrace_nil ..⟩
@@ -179,11 +181,11 @@ private theorem rename_trace {f : Var → Var} {env target : RecEnv}
       · rintro ⟨q, step, rest⟩
         exact ⟨q.renameRefs f, rename_step compat step, (ih _).mpr rest⟩
 
-private theorem rename_admissible {f : Var → Var} {env target : RecEnv}
-    (compat : RenamesEnv f env target) {p : DyNetKAT} {mode : Bool}
+private theorem rename_admissible {f : Var → Var} {env target : RecEnv schema}
+    (compat : RenamesEnv f env target) {p : DyNetKAT schema} {mode : Bool}
     (admitted : PaperAdmissible mode env p) :
     PaperAdmissible true target (p.renameRefs f) := by
-  have sorted {q : DyNetKAT} (h : PaperSyntax mode q) : PaperSyntax true q := by
+  have sorted {q : DyNetKAT schema} (h : PaperSyntax mode q) : PaperSyntax true q := by
     cases mode
     · exact h.of_base
     · exact h
@@ -212,19 +214,19 @@ private theorem rename_admissible {f : Var → Var} {env target : RecEnv}
 private def namespaceName (tag : Char) (name : Var) : Var := String.mk (tag :: name.data)
 
 /-- Two declaration systems coexist after changing their recursive names apart. -/
-def RecEnv.disjoint (left right : RecEnv) : RecEnv := fun name =>
+def RecEnv.disjoint (left right : RecEnv schema) : RecEnv schema := fun name =>
   match name.data with
   | 'l' :: xs => (left.lookup (String.mk xs)).map (DyNetKAT.renameRefs (namespaceName 'l'))
   | 'r' :: xs => (right.lookup (String.mk xs)).map (DyNetKAT.renameRefs (namespaceName 'r'))
   | _ => none
 
-private theorem leftEnv {left right : RecEnv} :
+private theorem leftEnv {left right : RecEnv schema} :
     RenamesEnv (namespaceName 'l') left (left.disjoint right) := by
   intro x
   cases x
   rfl
 
-private theorem rightEnv {left right : RecEnv} :
+private theorem rightEnv {left right : RecEnv schema} :
     RenamesEnv (namespaceName 'r') right (left.disjoint right) := by
   intro x
   cases x
@@ -232,12 +234,12 @@ private theorem rightEnv {left right : RecEnv} :
 
 namespace Program
 
-variable {mode : Bool} {env : RecEnv}
+variable {mode : Bool} {env : RecEnv schema}
 
-def inLeft (p : Program mode env) (other : RecEnv) : Program true (env.disjoint other) :=
+def inLeft (p : Program mode env) (other : RecEnv schema) : Program true (env.disjoint other) :=
   ⟨p.term.renameRefs (namespaceName 'l'), rename_admissible leftEnv p.admissible⟩
 
-def inRight (p : Program mode env) (other : RecEnv) : Program true (other.disjoint env) :=
+def inRight (p : Program mode env) (other : RecEnv schema) : Program true (other.disjoint env) :=
   ⟨p.term.renameRefs (namespaceName 'r'), rename_admissible rightEnv p.admissible⟩
 
 /-- Source choice between two admissible programs in the same environment. -/
@@ -254,13 +256,13 @@ def choice (p q : Program mode env) : Program mode env := by
   exact origins.elim (((paperAdmissible_iff ..).mp p.admissible).2 x)
     (((paperAdmissible_iff ..).mp q.admissible).2 x)
 
-theorem choice_trace (p q : Program mode env) (w : List Action) :
+theorem choice_trace (p q : Program mode env) (w : List (Action schema)) :
     (p.choice q).Trace w ↔ p.Trace w ∨ q.Trace w := sourceTrace_choice_iff
 
-theorem inLeft_trace (p : Program mode env) (other : RecEnv) (w : List Action) :
+theorem inLeft_trace (p : Program mode env) (other : RecEnv schema) (w : List (Action schema)) :
     (p.inLeft other).Trace w ↔ p.Trace w := rename_trace leftEnv _ _
 
-theorem inRight_trace (p : Program mode env) (other : RecEnv) (w : List Action) :
+theorem inRight_trace (p : Program mode env) (other : RecEnv schema) (w : List (Action schema)) :
     (p.inRight other).Trace w ↔ p.Trace w := rename_trace rightEnv _ _
 
 end Program

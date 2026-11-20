@@ -12,7 +12,7 @@ variable {schema : PacketSchema}
 def SourceTrace (env : RecEnv schema) (p : DyNetKAT schema) (word : List (Action schema)) : Prop :=
   ∃ pending handled target, Steps env ⟨p, pending, handled⟩ word target
 
-theorem Step.rebase {env : (RecEnv schema)} {c d : (Config schema)} {a : (Action schema)}
+theorem Step.rebase {env : RecEnv schema} {c d : Config schema} {a : Action schema}
     (h : Step env c a d) (tail handled : List schema.Packet) :
     Step env ⟨c.proc, a.pendingFor tail, handled⟩ a ⟨d.proc, tail, a.handledAfter handled⟩ := by
   induction h with
@@ -38,12 +38,12 @@ theorem Step.rebase {env : (RecEnv schema)} {c d : (Config schema)} {a : (Action
   | cpol_restrict _ _ _ _ _ _ _ _ allowed _ ih =>
       exact .cpol_restrict _ _ _ _ _ _ _ _ allowed ih
 
-theorem Step.packetLists {env : (RecEnv schema)} {c d : (Config schema)} {a : (Action schema)}
+theorem Step.packetLists {env : RecEnv schema} {c d : Config schema} {a : Action schema}
     (h : Step env c a d) :
     c.pending = a.pendingFor d.pending ∧ d.handled = a.handledAfter c.handled := by
   induction h <;> first | exact ⟨rfl, rfl⟩ | assumption
 
-theorem Steps.rebase {env : (RecEnv schema)} {c d : (Config schema)} {word : List (Action schema)}
+theorem Steps.rebase {env : RecEnv schema} {c d : Config schema} {word : List (Action schema)}
     (h : Steps env c word d) (tail handled : List schema.Packet) :
     Steps env ⟨c.proc, word.foldr Action.pendingFor tail, handled⟩ word
       ⟨d.proc, tail, word.foldl (fun hl a => a.handledAfter hl) handled⟩ := by
@@ -54,7 +54,7 @@ theorem Steps.rebase {env : (RecEnv schema)} {c d : (Config schema)} {word : Lis
 
 /-- The action word fixes the consumed inputs and produced outputs. The unused
 pending suffix and the previously handled packets can be chosen freely. -/
-theorem sourceTrace_iff_packetLists {env : (RecEnv schema)} {p : (DyNetKAT schema)} {word : List (Action schema)}
+theorem sourceTrace_iff_packetLists {env : RecEnv schema} {p : DyNetKAT schema} {word : List (Action schema)}
     (tail handled : List schema.Packet) :
     SourceTrace env p word ↔ ∃ q,
       Steps env ⟨p, word.foldr Action.pendingFor tail, handled⟩ word
@@ -68,7 +68,7 @@ theorem sourceTrace_iff_packetLists {env : (RecEnv schema)} {p : (DyNetKAT schem
 theorem sourceTrace_nil (env : RecEnv schema) (p : DyNetKAT schema) : SourceTrace env p [] :=
   ⟨[], [], ⟨p, [], []⟩, .nil _⟩
 
-theorem sourceTrace_cons_iff {env : (RecEnv schema)} {p : (DyNetKAT schema)} {a : (Action schema)} {word : List (Action schema)} :
+theorem sourceTrace_cons_iff {env : RecEnv schema} {p : DyNetKAT schema} {a : Action schema} {word : List (Action schema)} :
     SourceTrace env p (a :: word) ↔
       ∃ c d, c.proc = p ∧ Step env c a d ∧ SourceTrace env d.proc word := by
   constructor
@@ -79,7 +79,7 @@ theorem sourceTrace_cons_iff {env : (RecEnv schema)} {p : (DyNetKAT schema)} {a 
     exact ⟨_, [], _, .cons _ _ _ _ _ (step.rebase (word.foldr Action.pendingFor []) [])
       (rest.rebase [] _)⟩
 
-theorem sourceTrace_prefix_of_append {env : (RecEnv schema)} {c d : (Config schema)} {w : List (Action schema)}
+theorem sourceTrace_prefix_of_append {env : RecEnv schema} {c d : Config schema} {w : List (Action schema)}
     (h : Steps env c w d) {u v : List (Action schema)} (split : w = u ++ v) :
     SourceTrace env c.proc u := by
   induction h generalizing u with
@@ -92,7 +92,7 @@ theorem sourceTrace_prefix_of_append {env : (RecEnv schema)} {c d : (Config sche
           obtain ⟨rfl, split⟩ := split
           exact sourceTrace_cons_iff.mpr ⟨c, next, rfl, step, ih split⟩
 
-theorem sourceTrace_project_iff {env : (RecEnv schema)} {p : (DyNetKAT schema)} {word : List (Action schema)} {n : Nat} :
+theorem sourceTrace_project_iff {env : RecEnv schema} {p : DyNetKAT schema} {word : List (Action schema)} {n : Nat} :
     SourceTrace env (.project n p) word ↔ SourceTrace env p word ∧ word.length ≤ n := by
   constructor
   · rintro ⟨pt, hl, ⟨q, pt', hl'⟩, steps⟩
@@ -104,7 +104,7 @@ theorem sourceTrace_project_iff {env : (RecEnv schema)} {p : (DyNetKAT schema)} 
 
 namespace Program
 
-variable {extended : Bool} {env : (RecEnv schema)} (p : Program extended env)
+variable {extended : Bool} {env : RecEnv schema} (p : Program extended env)
 
 def Trace (word : List (Action schema)) : Prop := SourceTrace env p.term word
 
@@ -117,9 +117,8 @@ theorem trace_iff_reaches_residual (word : List (Action schema)) :
   · rintro ⟨q, pt, hl, pt', hl', run⟩
     exact ⟨pt, hl, ⟨q.term, pt', hl'⟩, run⟩
 
-variable {env : RecEnv} (p : Program extended env)
 
-theorem Compiled.trace_iff (compiled : p.Compiled) (word : List Action) :
+theorem Compiled.trace_iff (compiled : p.Compiled) (word : List (Action schema)) :
     p.Trace word ↔ ∃ pt hl d,
       GSteps compiled.graph ⟨compiled.graph.root, pt, hl⟩ word d := by
   constructor
@@ -136,7 +135,7 @@ end Program
 def ActionStep (env : RecEnv schema) (p : DyNetKAT schema) (a : Action schema) (q : DyNetKAT schema) : Prop :=
   Step env ⟨p, a.pendingFor [], []⟩ a ⟨q, [], a.handledAfter []⟩
 
-theorem sourceTrace_cons_actionStep {env : (RecEnv schema)} {p : (DyNetKAT schema)} {a : (Action schema)}
+theorem sourceTrace_cons_actionStep {env : RecEnv schema} {p : DyNetKAT schema} {a : Action schema}
     {w : List (Action schema)} :
     SourceTrace env p (a :: w) ↔ ∃ q, ActionStep env p a q ∧ SourceTrace env q w := by
   rw [sourceTrace_cons_iff]
@@ -146,7 +145,7 @@ theorem sourceTrace_cons_actionStep {env : (RecEnv schema)} {p : (DyNetKAT schem
   · rintro ⟨q, step, rest⟩
     exact ⟨⟨p, a.pendingFor [], []⟩, ⟨q, [], a.handledAfter []⟩, rfl, step, rest⟩
 
-theorem sourceTrace_choice_iff {env : (RecEnv schema)} {p q : (DyNetKAT schema)} {w : List (Action schema)} :
+theorem sourceTrace_choice_iff {env : RecEnv schema} {p q : DyNetKAT schema} {w : List (Action schema)} :
     SourceTrace env (.choice p q) w ↔ SourceTrace env p w ∨ SourceTrace env q w := by
   cases w with
   | nil => exact ⟨fun _ => .inl (sourceTrace_nil ..), fun _ => sourceTrace_nil ..⟩
@@ -167,11 +166,11 @@ theorem sourceTrace_movePrefix_iff {env : RecEnv schema} {l : MoveLabel schema}
   rw [sourceTrace_cons_actionStep]
   simp [ActionStep, MoveLabel.prefix_step_iff]
 
-theorem Bisimilar.sourceTrace_iff {env : RecEnv} {p q : DyNetKAT}
-    (h : Bisimilar env p q) (w : List Action) :
+theorem Bisimilar.sourceTrace_iff {env : RecEnv schema} {p q : DyNetKAT schema}
+    (h : Bisimilar env p q) (w : List (Action schema)) :
     SourceTrace env p w ↔ SourceTrace env q w := by
   obtain ⟨R, bisim, related⟩ := h
-  have transfer {p q : DyNetKAT} (h : R p q) : SourceTrace env p w → SourceTrace env q w := by
+  have transfer {p q : DyNetKAT schema} (h : R p q) : SourceTrace env p w → SourceTrace env q w := by
     induction w generalizing p q with
     | nil => exact fun _ => sourceTrace_nil ..
     | cons a w ih =>
@@ -188,8 +187,8 @@ def Action.atomicLabel [DiagramLayout schema] : Action schema → MoveLabel sche
   | .recv x p => .recv x p
   | .send x p => .send x p
 
-theorem Equations.AtomicPrefix.exists_action {l : MoveLabel} (h : Equations.AtomicPrefix l) :
-    ∃ a : Action, l = a.atomicLabel := by
+theorem Equations.AtomicPrefix.exists_action [DiagramLayout schema] {l : MoveLabel schema} (h : Equations.AtomicPrefix l) :
+    ∃ a : Action schema, l = a.atomicLabel := by
   cases h with
   | packet i o => exact ⟨.packet i o, rfl⟩
   | rcfg x p => exact ⟨.rcfg x p, rfl⟩

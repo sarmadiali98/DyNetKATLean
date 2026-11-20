@@ -6,37 +6,39 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 open DyNetKAT.NetKAT
 
 /-- The process projection of one SOS transition under the outer
     restriction used by the safety analysis. The lists are quantified
     here and retained in the bisimulation theorem. -/
-def RestrictedDerivativeStep (G : ProcessGraph) (p q : GProc) : Prop :=
+def RestrictedDerivativeStep (G : ProcessGraph schema) (p q : GProc schema) : Prop :=
   ∃ pt hl a pt' hl', actionAllowed Set.univ a ∧
     GStep G ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩
 
-def ReachableDerivative (G : ProcessGraph) : GProc → Prop :=
+def ReachableDerivative (G : ProcessGraph schema) : GProc schema → Prop :=
   Relation.ReflTransGen (RestrictedDerivativeStep G) G.root
 
 /-- A candidate contains the initial process, is closed under all
     restricted SOS steps, and contains only reachable derivatives. -/
-structure DerivativeClosure (G : ProcessGraph) (states : Set GProc) : Prop where
+structure DerivativeClosure {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) (states : Set (GProc schema)) : Prop where
   root_mem : G.root ∈ states
   closed : ∀ ⦃p q⦄, p ∈ states → RestrictedDerivativeStep G p q → q ∈ states
   reachable : ∀ ⦃p⦄, p ∈ states → ReachableDerivative G p
 
-def HasFiniteDerivatives (G : ProcessGraph) : Prop :=
-  ∃ states : Set GProc, states.Finite ∧ DerivativeClosure G states
+def HasFiniteDerivatives (G : ProcessGraph schema) : Prop :=
+  ∃ states : Set (GProc schema), states.Finite ∧ DerivativeClosure G states
 
-theorem DerivativeClosure.mem_iff {G : ProcessGraph} {states : Set GProc}
-    (h : DerivativeClosure G states) (p : GProc) : p ∈ states ↔ ReachableDerivative G p := by
+theorem DerivativeClosure.mem_iff {G : ProcessGraph schema} {states : Set (GProc schema)}
+    (h : DerivativeClosure G states) (p : GProc schema) : p ∈ states ↔ ReachableDerivative G p := by
   refine ⟨fun hm => h.reachable hm, ?_⟩
   intro hr
   induction hr with
   | refl => exact h.root_mem
   | tail _ hs ih => exact h.closed ih hs
 
-theorem hasFiniteDerivatives_iff {G : ProcessGraph} :
+theorem hasFiniteDerivatives_iff {G : ProcessGraph schema} :
     HasFiniteDerivatives G ↔ {p | ReachableDerivative G p}.Finite := by
   constructor
   · rintro ⟨S, hFin, hClosure⟩
@@ -48,15 +50,15 @@ theorem hasFiniteDerivatives_iff {G : ProcessGraph} :
     an order for computing the active reference rows. Index zero denotes
     the initial process. Each other index must have an incoming edge
     from an earlier index. -/
-structure NormalizationCandidate (n : Nat) where
+structure NormalizationCandidate (n : Nat) (schema : NetKAT.PacketSchema := NetKAT.ctxSchema) where
   referenceOrder : List NodeId
-  state : Fin (n + 1) → GProc
-  moves : Fin (n + 1) → List (SequentialLabel × Fin (n + 1))
+  state : Fin (n + 1) → GProc schema
+  moves : Fin (n + 1) → List ((SequentialLabel schema) × Fin (n + 1))
 
 /-- Compare syntax for certificate validation. An arbitrary set in a
     restriction has no executable equality test, so such a comparison
     cannot certify equality. -/
-def sameProcess : GProc → GProc → Bool
+def sameProcess : GProc schema → GProc schema → Bool
   | .deadlock, .deadlock => true
   | .ref i, .ref j => decide (i = j)
   | .nSeq p u, .nSeq q v => decide (p = q) && sameProcess u v
@@ -70,13 +72,13 @@ def sameProcess : GProc → GProc → Bool
   | .project i u, .project j v => decide (i = j) && sameProcess u v
   | _, _ => false
 
-theorem sameProcess_sound {p q : GProc} (h : sameProcess p q = true) : p = q := by
+theorem sameProcess_sound {p q : GProc schema} (h : sameProcess p q = true) : p = q := by
   induction p generalizing q <;> cases q <;>
     simp_all [sameProcess] <;> aesop
 
 /-- Restriction constructors in a derivative's own syntax prevent
     structural comparison. Reference bodies are checked separately. -/
-def restrictionFree : GProc → Prop
+def restrictionFree : GProc schema → Prop
   | .restrict _ _ => False
   | .nSeq _ p | .recv _ _ p | .send _ _ p | .rcfgPrefix _ _ p | .project _ p =>
       restrictionFree p
@@ -84,20 +86,20 @@ def restrictionFree : GProc → Prop
       restrictionFree p ∧ restrictionFree q
   | .deadlock | .ref _ => True
 
-theorem sameProcess_self_iff (p : GProc) : sameProcess p p = true ↔ restrictionFree p := by
+theorem sameProcess_self_iff (p : GProc schema) : sameProcess p p = true ↔ restrictionFree p := by
   induction p <;> simp_all [sameProcess, restrictionFree]
 
-def SequentialLabel.enabled : SequentialLabel → Bool
+def SequentialLabel.enabled : SequentialLabel schema → Bool
   | .packet p => !netkatIsZero p
   | .rcfg _ _ => true
 
 /-- Keep the actions admitted by the outer restriction that have an SOS witness. -/
-def observableMove (e : SymbolicMove) : Option (SequentialLabel × GProc) :=
+def observableMove (e : SymbolicMove schema) : Option ((SequentialLabel schema) × (GProc schema)) :=
   match e with
   | (.visible l, p) => if l.enabled then some (l, p) else none
   | (.recv .., _) | (.send .., _) => none
 
-private theorem mem_observable {row : List SymbolicMove} {l : SequentialLabel} {p : GProc} :
+private theorem mem_observable {row : List (SymbolicMove schema)} {l : SequentialLabel schema} {p : GProc schema} :
     (l, p) ∈ row.filterMap observableMove ↔ (.visible l, p) ∈ row ∧ l.enabled = true := by
   rw [List.mem_filterMap]
   constructor
@@ -112,13 +114,13 @@ private theorem mem_observable {row : List SymbolicMove} {l : SequentialLabel} {
   · rintro ⟨hm, he⟩
     exact ⟨_, hm, by simp [observableMove, he]⟩
 
-private theorem realizes_allowed {l : SequentialLabel} {pt hl pt' hl' : List CtxPkt}
-    {a : Action} (h : MoveLabel.Realizes (.visible l) pt hl a pt' hl') :
+private theorem realizes_allowed {l : SequentialLabel schema} {pt hl pt' hl' : List schema.Packet}
+    {a : Action schema} (h : MoveLabel.Realizes (.visible l) pt hl a pt' hl') :
     actionAllowed Set.univ a := by
   cases h <;> trivial
 
-theorem realizes_enabled {l : SequentialLabel} {pt hl pt' hl' : List CtxPkt}
-    {a : Action} (h : MoveLabel.Realizes (.visible l) pt hl a pt' hl') :
+theorem realizes_enabled {l : SequentialLabel schema} {pt hl pt' hl' : List schema.Packet}
+    {a : Action schema} (h : MoveLabel.Realizes (.visible l) pt hl a pt' hl') :
     l.enabled = true := by
   cases h with
   | rcfg => rfl
@@ -127,8 +129,8 @@ theorem realizes_enabled {l : SequentialLabel} {pt hl pt' hl' : List CtxPkt}
       have hZero := (netkatIsZero_false_iff_exists _).mpr ⟨_, _, hSem.2⟩
       simp [SequentialLabel.enabled, hZero]
 
-private theorem realizes_visible {l : MoveLabel} {pt hl pt' hl' : List CtxPkt}
-    {a : Action} (h : MoveLabel.Realizes l pt hl a pt' hl')
+private theorem realizes_visible {l : MoveLabel schema} {pt hl pt' hl' : List schema.Packet}
+    {a : Action schema} (h : MoveLabel.Realizes l pt hl a pt' hl')
     (ha : actionAllowed Set.univ a) : ∃ k, l = .visible k := by
   cases h
   · exact ⟨_, rfl⟩
@@ -136,19 +138,19 @@ private theorem realizes_visible {l : MoveLabel} {pt hl pt' hl' : List CtxPkt}
   · simp [actionAllowed] at ha
   · simp [actionAllowed] at ha
 
-private def agrees {n : Nat} (C : NormalizationCandidate n) (actual : SequentialLabel × GProc)
-    (edge : SequentialLabel × Fin (n + 1)) : Bool :=
+private def agrees {n : Nat} (C : (NormalizationCandidate n (schema := schema))) (actual : (SequentialLabel schema) × (GProc schema))
+    (edge : (SequentialLabel schema) × Fin (n + 1)) : Bool :=
   decide (actual.1 = edge.1) && sameProcess actual.2 (C.state edge.2)
 
-private def rowMatches {n : Nat} (C : NormalizationCandidate n) (i : Fin (n + 1))
-    (row : List SymbolicMove) : Bool :=
+private def rowMatches {n : Nat} (C : (NormalizationCandidate n (schema := schema))) (i : Fin (n + 1))
+    (row : List (SymbolicMove schema)) : Bool :=
   let actual := row.filterMap observableMove
   actual.all (fun m => (C.moves i).any (agrees C m)) &&
     (C.moves i).all (fun e => actual.any fun m => agrees C m e)
 
-private theorem rowMatches_exact {n : Nat} {C : NormalizationCandidate n} {i : Fin (n + 1)}
-    {row : List SymbolicMove} (h : rowMatches C i row = true)
-    (l : SequentialLabel) (p : GProc) :
+private theorem rowMatches_exact {n : Nat} {C : (NormalizationCandidate n (schema := schema))} {i : Fin (n + 1)}
+    {row : List (SymbolicMove schema)} (h : rowMatches C i row = true)
+    (l : SequentialLabel schema) (p : GProc schema) :
     (l, p) ∈ row.filterMap observableMove ↔ ∃ j, (l, j) ∈ C.moves i ∧ p = C.state j := by
   simp only [rowMatches, Bool.and_eq_true, List.all_eq_true, List.any_eq_true, agrees,
     decide_eq_true_eq] at h
@@ -160,7 +162,7 @@ private theorem rowMatches_exact {n : Nat} {C : NormalizationCandidate n} {i : F
     obtain ⟨⟨k, q⟩, hm, rfl, hp⟩ := h.2 _ he
     exact sameProcess_sound hp ▸ hm
 
-private def checkRow {n : Nat} (C : NormalizationCandidate n) (rows : ReferenceRows)
+private def checkRow {n : Nat} (C : (NormalizationCandidate n (schema := schema))) (rows : ReferenceRows schema)
     (i : Fin (n + 1)) : Bool :=
   match localMoves (referenceMoves rows) (C.state i) with
   | none => false
@@ -168,7 +170,7 @@ private def checkRow {n : Nat} (C : NormalizationCandidate n) (rows : ReferenceR
 
 /-- Executable validation checks initial-state identity, exact rows and
     an incoming edge witnessing reachability of every non-initial index. -/
-def checkNormalization {n : Nat} (G : ProcessGraph) (C : NormalizationCandidate n) : Bool :=
+def checkNormalization {n : Nat} (G : ProcessGraph schema) (C : (NormalizationCandidate n (schema := schema))) : Bool :=
   match buildReferenceRows G C.referenceOrder [] with
   | none => false
   | some rows =>
@@ -179,8 +181,8 @@ def checkNormalization {n : Nat} (G : ProcessGraph) (C : NormalizationCandidate 
 
 /-- A convenient sufficient condition for proving acceptance of an explicit
     table without reducing the packet evaluator in the kernel. -/
-theorem checkNormalization_of_rows {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} {refs : ReferenceRows}
+theorem checkNormalization_of_rows {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} {refs : ReferenceRows schema}
     (hRefs : buildReferenceRows G C.referenceOrder [] = some refs)
     (hRoot : sameProcess G.root (C.state 0) = true)
     (hComparable : ∀ i, sameProcess (C.state i) (C.state i) = true)
@@ -209,19 +211,19 @@ theorem checkNormalization_of_rows {n : Nat} {G : ProcessGraph}
 
 /-- The validated table is exact for all histories and each of its
     transitions can occur for some packet lists. -/
-structure NormalizationExact {n : Nat} (G : ProcessGraph)
-    (C : NormalizationCandidate n) : Prop where
+structure NormalizationExact {schema : NetKAT.PacketSchema} {n : Nat} (G : ProcessGraph schema)
+    (C : (NormalizationCandidate n (schema := schema))) : Prop where
   root : G.root = C.state 0
-  step (i : Fin (n + 1)) (pt hl : List CtxPkt) (a : Action) (q : GProc) (pt' hl' : List CtxPkt) :
+  step (i : Fin (n + 1)) (pt hl : List schema.Packet) (a : Action schema) (q : GProc schema) (pt' hl' : List schema.Packet) :
     (actionAllowed Set.univ a ∧ GStep G ⟨C.state i, pt, hl⟩ a ⟨q, pt', hl'⟩) ↔
       ∃ l j, (l, j) ∈ C.moves i ∧ q = C.state j ∧
         MoveLabel.Realizes (.visible l) pt hl a pt' hl'
-  enabled {i j : Fin (n + 1)} {l : SequentialLabel} :
+  enabled {i j : Fin (n + 1)} {l : SequentialLabel schema} :
     (l, j) ∈ C.moves i → l.enabled = true
   connected (i : Fin (n + 1)) :
     i = 0 ∨ ∃ j l, j < i ∧ (l, i) ∈ C.moves j
 
-theorem checkNormalization_sound {n : Nat} {G : ProcessGraph} {C : NormalizationCandidate n}
+theorem checkNormalization_sound {n : Nat} {G : ProcessGraph schema} {C : (NormalizationCandidate n (schema := schema))}
     (h : checkNormalization G C = true) : NormalizationExact G C := by
   unfold checkNormalization at h
   split at h
@@ -262,9 +264,9 @@ theorem checkNormalization_sound {n : Nat} {G : ProcessGraph} {C : Normalization
       subst k
       exact Or.inr ⟨j, l, hlt, hk⟩
 
-private theorem NormalizationExact.edgeStep {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} (h : NormalizationExact G C)
-    {i j : Fin (n + 1)} {l : SequentialLabel} (he : (l, j) ∈ C.moves i) :
+private theorem NormalizationExact.edgeStep {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : NormalizationExact G C)
+    {i j : Fin (n + 1)} {l : SequentialLabel schema} (he : (l, j) ∈ C.moves i) :
     RestrictedDerivativeStep G (C.state i) (C.state j) := by
   cases l with
   | rcfg x p =>
@@ -280,8 +282,8 @@ private theorem NormalizationExact.edgeStep {n : Nat} {G : ProcessGraph}
         ⟨_, j, he, rfl, .packet hHist⟩
       exact ⟨[σ], [], _, [], [τ], ha, hs⟩
 
-theorem NormalizationExact.derivativeClosure {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} (h : NormalizationExact G C) :
+theorem NormalizationExact.derivativeClosure {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : NormalizationExact G C) :
     DerivativeClosure G (Set.range C.state) := by
   constructor
   · exact ⟨0, h.root.symm⟩
@@ -296,8 +298,8 @@ theorem NormalizationExact.derivativeClosure {n : Nat} {G : ProcessGraph}
           exact .refl
         · exact (ih j hlt).tail (h.edgeStep he)
 
-private theorem appendPending_step {G : ProcessGraph} {c d : GConfig} {a : Action}
-    (h : GStep G c a d) (suffix : List CtxPkt) :
+private theorem appendPending_step {G : ProcessGraph schema} {c d : GConfig schema} {a : Action schema}
+    (h : GStep G c a d) (suffix : List schema.Packet) :
     GStep G { c with pending := c.pending ++ suffix } a
       { d with pending := d.pending ++ suffix } := by
   induction h with
@@ -320,23 +322,23 @@ private theorem appendPending_step {G : ProcessGraph} {c d : GConfig} {a : Actio
   | project _ _ _ _ _ _ _ _ _ ih => exact .project _ _ _ _ _ _ _ _ ih
   | restrict _ _ _ _ _ _ _ _ ha _ ih => exact .restrict _ _ _ _ _ _ _ _ ha ih
 
-private theorem appendPending_steps {G : ProcessGraph} {c d : GConfig} {acts : List Action}
-    (h : GSteps G c acts d) (suffix : List CtxPkt) :
+private theorem appendPending_steps {G : ProcessGraph schema} {c d : GConfig schema} {acts : List (Action schema)}
+    (h : GSteps G c acts d) (suffix : List schema.Packet) :
     GSteps G { c with pending := c.pending ++ suffix } acts
       { d with pending := d.pending ++ suffix } := by
   induction h with
   | nil => exact .nil _
   | cons _ _ _ _ _ hs _ ih => exact .cons _ _ _ _ _ (appendPending_step hs suffix) ih
 
-private theorem appendStep {G : ProcessGraph} {c d e : GConfig} {acts : List Action} {a : Action}
+private theorem appendStep {G : ProcessGraph schema} {c d e : GConfig schema} {acts : List (Action schema)} {a : Action schema}
     (h : GSteps G c acts d) (hs : GStep G d a e) :
     GSteps G c (acts ++ [a]) e := by
   induction h with
   | nil => exact .cons _ _ _ _ _ hs (.nil _)
   | cons _ _ _ _ _ hf _ ih => exact .cons _ _ _ _ _ hf (ih hs)
 
-private theorem restrictedTrace_derivative {G : ProcessGraph} {c d : GConfig}
-    {acts : List Action} (h : GSteps G c acts d) :
+private theorem restrictedTrace_derivative {G : ProcessGraph schema} {c d : GConfig schema}
+    {acts : List (Action schema)} (h : GSteps G c acts d) :
     ∀ p, c.proc = .restrict Set.univ p →
       ∃ q, d.proc = .restrict Set.univ q ∧ Relation.ReflTransGen (RestrictedDerivativeStep G) p q := by
   induction h with
@@ -357,7 +359,7 @@ private theorem restrictedTrace_derivative {G : ProcessGraph} {c d : GConfig}
 /-- Projected reachability is exact. Every path can run with one initial
     pending list and an empty handled list. Each packet step consumes its
     next input, and all other steps leave both lists intact. -/
-theorem reachableDerivative_iff_trace {G : ProcessGraph} {p : GProc} :
+theorem reachableDerivative_iff_trace {G : ProcessGraph schema} {p : GProc schema} :
     ReachableDerivative G p ↔
       ∃ pt acts hl, GSteps G ⟨.restrict Set.univ G.root, pt, []⟩ acts
         ⟨.restrict Set.univ p, [], hl⟩ := by
@@ -381,20 +383,20 @@ theorem reachableDerivative_iff_trace {G : ProcessGraph} {p : GProc} :
     exact hr
 
 /-- Each certified state is reached by an actual restricted SOS trace. -/
-theorem NormalizationExact.reachesTrace {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} (h : NormalizationExact G C) (i : Fin (n + 1)) :
+theorem NormalizationExact.reachesTrace {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : NormalizationExact G C) (i : Fin (n + 1)) :
     ∃ pt acts hl, GSteps G ⟨.restrict Set.univ G.root, pt, []⟩ acts
       ⟨.restrict Set.univ (C.state i), [], hl⟩ :=
   reachableDerivative_iff_trace.mp (h.derivativeClosure.reachable ⟨i, rfl⟩)
 
-theorem checkNormalization_finite {n : Nat} {G : ProcessGraph} {C : NormalizationCandidate n}
+theorem checkNormalization_finite {n : Nat} {G : ProcessGraph schema} {C : (NormalizationCandidate n (schema := schema))}
     (h : checkNormalization G C = true) : HasFiniteDerivatives G :=
   ⟨Set.range C.state, Set.finite_range _, (checkNormalization_sound h).derivativeClosure⟩
 
 /-- The exact extra obligations of the Boolean validator. Each reachable
     derivative must admit a structural comparison and a symbolic row
     from one checked reference order. -/
-def NormalizationAdmissible (G : ProcessGraph) : Prop :=
+def NormalizationAdmissible (G : ProcessGraph schema) : Prop :=
   (∀ p, ReachableDerivative G p → sameProcess p p = true) ∧
   ∃ order refs, buildReferenceRows G order [] = some refs ∧
     ∀ p, ReachableDerivative G p → ∃ row, localMoves (referenceMoves refs) p = some row
@@ -402,13 +404,13 @@ def NormalizationAdmissible (G : ProcessGraph) : Prop :=
 /-- The Boolean checker's domain, expressed without running its row
     computation. Only the reachable terms and the reference bodies
     demanded by the selected order need satisfy these conditions. -/
-theorem normalizationAdmissible_iff (G : ProcessGraph) :
+theorem normalizationAdmissible_iff (G : ProcessGraph schema) :
     NormalizationAdmissible G ↔
       (∀ p, ReachableDerivative G p → restrictionFree p) ∧
       ∃ order, ReferenceOrderAdmissible G ∅ order ∧
         ∀ p, ReachableDerivative G p → MoveAdmissible (· ∈ order.toFinset) p := by
-  have rowsFor {order : List NodeId} {refs : ReferenceRows}
-      (h : buildReferenceRows G order [] = some refs) (p : GProc) :
+  have rowsFor {order : List NodeId} {refs : ReferenceRows schema}
+      (h : buildReferenceRows G order [] = some refs) (p : GProc schema) :
       (∃ row, localMoves (referenceMoves refs) p = some row) ↔
         MoveAdmissible (· ∈ order.toFinset) p := by
     apply (localMoves_exists_iff ..).trans
@@ -426,11 +428,11 @@ theorem normalizationAdmissible_iff (G : ProcessGraph) :
     exact ⟨fun p hp => (sameProcess_self_iff p).mpr (hc p hp), order, refs, hRefs,
       fun p hp => (rowsFor hRefs p).mpr (hLocal p hp)⟩
 
-private theorem checkNormalization_admissible {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} (h : checkNormalization G C = true) :
+private theorem checkNormalization_admissible {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : checkNormalization G C = true) :
     NormalizationAdmissible G := by
   have he := checkNormalization_sound h
-  have inRange (p : GProc) := (he.derivativeClosure.mem_iff p).mpr
+  have inRange (p : GProc schema) := (he.derivativeClosure.mem_iff p).mpr
   unfold checkNormalization at h
   split at h
   · contradiction
@@ -459,8 +461,8 @@ private theorem checkNormalization_admissible {n : Nat} {G : ProcessGraph}
     obtain ⟨row, hRow, _⟩ := rows i
     exact ⟨row, hRow⟩
 
-private theorem MovesExact.observableStep {G : ProcessGraph} {p q : GProc}
-    {row : List SymbolicMove} (h : MovesExact G p row) :
+private theorem MovesExact.observableStep {G : ProcessGraph schema} {p q : GProc schema}
+    {row : List (SymbolicMove schema)} (h : MovesExact G p row) :
     RestrictedDerivativeStep G p q ↔ ∃ l, (l, q) ∈ row.filterMap observableMove := by
   constructor
   · rintro ⟨pt, hl, a, pt', hl', ha, hs⟩
@@ -478,16 +480,16 @@ private theorem MovesExact.observableStep {G : ProcessGraph} {p q : GProc}
         have hh := (historySemantics_iff_packetSemantics p σ τ [] []).mpr ⟨rfl, hsem⟩
         exact ⟨[σ], [], .packet σ τ, [], [τ], trivial, (h ..).mpr ⟨_, hm, .packet hh⟩⟩
 
-private structure OrderedDerivatives (G : ProcessGraph) {n : Nat}
-    (state : Fin (n + 1) → GProc) : Prop where
+private structure OrderedDerivatives {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) {n : Nat}
+    (state : Fin (n + 1) → GProc schema) : Prop where
   root : state 0 = G.root
   injective : Function.Injective state
   reachable : ∀ i, ReachableDerivative G (state i)
   parent : ∀ i, i = 0 ∨ ∃ j, j < i ∧ RestrictedDerivativeStep G (state j) (state i)
 
-private theorem includeDerivative {G : ProcessGraph} {p : GProc} (hp : ReachableDerivative G p) :
-    ∀ {n : Nat} {state : Fin (n + 1) → GProc}, OrderedDerivatives G state →
-      ∃ (m : Nat) (next : Fin (m + 1) → GProc), OrderedDerivatives G next ∧
+private theorem includeDerivative {G : ProcessGraph schema} {p : GProc schema} (hp : ReachableDerivative G p) :
+    ∀ {n : Nat} {state : Fin (n + 1) → GProc schema}, OrderedDerivatives G state →
+      ∃ (m : Nat) (next : Fin (m + 1) → GProc schema), OrderedDerivatives G next ∧
         Set.range state ⊆ Set.range next ∧ p ∈ Set.range next := by
   classical
   induction hp with
@@ -499,7 +501,7 @@ private theorem includeDerivative {G : ProcessGraph} {p : GProc} (hp : Reachable
       obtain ⟨m, old, ho, hSub, j, rfl⟩ := ih h
       by_cases hp : p ∈ Set.range old
       · exact ⟨m, old, ho, hSub, hp⟩
-      let next : Fin (m + 2) → GProc := Fin.lastCases p old
+      let next : Fin (m + 2) → GProc schema := Fin.lastCases p old
       have hOld (i : Fin (m + 1)) : next i.castSucc = old i := Fin.lastCases_castSucc ..
       have hLast : next (Fin.last (m + 1)) = p := Fin.lastCases_last ..
       have hZero : (0 : Fin (m + 1)).castSucc = (0 : Fin (m + 2)) := rfl
@@ -534,13 +536,13 @@ private theorem includeDerivative {G : ProcessGraph} {p : GProc} (hp : Reachable
         obtain ⟨i, hi⟩ := hSub hp
         exact ⟨i.castSucc, (hOld i).trans hi⟩
 
-private theorem orderedDerivatives_cover {G : ProcessGraph} (h : HasFiniteDerivatives G) :
-    ∃ (n : Nat) (state : Fin (n + 1) → GProc), OrderedDerivatives G state ∧
+private theorem orderedDerivatives_cover {G : ProcessGraph schema} (h : HasFiniteDerivatives G) :
+    ∃ (n : Nat) (state : Fin (n + 1) → GProc schema), OrderedDerivatives G state ∧
       ∀ p, ReachableDerivative G p → p ∈ Set.range state := by
   classical
   obtain ⟨S, hf, hc⟩ := h
-  have build (s : Finset GProc) (hs : ∀ p ∈ s, ReachableDerivative G p) :
-      ∃ (n : Nat) (state : Fin (n + 1) → GProc), OrderedDerivatives G state ∧
+  have build (s : Finset (GProc schema)) (hs : ∀ p ∈ s, ReachableDerivative G p) :
+      ∃ (n : Nat) (state : Fin (n + 1) → GProc schema), OrderedDerivatives G state ∧
         ∀ p ∈ s, p ∈ Set.range state := by
     induction s using Finset.induction_on with
     | empty =>
@@ -569,8 +571,8 @@ private theorem orderedDerivatives_cover {G : ProcessGraph} (h : HasFiniteDeriva
 /-- Completeness of Boolean validation on its exact admissible domain.
     The proof orders the finite derivatives by discovery and uses the
     computed symbolic rows to construct the certificate. -/
-theorem exists_checkedNormalization_iff (G : ProcessGraph) :
-    (∃ (n : Nat) (C : NormalizationCandidate n), checkNormalization G C = true) ↔
+theorem exists_checkedNormalization_iff (G : ProcessGraph schema) :
+    (∃ (n : Nat) (C : (NormalizationCandidate n (schema := schema))), checkNormalization G C = true) ↔
       HasFiniteDerivatives G ∧ NormalizationAdmissible G := by
   classical
   constructor
@@ -584,15 +586,15 @@ theorem exists_checkedNormalization_iff (G : ProcessGraph) :
       Classical.choose_spec (hAvailable i)
     have hExact (i) : MovesExact G (state i) (rows i) :=
       localMoves_exact (buildReferenceRows_exact hRefs (by simp [referenceMoves])) (hRow i)
-    let target (p : GProc) : Fin (n + 1) :=
+    let target (p : GProc schema) : Fin (n + 1) :=
       if h : p ∈ Set.range state then Classical.choose h else 0
-    have hTarget {i : Fin (n + 1)} {e : SequentialLabel × GProc}
+    have hTarget {i : Fin (n + 1)} {e : (SequentialLabel schema) × (GProc schema)}
         (hm : e ∈ (rows i).filterMap observableMove) : state (target e.2) = e.2 := by
       have hs := (hExact i).observableStep.mpr ⟨e.1, hm⟩
       have hIn := cover e.2 ((hState.reachable i).tail hs)
       rw [show target e.2 = Classical.choose hIn from dif_pos hIn]
       exact Classical.choose_spec hIn
-    let C : NormalizationCandidate n :=
+    let C : (NormalizationCandidate n (schema := schema)) :=
       ⟨order, state, fun i => ((rows i).filterMap observableMove).map fun e => (e.1, target e.2)⟩
     refine ⟨n, C, checkNormalization_of_rows hRefs ?_ (fun i => comparable _ (hState.reachable i)) ?_ ?_⟩
     · change sameProcess G.root (state 0) = true
@@ -616,7 +618,7 @@ theorem exists_checkedNormalization_iff (G : ProcessGraph) :
 
 -- Packet labels retain the policy of the originating prefix. Reconfiguration
 -- labels come from prefixes or from matching send and receive prefixes.
-private def prefixLabels : GProc → Finset SequentialLabel
+private def prefixLabels : GProc schema → Finset (SequentialLabel schema)
   | .nSeq p q => insert (.packet p) (prefixLabels q)
   | .recv x p q | .send x p q | .rcfgPrefix x p q => insert (.rcfg x p) (prefixLabels q)
   | .project _ q | .restrict _ q => prefixLabels q
@@ -624,12 +626,12 @@ private def prefixLabels : GProc → Finset SequentialLabel
       prefixLabels p ∪ prefixLabels q
   | .ref _ | .deadlock => ∅
 
-private def actionEvent : Action → Option (Channel × NetKAT)
+private def actionEvent : Action schema → Option (Channel × (NetKAT schema))
   | .recv x p | .send x p | .rcfg x p => some (x, p)
   | .packet _ _ => none
 
-private theorem stepEvent_mem {G : ProcessGraph} {src dst : GConfig} {a : Action}
-    (hs : GStep G src a dst) {e : Channel × NetKAT} :
+private theorem stepEvent_mem {G : ProcessGraph schema} {src dst : GConfig schema} {a : Action schema}
+    (hs : GStep G src a dst) {e : Channel × (NetKAT schema)} :
     gprocRefs src.proc ⊆ G.nodes → actionEvent a = some e →
       SequentialLabel.rcfg e.1 e.2 ∈ prefixLabels src.proc ∨
         ∃ i ∈ G.nodes, SequentialLabel.rcfg e.1 e.2 ∈ prefixLabels (G.label i) := by
@@ -660,7 +662,7 @@ private theorem stepEvent_mem {G : ProcessGraph} {src dst : GConfig} {a : Action
       · exact Or.inr ⟨i, hi, hm⟩
       · exact Or.inr hm
 
-private theorem reachable_closed {G : ProcessGraph} {p : GProc}
+private theorem reachable_closed {G : ProcessGraph schema} {p : GProc schema}
     (h : ReachableDerivative G p) : gprocRefs p ⊆ G.nodes := by
   induction h with
   | refl => exact G.root_closed
@@ -668,18 +670,18 @@ private theorem reachable_closed {G : ProcessGraph} {p : GProc}
       obtain ⟨_, _, _, _, _, _, hs⟩ := hs
       exact hs.closed ih
 
-private theorem stepHistory {G : ProcessGraph} {c d : GConfig} {a : Action}
+private theorem stepHistory {G : ProcessGraph schema} {c d : GConfig schema} {a : Action schema}
     (hs : GStep G c a d) :
     c.pending = a.pendingFor d.pending ∧ d.handled = a.handledAfter c.handled := by
   induction hs <;> first | exact ⟨rfl, rfl⟩ | assumption
 
 -- Every packet step has a single originating policy. Any other pair
 -- accepted by that policy follows the same SOS rules to the same process.
-private theorem stepPacket_mem {G : ProcessGraph} {src dst : GConfig} {a : Action}
+private theorem stepPacket_mem {G : ProcessGraph schema} {src dst : GConfig schema} {a : Action schema}
     (hs : GStep G src a dst) :
     gprocRefs src.proc ⊆ G.nodes →
     ∀ σ τ, a = .packet σ τ →
-      ∃ p : NetKAT,
+      ∃ p : NetKAT schema,
         (.packet p ∈ prefixLabels src.proc ∨ ∃ i ∈ G.nodes, .packet p ∈ prefixLabels (G.label i)) ∧
         HistorySemantics p (History.singleton σ) (History.singleton τ) ∧
         ∀ σ' τ' pt hl, HistorySemantics p (History.singleton σ') (History.singleton τ') →
@@ -723,19 +725,19 @@ private theorem stepPacket_mem {G : ProcessGraph} {src dst : GConfig} {a : Actio
       exact ⟨p, hm.elim (fun h => Or.inr ⟨i, hi, h⟩) Or.inr, hp,
         fun σ' τ' pt hl hp' => .var _ _ _ _ _ _ _ (hrun σ' τ' pt hl hp')⟩
 
-private def alphabet (G : ProcessGraph) (p : GProc) : Finset SequentialLabel :=
+private def alphabet (G : ProcessGraph schema) (p : GProc schema) : Finset (SequentialLabel schema) :=
   prefixLabels p ∪ G.nodes.biUnion (prefixLabels ∘ G.label)
 
-private def LabelStep (G : ProcessGraph) (p q : GProc) (l : SequentialLabel) : Prop :=
+private def LabelStep (G : ProcessGraph schema) (p q : GProc schema) (l : SequentialLabel schema) : Prop :=
   ∀ pt hl a pt' hl', MoveLabel.Realizes (.visible l) pt hl a pt' hl' →
     actionAllowed Set.univ a ∧ GStep G ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩
 
-private theorem alphabet_complete {G : ProcessGraph} {src dst : GConfig} {a : Action}
+private theorem alphabet_complete {G : ProcessGraph schema} {src dst : GConfig schema} {a : Action schema}
     (hs : GStep G src a dst) (hc : gprocRefs src.proc ⊆ G.nodes)
     (ha : actionAllowed Set.univ a) :
     ∃ l ∈ alphabet G src.proc, LabelStep G src.proc dst.proc l ∧
       MoveLabel.Realizes (.visible l) src.pending src.handled a dst.pending dst.handled := by
-  have includeLabel {l : SequentialLabel}
+  have includeLabel {l : SequentialLabel schema}
       (hm : l ∈ prefixLabels src.proc ∨ ∃ i ∈ G.nodes, l ∈ prefixLabels (G.label i)) :
       l ∈ alphabet G src.proc :=
     hm.elim (Finset.mem_union_left _) (fun ⟨i, hi, hm⟩ =>
@@ -763,8 +765,8 @@ private theorem alphabet_complete {G : ProcessGraph} {src dst : GConfig} {a : Ac
     certificate. The table ranges over syntactic prefix labels and reachable
     derivatives. Packet labels retain their whole symbolic policy relation.
     The symbolic zero check removes labels with no packet witness. -/
-theorem exists_exactNormalization_iff (G : ProcessGraph) :
-    (∃ (n : Nat) (C : NormalizationCandidate n), NormalizationExact G C) ↔
+theorem exists_exactNormalization_iff (G : ProcessGraph schema) :
+    (∃ (n : Nat) (C : (NormalizationCandidate n (schema := schema))), NormalizationExact G C) ↔
       HasFiniteDerivatives G := by
   classical
   constructor
@@ -775,8 +777,8 @@ theorem exists_exactNormalization_iff (G : ProcessGraph) :
     let table (i : Fin (n + 1)) :=
       ((alphabet G (state i)).product (Finset.univ : Finset (Fin (n + 1)))).filter
         (fun e => e.1.enabled = true ∧ LabelStep G (state i) (state e.2) e.1)
-    let C : NormalizationCandidate n := ⟨[], state, fun i => (table i).toList⟩
-    have moveMem (i j : Fin (n + 1)) (l : SequentialLabel) :
+    let C : (NormalizationCandidate n (schema := schema)) := ⟨[], state, fun i => (table i).toList⟩
+    have moveMem (i j : Fin (n + 1)) (l : SequentialLabel schema) :
         (l, j) ∈ C.moves i ↔
           l ∈ alphabet G (state i) ∧ l.enabled = true ∧ LabelStep G (state i) (state j) l := by
       simp [C, table]
@@ -806,12 +808,12 @@ theorem exists_exactNormalization_iff (G : ProcessGraph) :
 
 private def stateNode {n : Nat} (i : Fin (n + 1)) : NodeId := auxNode i.val
 
-private def edgePrefix (l : SequentialLabel) (q : GProc) : GProc :=
+private def edgePrefix (l : SequentialLabel schema) (q : GProc schema) : GProc schema :=
   match l with
   | .packet p => .nSeq p q
   | .rcfg x p => .rcfgPrefix x p q
 
-private def renderRow {n : Nat} : List (SequentialLabel × Fin (n + 1)) → GProc
+private def renderRow {n : Nat} : List ((SequentialLabel schema) × Fin (n + 1)) → GProc schema
   | [] => .deadlock
   | (l, j) :: rest => .choice (edgePrefix l (.ref (stateNode j))) (renderRow rest)
 
@@ -821,7 +823,7 @@ private def stateNodes (n : Nat) : Finset NodeId :=
 private theorem stateNode_mem {n : Nat} (i : Fin (n + 1)) : stateNode i ∈ stateNodes n :=
   Finset.mem_image.mpr ⟨i, Finset.mem_univ _, rfl⟩
 
-private theorem renderRow_closed {n : Nat} (row : List (SequentialLabel × Fin (n + 1))) :
+private theorem renderRow_closed {n : Nat} (row : List ((SequentialLabel schema) × Fin (n + 1))) :
     gprocRefs (renderRow row) ⊆ stateNodes n := by
   induction row with
   | nil => simp [renderRow, gprocRefs]
@@ -831,17 +833,17 @@ private theorem renderRow_closed {n : Nat} (row : List (SequentialLabel × Fin (
         simpa only [renderRow, edgePrefix, gprocRefs, Finset.union_subset_iff,
           Finset.singleton_subset_iff] using And.intro (stateNode_mem j) ih
 
-private def sequentialLabel {n : Nat} (C : NormalizationCandidate n) : NodeId → GProc
+private def sequentialLabel {n : Nat} (C : (NormalizationCandidate n (schema := schema))) : NodeId → GProc schema
   | .inl _ => .deadlock
   | .inr k =>
       if hk : k < n + 1 then renderRow (C.moves ⟨k, hk⟩) else .deadlock
 
-private theorem sequentialLabel_stateNode {n : Nat} (C : NormalizationCandidate n)
+private theorem sequentialLabel_stateNode {n : Nat} (C : (NormalizationCandidate n (schema := schema)))
     (i : Fin (n + 1)) :
     sequentialLabel C (stateNode i) = renderRow (C.moves i) := by
   simp [sequentialLabel, stateNode, auxNode, i.isLt]
 
-private def sequentialGraph {n : Nat} (C : NormalizationCandidate n) : ProcessGraph where
+private def sequentialGraph {n : Nat} (C : (NormalizationCandidate n (schema := schema))) : (ProcessGraph schema) where
   nodes := stateNodes n
   root := .ref (stateNode (0 : Fin (n + 1)))
   label := sequentialLabel C
@@ -852,9 +854,9 @@ private def sequentialGraph {n : Nat} (C : NormalizationCandidate n) : ProcessGr
     rw [sequentialLabel_stateNode]
     exact renderRow_closed _
 
-private theorem sequentialGraph_supported {n : Nat} (C : NormalizationCandidate n) :
+private theorem sequentialGraph_supported {n : Nat} (C : (NormalizationCandidate n (schema := schema))) :
     GraphHeadSupported (sequentialGraph C) ∧ GraphTailSupported (sequentialGraph C) := by
-  have shape (row : List (SequentialLabel × Fin (n + 1))) :
+  have shape (row : List ((SequentialLabel schema) × Fin (n + 1))) :
       TailShapeOk (sequentialGraph C) (renderRow row) := by
     induction row with
     | nil => exact .deadlock
@@ -871,7 +873,7 @@ private theorem sequentialGraph_supported {n : Nat} (C : NormalizationCandidate 
   rw [sequentialLabel_stateNode]
   exact shape _
 
-private theorem localMoves_renderRow {n : Nat} (row : List (SequentialLabel × Fin (n + 1))) :
+private theorem localMoves_renderRow {n : Nat} (row : List ((SequentialLabel schema) × Fin (n + 1))) :
     localMoves (fun _ => none) (renderRow row) =
       some (row.map fun (l, j) => (.visible l, .ref (stateNode j))) := by
   induction row with
@@ -880,8 +882,8 @@ private theorem localMoves_renderRow {n : Nat} (row : List (SequentialLabel × F
       obtain ⟨l, j⟩ := edge
       cases l <;> simp [renderRow, edgePrefix, localMoves, ih]
 
-private theorem sequentialGraph_step {n : Nat} (C : NormalizationCandidate n)
-    (i : Fin (n + 1)) (pt hl : List CtxPkt) (a : Action) (q : GProc) (pt' hl' : List CtxPkt) :
+private theorem sequentialGraph_step {n : Nat} (C : (NormalizationCandidate n (schema := schema)))
+    (i : Fin (n + 1)) (pt hl : List schema.Packet) (a : Action schema) (q : GProc schema) (pt' hl' : List schema.Packet) :
     GStep (sequentialGraph C) ⟨.ref (stateNode i), pt, hl⟩ a ⟨q, pt', hl'⟩ ↔
       ∃ l j, (l, j) ∈ C.moves i ∧ q = .ref (stateNode j) ∧
         MoveLabel.Realizes (.visible l) pt hl a pt' hl' := by
@@ -902,14 +904,14 @@ private theorem sequentialGraph_step {n : Nat} (C : NormalizationCandidate n)
     exact ⟨_, List.mem_map.mpr ⟨(l, j), hm, rfl⟩, hr⟩
 
 /-- The two-graph form of the SOS step matching used by `IsGBisimulation`. -/
-def GraphMatches (G Q : ProcessGraph) (R : GProc → GProc → Prop) : Prop :=
+def GraphMatches (G Q : ProcessGraph schema) (R : GProc schema → GProc schema → Prop) : Prop :=
   ∀ p q, R p q →
-    ∀ (pt hl : List CtxPkt) (a : Action) (p' : GProc) (pt' hl' : List CtxPkt),
+    ∀ (pt hl : List schema.Packet) (a : Action schema) (p' : GProc schema) (pt' hl' : List schema.Packet),
       GStep G ⟨p, pt, hl⟩ a ⟨p', pt', hl'⟩ →
       ∃ q', GStep Q ⟨q, pt, hl⟩ a ⟨q', pt', hl'⟩ ∧ R p' q'
 
-theorem GraphMatches.traces {G Q : ProcessGraph} {R : GProc → GProc → Prop}
-    (h : GraphMatches G Q R) {c d : GConfig} {acts : List Action} (hs : GSteps G c acts d) :
+theorem GraphMatches.traces {G Q : ProcessGraph schema} {R : GProc schema → GProc schema → Prop}
+    (h : GraphMatches G Q R) {c d : GConfig schema} {acts : List (Action schema)} (hs : GSteps G c acts d) :
     ∀ q, R c.proc q → ∃ q', GSteps Q ⟨q, c.pending, c.handled⟩ acts
       ⟨q', d.pending, d.handled⟩ ∧ R d.proc q' := by
   induction hs with
@@ -921,10 +923,10 @@ theorem GraphMatches.traces {G Q : ProcessGraph} {R : GProc → GProc → Prop}
       obtain ⟨q', hq', hR⟩ := ih v hRv
       exact ⟨q', .cons _ _ _ _ _ hv hq', hR⟩
 
-def GraphBisimilarBetween (G Q : ProcessGraph) (p q : GProc) : Prop :=
+def GraphBisimilarBetween (G Q : ProcessGraph schema) (p q : GProc schema) : Prop :=
   ∃ R, R p q ∧ GraphMatches G Q R ∧ GraphMatches Q G (fun v u => R u v)
 
-theorem graphBisimilarBetween_same {G : ProcessGraph} {p q : GProc} :
+theorem graphBisimilarBetween_same {G : ProcessGraph schema} {p q : GProc schema} :
     GraphBisimilarBetween G G p q ↔ GBisimilar G p q := by
   constructor
   · rintro ⟨R, hpq, hf, hb⟩
@@ -941,11 +943,11 @@ theorem graphBisimilarBetween_same {G : ProcessGraph} {p q : GProc} :
     obtain ⟨v', hv, hr⟩ := hStep u v (hSym _ _ h) pt hl a u' pt' hl' hs
     exact ⟨v', hv, hSym _ _ hr⟩
 
-private theorem NormalizationExact.bisimilar {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} (h : NormalizationExact G C) :
+private theorem NormalizationExact.bisimilar {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : NormalizationExact G C) :
     GraphBisimilarBetween G (sequentialGraph C) (.restrict Set.univ G.root)
       (sequentialGraph C).root := by
-  let R : GProc → GProc → Prop := fun p q =>
+  let R : GProc schema → GProc schema → Prop := fun p q =>
     ∃ i : Fin (n + 1), p = .restrict Set.univ (C.state i) ∧ q = .ref (stateNode i)
   refine ⟨R, ⟨0, congrArg (GProc.restrict Set.univ) h.root, rfl⟩, ?_, ?_⟩
   · rintro p q ⟨i, rfl, rfl⟩ pt hl a p' pt' hl' hs
@@ -961,14 +963,14 @@ private theorem NormalizationExact.bisimilar {n : Nat} {G : ProcessGraph}
 
 /-- Render a table whose exactness is checked by Lean. This entry point
     allows proofs about the SOS in place of Boolean row validation. -/
-def normalizeCertifiedGraph {n : Nat} {G : ProcessGraph}
-    (C : NormalizationCandidate n) (_ : NormalizationExact G C) : ProcessGraph :=
+def normalizeCertifiedGraph {n : Nat} {G : ProcessGraph schema}
+    (C : (NormalizationCandidate n (schema := schema))) (_ : NormalizationExact G C) : ProcessGraph schema :=
   sequentialGraph C
 
-theorem normalizeCertifiedGraph_traceReady {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} (h : NormalizationExact G C) :
+theorem normalizeCertifiedGraph_traceReady {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : NormalizationExact G C) :
     TraceReady (normalizeCertifiedGraph C h) := by
-  have shape (i : Fin (n + 1)) (row : List (SequentialLabel × Fin (n + 1)))
+  have shape (i : Fin (n + 1)) (row : List ((SequentialLabel schema) × Fin (n + 1)))
       (sub : ∀ edge ∈ row, edge ∈ C.moves i) :
       EnabledSequential (sequentialGraph C) (renderRow row) := by
     induction row with
@@ -990,8 +992,8 @@ theorem normalizeCertifiedGraph_traceReady {n : Nat} {G : ProcessGraph}
   rw [sequentialLabel_stateNode]
   exact shape i (C.moves i) (fun _ mem => mem)
 
-theorem normalizeCertifiedGraph_correct {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} (h : NormalizationExact G C) :
+theorem normalizeCertifiedGraph_correct {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : NormalizationExact G C) :
     let Q := normalizeCertifiedGraph C h
     DerivativeClosure G (Set.range C.state) ∧
       GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root ∧
@@ -999,14 +1001,14 @@ theorem normalizeCertifiedGraph_correct {n : Nat} {G : ProcessGraph}
   ⟨h.derivativeClosure, h.bisimilar, sequentialGraph_supported C⟩
 
 /-- Run the existing safety checker on a proof-checked table. -/
-def Internal.safetyCheckCertifiedGraph {n : Nat} {G : ProcessGraph}
-    (C : NormalizationCandidate n) (h : NormalizationExact G C)
-    (R : ReconfigSet) (ingress egress : NetKAT) : SafetyCheckResult :=
+def Internal.safetyCheckCertifiedGraph {n : Nat} {G : ProcessGraph schema}
+    (C : (NormalizationCandidate n (schema := schema))) (h : NormalizationExact G C)
+    (R : ReconfigSet schema) (ingress egress : NetKAT schema) : SafetyCheckResult :=
   Internal.safetyCheckGraph (normalizeCertifiedGraph C h) R ingress egress
 
-theorem safetyCheckCertifiedGraph_correct {n : Nat} {G : ProcessGraph}
-    {C : NormalizationCandidate n} (h : NormalizationExact G C)
-    (R : ReconfigSet) (ingress egress : NetKAT) :
+theorem safetyCheckCertifiedGraph_correct {n : Nat} {G : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : NormalizationExact G C)
+    (R : ReconfigSet schema) (ingress egress : NetKAT schema) :
     let Q := normalizeCertifiedGraph C h
     let result := Internal.safetyCheckCertifiedGraph C h R ingress egress
     GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root ∧
@@ -1026,16 +1028,16 @@ inductive NormalizationError where
   deriving DecidableEq, BEq, Repr
 
 /-- Normalize a closed graph using a checked finite derivative table. -/
-def normalizeGraph {n : Nat} (G : ProcessGraph) (C : NormalizationCandidate n) :
-    Except NormalizationError ProcessGraph :=
+def normalizeGraph {n : Nat} (G : ProcessGraph schema) (C : (NormalizationCandidate n (schema := schema))) :
+    Except NormalizationError (ProcessGraph schema) :=
   if checkNormalization G C then .ok (sequentialGraph C) else .error .invalidCertificate
 
-theorem normalizeGraph_invalid_iff {n : Nat} (G : ProcessGraph) (C : NormalizationCandidate n) :
+theorem normalizeGraph_invalid_iff {n : Nat} (G : ProcessGraph schema) (C : (NormalizationCandidate n (schema := schema))) :
     normalizeGraph G C = .error .invalidCertificate ↔ checkNormalization G C = false := by
   unfold normalizeGraph
   split <;> simp_all
 
-theorem normalizeGraph_correct {n : Nat} {G Q : ProcessGraph} {C : NormalizationCandidate n}
+theorem normalizeGraph_correct {n : Nat} {G Q : ProcessGraph schema} {C : (NormalizationCandidate n (schema := schema))}
     (h : normalizeGraph G C = .ok Q) :
     DerivativeClosure G (Set.range C.state) ∧
       GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root ∧
@@ -1048,13 +1050,13 @@ theorem normalizeGraph_correct {n : Nat} {G Q : ProcessGraph} {C : Normalization
   · contradiction
 
 /-- Normalize and check (34) and (35) using the environment-free graph checker. -/
-def Internal.normalizeAndSafetyCheckGraph {n : Nat} (G : ProcessGraph) (C : NormalizationCandidate n)
-    (R : ReconfigSet) (ingress egress : NetKAT) : Except NormalizationError SafetyCheckResult :=
+def Internal.normalizeAndSafetyCheckGraph {n : Nat} (G : ProcessGraph schema) (C : (NormalizationCandidate n (schema := schema)))
+    (R : ReconfigSet schema) (ingress egress : NetKAT schema) : Except NormalizationError SafetyCheckResult :=
   (normalizeGraph G C).map fun Q => Internal.safetyCheckGraph Q R ingress egress
 
-theorem normalizeAndSafetyCheckGraph_correct {n : Nat} {G Q : ProcessGraph}
-    {C : NormalizationCandidate n} (h : normalizeGraph G C = .ok Q)
-    (R : ReconfigSet) (ingress egress : NetKAT) :
+theorem normalizeAndSafetyCheckGraph_correct {n : Nat} {G Q : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (h : normalizeGraph G C = .ok Q)
+    (R : ReconfigSet schema) (ingress egress : NetKAT schema) :
     GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root ∧
       ∃ result, Internal.normalizeAndSafetyCheckGraph G C R ingress egress = .ok result ∧
         (result.initialCondition = .isZero true ↔
@@ -1068,17 +1070,17 @@ theorem normalizeAndSafetyCheckGraph_correct {n : Nat} {G Q : ProcessGraph}
 
 /-- Frontend for raw terms. The certificate describes derivatives of
     the compiled graph with its canonical reference identifiers. -/
-def Internal.compileNormalizeAndSafetyCheckGraph {n : Nat} (env : RecEnv) (p : DyNetKAT)
-    (support : Finset Var) (C : NormalizationCandidate n) (R : ReconfigSet)
-    (ingress egress : NetKAT) : Except NormalizationError SafetyCheckResult :=
+def Internal.compileNormalizeAndSafetyCheckGraph {n : Nat} (env : RecEnv schema) (p : DyNetKAT schema)
+    (support : Finset Var) (C : (NormalizationCandidate n (schema := schema))) (R : ReconfigSet schema)
+    (ingress egress : NetKAT schema) : Except NormalizationError SafetyCheckResult :=
   match compileGraph env p support with
   | none => .error .compilationFailed
   | some G => Internal.normalizeAndSafetyCheckGraph G C R ingress egress
 
-theorem Internal.compileNormalizeAndSafetyCheckGraph_correct {n : Nat} {env : RecEnv}
-    {p : DyNetKAT} {support : Finset Var} {G Q : ProcessGraph}
-    {C : NormalizationCandidate n} (hCompile : compileGraph env p support = some G)
-    (hNormalize : normalizeGraph G C = .ok Q) (R : ReconfigSet) (ingress egress : NetKAT) :
+theorem Internal.compileNormalizeAndSafetyCheckGraph_correct {n : Nat} {env : RecEnv schema}
+    {p : DyNetKAT schema} {support : Finset Var} {G Q : ProcessGraph schema}
+    {C : (NormalizationCandidate n (schema := schema))} (hCompile : compileGraph env p support = some G)
+    (hNormalize : normalizeGraph G C = .ok Q) (R : ReconfigSet schema) (ingress egress : NetKAT schema) :
     Corr G env p G.root ∧ GraphBisimilarBetween G Q (.restrict Set.univ G.root) Q.root ∧
       ∃ result, Internal.compileNormalizeAndSafetyCheckGraph env p support C R ingress egress = .ok result ∧
         (result.initialCondition = .isZero true ↔

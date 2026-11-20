@@ -5,6 +5,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
 open DyNetKAT.NetKAT
 
 def MoveLabel.prefix {schema : PacketSchema} (l : MoveLabel schema)
@@ -60,8 +62,8 @@ theorem choiceOf_step_iff {schema : PacketSchema} (env : RecEnv schema)
 
 /-- Render a finite prefix-and-choice term. Only an actual row edge causes
 a recursive call at the next smaller depth. -/
-def renderProjection (G : ProcessGraph) (bodyChecks : NodeId → RestrictionChecks) :
-    Nat → CheckedResidual → Option DyNetKAT
+def renderProjection (G : ProcessGraph schema) (bodyChecks : NodeId → RestrictionChecks schema) :
+    Nat → CheckedResidual schema → Option (DyNetKAT schema)
   | 0, _ => some .deadlock
   | n + 1, p => do
       let row ← checkedMoves G bodyChecks p
@@ -97,9 +99,9 @@ private theorem mapM_members {α β : Type} {f : α → Option β} {xs : List α
       · exact Or.inl (by simpa [hz] using hf.symm)
       · exact Or.inr ⟨w, hw, hf⟩
 
-theorem renderProjection_exists {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
+theorem renderProjection_exists {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
     {live : NodeId → Prop} (hG : ProjectionSupport G bodyChecks live)
-    (n : Nat) {p : CheckedResidual} (hp : p.Valid live) :
+    (n : Nat) {p : CheckedResidual schema} (hp : p.Valid live) :
     ∃ q, renderProjection G bodyChecks n p = some q := by
   induction n generalizing p with
   | zero => exact ⟨.deadlock, rfl⟩
@@ -113,7 +115,7 @@ theorem renderProjection_exists {G : ProcessGraph} {bodyChecks : NodeId → Rest
         exact ⟨m.1.prefix r, by simp [he]⟩)
     exact ⟨choiceOf branches, by simp [renderProjection, hr, hb]⟩
 
-private theorem choiceOf_closed (branches : List DyNetKAT)
+private theorem choiceOf_closed (branches : List (DyNetKAT schema))
     (h : ∀ b ∈ branches, recursiveVars b = ∅) : recursiveVars (choiceOf branches) = ∅ := by
   induction branches with
   | nil => rfl
@@ -123,8 +125,8 @@ private theorem choiceOf_closed (branches : List DyNetKAT)
     simp
 
 /-- The rendered tree is independent of the recursive definition table. -/
-theorem renderProjection_closed {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
-    {n : Nat} {p : CheckedResidual} {q : DyNetKAT}
+theorem renderProjection_closed {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
+    {n : Nat} {p : CheckedResidual schema} {q : DyNetKAT schema}
     (h : renderProjection G bodyChecks n p = some q) : recursiveVars q = ∅ := by
   induction n generalizing p q with
   | zero => cases h; rfl
@@ -143,11 +145,11 @@ theorem renderProjection_closed {G : ProcessGraph} {bodyChecks : NodeId → Rest
       | _ => exact hc
     exact choiceOf_closed branches hClosed
 
-private theorem rendered_step_iff {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
-    {row : List CheckedMove} {branches : List DyNetKAT} {n : Nat}
+private theorem rendered_step_iff {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
+    {row : List (CheckedMove schema)} {branches : List (DyNetKAT schema)} {n : Nat}
     (hb : row.mapM (fun m => (renderProjection G bodyChecks n m.2).map m.1.prefix) =
-      some branches) (env : RecEnv)
-    (pt hl : List CtxPkt) (a : Action) (q : DyNetKAT) (pt' hl' : List CtxPkt) :
+      some branches) (env : RecEnv schema)
+    (pt hl : List schema.Packet) (a : Action schema) (q : DyNetKAT schema) (pt' hl' : List schema.Packet) :
     Step env ⟨choiceOf branches, pt, hl⟩ a ⟨q, pt', hl'⟩ ↔
       ∃ m ∈ row, renderProjection G bodyChecks n m.2 = some q ∧
         MoveLabel.Realizes m.1 pt hl a pt' hl' := by
@@ -163,13 +165,13 @@ private theorem rendered_step_iff {G : ProcessGraph} {bodyChecks : NodeId → Re
       (MoveLabel.prefix_step_iff ..).mpr ⟨rfl, ha⟩⟩
 
 /-- A successful rendering is strongly bisimilar to the source projection. -/
-theorem renderProjection_bisimilar {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
+theorem renderProjection_bisimilar {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
     {live : NodeId → Prop} (hG : ProjectionSupport G bodyChecks live)
-    {env : RecEnv} {p q : DyNetKAT} {state : CheckedResidual} {n : Nat}
+    {env : RecEnv schema} {p q : DyNetKAT schema} {state : CheckedResidual schema} {n : Nat}
     (hv : state.Valid live) (hc : Corr G env p state.proc)
     (hr : renderProjection G bodyChecks n state = some q) :
     Bisimilar env q (.project n p) := by
-  let R (q s : DyNetKAT) : Prop := ∃ (n : Nat) (state : CheckedResidual) (p : DyNetKAT),
+  let R (q s : DyNetKAT schema) : Prop := ∃ (n : Nat) (state : CheckedResidual schema) (p : DyNetKAT schema),
     state.Valid live ∧ Corr G env p state.proc ∧
     renderProjection G bodyChecks n state = some q ∧ s = .project n p
   have forward : ∀ q s, R q s → ∀ pt hl a q' pt' hl',
@@ -218,11 +220,11 @@ theorem renderProjection_bisimilar {G : ProcessGraph} {bodyChecks : NodeId → R
     exact ⟨s', hs', Or.inr hR⟩
 
 /-- Every finite graph execution can carry classifier data to its endpoint. -/
-theorem GSteps.checkedResidual {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
+theorem GSteps.checkedResidual {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
     {live : NodeId → Prop} (hG : ProjectionSupport G bodyChecks live)
-    {c d : GConfig} {actions : List Action} (h : GSteps G c actions d) :
-    ∀ p : CheckedResidual, p.proc = c.proc → p.Valid live →
-      ∃ q : CheckedResidual, q.proc = d.proc ∧ q.Valid live := by
+    {c d : GConfig schema} {actions : List (Action schema)} (h : GSteps G c actions d) :
+    ∀ p : CheckedResidual schema, p.proc = c.proc → p.Valid live →
+      ∃ q : CheckedResidual schema, q.proc = d.proc ∧ q.Valid live := by
   induction h with
   | nil => exact fun p hp hv => ⟨p, hp, hv⟩
   | cons c c' d a actions hs _ ih =>
@@ -240,23 +242,23 @@ theorem GSteps.checkedResidual {G : ProcessGraph} {bodyChecks : NodeId → Restr
         exact ih m.2 (congrArg Prod.snd hEq) (hValid m hMem)
 
 /-- Source executions lift to valid classifier-carrying residuals via Corr. -/
-theorem Steps.checkedResidual {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
+theorem Steps.checkedResidual {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
     {live : NodeId → Prop} (hG : ProjectionSupport G bodyChecks live)
-    {env : RecEnv} {c d : Config} {actions : List Action} (h : Steps env c actions d)
-    {p : CheckedResidual} (hc : Corr G env c.proc p.proc) (hv : p.Valid live) :
-    ∃ q : CheckedResidual, Corr G env d.proc q.proc ∧ q.Valid live := by
+    {env : RecEnv schema} {c d : Config schema} {actions : List (Action schema)} (h : Steps env c actions d)
+    {p : CheckedResidual schema} (hc : Corr G env c.proc p.proc) (hv : p.Valid live) :
+    ∃ q : CheckedResidual schema, Corr G env d.proc q.proc ∧ q.Valid live := by
   obtain ⟨gp, hg, hCorr⟩ := steps_to_gsteps G env c d actions h p.proc hc
   obtain ⟨q, hEq, hValid⟩ := hg.checkedResidual hG p rfl hv
   exact ⟨q, hEq ▸ hCorr, hValid⟩
 
 /-- The reachable-name invariant allows a supplied support to contain extra
 definitions that need neither guard proofs nor classifier proofs. -/
-def ProjectionLive (env : RecEnv) (root : DyNetKAT) (i : NodeId) : Prop :=
+def ProjectionLive (env : RecEnv schema) (root : DyNetKAT schema) (i : NodeId) : Prop :=
   ∃ x, ReachableVar env root x ∧ i = varNode x
 
-theorem toGraph_projectionSupport {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem toGraph_projectionSupport {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) (hw : WellFormed env root)
-    (bodyChecks : NodeId → RestrictionChecks)
+    (bodyChecks : NodeId → RestrictionChecks schema)
     (hb : ∀ x b, ReachableVar env root x → env.lookup x = some b →
       AllRestrictionChecksCorrect (toGProc b) (bodyChecks (varNode x))) :
     ProjectionSupport (toGraph env root S hs) bodyChecks (ProjectionLive env root) := by
@@ -278,7 +280,7 @@ theorem toGraph_projectionSupport {env : RecEnv} {root : DyNetKAT} {S : Finset V
     exact ⟨guarded_body_moveAdmissible (WellFormed.reachable_guarded env root hw x b hx he),
       hb x b hx he⟩
 
-theorem toGProc_projectionValid {env : RecEnv} {root : DyNetKAT} {checks : RestrictionChecks}
+theorem toGProc_projectionValid {env : RecEnv schema} {root : DyNetKAT schema} {checks : RestrictionChecks schema}
     (h : AllRestrictionChecksCorrect (toGProc root) checks) :
     (CheckedResidual.mk (toGProc root) checks).Valid (ProjectionLive env root) := by
   refine ⟨?_, h⟩
@@ -289,22 +291,22 @@ theorem toGProc_projectionValid {env : RecEnv} {root : DyNetKAT} {checks : Restr
 
 /-- The proof of success is erased. The term is selected from the executable
 Option result, using no choice principle. -/
-def renderProjectionTotal {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
+def renderProjectionTotal {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
     {live : NodeId → Prop} (hG : ProjectionSupport G bodyChecks live)
-    (n : Nat) (p : CheckedResidual) (hp : p.Valid live) : DyNetKAT :=
+    (n : Nat) (p : CheckedResidual schema) (hp : p.Valid live) : DyNetKAT schema :=
   (renderProjection G bodyChecks n p).get (by
     obtain ⟨q, hq⟩ := renderProjection_exists hG n hp
     simp [hq])
 
-theorem renderProjectionTotal_eq_some {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
+theorem renderProjectionTotal_eq_some {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
     {live : NodeId → Prop} (hG : ProjectionSupport G bodyChecks live)
-    (n : Nat) (p : CheckedResidual) (hp : p.Valid live) :
+    (n : Nat) (p : CheckedResidual schema) (hp : p.Valid live) :
     renderProjection G bodyChecks n p = some (renderProjectionTotal hG n p hp) :=
   (Option.some_get _).symm
 
-theorem renderProjection_source {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem renderProjection_source {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) (hw : WellFormed env root)
-    (checks : RestrictionChecks) (bodyChecks : NodeId → RestrictionChecks)
+    (checks : RestrictionChecks schema) (bodyChecks : NodeId → RestrictionChecks schema)
     (hc : AllRestrictionChecksCorrect (toGProc root) checks)
     (hb : ∀ x b, ReachableVar env root x → env.lookup x = some b →
       AllRestrictionChecksCorrect (toGProc b) (bodyChecks (varNode x))) (n : Nat) :
@@ -316,13 +318,13 @@ theorem renderProjection_source {env : RecEnv} {root : DyNetKAT} {S : Finset Var
   exact ⟨q, hq, renderProjection_bisimilar hG hv (toGraph_corr env root S hs) hq⟩
 
 /-- Render with an extra outer restriction, using the same compiled graph. -/
-theorem renderProjection_restricted {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem renderProjection_restricted {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) (hw : WellFormed env root)
-    (checks : RestrictionChecks) (bodyChecks : NodeId → RestrictionChecks)
+    (checks : RestrictionChecks schema) (bodyChecks : NodeId → RestrictionChecks schema)
     (hc : AllRestrictionChecksCorrect (toGProc root) checks)
     (hb : ∀ x b, ReachableVar env root x → env.lookup x = some b →
       AllRestrictionChecksCorrect (toGProc b) (bodyChecks (varNode x)))
-    (L : Set CommunicationAction) (blocked : CommunicationAction → Bool)
+    (L : Set (CommunicationAction schema)) (blocked : CommunicationAction schema → Bool)
     (hL : ∀ a, blocked a = true ↔ a ∈ L) (n : Nat) :
     ∃ q, renderProjection (toGraph env root S hs) bodyChecks n
       ((CheckedResidual.mk (toGProc root) checks).restrict L blocked) = some q ∧
@@ -336,8 +338,8 @@ theorem renderProjection_restricted {env : RecEnv} {root : DyNetKAT} {S : Finset
     (corr_restrict_intro (L := L) (toGraph_corr env root S hs)) hq
   exact ⟨q, hq, hB.trans env (Bisimilar.symm env (restrict_project_commute env L root n))⟩
 
-theorem renderProjection_preprocessable {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
-    {n : Nat} {state : CheckedResidual} {q : DyNetKAT}
+theorem renderProjection_preprocessable {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
+    {n : Nat} {state : CheckedResidual schema} {q : DyNetKAT schema}
     (render : renderProjection G bodyChecks n state = some q) :
     (blockCommunication (toGProc q)).isSome := by
   induction n generalizing state q with
@@ -358,7 +360,7 @@ theorem renderProjection_preprocessable {G : ProcessGraph} {bodyChecks : NodeId 
                 simp [MoveLabel.prefix, toGProc, blockCommunication, hout, zero]
             | rcfg => simp [MoveLabel.prefix, toGProc, blockCommunication, hout]
         | recv | send => rfl
-      have choiceSupported (bs : List DyNetKAT)
+      have choiceSupported (bs : List (DyNetKAT schema))
           (ok : ∀ b ∈ bs, (blockCommunication (toGProc b)).isSome) :
           (blockCommunication (toGProc (choiceOf bs))).isSome := by
         induction bs with

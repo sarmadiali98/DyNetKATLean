@@ -17,7 +17,7 @@ structure Program {schema : PacketSchema} (extended : Bool) (env : RecEnv schema
 
 namespace Program
 
-variable {schema : PacketSchema} {extended : Bool} {env : (RecEnv schema)}
+variable {schema : PacketSchema} {extended : Bool} {env : RecEnv schema}
 
 /-- Prefix an admitted continuation of the base sort, with the same defining equations. -/
 def packetPrefix (d : Program extended env) (base : BaseSyntax d.term) (p : NetKAT schema) :
@@ -44,7 +44,7 @@ variable {program : Program extended env}
 theorem admissible (state : program.Residual) : PaperAdmissible extended env state.term :=
   program.admissible.reachable state.reachable
 
-def advance (state : program.Residual) {d : (Config schema)} {a : (Action schema)} {pt hl : List schema.Packet}
+def advance (state : program.Residual) {d : Config schema} {a : Action schema} {pt hl : List schema.Packet}
     (step : Step env ⟨state.term, pt, hl⟩ a d) : program.Residual :=
   ⟨d.proc, state.reachable.tail ⟨pt, hl, a, d.pending, d.handled, step⟩⟩
 
@@ -59,10 +59,10 @@ def initial (program : Program extended env) : program.Residual :=
 
 /-- Concrete execution with consistent packet lists also supplies a residual. -/
 def afterTrace (program : Program extended env) {pt hl : List schema.Packet}
-    {d : (Config schema)} {acts : List (Action schema)} (trace : Steps env ⟨program.term, pt, hl⟩ acts d) :
+    {d : Config schema} {acts : List (Action schema)} (trace : Steps env ⟨program.term, pt, hl⟩ acts d) :
     program.Residual := ⟨d.proc, toReach trace .refl⟩
 where
-  toReach {c d : (Config schema)} {acts : List (Action schema)} (trace : Steps env c acts d)
+  toReach {c d : Config schema} {acts : List (Action schema)} (trace : Steps env c acts d)
       (initial : Relation.ReflTransGen (ProcessStep env) program.term c.proc) :
       Relation.ReflTransGen (ProcessStep env) program.term d.proc := by
     induction trace with
@@ -70,19 +70,17 @@ where
     | cons c next _ a _ step _ ih =>
       exact ih (initial.tail ⟨c.pending, c.handled, a, next.pending, next.handled, step⟩)
 
-variable {env : RecEnv}
-
 theorem approximation (p q : Program extended env) :
     Bisimilar env p.term q.term ↔ ∀ n, Bisimilar env (.project n p.term) (.project n q.term) :=
   approximation_induction_iff p.admissible.1.imageFiniteFrom q.admissible.1.imageFiniteFrom
 
-theorem ground_complete (p q : Program extended env) (hp : Ground p.term) (hq : Ground q.term) :
+theorem ground_complete [DiagramLayout schema] (p q : Program extended env) (hp : Ground p.term) (hq : Ground q.term) :
     Derives env p.term q.term ↔ Bisimilar env p.term q.term :=
   ground_derives_iff_bisimilar hp hq
 
 /-- Head normal forms are algebraic representations. The witness need not
 be an SOS residual. -/
-theorem normalizes (program : Program extended env) :
+theorem normalizes [DiagramLayout schema] (program : Program extended env) :
     ∃ q, IsDNKNormalForm q ∧ DerivesNoAIP env program.term q :=
   program.admissible.1.normalizes
 
@@ -96,7 +94,7 @@ namespace Compiled
 
 variable {program : Program extended env}
 
-def graph (compiled : program.Compiled) : ProcessGraph :=
+def graph (compiled : program.Compiled) : ProcessGraph schema :=
   toGraph env program.term compiled.names compiled.support
 
 theorem corr (compiled : program.Compiled) :
@@ -104,7 +102,7 @@ theorem corr (compiled : program.Compiled) :
   toGraph_corr env program.term compiled.names compiled.support
 
 /-- Reachability in a compiled graph witnesses source SOS reachability. -/
-theorem source_reachable (compiled : program.Compiled) {q : GProc}
+theorem source_reachable (compiled : program.Compiled) {q : GProc schema}
     (reachable : Relation.ReflTransGen (ConcreteStep compiled.graph) compiled.graph.root q) :
     ∃ p : program.Residual, Corr compiled.graph env p.term q := by
   induction reachable with
@@ -119,11 +117,11 @@ theorem source_reachable (compiled : program.Compiled) {q : GProc}
 restriction checks attached to the graph syntax. -/
 structure State (compiled : program.Compiled) where
   source : program.Residual
-  checked : CheckedResidual
+  checked : CheckedResidual schema
   corr : Corr compiled.graph env source.term checked.proc
   reachable : Relation.ReflTransGen (ConcreteStep compiled.graph) compiled.graph.root checked.proc
 
-def initial (compiled : program.Compiled) (checks : RestrictionChecks) : compiled.State :=
+def initial (compiled : program.Compiled) (checks : RestrictionChecks schema) : compiled.State :=
   ⟨program.initial, ⟨compiled.graph.root, checks⟩, compiled.corr, .refl⟩
 
 /-- Exact symbolic enumeration on a reachable compiled state. The proof
@@ -131,7 +129,7 @@ field is erased and makes row membership available to `successor`. -/
 def State.moves {compiled : program.Compiled} (state : compiled.State)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : state.checked.Valid live) :
-    { row : List CheckedMove //
+    { row : List (CheckedMove schema) //
       MovesExact compiled.graph state.checked.proc (row.map CheckedMove.erase) ∧
         ∀ move ∈ row, move.2.Valid live } :=
   match h : checkedMoves compiled.graph bodyChecks state.checked with
@@ -152,7 +150,7 @@ Packet moves require a realization witness, since their NetKAT guard may
 fail for the chosen packet. -/
 theorem State.successor {compiled : program.Compiled} (state : compiled.State)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
-    (valid : state.checked.Valid live) {move : CheckedMove}
+    (valid : state.checked.Valid live) {move : CheckedMove schema}
     (member : move ∈ (state.moves support valid).val)
     {pt hl a pt' hl'} (realizes : MoveLabel.Realizes move.1 pt hl a pt' hl') :
     ∃ target : compiled.State, target.checked = move.2 ∧
@@ -165,7 +163,7 @@ theorem State.successor {compiled : program.Compiled} (state : compiled.State)
 
 /-- Restrict a certificate's concrete side to SOS states reachable from
 the analyzed root. Abstract table indices are model states. -/
-private def reachableSimulation {n G root} {table : AbstractTable n}
+private def reachableSimulation {n G root} {table : AbstractTable n (schema := schema)}
     (cert : SimulationAbstraction G root table) : SimulationAbstraction G root table where
   represents i p := cert.represents i p ∧ Relation.ReflTransGen (ConcreteStep G) root p
   initial := ⟨cert.initial, .refl⟩
@@ -174,7 +172,7 @@ private def reachableSimulation {n G root} {table : AbstractTable n}
     obtain ⟨j, edge, hq⟩ := cert.forward hp.1 step
     exact ⟨j, edge, hq, hp.2.tail ⟨pt, hl, a, pt', hl', step⟩⟩
 
-private def reachableQuotient {n G root} {table : AbstractTable n}
+private def reachableQuotient {n G root} {table : AbstractTable n (schema := schema)}
     (cert : BisimulationQuotient G root table) : BisimulationQuotient G root table where
   toSimulationAbstraction := reachableSimulation cert.toSimulationAbstraction
   backward := by
@@ -182,7 +180,7 @@ private def reachableQuotient {n G root} {table : AbstractTable n}
     obtain ⟨q, step, hq⟩ := cert.backward hp.1 edge
     exact ⟨q, step, hq, hp.2.tail ⟨pt, hl, a, pt', hl', step⟩⟩
 
-private def restrictModel {G : ProcessGraph} {root : GProc} :
+private def restrictModel {G : ProcessGraph schema} {root : GProc schema} :
     SuppliedModel G root → SuppliedModel G root
   | .simulation table cert => .simulation table (reachableSimulation cert)
   | .quotient table cert => .quotient table (reachableQuotient cert)
@@ -191,17 +189,17 @@ private def restrictModel {G : ProcessGraph} {root : GProc} :
 All internal discovery starts at the checked representative. -/
 def State.analyze {compiled : program.Compiled} (state : compiled.State)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
-    (valid : state.checked.Valid live) (id : ConcreteIdentity) (limits : ClosureLimits)
+    (valid : state.checked.Valid live) (id : ConcreteIdentity schema) (limits : ClosureLimits)
     (request : AnalysisRequest) (model : Option (SuppliedModel compiled.graph state.checked.proc) := none) :
     AnalysisResult compiled.graph state.checked.proc env state.source.term :=
   Internal.analyzeResidual support valid state.corr id limits request (model.map restrictModel)
 
 /-- Analyze an admitted source. Administrative unfolding can return an
 algebraic model. That model is not used as a new source or residual. -/
-def analyze (compiled : program.Compiled) (checks : RestrictionChecks)
+def analyze (compiled : program.Compiled) (checks : RestrictionChecks schema)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : (compiled.initial checks).checked.Valid live)
-    (id : ConcreteIdentity) (limits : ClosureLimits) (request : AnalysisRequest)
+    (id : ConcreteIdentity schema) (limits : ClosureLimits) (request : AnalysisRequest)
     (model : Option (SuppliedModel compiled.graph compiled.graph.root) := none) :
     AnalysisResult compiled.graph compiled.graph.root env program.term :=
   let run := fun () => (compiled.initial checks).analyze support valid id limits request model
@@ -211,13 +209,13 @@ def analyze (compiled : program.Compiled) (checks : RestrictionChecks)
 
 /-- The original firewall query pipeline on an admitted source. Preprocessing
 uses internal graph representations of head and tail. -/
-def safety (compiled : program.Compiled) (R : ReconfigSet)
-    (ingress egress : DyNetKAT.NetKAT.NetKAT) : SafetyCheckResult :=
+def safety (compiled : program.Compiled) (R : ReconfigSet schema)
+    (ingress egress : DyNetKAT.NetKAT.NetKAT schema) : SafetyCheckResult :=
   Internal.safetyCheckRestrictedGraph compiled.graph R ingress egress
 
-theorem safety_correct (compiled : program.Compiled) {Q : ProcessGraph}
+theorem safety_correct (compiled : program.Compiled) {Q : ProcessGraph schema}
     (preprocessed : preprocessGraph compiled.graph = some Q)
-    (R : ReconfigSet) (ingress egress : DyNetKAT.NetKAT.NetKAT) :
+    (R : ReconfigSet schema) (ingress egress : DyNetKAT.NetKAT.NetKAT schema) :
     ((compiled.safety R ingress egress).initialCondition = .isZero true ↔
       ¬ flowVia ingress egress (GraphHeadSpec Q Q.root)) ∧
     ((compiled.safety R ingress egress).postReconfigurationCondition = .nonzero true ↔
@@ -230,14 +228,14 @@ theorem safety_correct (compiled : program.Compiled) {Q : ProcessGraph}
 /-- Check queries on the finite reachable derivative table of the source
 under communication restriction. The normalized graph is a query model. -/
 def normalizedSafety (compiled : program.Compiled) {n : Nat}
-    (candidate : NormalizationCandidate n) (R : ReconfigSet)
-    (ingress egress : DyNetKAT.NetKAT.NetKAT) : Except NormalizationError SafetyCheckResult :=
+    (candidate : NormalizationCandidate n (schema := schema)) (R : ReconfigSet schema)
+    (ingress egress : DyNetKAT.NetKAT.NetKAT schema) : Except NormalizationError SafetyCheckResult :=
   Internal.normalizeAndSafetyCheckGraph compiled.graph candidate R ingress egress
 
 theorem normalizedSafety_correct (compiled : program.Compiled)
-    {n : Nat} {candidate : NormalizationCandidate n} {Q : ProcessGraph}
+    {n : Nat} {candidate : NormalizationCandidate n (schema := schema)} {Q : ProcessGraph schema}
     (normalized : normalizeGraph compiled.graph candidate = .ok Q)
-    (R : ReconfigSet) (ingress egress : DyNetKAT.NetKAT.NetKAT) :
+    (R : ReconfigSet schema) (ingress egress : DyNetKAT.NetKAT.NetKAT schema) :
     (∀ i, ∃ p : program.Residual, Corr compiled.graph env p.term (candidate.state i)) ∧
       GraphBisimilarBetween compiled.graph Q (.restrict Set.univ compiled.graph.root) Q.root ∧
       ∃ result, compiled.normalizedSafety candidate R ingress egress = .ok result ∧
@@ -255,7 +253,7 @@ theorem normalizedSafety_correct (compiled : program.Compiled)
 
 end Compiled
 
-private def restrictEquivalence {p q : DyNetKAT} :
+private def restrictEquivalence {p q : DyNetKAT schema} :
     SuppliedEquivalence env p q → SuppliedEquivalence env p q
   | .direct proof => .direct proof
   | .quotient cert corr target implements =>
@@ -264,12 +262,12 @@ private def restrictEquivalence {p q : DyNetKAT} :
 /-- Compare two independently admitted sources in a shared graph. The
 correspondences certify the meaning of both graph entry points. -/
 def equivalence (p q : Program extended env)
-    {G : ProcessGraph} {left right : CheckedResidual} {bodyChecks live}
+    {G : ProcessGraph schema} {left right : CheckedResidual schema} {bodyChecks live}
     (support : ProjectionSupport G bodyChecks live)
     (lv : left.Valid live) (rv : right.Valid live)
     (lc : Corr G env p.term left.proc) (rc : Corr G env q.term right.proc)
-    (id : ConcreteIdentity) (limits : ClosureLimits) (maxPairs rounds : Nat)
-    (mismatch : Option (Channel × DyNetKAT.NetKAT.NetKAT) := none)
+    (id : ConcreteIdentity schema) (limits : ClosureLimits) (maxPairs rounds : Nat)
+    (mismatch : Option (Channel × DyNetKAT.NetKAT.NetKAT schema) := none)
     (supplied : Option (SuppliedEquivalence env p.term q.term) := none) :
     EquivalenceResult env p.term q.term :=
   Internal.analyzeEquivalence support lv rv lc rc id limits maxPairs rounds mismatch
@@ -279,8 +277,8 @@ def equivalence (p q : Program extended env)
 def Compiled.State.equivalence {program : Program extended env} {compiled : program.Compiled} (left right : compiled.State)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (lv : left.checked.Valid live) (rv : right.checked.Valid live)
-    (id : ConcreteIdentity) (limits : ClosureLimits) (maxPairs rounds : Nat)
-    (mismatch : Option (Channel × DyNetKAT.NetKAT.NetKAT) := none)
+    (id : ConcreteIdentity schema) (limits : ClosureLimits) (maxPairs rounds : Nat)
+    (mismatch : Option (Channel × DyNetKAT.NetKAT.NetKAT schema) := none)
     (supplied : Option (SuppliedEquivalence env left.source.term right.source.term) := none) :
     EquivalenceResult env left.source.term right.source.term :=
   Internal.analyzeEquivalence support lv rv left.corr right.corr id limits maxPairs rounds mismatch

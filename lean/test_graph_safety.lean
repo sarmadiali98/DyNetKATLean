@@ -70,11 +70,11 @@ private def check (R : ReconfigSet) (S : Finset Var) :=
 #guard (compileGraph RecEnv.empty (.var "missing") {"missing"}).isNone
 #guard (compileGraph infEnv (.var "X") {"X", "X0"}).isNone
 
-#guard match validateProcessGraph ∅ (.ref (varNode "missing")) (fun _ => .deadlock) with
+#guard match validateProcessGraph (schema := ctxSchema) ∅ (.ref (varNode "missing")) (fun _ => .deadlock) with
   | .error .invalidGraph => true
   | _ => false
 
-#guard match validateProcessGraph {varNode "X"} (.ref (varNode "X"))
+#guard match validateProcessGraph (schema := ctxSchema) {varNode "X"} (.ref (varNode "X"))
     (fun _ => .ref (varNode "missing")) with
   | .error .invalidGraph => true
   | _ => false
@@ -282,9 +282,8 @@ private def firewallDependencies :=
 
 example {C : Finset Var} (hC : C ∈ firewallDependencies.sccs) {x : Var} (hx : x ∈ C) :
     ∃ b, rawFirewall.lookup x = some b ∧ TypedPaperGuarded b := by
-  unfold firewallDependencies at hC
-  exact DependencyGraph.guarded_scc (env := rawFirewall) (root := rawInit) (S := rawSupport)
-    (C := C) (x := x) rawSupported firewallProjectionWellFormed hC hx
+  exact @DependencyGraph.guarded_scc ctxSchema rawFirewall rawInit rawSupport rawSupported
+    firewallProjectionWellFormed C hC x hx
 
 private theorem firewall_typed_guarded_bodies :
     WellFormed rawFirewall rawInit ∧ TypedPaperGuarded rawHost ∧

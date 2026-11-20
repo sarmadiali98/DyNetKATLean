@@ -101,6 +101,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 open DyNetKAT.NetKAT
 
 ------------------------------------------------------------------------
@@ -117,7 +119,7 @@ open DyNetKAT.NetKAT
 ------------------------------------------------------------------------
 
 /-- The node references occurring in the head region of a graph term. -/
-def headRefs : GProc → Finset NodeId
+def headRefs : GProc schema → Finset NodeId
   | .deadlock => ∅
   | .nSeq _ cont => headRefs cont
   | .recv _ _ _ => ∅
@@ -132,40 +134,40 @@ def headRefs : GProc → Finset NodeId
   | .ref i => {i}
 
 /-- Defining equations of `headRefs`. -/
-theorem headRefs_nSeq (N : NetKAT) (cont : GProc) :
+theorem headRefs_nSeq (N : NetKAT schema) (cont : GProc schema) :
     headRefs (.nSeq N cont) = headRefs cont := rfl
 
-theorem headRefs_choice (a b : GProc) :
+theorem headRefs_choice (a b : GProc schema) :
     headRefs (.choice a b) = headRefs a ∪ headRefs b := rfl
 
-theorem headRefs_ref (i : NodeId) : headRefs (.ref i) = {i} := rfl
+theorem headRefs_ref (i : NodeId) : headRefs (schema := schema) (.ref i) = {i} := rfl
 
-theorem headRefs_rcfgPrefix (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem headRefs_rcfgPrefix (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     headRefs (.rcfgPrefix x N cont) = ∅ := rfl
 
-theorem headRefs_recv (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem headRefs_recv (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     headRefs (.recv x N cont) = ∅ := rfl
 
-theorem headRefs_send (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem headRefs_send (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     headRefs (.send x N cont) = ∅ := rfl
 
-theorem headRefs_parallel (a b : GProc) : headRefs (.parallel a b) = ∅ := rfl
+theorem headRefs_parallel (a b : GProc schema) : headRefs (.parallel a b) = ∅ := rfl
 
-theorem headRefs_leftMerge (a b : GProc) : headRefs (.leftMerge a b) = ∅ := rfl
+theorem headRefs_leftMerge (a b : GProc schema) : headRefs (.leftMerge a b) = ∅ := rfl
 
-theorem headRefs_commMerge (a b : GProc) : headRefs (.commMerge a b) = ∅ := rfl
+theorem headRefs_commMerge (a b : GProc schema) : headRefs (.commMerge a b) = ∅ := rfl
 
-theorem headRefs_restrict (L : Set CommunicationAction) (cont : GProc) :
+theorem headRefs_restrict (L : Set (CommunicationAction schema)) (cont : GProc schema) :
     headRefs (.restrict L cont) = ∅ := rfl
 
-theorem headRefs_project (n : Nat) (cont : GProc) :
+theorem headRefs_project (n : Nat) (cont : GProc schema) :
     headRefs (.project n cont) = ∅ := rfl
 
-theorem headRefs_deadlock : headRefs .deadlock = ∅ := rfl
+theorem headRefs_deadlock : headRefs (schema := schema) .deadlock = ∅ := rfl
 
 /-- The head region is contained in the full reference set, so every
     head reference of a well-formed graph term is a live node. -/
-theorem headRefs_le_gprocRefs (gp : GProc) : headRefs gp ⊆ gprocRefs gp := by
+theorem headRefs_le_gprocRefs (gp : GProc schema) : headRefs gp ⊆ gprocRefs gp := by
   cases gp with
   | deadlock => exact Finset.Subset.rfl
   | nSeq N cont => exact headRefs_le_gprocRefs cont
@@ -198,30 +200,30 @@ theorem headRefs_le_gprocRefs (gp : GProc) : headRefs gp ⊆ gprocRefs gp := by
 ------------------------------------------------------------------------
 
 /-- `gp` occurs in the head region of `ct`. -/
-inductive HeadSub (G : ProcessGraph) : GProc → GProc → Prop
-  | refl (gp : GProc) : HeadSub G gp gp
-  | nSeq (N : NetKAT) (cont sub : GProc) (h : HeadSub G cont sub) :
+inductive HeadSub {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → GProc schema → Prop
+  | refl (gp : GProc schema) : HeadSub G gp gp
+  | nSeq (N : NetKAT schema) (cont sub : GProc schema) (h : HeadSub G cont sub) :
       HeadSub G (.nSeq N cont) sub
-  | choice_left (a b sub : GProc) (h : HeadSub G a sub) :
+  | choice_left (a b sub : GProc schema) (h : HeadSub G a sub) :
       HeadSub G (.choice a b) sub
-  | choice_right (a b sub : GProc) (h : HeadSub G b sub) :
+  | choice_right (a b sub : GProc schema) (h : HeadSub G b sub) :
       HeadSub G (.choice a b) sub
-  | ref (i : NodeId) (sub : GProc) (h : HeadSub G (G.label i) sub) :
+  | ref (i : NodeId) (sub : GProc schema) (h : HeadSub G (G.label i) sub) :
       HeadSub G (.ref i) sub
 
 /-- `gp` occurs in the head region of `ct` without crossing any
     reference edge. -/
-inductive HeadSubFree (G : ProcessGraph) : GProc → GProc → Prop
-  | refl (gp : GProc) : HeadSubFree G gp gp
-  | nSeq (N : NetKAT) (cont sub : GProc) (h : HeadSubFree G cont sub) :
+inductive HeadSubFree {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → GProc schema → Prop
+  | refl (gp : GProc schema) : HeadSubFree G gp gp
+  | nSeq (N : NetKAT schema) (cont sub : GProc schema) (h : HeadSubFree G cont sub) :
       HeadSubFree G (.nSeq N cont) sub
-  | choice_left (a b sub : GProc) (h : HeadSubFree G a sub) :
+  | choice_left (a b sub : GProc schema) (h : HeadSubFree G a sub) :
       HeadSubFree G (.choice a b) sub
-  | choice_right (a b sub : GProc) (h : HeadSubFree G b sub) :
+  | choice_right (a b sub : GProc schema) (h : HeadSubFree G b sub) :
       HeadSubFree G (.choice a b) sub
 
 /-- Head-subterm containment composes. -/
-theorem HeadSub.trans {G : ProcessGraph} {a b c : GProc}
+theorem HeadSub.trans {G : ProcessGraph schema} {a b c : GProc schema}
     (h1 : HeadSub G a b) (h2 : HeadSub G b c) : HeadSub G a c := by
   induction h1 with
   | refl gp => exact h2
@@ -232,7 +234,7 @@ theorem HeadSub.trans {G : ProcessGraph} {a b c : GProc}
 
 /-- Inversion: a head-subterm of `N; cont` is the term itself or a
     head-subterm of `cont`. -/
-theorem headSub_nSeq_inv {G : ProcessGraph} {N : NetKAT} {cont sub : GProc}
+theorem headSub_nSeq_inv {G : ProcessGraph schema} {N : NetKAT schema} {cont sub : GProc schema}
     (h : HeadSub G (.nSeq N cont) sub) :
     sub = .nSeq N cont ∨ HeadSub G cont sub := by
   cases h with
@@ -241,7 +243,7 @@ theorem headSub_nSeq_inv {G : ProcessGraph} {N : NetKAT} {cont sub : GProc}
 
 /-- Inversion: a head-subterm of `a ⊕ b` is the term itself or a
     head-subterm of one branch. -/
-theorem headSub_choice_inv {G : ProcessGraph} {a b sub : GProc}
+theorem headSub_choice_inv {G : ProcessGraph schema} {a b sub : GProc schema}
     (h : HeadSub G (.choice a b) sub) :
     sub = .choice a b ∨ HeadSub G a sub ∨ HeadSub G b sub := by
   cases h with
@@ -251,7 +253,7 @@ theorem headSub_choice_inv {G : ProcessGraph} {a b sub : GProc}
 
 /-- Inversion: a head-subterm of `ref i` is the term itself or a
     head-subterm of the node label. -/
-theorem headSub_ref_inv {G : ProcessGraph} {i : NodeId} {sub : GProc}
+theorem headSub_ref_inv {G : ProcessGraph schema} {i : NodeId} {sub : GProc schema}
     (h : HeadSub G (.ref i) sub) :
     sub = .ref i ∨ HeadSub G (G.label i) sub := by
   cases h with
@@ -259,7 +261,7 @@ theorem headSub_ref_inv {G : ProcessGraph} {i : NodeId} {sub : GProc}
   | ref i sub h' => exact Or.inr h'
 
 /-- Inversion for the ref-free containment of an `nSeq` term. -/
-theorem headSubFree_nSeq_inv {G : ProcessGraph} {N : NetKAT} {cont sub : GProc}
+theorem headSubFree_nSeq_inv {G : ProcessGraph schema} {N : NetKAT schema} {cont sub : GProc schema}
     (h : HeadSubFree G (.nSeq N cont) sub) :
     sub = .nSeq N cont ∨ HeadSubFree G cont sub := by
   cases h with
@@ -267,7 +269,7 @@ theorem headSubFree_nSeq_inv {G : ProcessGraph} {N : NetKAT} {cont sub : GProc}
   | nSeq N cont sub h' => exact Or.inr h'
 
 /-- Inversion for the ref-free containment of a `choice` term. -/
-theorem headSubFree_choice_inv {G : ProcessGraph} {a b sub : GProc}
+theorem headSubFree_choice_inv {G : ProcessGraph schema} {a b sub : GProc schema}
     (h : HeadSubFree G (.choice a b) sub) :
     sub = .choice a b ∨ HeadSubFree G a sub ∨ HeadSubFree G b sub := by
   cases h with
@@ -277,7 +279,7 @@ theorem headSubFree_choice_inv {G : ProcessGraph} {a b sub : GProc}
 
 /-- The head references of a ref-free head-subterm are contained in the
     head references of the containing term. -/
-theorem headRefs_mono_subFree {G : ProcessGraph} {ct gp : GProc}
+theorem headRefs_mono_subFree {G : ProcessGraph schema} {ct gp : GProc schema}
     (h : HeadSubFree G ct gp) : headRefs gp ⊆ headRefs ct := by
   induction h with
   | refl gp => exact Finset.Subset.rfl
@@ -304,22 +306,22 @@ theorem headRefs_mono_subFree {G : ProcessGraph} {ct gp : GProc}
 ------------------------------------------------------------------------
 
 /-- `N` occurs at a packet-prefix position in the head region of `gp`. -/
-inductive HeadPrefixOf (G : ProcessGraph) : GProc → NetKAT → Prop
-  | here (N : NetKAT) (cont : GProc) : HeadPrefixOf G (.nSeq N cont) N
-  | nSeq (N : NetKAT) (cont : GProc) (M : NetKAT)
+inductive HeadPrefixOf {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → NetKAT schema → Prop
+  | here (N : NetKAT schema) (cont : GProc schema) : HeadPrefixOf G (.nSeq N cont) N
+  | nSeq (N : NetKAT schema) (cont : GProc schema) (M : NetKAT schema)
       (h : HeadPrefixOf G cont M) : HeadPrefixOf G (.nSeq N cont) M
-  | choice_left (a b : GProc) (M : NetKAT)
+  | choice_left (a b : GProc schema) (M : NetKAT schema)
       (h : HeadPrefixOf G a M) : HeadPrefixOf G (.choice a b) M
-  | choice_right (a b : GProc) (M : NetKAT)
+  | choice_right (a b : GProc schema) (M : NetKAT schema)
       (h : HeadPrefixOf G b M) : HeadPrefixOf G (.choice a b) M
-  | ref (i : NodeId) (M : NetKAT)
+  | ref (i : NodeId) (M : NetKAT schema)
       (h : HeadPrefixOf G (G.label i) M) : HeadPrefixOf G (.ref i) M
 
 /-- Helper for the prefix-occurrence characterization: a head-subterm
     of the shape `N; cont` witnesses a prefix occurrence. -/
-theorem headPrefixOf_of_headSub (G : ProcessGraph) :
-    ∀ (gp sub : GProc), HeadSub G gp sub →
-      ∀ (N : NetKAT) (cont : GProc), sub = .nSeq N cont →
+theorem headPrefixOf_of_headSub (G : ProcessGraph schema) :
+    ∀ (gp sub : GProc schema), HeadSub G gp sub →
+      ∀ (N : NetKAT schema) (cont : GProc schema), sub = .nSeq N cont →
         HeadPrefixOf G gp N := by
   intro gp sub hs
   induction hs with
@@ -342,8 +344,8 @@ theorem headPrefixOf_of_headSub (G : ProcessGraph) :
 
 /-- A prefix occurrence at `gp` is witnessed by a head-subterm of the
     shape `N; cont`. -/
-theorem headPrefixOf_iff_headSub (G : ProcessGraph) (gp : GProc) (N : NetKAT) :
-    HeadPrefixOf G gp N ↔ ∃ cont : GProc, HeadSub G gp (.nSeq N cont) := by
+theorem headPrefixOf_iff_headSub (G : ProcessGraph schema) (gp : GProc schema) (N : NetKAT schema) :
+    HeadPrefixOf G gp N ↔ ∃ cont : GProc schema, HeadSub G gp (.nSeq N cont) := by
   constructor
   · intro h
     induction h with
@@ -374,20 +376,20 @@ theorem headPrefixOf_iff_headSub (G : ProcessGraph) (gp : GProc) (N : NetKAT) :
 ------------------------------------------------------------------------
 
 /-- Node `j` is head-reachable from the term `gp`. -/
-inductive HeadPathTo (G : ProcessGraph) : GProc → NodeId → Prop
+inductive HeadPathTo {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → NodeId → Prop
   | ref (i : NodeId) : HeadPathTo G (.ref i) i
-  | nSeq (N : NetKAT) (cont : GProc) (j : NodeId)
+  | nSeq (N : NetKAT schema) (cont : GProc schema) (j : NodeId)
       (h : HeadPathTo G cont j) : HeadPathTo G (.nSeq N cont) j
-  | choice_left (a b : GProc) (j : NodeId)
+  | choice_left (a b : GProc schema) (j : NodeId)
       (h : HeadPathTo G a j) : HeadPathTo G (.choice a b) j
-  | choice_right (a b : GProc) (j : NodeId)
+  | choice_right (a b : GProc schema) (j : NodeId)
       (h : HeadPathTo G b j) : HeadPathTo G (.choice a b) j
   | ref_step (i j : NodeId) (h : HeadPathTo G (G.label i) j) :
       HeadPathTo G (.ref i) j
 
 /-- Every head reference of a term is head-reachable from it. -/
-theorem headRefs_pathTo (G : ProcessGraph) :
-    ∀ (gp : GProc) (i : NodeId), i ∈ headRefs gp → HeadPathTo G gp i := by
+theorem headRefs_pathTo (G : ProcessGraph schema) :
+    ∀ (gp : GProc schema) (i : NodeId), i ∈ headRefs gp → HeadPathTo G gp i := by
   intro gp
   cases gp with
   | deadlock => intro i hi; simp [headRefs] at hi
@@ -418,7 +420,7 @@ theorem headRefs_pathTo (G : ProcessGraph) :
 /-- Head reachability composes through a node label: if `j` is
     reachable from `gp` and `i` is reachable from the label of `j`,
     then `i` is reachable from `gp`. -/
-theorem headPathTo_trans {G : ProcessGraph} {gp : GProc} {j i : NodeId}
+theorem headPathTo_trans {G : ProcessGraph schema} {gp : GProc schema} {j i : NodeId}
     (h1 : HeadPathTo G gp j) (h2 : HeadPathTo G (G.label j) i) :
     HeadPathTo G gp i := by
   induction h1 with
@@ -430,7 +432,7 @@ theorem headPathTo_trans {G : ProcessGraph} {gp : GProc} {j i : NodeId}
 
 /-- A node reachable from `gp` has its label inside the head region of
     `gp` (as a term). -/
-theorem headPathTo_sub {G : ProcessGraph} {gp : GProc} {j : NodeId}
+theorem headPathTo_sub {G : ProcessGraph schema} {gp : GProc schema} {j : NodeId}
     (h : HeadPathTo G gp j) : HeadSub G gp (G.label j) := by
   induction h with
   | ref i => exact HeadSub.ref i (G.label i) (HeadSub.refl (G.label i))
@@ -453,7 +455,7 @@ theorem headPathTo_sub {G : ProcessGraph} {gp : GProc} {j : NodeId}
 
 /-- List-valued counterpart of `headRefs` (structurally recursive,
     computable). -/
-def headRefsList : GProc → List NodeId
+def headRefsList : GProc schema → List NodeId
   | .deadlock => []
   | .nSeq _ cont => headRefsList cont
   | .recv _ _ _ => []
@@ -467,7 +469,7 @@ def headRefsList : GProc → List NodeId
   | .project _ _ => []
   | .ref i => [i]
 
-theorem mem_headRefsList_iff (gp : GProc) (i : NodeId) :
+theorem mem_headRefsList_iff (gp : GProc schema) (i : NodeId) :
     i ∈ headRefsList gp ↔ i ∈ headRefs gp := by
   induction gp with
   | deadlock => simp [headRefsList, headRefs]
@@ -494,7 +496,7 @@ theorem mem_headRefsList_iff (gp : GProc) (i : NodeId) :
     head-reference discovery only exposes references that the full
     reference set already contains, so `root_closed` and `closed` can
     be used safely through this function. -/
-theorem headRefsList_subset_gprocRefs (gp : GProc) :
+theorem headRefsList_subset_gprocRefs (gp : GProc schema) :
     ∀ i ∈ headRefsList gp, i ∈ gprocRefs gp := fun i hi =>
   headRefs_le_gprocRefs gp ((mem_headRefsList_iff gp i).mp hi)
 
@@ -508,14 +510,14 @@ theorem headRefsList_subset_gprocRefs (gp : GProc) :
 ------------------------------------------------------------------------
 
 /-- Node-level head reachability through reference edges. -/
-inductive RefReach (G : ProcessGraph) : NodeId → NodeId → Prop
+inductive RefReach {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : NodeId → NodeId → Prop
   | refl (i : NodeId) : RefReach G i i
   | step (i v j : NodeId) (hv : v ∈ headRefs (G.label i)) (h : RefReach G v j) :
       RefReach G i j
 
 /-- Unfolding: reachability from `i` is trivial or factors through a
     head reference of `i`'s label. -/
-theorem refReach_unfold {G : ProcessGraph} {i j : NodeId} (h : RefReach G i j) :
+theorem refReach_unfold {G : ProcessGraph schema} {i j : NodeId} (h : RefReach G i j) :
     j = i ∨ ∃ v, v ∈ headRefs (G.label i) ∧ RefReach G v j := by
   cases h with
   | refl i => exact Or.inl rfl
@@ -523,8 +525,8 @@ theorem refReach_unfold {G : ProcessGraph} {i j : NodeId} (h : RefReach G i j) :
 
 /-- A head-reachable node is either directly referenced in the head
     region or reachable through a direct head reference. -/
-theorem headPathTo_refs_decomp (G : ProcessGraph) :
-    ∀ (gp : GProc) (j : NodeId), HeadPathTo G gp j →
+theorem headPathTo_refs_decomp (G : ProcessGraph schema) :
+    ∀ (gp : GProc schema) (j : NodeId), HeadPathTo G gp j →
       j ∈ headRefs gp ∨ ∃ v, v ∈ headRefs gp ∧ RefReach G v j := by
   intro gp j h
   induction h with
@@ -549,7 +551,7 @@ theorem headPathTo_refs_decomp (G : ProcessGraph) :
 
 /-- Inversion: term-level head reachability from a reference is the
     trivial path or factors through the node label. -/
-theorem headPathTo_ref_inv {G : ProcessGraph} {v j : NodeId}
+theorem headPathTo_ref_inv {G : ProcessGraph schema} {v j : NodeId}
     (h : HeadPathTo G (.ref v) j) :
     j = v ∨ HeadPathTo G (G.label v) j := by
   cases h with
@@ -558,7 +560,7 @@ theorem headPathTo_ref_inv {G : ProcessGraph} {v j : NodeId}
 
 /-- Node-level and term-level head reachability from a reference
     coincide. -/
-theorem refReach_iff_headPathTo (G : ProcessGraph) (i j : NodeId) :
+theorem refReach_iff_headPathTo (G : ProcessGraph schema) (i j : NodeId) :
     RefReach G i j ↔ HeadPathTo G (.ref i) j := by
   constructor
   · intro h
@@ -581,8 +583,8 @@ theorem refReach_iff_headPathTo (G : ProcessGraph) (i j : NodeId) :
 /-- Every head-reachable node of a graph whose root references and node
     labels are closed lives in the node set: this is where
     `headRefs_le_gprocRefs` makes `root_closed` and `closed` usable. -/
-theorem headPathTo_nodes (G : ProcessGraph) :
-    ∀ (gp : GProc) (j : NodeId), HeadPathTo G gp j →
+theorem headPathTo_nodes (G : ProcessGraph schema) :
+    ∀ (gp : GProc schema) (j : NodeId), HeadPathTo G gp j →
       (∀ i, i ∈ headRefs gp → i ∈ G.nodes) →
       (∀ i ∈ G.nodes, ∀ k, k ∈ headRefs (G.label i) → k ∈ G.nodes) →
       j ∈ G.nodes := by
@@ -605,7 +607,7 @@ theorem headPathTo_nodes (G : ProcessGraph) :
 /-- For the root of a well-formed graph, head-reachable nodes are live:
     the two closure hypotheses are exactly `root_closed` and `closed`,
     connected through `headRefs_le_gprocRefs`. -/
-theorem headPathTo_nodes_closed (G : ProcessGraph) (j : NodeId)
+theorem headPathTo_nodes_closed (G : ProcessGraph schema) (j : NodeId)
     (h : HeadPathTo G G.root j) : j ∈ G.nodes :=
   headPathTo_nodes G G.root j h
     (fun _i hi => G.root_closed (headRefs_le_gprocRefs G.root hi))
@@ -628,7 +630,7 @@ theorem headPathTo_nodes_closed (G : ProcessGraph) (j : NodeId)
 /-- The cycle-safe head worklist.  Returns the list of visited nodes in
     visit order, or `none` when a pending reference lies outside
     `G.nodes`. -/
-def headRun (G : ProcessGraph) :
+def headRun (G : ProcessGraph schema) :
     List NodeId → Finset NodeId → List NodeId → Option (List NodeId)
   | [], _, acc => some acc
   | i :: rest, visited, acc =>
@@ -655,7 +657,7 @@ decreasing_by
 /-- Worklist coverage through already-visited nodes: if everything
     reachable from a visited node must still be found, the worklist
     frontier contains a witness outside the visited set. -/
-theorem headRun_cover_visited (G : ProcessGraph) (visited : Finset NodeId)
+theorem headRun_cover_visited (G : ProcessGraph schema) (visited : Finset NodeId)
     (pending : List NodeId)
     (hF : ∀ i₀ ∈ visited, ∀ v, v ∈ headRefs (G.label i₀) → v ∈ visited ∨ v ∈ pending)
     (i₀ j : NodeId) (h : RefReach G i₀ j) :
@@ -677,7 +679,7 @@ theorem headRun_cover_visited (G : ProcessGraph) (visited : Finset NodeId)
     every head-reachable node is visited or reachable from a pending
     node, visited nodes have had their head references accounted for,
     and the accumulator records exactly the visited nodes. -/
-theorem headRun_spec (G : ProcessGraph) (pending : List NodeId)
+theorem headRun_spec (G : ProcessGraph schema) (pending : List NodeId)
     (visited : Finset NodeId) (acc : List NodeId)
     (hB : ∀ i ∈ acc, HeadPathTo G G.root i ∧ i ∈ G.nodes)
     (hC : ∀ i ∈ visited, i ∈ acc)
@@ -802,7 +804,7 @@ theorem headRun_spec (G : ProcessGraph) (pending : List NodeId)
 /-- Worklist failure for the graph root: if the traversal from
     `headRefsList G.root` fails, some head-reachable node is not a node
     of the graph. -/
-theorem headRun_root_failure (G : ProcessGraph)
+theorem headRun_root_failure (G : ProcessGraph schema)
     (h : headRun G (headRefsList G.root) ∅ [] = none) :
     ∃ j, HeadPathTo G G.root j ∧ j ∉ G.nodes := by
   have hE : ∀ j, HeadPathTo G G.root j →
@@ -821,7 +823,7 @@ theorem headRun_root_failure (G : ProcessGraph)
 /-- Worklist success for the graph root: if the traversal succeeds with
     `L`, then `L` contains EXACTLY the head-reachable nodes of `G.root`,
     and all of them are live nodes of the graph. -/
-theorem headRun_root_success (G : ProcessGraph) (L : List NodeId)
+theorem headRun_root_success (G : ProcessGraph schema) (L : List NodeId)
     (h : headRun G (headRefsList G.root) ∅ [] = some L) :
     (∀ j, HeadPathTo G G.root j → j ∈ L) ∧
       ∀ j ∈ L, HeadPathTo G G.root j ∧ j ∈ G.nodes := by
@@ -857,7 +859,7 @@ theorem headRun_root_success (G : ProcessGraph) (L : List NodeId)
 ------------------------------------------------------------------------
 
 /-- Local head-policy collection of a graph term. -/
-def headCollect : GProc → Option NetKAT
+def headCollect : GProc schema → Option (NetKAT schema)
   | .deadlock => some .drop
   | .nSeq N cont => (headCollect cont).map (fun H => NetKAT.union N H)
   | .recv _ _ _ => none
@@ -874,72 +876,72 @@ def headCollect : GProc → Option NetKAT
   | .ref _ => some .drop
 
 /-- Defining equations of `headCollect` (paper Eqs. (29)-(32)). -/
-theorem headCollect_deadlock : headCollect .deadlock = some .drop := rfl
+theorem headCollect_deadlock : headCollect (schema := schema) .deadlock = some .drop := rfl
 
-theorem headCollect_nSeq (N : NetKAT) (cont : GProc) :
+theorem headCollect_nSeq (N : NetKAT schema) (cont : GProc schema) :
     headCollect (.nSeq N cont) =
       (headCollect cont).map (fun H => NetKAT.union N H) := rfl
 
-theorem headCollect_choice (a b : GProc) :
+theorem headCollect_choice (a b : GProc schema) :
     headCollect (.choice a b) =
       (headCollect a).bind
         (fun H₁ => (headCollect b).map (fun H₂ => NetKAT.union H₁ H₂)) := rfl
 
-theorem headCollect_rcfgPrefix (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem headCollect_rcfgPrefix (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     headCollect (.rcfgPrefix x N cont) = some .drop := rfl
 
-theorem headCollect_recv (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem headCollect_recv (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     headCollect (.recv x N cont) = none := rfl
 
-theorem headCollect_send (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem headCollect_send (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     headCollect (.send x N cont) = none := rfl
 
-theorem headCollect_parallel (a b : GProc) :
+theorem headCollect_parallel (a b : GProc schema) :
     headCollect (.parallel a b) = none := rfl
 
-theorem headCollect_leftMerge (a b : GProc) :
+theorem headCollect_leftMerge (a b : GProc schema) :
     headCollect (.leftMerge a b) = none := rfl
 
-theorem headCollect_commMerge (a b : GProc) :
+theorem headCollect_commMerge (a b : GProc schema) :
     headCollect (.commMerge a b) = none := rfl
 
-theorem headCollect_restrict (L : Set CommunicationAction) (cont : GProc) :
+theorem headCollect_restrict (L : Set (CommunicationAction schema)) (cont : GProc schema) :
     headCollect (.restrict L cont) = none := rfl
 
-theorem headCollect_project (n : Nat) (cont : GProc) :
+theorem headCollect_project (n : Nat) (cont : GProc schema) :
     headCollect (.project n cont) = none := rfl
 
-theorem headCollect_ref (i : NodeId) : headCollect (.ref i) = some .drop := rfl
+theorem headCollect_ref (i : NodeId) : headCollect (schema := schema) (.ref i) = some .drop := rfl
 
 /-- Eq. (30) in the paper's shape: a successful continuation extraction
     gives `N + H`. -/
-theorem headCollect_nSeq_eq (N : NetKAT) (cont : GProc) (H : NetKAT)
+theorem headCollect_nSeq_eq (N : NetKAT schema) (cont : GProc schema) (H : NetKAT schema)
     (h : headCollect cont = some H) :
     headCollect (.nSeq N cont) = some (NetKAT.union N H) := by
   rw [headCollect_nSeq, h]
   rfl
 
 /-- Eq. (31) in the paper's shape. -/
-theorem headCollect_choice_eq (a b : GProc) (H₁ H₂ : NetKAT)
+theorem headCollect_choice_eq (a b : GProc schema) (H₁ H₂ : NetKAT schema)
     (ha : headCollect a = some H₁) (hb : headCollect b = some H₂) :
     headCollect (.choice a b) = some (NetKAT.union H₁ H₂) := by
   rw [headCollect_choice, ha, hb]
   rfl
 
 /-- Failure propagation through `N;D`. -/
-theorem headCollect_nSeq_none (N : NetKAT) (cont : GProc)
+theorem headCollect_nSeq_none (N : NetKAT schema) (cont : GProc schema)
     (h : headCollect cont = none) : headCollect (.nSeq N cont) = none := by
   rw [headCollect_nSeq, h]
   rfl
 
 /-- Failure propagation through `D ⊕ Q` from the left branch. -/
-theorem headCollect_choice_none_left (a b : GProc)
+theorem headCollect_choice_none_left (a b : GProc schema)
     (h : headCollect a = none) : headCollect (.choice a b) = none := by
   rw [headCollect_choice, h]
   rfl
 
 /-- Failure propagation through `D ⊕ Q` from the right branch. -/
-theorem headCollect_choice_none_right (a b : GProc)
+theorem headCollect_choice_none_right (a b : GProc schema)
     (h : headCollect b = none) : headCollect (.choice a b) = none := by
   cases ha : headCollect a with
   | none => rw [headCollect_choice, ha]; rfl
@@ -947,7 +949,7 @@ theorem headCollect_choice_none_right (a b : GProc)
 
 /-- Inversion for Eq. (30): a successful extraction from `N; cont`
     determines a successful extraction of the continuation. -/
-theorem headCollect_nSeq_inv (N : NetKAT) (cont : GProc) (H : NetKAT)
+theorem headCollect_nSeq_inv (N : NetKAT schema) (cont : GProc schema) (H : NetKAT schema)
     (h : headCollect (.nSeq N cont) = some H) :
     ∃ H', headCollect cont = some H' ∧ H = NetKAT.union N H' := by
   rw [headCollect_nSeq, Option.map_eq_some'] at h
@@ -956,9 +958,9 @@ theorem headCollect_nSeq_inv (N : NetKAT) (cont : GProc) (H : NetKAT)
 
 /-- Inversion for Eq. (31): a successful extraction from `D ⊕ Q`
     determines successful extractions of both branches. -/
-theorem headCollect_choice_inv (a b : GProc) (H : NetKAT)
+theorem headCollect_choice_inv (a b : GProc schema) (H : NetKAT schema)
     (h : headCollect (.choice a b) = some H) :
-    ∃ H₁ H₂ : NetKAT, headCollect a = some H₁ ∧ headCollect b = some H₂ ∧
+    ∃ H₁ H₂ : NetKAT schema, headCollect a = some H₁ ∧ headCollect b = some H₂ ∧
       H = NetKAT.union H₁ H₂ := by
   rw [headCollect_choice, Option.bind_eq_some] at h
   obtain ⟨H₁, ha, hmap⟩ := h
@@ -968,9 +970,9 @@ theorem headCollect_choice_inv (a b : GProc) (H : NetKAT)
 
 /-- The collection succeeds on every ref-free head-subterm of a
     successful term. -/
-theorem headCollect_subSuccess (G : ProcessGraph) :
-    ∀ {gp sub : GProc}, HeadSubFree G gp sub →
-      ∀ H : NetKAT, headCollect gp = some H →
+theorem headCollect_subSuccess (G : ProcessGraph schema) :
+    ∀ {gp sub : GProc schema}, HeadSubFree G gp sub →
+      ∀ H : NetKAT schema, headCollect gp = some H →
         ∃ H', headCollect sub = some H' := by
   intro gp sub hs
   induction hs with
@@ -991,9 +993,9 @@ theorem headCollect_subSuccess (G : ProcessGraph) :
 /-- The collection of a containing term covers the semantics of the
     collection of each of its ref-free head-subterms: the containing
     term's union tree includes the subterm's union tree. -/
-theorem headCollect_subCover (G : ProcessGraph) (σ τ : CtxPkt) :
-    ∀ {ct gp : GProc}, HeadSubFree G ct gp →
-      ∀ Hct Hgp : NetKAT, headCollect ct = some Hct →
+theorem headCollect_subCover (G : ProcessGraph schema) (σ τ : schema.Packet) :
+    ∀ {ct gp : GProc schema}, HeadSubFree G ct gp →
+      ∀ Hct Hgp : NetKAT schema, headCollect ct = some Hct →
         headCollect gp = some Hgp → Semantics Hgp σ τ → Semantics Hct σ τ := by
   intro ct gp hs
   induction hs with
@@ -1030,26 +1032,26 @@ theorem headCollect_subCover (G : ProcessGraph) (σ τ : CtxPkt) :
 ------------------------------------------------------------------------
 
 /-- One union step: add the contribution of node `j` to the accumulator. -/
-def unionStep (f : NodeId → Option NetKAT) (j : NodeId) (acc : Option NetKAT) :
-    Option NetKAT :=
+def unionStep (f : NodeId → Option (NetKAT schema)) (j : NodeId) (acc : Option (NetKAT schema)) :
+    Option (NetKAT schema) :=
   (f j).bind fun H => acc.map fun acc' => NetKAT.union acc' H
 
 /-- The union over a list of node contributions. -/
-def unionOverList (f : NodeId → Option NetKAT) :
-    List NodeId → Option NetKAT → Option NetKAT
+def unionOverList (f : NodeId → Option (NetKAT schema)) :
+    List NodeId → Option (NetKAT schema) → Option (NetKAT schema)
   | [], acc => acc
   | j :: js, acc => unionOverList f js (unionStep f j acc)
 
-theorem unionStep_eq_some (f : NodeId → Option NetKAT) (j : NodeId)
-    (acc : Option NetKAT) (H₁ acc' : NetKAT)
+theorem unionStep_eq_some (f : NodeId → Option (NetKAT schema)) (j : NodeId)
+    (acc : Option (NetKAT schema)) (H₁ acc' : NetKAT schema)
     (hfj : f j = some H₁) (hacc : acc = some acc') :
     unionStep f j acc = some (NetKAT.union acc' H₁) := by
   rw [unionStep, hfj, hacc]
   rfl
 
-theorem unionStep_inv (f : NodeId → Option NetKAT) (j : NodeId)
-    (acc : Option NetKAT) (X : NetKAT) (h : unionStep f j acc = some X) :
-    ∃ H₁ acc' : NetKAT, f j = some H₁ ∧ acc = some acc' ∧
+theorem unionStep_inv (f : NodeId → Option (NetKAT schema)) (j : NodeId)
+    (acc : Option (NetKAT schema)) (X : NetKAT schema) (h : unionStep f j acc = some X) :
+    ∃ H₁ acc' : NetKAT schema, f j = some H₁ ∧ acc = some acc' ∧
       X = NetKAT.union acc' H₁ := by
   rw [unionStep, Option.bind_eq_some] at h
   obtain ⟨H₁, hfj, hmap⟩ := h
@@ -1057,8 +1059,8 @@ theorem unionStep_inv (f : NodeId → Option NetKAT) (j : NodeId)
   obtain ⟨acc', hacc, hX⟩ := hmap
   exact ⟨H₁, acc', hfj, hacc, hX.symm⟩
 
-theorem unionStep_none_inv (f : NodeId → Option NetKAT) (j : NodeId)
-    (acc : Option NetKAT) (h : unionStep f j acc = none) :
+theorem unionStep_none_inv (f : NodeId → Option (NetKAT schema)) (j : NodeId)
+    (acc : Option (NetKAT schema)) (h : unionStep f j acc = none) :
     f j = none ∨ acc = none := by
   by_cases hfj : f j = none
   · exact Or.inl hfj
@@ -1067,7 +1069,7 @@ theorem unionStep_none_inv (f : NodeId → Option NetKAT) (j : NodeId)
     simp at h
     exact Or.inr h
 
-theorem unionOverList_none (f : NodeId → Option NetKAT) :
+theorem unionOverList_none (f : NodeId → Option (NetKAT schema)) :
     ∀ l : List NodeId, unionOverList f l none = none := by
   intro l
   induction l with
@@ -1079,10 +1081,10 @@ theorem unionOverList_none (f : NodeId → Option NetKAT) :
       | some H => simp [ih]
 
 /-- Inversion for the cons step of a successful union. -/
-theorem unionOverList_cons_inv (f : NodeId → Option NetKAT) (j : NodeId)
-    (js : List NodeId) (start : Option NetKAT) (H : NetKAT)
+theorem unionOverList_cons_inv (f : NodeId → Option (NetKAT schema)) (j : NodeId)
+    (js : List NodeId) (start : Option (NetKAT schema)) (H : NetKAT schema)
     (h : unionOverList f (j :: js) start = some H) :
-    ∃ H₁ acc' : NetKAT, f j = some H₁ ∧ start = some acc' ∧
+    ∃ H₁ acc' : NetKAT schema, f j = some H₁ ∧ start = some acc' ∧
       unionOverList f js (some (NetKAT.union acc' H₁)) = some H := by
   rw [unionOverList] at h
   cases hstep : unionStep f j start with
@@ -1097,8 +1099,8 @@ theorem unionOverList_cons_inv (f : NodeId → Option NetKAT) (j : NodeId)
       rw [hX] at h
       exact ⟨H₁, acc', hfj, rfl, h⟩
 
-theorem unionOverList_none_inv (f : NodeId → Option NetKAT) :
-    ∀ (l : List NodeId) (start : Option NetKAT),
+theorem unionOverList_none_inv (f : NodeId → Option (NetKAT schema)) :
+    ∀ (l : List NodeId) (start : Option (NetKAT schema)),
       unionOverList f l start = none →
       start = none ∨ ∃ j, j ∈ l ∧ f j = none := by
   intro l
@@ -1118,8 +1120,8 @@ theorem unionOverList_none_inv (f : NodeId → Option NetKAT) :
           · exact absurd hfalse (by simp)
           · exact Or.inr ⟨j', List.Mem.tail _ hj', hf⟩
 
-theorem unionOverList_all_some (f : NodeId → Option NetKAT) :
-    ∀ (l : List NodeId) (H₀ H : NetKAT),
+theorem unionOverList_all_some (f : NodeId → Option (NetKAT schema)) :
+    ∀ (l : List NodeId) (H₀ H : NetKAT schema),
       unionOverList f l (some H₀) = some H →
       ∀ j, j ∈ l → ∃ Hⱼ, f j = some Hⱼ := by
   intro l
@@ -1134,8 +1136,8 @@ theorem unionOverList_all_some (f : NodeId → Option NetKAT) :
       · exact ⟨H₁, hfj⟩
       · exact ih _ _ hrest x hx'
 
-theorem unionOverList_start_cover (f : NodeId → Option NetKAT) (σ τ : CtxPkt) :
-    ∀ (l : List NodeId) (H₀ H : NetKAT),
+theorem unionOverList_start_cover (f : NodeId → Option (NetKAT schema)) (σ τ : schema.Packet) :
+    ∀ (l : List NodeId) (H₀ H : NetKAT schema),
       unionOverList f l (some H₀) = some H →
       Semantics H₀ σ τ → Semantics H σ τ := by
   intro l
@@ -1152,10 +1154,10 @@ theorem unionOverList_start_cover (f : NodeId → Option NetKAT) (σ τ : CtxPkt
       subst hacc'
       exact ih _ _ hrest ((union_sem H₀ H₁ σ τ).mpr (Or.inl hsem))
 
-theorem unionOverList_mem_cover (f : NodeId → Option NetKAT) (σ τ : CtxPkt) :
-    ∀ (l : List NodeId) (H₀ H : NetKAT),
+theorem unionOverList_mem_cover (f : NodeId → Option (NetKAT schema)) (σ τ : schema.Packet) :
+    ∀ (l : List NodeId) (H₀ H : NetKAT schema),
       unionOverList f l (some H₀) = some H →
-      ∀ j, j ∈ l → ∀ Hⱼ : NetKAT, f j = some Hⱼ → Semantics Hⱼ σ τ →
+      ∀ j, j ∈ l → ∀ Hⱼ : NetKAT schema, f j = some Hⱼ → Semantics Hⱼ σ τ →
         Semantics H σ τ := by
   intro l
   induction l with
@@ -1173,8 +1175,8 @@ theorem unionOverList_mem_cover (f : NodeId → Option NetKAT) (σ τ : CtxPkt) 
           ((union_sem H₀ H₁ σ τ).mpr (Or.inr hsem))
       · exact ih _ _ hrest j hj' Hⱼ hfj hsem
 
-theorem unionOverList_sem_decomp (f : NodeId → Option NetKAT) (σ τ : CtxPkt) :
-    ∀ (l : List NodeId) (H₀ H : NetKAT),
+theorem unionOverList_sem_decomp (f : NodeId → Option (NetKAT schema)) (σ τ : schema.Packet) :
+    ∀ (l : List NodeId) (H₀ H : NetKAT schema),
       unionOverList f l (some H₀) = some H →
       Semantics H σ τ →
       Semantics H₀ σ τ ∨
@@ -1198,8 +1200,8 @@ theorem unionOverList_sem_decomp (f : NodeId → Option NetKAT) (σ τ : CtxPkt)
       · exact Or.inr ⟨j', List.Mem.tail _ hj', Hⱼ', hfj', hsem'⟩
 
 /-- Success of the union fold over a fully-collected node list. -/
-theorem unionOverList_some (f : NodeId → Option NetKAT) :
-    ∀ (l : List NodeId) (start : Option NetKAT) (H₀ : NetKAT),
+theorem unionOverList_some (f : NodeId → Option (NetKAT schema)) :
+    ∀ (l : List NodeId) (start : Option (NetKAT schema)) (H₀ : NetKAT schema),
       start = some H₀ → (∀ j, j ∈ l → ∃ Hⱼ, f j = some Hⱼ) →
       ∃ H, unionOverList f l start = some H := by
   intro l
@@ -1217,15 +1219,15 @@ theorem unionOverList_some (f : NodeId → Option NetKAT) :
 /-- The union of the root contribution with the contribution of every
     visited node's label.  The fold runs over the worklist's visited
     list, so the extraction is executable. -/
-def graphHeadUnion (G : ProcessGraph) (L : List NodeId)
-    (start : Option NetKAT) : Option NetKAT :=
+def graphHeadUnion (G : ProcessGraph schema) (L : List NodeId)
+    (start : Option (NetKAT schema)) : Option (NetKAT schema) :=
   unionOverList (fun j => headCollect (G.label j)) L start
 
 /-- **Graph-native head extraction**: the head policy of the graph `G`,
     computed from the finite graph without unfolding recursive
     definitions.  The root is `G.root`, so the graph's `root_closed`
     guarantee applies. -/
-def graphHead (G : ProcessGraph) : Option NetKAT :=
+def graphHead (G : ProcessGraph schema) : Option (NetKAT schema) :=
   match headRun G (headRefsList G.root) ∅ [] with
   | none => none
   | some L => graphHeadUnion G L (headCollect G.root)
@@ -1251,35 +1253,35 @@ def graphHead (G : ProcessGraph) : Option NetKAT :=
     represented by finite derivations of the least-fixpoint relation,
     never by infinite unfolding.  The relation never mentions
     `graphHead`, so the correctness theorem is meaningful. -/
-inductive GraphHeadSpec (G : ProcessGraph) : GProc → CtxPkt → CtxPkt → Prop
-  | nSeq_of_sem (N : NetKAT) (cont : GProc) (σ τ : CtxPkt)
+inductive GraphHeadSpec {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → schema.Packet → schema.Packet → Prop
+  | nSeq_of_sem (N : NetKAT schema) (cont : GProc schema) (σ τ : schema.Packet)
       (h : Semantics N σ τ) : GraphHeadSpec G (.nSeq N cont) σ τ
-  | nSeq_of_tail (N : NetKAT) (cont : GProc) (σ τ : CtxPkt)
+  | nSeq_of_tail (N : NetKAT schema) (cont : GProc schema) (σ τ : schema.Packet)
       (h : GraphHeadSpec G cont σ τ) : GraphHeadSpec G (.nSeq N cont) σ τ
-  | choice_left (a b : GProc) (σ τ : CtxPkt)
+  | choice_left (a b : GProc schema) (σ τ : schema.Packet)
       (h : GraphHeadSpec G a σ τ) : GraphHeadSpec G (.choice a b) σ τ
-  | choice_right (a b : GProc) (σ τ : CtxPkt)
+  | choice_right (a b : GProc schema) (σ τ : schema.Packet)
       (h : GraphHeadSpec G b σ τ) : GraphHeadSpec G (.choice a b) σ τ
-  | ref_of (i : NodeId) (σ τ : CtxPkt)
+  | ref_of (i : NodeId) (σ τ : schema.Packet)
       (h : GraphHeadSpec G (G.label i) σ τ) : GraphHeadSpec G (.ref i) σ τ
 
 /-- Spec clause for Eq. (29): ⊥ contributes the empty relation. -/
-theorem graphHeadSpec_deadlock_false (G : ProcessGraph) (σ τ : CtxPkt) :
+theorem graphHeadSpec_deadlock_false (G : ProcessGraph schema) (σ τ : schema.Packet) :
     ¬ GraphHeadSpec G .deadlock σ τ := by
   intro h
   cases h
 
 /-- Spec clause for Eq. (32): a reconfiguration prefix contributes the
     empty relation. -/
-theorem graphHeadSpec_rcfgPrefix_false (G : ProcessGraph) (x : Channel)
-    (N : NetKAT) (cont : GProc) (σ τ : CtxPkt) :
+theorem graphHeadSpec_rcfgPrefix_false (G : ProcessGraph schema) (x : Channel)
+    (N : NetKAT schema) (cont : GProc schema) (σ τ : schema.Packet) :
     ¬ GraphHeadSpec G (.rcfgPrefix x N cont) σ τ := by
   intro h
   cases h
 
 /-- Spec clause for Eq. (30). -/
-theorem graphHeadSpec_nSeq_iff (G : ProcessGraph) (N : NetKAT) (cont : GProc)
-    (σ τ : CtxPkt) :
+theorem graphHeadSpec_nSeq_iff (G : ProcessGraph schema) (N : NetKAT schema) (cont : GProc schema)
+    (σ τ : schema.Packet) :
     GraphHeadSpec G (.nSeq N cont) σ τ ↔
       (Semantics N σ τ ∨ GraphHeadSpec G cont σ τ) := by
   constructor
@@ -1293,7 +1295,7 @@ theorem graphHeadSpec_nSeq_iff (G : ProcessGraph) (N : NetKAT) (cont : GProc)
     · exact GraphHeadSpec.nSeq_of_tail N cont σ τ ht
 
 /-- Spec clause for Eq. (31). -/
-theorem graphHeadSpec_choice_iff (G : ProcessGraph) (a b : GProc) (σ τ : CtxPkt) :
+theorem graphHeadSpec_choice_iff (G : ProcessGraph schema) (a b : GProc schema) (σ τ : schema.Packet) :
     GraphHeadSpec G (.choice a b) σ τ ↔
       (GraphHeadSpec G a σ τ ∨ GraphHeadSpec G b σ τ) := by
   constructor
@@ -1308,7 +1310,7 @@ theorem graphHeadSpec_choice_iff (G : ProcessGraph) (a b : GProc) (σ τ : CtxPk
 
 /-- Spec clause for recursive references: the contribution of `ref i` is
     the contribution of the node label. -/
-theorem graphHeadSpec_ref_iff (G : ProcessGraph) (i : NodeId) (σ τ : CtxPkt) :
+theorem graphHeadSpec_ref_iff (G : ProcessGraph schema) (i : NodeId) (σ τ : schema.Packet) :
     GraphHeadSpec G (.ref i) σ τ ↔ GraphHeadSpec G (G.label i) σ τ := by
   constructor
   · intro h
@@ -1319,7 +1321,7 @@ theorem graphHeadSpec_ref_iff (G : ProcessGraph) (i : NodeId) (σ τ : CtxPkt) :
 /-- The specification is exactly the union of the semantics of the
     NetKAT policies occurring at head-reachable packet-prefix
     positions. -/
-theorem graphHeadSpec_iff_prefix (G : ProcessGraph) (gp : GProc) (σ τ : CtxPkt) :
+theorem graphHeadSpec_iff_prefix (G : ProcessGraph schema) (gp : GProc schema) (σ τ : schema.Packet) :
     GraphHeadSpec G gp σ τ ↔ ∃ N, HeadPrefixOf G gp N ∧ Semantics N σ τ := by
   constructor
   · intro h
@@ -1358,9 +1360,9 @@ theorem graphHeadSpec_iff_prefix (G : ProcessGraph) (gp : GProc) (σ τ : CtxPkt
 
 /-- Prefix occurrences lift through head reachability: a prefix in the
     label of a reachable node is a prefix of the reachable term. -/
-theorem headPrefixOf_lift {G : ProcessGraph} {root : GProc} {j : NodeId}
+theorem headPrefixOf_lift {G : ProcessGraph schema} {root : GProc schema} {j : NodeId}
     (h : HeadPathTo G root j) :
-    ∀ N : NetKAT, HeadPrefixOf G (G.label j) N → HeadPrefixOf G root N := by
+    ∀ N : NetKAT schema, HeadPrefixOf G (G.label j) N → HeadPrefixOf G root N := by
   induction h with
   | ref i => intro N hpre; exact HeadPrefixOf.ref i N hpre
   | nSeq N' cont k _ ih => intro N hpre; exact HeadPrefixOf.nSeq N' cont N (ih N hpre)
@@ -1384,9 +1386,9 @@ theorem headPrefixOf_lift {G : ProcessGraph} {root : GProc} {j : NodeId}
 /-- Soundness of the collection: every packet pair in the semantics of a
     successful collection is contributed by a head-reachable packet
     prefix. -/
-theorem headCollect_prefix_sound (G : ProcessGraph) :
-    ∀ (gp : GProc) (H : NetKAT), headCollect gp = some H →
-      ∀ σ τ : CtxPkt, Semantics H σ τ →
+theorem headCollect_prefix_sound (G : ProcessGraph schema) :
+    ∀ (gp : GProc schema) (H : NetKAT schema), headCollect gp = some H →
+      ∀ σ τ : schema.Packet, Semantics H σ τ →
         ∃ N, HeadPrefixOf G gp N ∧ Semantics N σ τ := by
   intro gp
   cases gp with
@@ -1460,11 +1462,11 @@ theorem headCollect_prefix_sound (G : ProcessGraph) :
     paper's four equations (29)-(32) cover `deadlock`, `nSeq`, `choice`
     and `rcfgPrefix`; a recursive reference is supported when it points
     at a live node of the graph. -/
-inductive HeadShapeOk (G : ProcessGraph) : GProc → Prop
+inductive HeadShapeOk {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → Prop
   | deadlock : HeadShapeOk G .deadlock
-  | nSeq (N : NetKAT) (cont : GProc) : HeadShapeOk G (.nSeq N cont)
-  | choice (a b : GProc) : HeadShapeOk G (.choice a b)
-  | rcfgPrefix (x : Channel) (N : NetKAT) (cont : GProc) :
+  | nSeq (N : NetKAT schema) (cont : GProc schema) : HeadShapeOk G (.nSeq N cont)
+  | choice (a b : GProc schema) : HeadShapeOk G (.choice a b)
+  | rcfgPrefix (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
       HeadShapeOk G (.rcfgPrefix x N cont)
   | ref (i : NodeId) (h : i ∈ G.nodes) : HeadShapeOk G (.ref i)
 
@@ -1472,20 +1474,20 @@ inductive HeadShapeOk (G : ProcessGraph) : GProc → Prop
     communication prefixes (excluded by the paper's restriction
     precondition — they are NOT deadlock), the three merge operators,
     restriction and projection. -/
-inductive HeadUnsupported : GProc → Prop
-  | recv (x : Channel) (N : NetKAT) (cont : GProc) :
+inductive HeadUnsupported {schema : NetKAT.PacketSchema} : GProc schema → Prop
+  | recv (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
       HeadUnsupported (.recv x N cont)
-  | send (x : Channel) (N : NetKAT) (cont : GProc) :
+  | send (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
       HeadUnsupported (.send x N cont)
-  | parallel (a b : GProc) : HeadUnsupported (.parallel a b)
-  | leftMerge (a b : GProc) : HeadUnsupported (.leftMerge a b)
-  | commMerge (a b : GProc) : HeadUnsupported (.commMerge a b)
-  | restrict (L : Set CommunicationAction) (cont : GProc) :
+  | parallel (a b : GProc schema) : HeadUnsupported (.parallel a b)
+  | leftMerge (a b : GProc schema) : HeadUnsupported (.leftMerge a b)
+  | commMerge (a b : GProc schema) : HeadUnsupported (.commMerge a b)
+  | restrict (L : Set (CommunicationAction schema)) (cont : GProc schema) :
       HeadUnsupported (.restrict L cont)
-  | project (n : Nat) (cont : GProc) : HeadUnsupported (.project n cont)
+  | project (n : Nat) (cont : GProc schema) : HeadUnsupported (.project n cont)
 
 /-- The seven unsupported shapes are outside every supported domain. -/
-theorem headUnsupported_not_shapeOk {G : ProcessGraph} {dst : GProc}
+theorem headUnsupported_not_shapeOk {G : ProcessGraph schema} {dst : GProc schema}
     (h : HeadUnsupported dst) : ¬ HeadShapeOk G dst := by
   cases h with
   | recv x N cont => intro hok; cases hok
@@ -1498,8 +1500,8 @@ theorem headUnsupported_not_shapeOk {G : ProcessGraph} {dst : GProc}
 
 /-- Every head reference of a term occurs as a `ref` subterm in its
     head region. -/
-theorem headSub_of_headRefs (G : ProcessGraph) :
-    ∀ (gp : GProc) (i : NodeId), i ∈ headRefs gp → HeadSub G gp (.ref i) := by
+theorem headSub_of_headRefs (G : ProcessGraph schema) :
+    ∀ (gp : GProc schema) (i : NodeId), i ∈ headRefs gp → HeadSub G gp (.ref i) := by
   intro gp
   cases gp with
   | deadlock => intro i hi; simp [headRefs] at hi
@@ -1529,9 +1531,9 @@ theorem headSub_of_headRefs (G : ProcessGraph) :
 
 /-- Ref-free head-subterm containment shrinks through an `nSeq`
     constructor. -/
-theorem headSubFree_shrink_nSeq (G : ProcessGraph) :
-    ∀ (ct X : GProc), HeadSubFree G ct X →
-      ∀ (N : NetKAT) (cont : GProc), X = .nSeq N cont →
+theorem headSubFree_shrink_nSeq (G : ProcessGraph schema) :
+    ∀ (ct X : GProc schema), HeadSubFree G ct X →
+      ∀ (N : NetKAT schema) (cont : GProc schema), X = .nSeq N cont →
         HeadSubFree G ct cont := by
   intro ct X hs
   induction hs with
@@ -1551,9 +1553,9 @@ theorem headSubFree_shrink_nSeq (G : ProcessGraph) :
 
 /-- Ref-free head-subterm containment shrinks through a `choice`
     constructor (left branch). -/
-theorem headSubFree_shrink_choice_left (G : ProcessGraph) :
-    ∀ (ct X : GProc), HeadSubFree G ct X →
-      ∀ (a b : GProc), X = .choice a b → HeadSubFree G ct a := by
+theorem headSubFree_shrink_choice_left (G : ProcessGraph schema) :
+    ∀ (ct X : GProc schema), HeadSubFree G ct X →
+      ∀ (a b : GProc schema), X = .choice a b → HeadSubFree G ct a := by
   intro ct X hs
   induction hs with
   | refl gp =>
@@ -1572,9 +1574,9 @@ theorem headSubFree_shrink_choice_left (G : ProcessGraph) :
 
 /-- Ref-free head-subterm containment shrinks through a `choice`
     constructor (right branch). -/
-theorem headSubFree_shrink_choice_right (G : ProcessGraph) :
-    ∀ (ct X : GProc), HeadSubFree G ct X →
-      ∀ (a b : GProc), X = .choice a b → HeadSubFree G ct b := by
+theorem headSubFree_shrink_choice_right (G : ProcessGraph schema) :
+    ∀ (ct X : GProc schema), HeadSubFree G ct X →
+      ∀ (a b : GProc schema), X = .choice a b → HeadSubFree G ct b := by
   intro ct X hs
   induction hs with
   | refl gp =>
@@ -1595,8 +1597,8 @@ theorem headSubFree_shrink_choice_right (G : ProcessGraph) :
     explicitly unsupported shape is reachable in the term's head
     region.  (References never fail, so no side condition on the
     references is needed.) -/
-theorem headCollect_none_failure (G : ProcessGraph) :
-    ∀ gp : GProc, headCollect gp = none →
+theorem headCollect_none_failure (G : ProcessGraph schema) :
+    ∀ gp : GProc schema, headCollect gp = none →
       ∃ dst, HeadSub G gp dst ∧ HeadUnsupported dst := by
   intro gp
   cases gp with
@@ -1644,15 +1646,15 @@ theorem headCollect_none_failure (G : ProcessGraph) :
     head-reachable node is a live node of the graph.  For the root of a
     well-formed graph the second condition is exactly `root_closed` +
     `closed` (see `headPathTo_nodes_closed`). -/
-def GraphHeadSupported (G : ProcessGraph) : Prop :=
+def GraphHeadSupported (G : ProcessGraph schema) : Prop :=
   (∀ dst, HeadSub G G.root dst → HeadShapeOk G dst) ∧
   (∀ j, HeadPathTo G G.root j → j ∈ G.nodes)
 
 /-- **Supported-domain characterization**: on the supported domain the
     extraction always succeeds. -/
-theorem graphHead_supported_some (G : ProcessGraph)
+theorem graphHead_supported_some (G : ProcessGraph schema)
     (hsupported : GraphHeadSupported G) :
-    ∃ H : NetKAT, graphHead G = some H := by
+    ∃ H : NetKAT schema, graphHead G = some H := by
   obtain ⟨hshape, hnodes⟩ := hsupported
   obtain ⟨L, hL⟩ : ∃ L, headRun G (headRefsList G.root) ∅ [] = some L := by
     cases hrun : headRun G (headRefsList G.root) ∅ [] with
@@ -1683,9 +1685,9 @@ theorem graphHead_supported_some (G : ProcessGraph)
 
 /-- For the root of a well-formed graph, the node-closure assumption of
     `GraphHeadSupported` is exactly `root_closed` + `closed`. -/
-theorem graphHead_supported_some_root (G : ProcessGraph)
+theorem graphHead_supported_some_root (G : ProcessGraph schema)
     (hshape : ∀ dst, HeadSub G G.root dst → HeadShapeOk G dst) :
-    ∃ H : NetKAT, graphHead G = some H :=
+    ∃ H : NetKAT schema, graphHead G = some H :=
   graphHead_supported_some G ⟨hshape, fun j hj => headPathTo_nodes_closed G j hj⟩
 
 ------------------------------------------------------------------------
@@ -1723,8 +1725,8 @@ theorem graphHead_supported_some_root (G : ProcessGraph)
 /-- Prefix occurrences lift through head-subterm containment: a policy
     occurring at a packet-prefix position of a head-subterm occurs at a
     packet-prefix position of the containing term. -/
-theorem headPrefixOf_headSub_lift {G : ProcessGraph} {root gp : GProc}
-    (hsub : HeadSub G root gp) {N : NetKAT} (hpre : HeadPrefixOf G gp N) :
+theorem headPrefixOf_headSub_lift {G : ProcessGraph schema} {root gp : GProc schema}
+    (hsub : HeadSub G root gp) {N : NetKAT schema} (hpre : HeadPrefixOf G gp N) :
     HeadPrefixOf G root N := by
   obtain ⟨cont, hc⟩ := (headPrefixOf_iff_headSub G gp N).mp hpre
   exact (headPrefixOf_iff_headSub G root N).mpr ⟨cont, HeadSub.trans hsub hc⟩
@@ -1732,9 +1734,9 @@ theorem headPrefixOf_headSub_lift {G : ProcessGraph} {root gp : GProc}
 /-- Soundness of the local collection relative to any containing head
     term: the packet pairs of a successful collection of `gp` satisfy
     the specification of any term whose head region contains `gp`. -/
-theorem headCollect_headSub_spec_sound (G : ProcessGraph) {root gp : GProc}
-    (hsub : HeadSub G root gp) {H : NetKAT} (hcol : headCollect gp = some H)
-    (σ τ : CtxPkt) (hsem : Semantics H σ τ) :
+theorem headCollect_headSub_spec_sound (G : ProcessGraph schema) {root gp : GProc schema}
+    (hsub : HeadSub G root gp) {H : NetKAT schema} (hcol : headCollect gp = some H)
+    (σ τ : schema.Packet) (hsem : Semantics H σ τ) :
     GraphHeadSpec G root σ τ := by
   obtain ⟨N, hpre, hNsem⟩ := headCollect_prefix_sound G gp H hcol σ τ hsem
   exact (graphHeadSpec_iff_prefix G root σ τ).mpr
@@ -1742,8 +1744,8 @@ theorem headCollect_headSub_spec_sound (G : ProcessGraph) {root gp : GProc}
 
 /-- Soundness of the root's local collection (the start value of the
     fold): its packet pairs satisfy the specification of the root. -/
-theorem headCollect_root_spec_sound (G : ProcessGraph) {H : NetKAT}
-    (hcol : headCollect G.root = some H) (σ τ : CtxPkt)
+theorem headCollect_root_spec_sound (G : ProcessGraph schema) {H : NetKAT schema}
+    (hcol : headCollect G.root = some H) (σ τ : schema.Packet)
     (hsem : Semantics H σ τ) : GraphHeadSpec G G.root σ τ :=
   headCollect_headSub_spec_sound G (HeadSub.refl G.root) hcol σ τ hsem
 
@@ -1751,9 +1753,9 @@ theorem headCollect_root_spec_sound (G : ProcessGraph) {H : NetKAT}
     label of a head-reachable node is sound AT the root, because head
     reachability (`HeadPathTo`) makes the node label a head-subterm of
     the root (`headPathTo_sub`). -/
-theorem headCollect_node_spec_sound (G : ProcessGraph) (j : NodeId)
-    {Hⱼ : NetKAT} (hpath : HeadPathTo G G.root j)
-    (hcol : headCollect (G.label j) = some Hⱼ) (σ τ : CtxPkt)
+theorem headCollect_node_spec_sound (G : ProcessGraph schema) (j : NodeId)
+    {Hⱼ : NetKAT schema} (hpath : HeadPathTo G G.root j)
+    (hcol : headCollect (G.label j) = some Hⱼ) (σ τ : schema.Packet)
     (hsem : Semantics Hⱼ σ τ) : GraphHeadSpec G G.root σ τ :=
   headCollect_headSub_spec_sound G (headPathTo_sub hpath) hcol σ τ hsem
 
@@ -1765,10 +1767,10 @@ theorem headCollect_node_spec_sound (G : ProcessGraph) (j : NodeId)
     of a visited node, and visited nodes are head-reachable
     (`headRun_root_success`), so no contribution escapes the
     specification — regardless of cycles in the reference structure. -/
-theorem graphHeadUnion_sound (G : ProcessGraph) (L : List NodeId) (H : NetKAT)
+theorem graphHeadUnion_sound (G : ProcessGraph schema) (L : List NodeId) (H : NetKAT schema)
     (hrun : headRun G (headRefsList G.root) ∅ [] = some L)
     (hfold : graphHeadUnion G L (headCollect G.root) = some H)
-    (σ τ : CtxPkt) (hsem : Semantics H σ τ) :
+    (σ τ : schema.Packet) (hsem : Semantics H σ τ) :
     GraphHeadSpec G G.root σ τ := by
   obtain ⟨_, hlive⟩ := headRun_root_success G L hrun
   obtain ⟨H₀, hcol⟩ : ∃ H₀, headCollect G.root = some H₀ := by
@@ -1791,9 +1793,9 @@ theorem graphHeadUnion_sound (G : ProcessGraph) (L : List NodeId) (H : NetKAT)
     `graphHead G = some H`, the semantics of `H` is included in the
     behavior described by `GraphHeadSpec G G.root`.  (Completeness —
     the converse inclusion — is `graphHead_complete` in §9.) -/
-theorem graphHead_sound (G : ProcessGraph) (H : NetKAT)
+theorem graphHead_sound (G : ProcessGraph schema) (H : NetKAT schema)
     (hhead : graphHead G = some H) :
-    ∀ σ τ : CtxPkt, Semantics H σ τ → GraphHeadSpec G G.root σ τ := by
+    ∀ σ τ : schema.Packet, Semantics H σ τ → GraphHeadSpec G G.root σ τ := by
   intro σ τ hsem
   cases hrun : headRun G (headRefsList G.root) ∅ [] with
   | none =>
@@ -1808,10 +1810,10 @@ theorem graphHead_sound (G : ProcessGraph) (H : NetKAT)
 
 /-- Packaged soundness on the supported domain: on a supported graph the
     extraction succeeds AND its result is spec-sound. -/
-theorem graphHead_sound_of_supported (G : ProcessGraph)
+theorem graphHead_sound_of_supported (G : ProcessGraph schema)
     (hsupported : GraphHeadSupported G) :
-    ∃ H : NetKAT, graphHead G = some H ∧
-      ∀ σ τ : CtxPkt, Semantics H σ τ → GraphHeadSpec G G.root σ τ := by
+    ∃ H : NetKAT schema, graphHead G = some H ∧
+      ∀ σ τ : schema.Packet, Semantics H σ τ → GraphHeadSpec G G.root σ τ := by
   obtain ⟨H, hH⟩ := graphHead_supported_some G hsupported
   exact ⟨H, hH, graphHead_sound G H hH⟩
 
@@ -1864,18 +1866,18 @@ theorem graphHead_sound_of_supported (G : ProcessGraph)
     the fragment of `HeadPrefixOf` that `headCollect` covers locally;
     occurrences behind references are covered at the referenced node's
     label instead. -/
-inductive HeadPrefixOfFree (G : ProcessGraph) : GProc → NetKAT → Prop
-  | here (N : NetKAT) (cont : GProc) : HeadPrefixOfFree G (.nSeq N cont) N
-  | nSeq (N : NetKAT) (cont : GProc) (M : NetKAT)
+inductive HeadPrefixOfFree {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → NetKAT schema → Prop
+  | here (N : NetKAT schema) (cont : GProc schema) : HeadPrefixOfFree G (.nSeq N cont) N
+  | nSeq (N : NetKAT schema) (cont : GProc schema) (M : NetKAT schema)
       (h : HeadPrefixOfFree G cont M) : HeadPrefixOfFree G (.nSeq N cont) M
-  | choice_left (a b : GProc) (M : NetKAT)
+  | choice_left (a b : GProc schema) (M : NetKAT schema)
       (h : HeadPrefixOfFree G a M) : HeadPrefixOfFree G (.choice a b) M
-  | choice_right (a b : GProc) (M : NetKAT)
+  | choice_right (a b : GProc schema) (M : NetKAT schema)
       (h : HeadPrefixOfFree G b M) : HeadPrefixOfFree G (.choice a b) M
 
 /-- Ref-free prefix occurrences are prefix occurrences. -/
-theorem headPrefixOfFree_to_headPrefixOf {G : ProcessGraph} {gp : GProc}
-    {N : NetKAT} (h : HeadPrefixOfFree G gp N) : HeadPrefixOf G gp N := by
+theorem headPrefixOfFree_to_headPrefixOf {G : ProcessGraph schema} {gp : GProc schema}
+    {N : NetKAT schema} (h : HeadPrefixOfFree G gp N) : HeadPrefixOf G gp N := by
   induction h with
   | here N cont => exact HeadPrefixOf.here N cont
   | nSeq N cont M _ ih => exact HeadPrefixOf.nSeq N cont M ih
@@ -1884,9 +1886,9 @@ theorem headPrefixOfFree_to_headPrefixOf {G : ProcessGraph} {gp : GProc}
 
 /-- A ref-free head-subterm of the shape `N; cont` witnesses a ref-free
     prefix occurrence (counterpart of `headPrefixOf_of_headSub`). -/
-theorem headPrefixOfFree_of_headSubFree (G : ProcessGraph) :
-    ∀ (gp sub : GProc), HeadSubFree G gp sub →
-      ∀ (N : NetKAT) (cont : GProc), sub = .nSeq N cont →
+theorem headPrefixOfFree_of_headSubFree (G : ProcessGraph schema) :
+    ∀ (gp sub : GProc schema), HeadSubFree G gp sub →
+      ∀ (N : NetKAT schema) (cont : GProc schema), sub = .nSeq N cont →
         HeadPrefixOfFree G gp N := by
   intro gp sub hs
   induction hs with
@@ -1907,9 +1909,9 @@ theorem headPrefixOfFree_of_headSubFree (G : ProcessGraph) :
 /-- Characterization of ref-free prefix occurrences by ref-free
     head-subterms of the shape `N; cont` (counterpart of
     `headPrefixOf_iff_headSub`). -/
-theorem headPrefixOfFree_iff_headSubFree (G : ProcessGraph) (gp : GProc)
-    (N : NetKAT) :
-    HeadPrefixOfFree G gp N ↔ ∃ cont : GProc, HeadSubFree G gp (.nSeq N cont) := by
+theorem headPrefixOfFree_iff_headSubFree (G : ProcessGraph schema) (gp : GProc schema)
+    (N : NetKAT schema) :
+    HeadPrefixOfFree G gp N ↔ ∃ cont : GProc schema, HeadSubFree G gp (.nSeq N cont) := by
   constructor
   · intro h
     induction h with
@@ -1936,10 +1938,10 @@ theorem headPrefixOfFree_iff_headSubFree (G : ProcessGraph) (gp : GProc)
     is not needed here: success of the collection is the hypothesis, and
     on the supported domain success is guaranteed by
     `graphHead_supported_some` via `headCollect_none_failure`.) -/
-theorem headCollect_prefix_complete (G : ProcessGraph) :
-    ∀ (gp : GProc) (N : NetKAT), HeadPrefixOfFree G gp N →
-      ∀ σ τ : CtxPkt, Semantics N σ τ →
-        ∀ H : NetKAT, headCollect gp = some H → Semantics H σ τ := by
+theorem headCollect_prefix_complete (G : ProcessGraph schema) :
+    ∀ (gp : GProc schema) (N : NetKAT schema), HeadPrefixOfFree G gp N →
+      ∀ σ τ : schema.Packet, Semantics N σ τ →
+        ∀ H : NetKAT schema, headCollect gp = some H → Semantics H σ τ := by
   intro gp N h
   induction h with
   | here N cont =>
@@ -1972,9 +1974,9 @@ theorem headCollect_prefix_complete (G : ProcessGraph) :
     collection, which the worklist fold visits exactly once).  The proof
     is a straightforward induction on the `HeadSub` derivation, so no
     acyclicity assumption is involved. -/
-theorem headSub_collection_point (G : ProcessGraph) :
-    ∀ {anchor sub : GProc}, HeadSub G anchor sub →
-      ∃ cp : GProc,
+theorem headSub_collection_point (G : ProcessGraph schema) :
+    ∀ {anchor sub : GProc schema}, HeadSub G anchor sub →
+      ∃ cp : GProc schema,
         (cp = anchor ∨ ∃ j, HeadPathTo G anchor j ∧ cp = G.label j) ∧
         HeadSubFree G cp sub := by
   intro anchor sub h
@@ -2018,15 +2020,15 @@ theorem headSub_collection_point (G : ProcessGraph) :
         rw [hcpEq] at hfree
         exact hfree
 
-theorem unionStep_none_of_acc_none (f : NodeId → Option NetKAT) (j : NodeId) :
+theorem unionStep_none_of_acc_none (f : NodeId → Option (NetKAT schema)) (j : NodeId) :
     unionStep f j none = none := by
   simp only [unionStep]
   cases f j <;> rfl
 
 /-- The start value of a successful fold is successful: if the fold over
     `l` starting from `start` succeeds, then `start` was already `some`. -/
-theorem unionOverList_start_some (f : NodeId → Option NetKAT) :
-    ∀ (l : List NodeId) (start : Option NetKAT) (H : NetKAT),
+theorem unionOverList_start_some (f : NodeId → Option (NetKAT schema)) :
+    ∀ (l : List NodeId) (start : Option (NetKAT schema)) (H : NetKAT schema),
       unionOverList f l start = some H → ∃ H₀, start = some H₀ := by
   intro l
   induction l with
@@ -2054,10 +2056,10 @@ theorem unionOverList_start_some (f : NodeId → Option NetKAT) :
     ref-free occurrences (`headCollect_prefix_complete`).  Cycles need no
     special treatment: the derivation of the specification is finite, so
     the collection point exists after finitely many reference jumps. -/
-theorem graphHeadUnion_complete (G : ProcessGraph) (L : List NodeId) (H : NetKAT)
+theorem graphHeadUnion_complete (G : ProcessGraph schema) (L : List NodeId) (H : NetKAT schema)
     (hrun : headRun G (headRefsList G.root) ∅ [] = some L)
     (hfold : graphHeadUnion G L (headCollect G.root) = some H)
-    (σ τ : CtxPkt) (hspec : GraphHeadSpec G G.root σ τ) :
+    (σ τ : schema.Packet) (hspec : GraphHeadSpec G G.root σ τ) :
     Semantics H σ τ := by
   obtain ⟨hcover, _hlive⟩ := headRun_root_success G L hrun
   rw [graphHeadUnion] at hfold
@@ -2101,9 +2103,9 @@ theorem graphHeadUnion_complete (G : ProcessGraph) (L : List NodeId) (H : NetKAT
     extraction is semantically exact whenever it succeeds — no
     supportedness hypothesis is needed beyond the success itself, because
     success already forces every involved local collection to succeed. -/
-theorem graphHead_complete (G : ProcessGraph) (H : NetKAT)
+theorem graphHead_complete (G : ProcessGraph schema) (H : NetKAT schema)
     (hhead : graphHead G = some H) :
-    ∀ σ τ : CtxPkt, GraphHeadSpec G G.root σ τ → Semantics H σ τ := by
+    ∀ σ τ : schema.Packet, GraphHeadSpec G G.root σ τ → Semantics H σ τ := by
   intro σ τ hspec
   cases hrun : headRun G (headRefsList G.root) ∅ [] with
   | none =>
@@ -2119,10 +2121,10 @@ theorem graphHead_complete (G : ProcessGraph) (H : NetKAT)
 /-- **Packaged completeness on the supported domain**: on a supported
     graph the extraction succeeds AND its result captures the full
     specification behavior. -/
-theorem graphHead_complete_of_supported (G : ProcessGraph)
-    (hsupported : GraphHeadSupported G) (σ τ : CtxPkt)
+theorem graphHead_complete_of_supported (G : ProcessGraph schema)
+    (hsupported : GraphHeadSupported G) (σ τ : schema.Packet)
     (hspec : GraphHeadSpec G G.root σ τ) :
-    ∃ H : NetKAT, graphHead G = some H ∧ Semantics H σ τ := by
+    ∃ H : NetKAT schema, graphHead G = some H ∧ Semantics H σ τ := by
   obtain ⟨H, hH⟩ := graphHead_supported_some G hsupported
   exact ⟨H, hH, graphHead_complete G H hH σ τ hspec⟩
 
@@ -2131,10 +2133,10 @@ theorem graphHead_complete_of_supported (G : ProcessGraph)
     `GraphHeadSupported` is derivable from the graph's own
     `root_closed`/`closed` fields (`headPathTo_nodes_closed`), so only
     the shape condition on the root's head region is needed. -/
-theorem graphHead_complete_of_shapeOk_root (G : ProcessGraph)
+theorem graphHead_complete_of_shapeOk_root (G : ProcessGraph schema)
     (hshape : ∀ dst, HeadSub G G.root dst → HeadShapeOk G dst)
-    (σ τ : CtxPkt) (hspec : GraphHeadSpec G G.root σ τ) :
-    ∃ H : NetKAT, graphHead G = some H ∧ Semantics H σ τ := by
+    (σ τ : schema.Packet) (hspec : GraphHeadSpec G G.root σ τ) :
+    ∃ H : NetKAT schema, graphHead G = some H ∧ Semantics H σ τ := by
   obtain ⟨H, hH⟩ := graphHead_supported_some_root G hshape
   exact ⟨H, hH, graphHead_complete G H hH σ τ hspec⟩
 
@@ -2143,10 +2145,10 @@ theorem graphHead_complete_of_shapeOk_root (G : ProcessGraph)
     coincide packet-pair by packet-pair.  The forward direction is
     `graphHead_complete_of_supported`; the reverse direction reuses
     `graphHead_sound` (S6B Part 3A) without duplicating its proof. -/
-theorem graphHead_spec_iff (G : ProcessGraph)
-    (hsupported : GraphHeadSupported G) (σ τ : CtxPkt) :
+theorem graphHead_spec_iff (G : ProcessGraph schema)
+    (hsupported : GraphHeadSupported G) (σ τ : schema.Packet) :
     GraphHeadSpec G G.root σ τ ↔
-      ∃ H : NetKAT, graphHead G = some H ∧ Semantics H σ τ := by
+      ∃ H : NetKAT schema, graphHead G = some H ∧ Semantics H σ τ := by
   constructor
   · exact graphHead_complete_of_supported G hsupported σ τ
   · rintro ⟨H, hH, hsem⟩
@@ -2155,10 +2157,10 @@ theorem graphHead_spec_iff (G : ProcessGraph)
 /-- Specification equivalence under the weaker shape-only condition
     (the node-closure conjunct of `GraphHeadSupported` is redundant for
     well-formed graphs). -/
-theorem graphHead_spec_iff_of_shapeOk_root (G : ProcessGraph)
-    (hshape : ∀ dst, HeadSub G G.root dst → HeadShapeOk G dst) (σ τ : CtxPkt) :
+theorem graphHead_spec_iff_of_shapeOk_root (G : ProcessGraph schema)
+    (hshape : ∀ dst, HeadSub G G.root dst → HeadShapeOk G dst) (σ τ : schema.Packet) :
     GraphHeadSpec G G.root σ τ ↔
-      ∃ H : NetKAT, graphHead G = some H ∧ Semantics H σ τ := by
+      ∃ H : NetKAT schema, graphHead G = some H ∧ Semantics H σ τ := by
   constructor
   · exact graphHead_complete_of_shapeOk_root G hshape σ τ
   · rintro ⟨H, hH, hsem⟩
@@ -2172,13 +2174,13 @@ theorem graphHead_spec_iff_of_shapeOk_root (G : ProcessGraph)
     condition of `GraphHeadSupported` for concrete graphs by a finite
     invariant — cyclic definitions included, since the induction runs on
     the finite `HeadSub` derivation, never on the unfolding. -/
-theorem headShapeOk_of_headSub_inv (G : ProcessGraph) :
-    ∀ (a dst : GProc), HeadSub G a dst →
-      ∀ Inv : GProc → Prop,
+theorem headShapeOk_of_headSub_inv (G : ProcessGraph schema) :
+    ∀ (a dst : GProc schema), HeadSub G a dst →
+      ∀ Inv : GProc schema → Prop,
         Inv a →
         (∀ b, Inv b → HeadShapeOk G b) →
-        (∀ b, Inv b → ∀ (N : NetKAT) (cont : GProc), b = .nSeq N cont → Inv cont) →
-        (∀ b, Inv b → ∀ (x y : GProc), b = .choice x y → Inv x ∧ Inv y) →
+        (∀ b, Inv b → ∀ (N : NetKAT schema) (cont : GProc schema), b = .nSeq N cont → Inv cont) →
+        (∀ b, Inv b → ∀ (x y : GProc schema), b = .choice x y → Inv x ∧ Inv y) →
         (∀ b, Inv b → ∀ (i : NodeId), b = .ref i → i ∈ G.nodes ∧ Inv (G.label i)) →
         HeadShapeOk G dst := by
   intro a dst h

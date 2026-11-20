@@ -52,10 +52,10 @@ private theorem matchesLetter_iff (l : MoveLabel schema) (letter : Letter schema
               · intro step; cases step; exact ⟨rfl, rfl⟩
       | recv | send => exact ⟨Bool.noConfusion, fun h => by cases h⟩
 
-private def checkedRow {G : ProcessGraph} {bodyChecks live}
-    (support : ProjectionSupport G bodyChecks live) (state : CheckedResidual)
+private def checkedRow {G : ProcessGraph schema} {bodyChecks live}
+    (support : ProjectionSupport G bodyChecks live) (state : CheckedResidual schema)
     (valid : state.Valid live) :
-    { row : List CheckedMove // MovesExact G state.proc (row.map CheckedMove.erase) ∧
+    { row : List (CheckedMove schema) // MovesExact G state.proc (row.map CheckedMove.erase) ∧
       ∀ move ∈ row, move.2.Valid live } :=
   match checked : checkedMoves G bodyChecks state with
   | some row => ⟨row, checkedMoves_spec support valid checked⟩
@@ -64,9 +64,9 @@ private def checkedRow {G : ProcessGraph} {bodyChecks live}
     rw [checked] at existsRow
     cases existsRow)
 
-private def acceptsWord {G : ProcessGraph} {bodyChecks live}
-    (support : ProjectionSupport G bodyChecks live) (state : CheckedResidual)
-    (valid : state.Valid live) : Word → Bool
+private def acceptsWord {G : ProcessGraph schema} {bodyChecks live}
+    (support : ProjectionSupport G bodyChecks live) (state : CheckedResidual schema)
+    (valid : state.Valid live) : Word schema → Bool
   | [] => true
   | a :: rest =>
       let row := checkedRow support state valid
@@ -74,10 +74,10 @@ private def acceptsWord {G : ProcessGraph} {bodyChecks live}
         matchesLetter move.val.1 a &&
           acceptsWord support move.val.2 (row.property.2 _ move.property) rest
 
-private theorem acceptsWord_iff {G : ProcessGraph} {bodyChecks live}
-    (support : ProjectionSupport G bodyChecks live) {env : RecEnv} {p : DyNetKAT}
-    {state : CheckedResidual} (valid : state.Valid live) (corr : Corr G env p state.proc)
-    (w : Word) :
+private theorem acceptsWord_iff {G : ProcessGraph schema} {bodyChecks live}
+    (support : ProjectionSupport G bodyChecks live) {env : RecEnv schema} {p : DyNetKAT schema}
+    {state : CheckedResidual schema} (valid : state.Valid live) (corr : Corr G env p state.proc)
+    (w : Word schema) :
     acceptsWord support state valid w = true ↔ SourceTrace env p (w.map Letter.action) := by
   induction w generalizing p state with
   | nil => exact ⟨fun _ => sourceTrace_nil .., fun _ => rfl⟩
@@ -105,29 +105,29 @@ private theorem acceptsWord_iff {G : ProcessGraph} {bodyChecks live}
 /-- Check the supplied forbidden words using exact symbolic moves and the
 supplied-packet evaluator. Search depth is the length of the current word.
 No finite derivative closure or exhaustively generated alphabet is needed. -/
-def check {extended : Bool} {env : RecEnv} {p : Program extended env}
-    (compiled : p.Compiled) (rootChecks : RestrictionChecks)
+def check {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    (compiled : p.Compiled) (rootChecks : RestrictionChecks schema)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : (compiled.initial rootChecks).checked.Valid live)
-    (forbidden : List Word) : Bool :=
+    (forbidden : List (Word schema)) : Bool :=
   forbidden.all fun w => !acceptsWord support (compiled.initial rootChecks).checked valid w
 
-theorem check_correct {extended : Bool} {env : RecEnv} {p : Program extended env}
-    (compiled : p.Compiled) (rootChecks : RestrictionChecks)
+theorem check_correct {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    (compiled : p.Compiled) (rootChecks : RestrictionChecks schema)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : (compiled.initial rootChecks).checked.Valid live)
-    (forbidden : List Word) :
+    (forbidden : List (Word schema)) :
     check compiled rootChecks support valid forbidden = true ↔ Safe p forbidden := by
   simp only [check, List.all_eq_true, Bool.not_eq_true', Bool.eq_false_iff, Safe]
   apply forall_congr'
   intro w
   exact imp_congr_right fun _ => not_congr (acceptsWord_iff support valid compiled.corr w)
 
-theorem check_iff_equationalSafety {extended : Bool} {env : RecEnv} {p : Program extended env}
-    (compiled : p.Compiled) (rootChecks : RestrictionChecks)
+theorem check_iff_equationalSafety [DiagramLayout schema] {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    (compiled : p.Compiled) (rootChecks : RestrictionChecks schema)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : (compiled.initial rootChecks).checked.Valid live)
-    (A : Alphabet) (forbidden : List Word) (nonemptyWords : [] ∉ forbidden)
+    (A : Alphabet schema) (forbidden : List (Word schema)) (nonemptyWords : [] ∉ forbidden)
     (alphabet : UsesAlphabet p A) :
     check compiled rootChecks support valid forbidden = true ↔ EquationalSafety p A forbidden :=
   (check_correct compiled rootChecks support valid forbidden).trans
@@ -135,15 +135,15 @@ theorem check_iff_equationalSafety {extended : Bool} {env : RecEnv} {p : Program
 
 
 /-- Verify inclusion of every word of the positive specification. -/
-def checkPositive {extended : Bool} {env : RecEnv} {p : Program extended env} {A : Alphabet}
-    (compiled : p.Compiled) (rootChecks : RestrictionChecks)
+def checkPositive [DiagramLayout schema] {extended : Bool} {env : RecEnv schema} {p : Program extended env} {A : Alphabet schema}
+    (compiled : p.Compiled) (rootChecks : RestrictionChecks schema)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : (compiled.initial rootChecks).checked.Valid live)
     (r : Formula A) : Bool :=
   r.val.hnf.all (acceptsWord support (compiled.initial rootChecks).checked valid)
 
-theorem checkPositive_correct {extended : Bool} {env : RecEnv} {p : Program extended env}
-    {A : Alphabet} (compiled : p.Compiled) (rootChecks : RestrictionChecks)
+theorem checkPositive_correct [DiagramLayout schema] {extended : Bool} {env : RecEnv schema} {p : Program extended env}
+    {A : Alphabet schema} (compiled : p.Compiled) (rootChecks : RestrictionChecks schema)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : (compiled.initial rootChecks).checked.Valid live) (r : Formula A) :
     checkPositive compiled rootChecks support valid r = true ↔ PositiveAbsorption p r := by

@@ -168,7 +168,7 @@ import DyNetKAT
  #eval (preprocess RecEnv.empty (.var "Switch")).isNone                 -- true
 
  -- 14. Spec-level spot checks (machine-checked propositions).
- example : TailSupported (.rcfgPrefix "c" NetKAT.id (.nSeq NetKAT.id .deadlock)) :=
+ example : TailSupported (schema := ctxSchema) (.rcfgPrefix "c" NetKAT.id (.nSeq NetKAT.id .deadlock)) :=
    TailSupported.rcfgPrefix "c" NetKAT.id _
      (TailSupported.nSeq NetKAT.id _ TailSupported.deadlock)
 

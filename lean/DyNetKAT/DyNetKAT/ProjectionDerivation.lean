@@ -5,12 +5,14 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema} [NetKAT.DiagramLayout schema]
+
 /-- The depth-zero rendering is the right-hand side of Figure 11's Π₀. -/
-theorem renderProjection_zero_derives (env : RecEnv) (p : DyNetKAT) :
+theorem renderProjection_zero_derives (env : RecEnv schema) (p : DyNetKAT schema) :
     DerivesNoAIP env (.project 0 p) .deadlock :=
   .projectZero p
 
-private theorem project_heads_exists_ground {env : RecEnv} (n : Nat) (xs : HeadNormalForm)
+private theorem project_heads_exists_ground {env : RecEnv schema} (n : Nat) (xs : HeadNormalForm schema)
     (tails : ∀ b ∈ xs, ∃ q, Ground q ∧ DerivesNoAIP env (.project n b.continuation) q) :
     ∃ q, Ground q ∧ DerivesNoAIP env (xs.project (n + 1)).render q := by
   induction xs with
@@ -27,7 +29,7 @@ private theorem project_heads_exists_ground {env : RecEnv} (n : Nat) (xs : HeadN
 
 /-- Successive head normalization and Π rules eliminate recursion from a
 fixed-depth projection. Only the projected continuations need induction. -/
-theorem WellFormed.project_exists_ground {env : RecEnv} {p : DyNetKAT}
+theorem WellFormed.project_exists_ground {env : RecEnv schema} {p : DyNetKAT schema}
     (hp : WellFormed env p) (n : Nat) :
     ∃ q, Ground q ∧ DerivesNoAIP env (.project n p) q := by
   induction n generalizing p with
@@ -39,9 +41,9 @@ theorem WellFormed.project_exists_ground {env : RecEnv} {p : DyNetKAT}
     exact ⟨q, hq, .trans (.projectCongr _ normalize)
       (.trans (HeadNormalForm.project_correct ..) branches)⟩
 
-private theorem renderProjection_derives_of_ground {G : ProcessGraph}
-    {bodyChecks : NodeId → RestrictionChecks} {n : Nat} {state : CheckedResidual}
-    {env : RecEnv} {p q t : DyNetKAT} (hr : renderProjection G bodyChecks n state = some q)
+private theorem renderProjection_derives_of_ground {G : ProcessGraph schema}
+    {bodyChecks : NodeId → RestrictionChecks schema} {n : Nat} {state : CheckedResidual schema}
+    {env : RecEnv schema} {p q t : DyNetKAT schema} (hr : renderProjection G bodyChecks n state = some q)
     (ht : Ground t) (d : DerivesNoAIP env p t) (hs : Bisimilar env q p) :
     DerivesNoAIP env p q :=
   .trans d (ground_complete ht (renderProjection_closed hr)
@@ -50,9 +52,9 @@ private theorem renderProjection_derives_of_ground {G : ProcessGraph}
 /-- The exact checked-move renderer derives from the source projection using
 only the non-AIP equations. Ground completeness identifies the two finite
 forms even when the renderer keeps packet policies grouped in single edges. -/
-theorem renderProjection_derives {G : ProcessGraph} {bodyChecks : NodeId → RestrictionChecks}
+theorem renderProjection_derives {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
     {live : NodeId → Prop} (support : ProjectionSupport G bodyChecks live)
-    {env : RecEnv} {p q : DyNetKAT} {state : CheckedResidual} {n : Nat}
+    {env : RecEnv schema} {p q : DyNetKAT schema} {state : CheckedResidual schema} {n : Nat}
     (hp : WellFormed env p) (valid : state.Valid live) (corr : Corr G env p state.proc)
     (hr : renderProjection G bodyChecks n state = some q) :
     DerivesNoAIP env (.project n p) q := by
@@ -62,13 +64,13 @@ theorem renderProjection_derives {G : ProcessGraph} {bodyChecks : NodeId → Res
 
 /-- The existing outer-restriction renderer is also derivable when the
 restriction is written outside the source projection. -/
-theorem renderProjection_restricted_derives {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+theorem renderProjection_restricted_derives {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hs : FiniteSupport env root S) (hw : WellFormed env root)
-    (checks : RestrictionChecks) (bodyChecks : NodeId → RestrictionChecks)
+    (checks : RestrictionChecks schema) (bodyChecks : NodeId → RestrictionChecks schema)
     (hc : AllRestrictionChecksCorrect (toGProc root) checks)
     (hb : ∀ x b, ReachableVar env root x → env.lookup x = some b →
       AllRestrictionChecksCorrect (toGProc b) (bodyChecks (varNode x)))
-    (L : Set CommunicationAction) (blocked : CommunicationAction → Bool)
+    (L : Set (CommunicationAction schema)) (blocked : CommunicationAction schema → Bool)
     (hL : ∀ a, blocked a = true ↔ a ∈ L) (n : Nat) :
     ∃ q, renderProjection (toGraph env root S hs) bodyChecks n
       ((CheckedResidual.mk (toGProc root) checks).restrict L blocked) = some q ∧
@@ -80,7 +82,7 @@ theorem renderProjection_restricted_derives {env : RecEnv} {root : DyNetKAT} {S 
 
 namespace Program.Compiled
 
-variable {extended : Bool} {env : RecEnv} {program : Program extended env}
+variable {extended : Bool} {env : RecEnv schema} {program : Program extended env}
 
 /-- Algebraic correctness on a reachable residual of an admitted program. -/
 theorem State.renderProjection_derives {compiled : program.Compiled} (state : compiled.State)
@@ -91,7 +93,7 @@ theorem State.renderProjection_derives {compiled : program.Compiled} (state : co
   DyNetKAT.DyNetKAT.renderProjection_derives support state.source.admissible.1 valid state.corr hr
 
 /-- Algebraic correctness at the source of an admitted program. -/
-theorem renderProjection_derives (compiled : program.Compiled) (checks : RestrictionChecks)
+theorem renderProjection_derives (compiled : program.Compiled) (checks : RestrictionChecks schema)
     {bodyChecks live} (support : ProjectionSupport compiled.graph bodyChecks live)
     (valid : (compiled.initial checks).checked.Valid live) (n : Nat) :
     ∃ q, renderProjection compiled.graph bodyChecks n (compiled.initial checks).checked = some q ∧

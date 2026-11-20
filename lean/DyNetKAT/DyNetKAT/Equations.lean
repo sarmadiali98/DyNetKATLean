@@ -6,6 +6,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
 open DyNetKAT.NetKAT
 
 namespace Equations
@@ -37,22 +39,22 @@ private theorem bisimilar_of_step_iff {schema : PacketSchema} (env : RecEnv sche
     (fun _ _ _ r _ _ hs => ⟨r, (h ..).mp hs, Bisimilar.refl env r⟩)
     (fun _ _ _ r _ _ hs => ⟨r, (h ..).mpr hs, Bisimilar.refl env r⟩)
 
-private theorem choice_step_iff {env : RecEnv} {p q r : DyNetKAT}
-    {pt hl pt' hl' : List CtxPkt} {a : Action} :
+private theorem choice_step_iff {env : RecEnv schema} {p q r : DyNetKAT schema}
+    {pt hl pt' hl' : List schema.Packet} {a : Action schema} :
     Step env ⟨.choice p q, pt, hl⟩ a ⟨r, pt', hl'⟩ ↔
       Step env ⟨p, pt, hl⟩ a ⟨r, pt', hl'⟩ ∨ Step env ⟨q, pt, hl⟩ a ⟨r, pt', hl'⟩ :=
   ⟨fun hs => choice_step_inv _ _ _ _ _ _ _ _ _ hs, fun h => h.elim
     (Step.cpol_choice_l _ _ _ _ _ _ _ _) (Step.cpol_choice_r _ _ _ _ _ _ _ _)⟩
 
-theorem a0_sound (env : RecEnv) (p : DyNetKAT) :
+theorem a0_sound (env : RecEnv schema) (p : DyNetKAT schema) :
     Bisimilar env (.nSeq .drop p) .deadlock := by
   apply bisimilar_of_no_steps
   · intro pt hl a d hs
     cases hs with
-    | cpol_seq_ok _ _ _ _ _ _ he => exact historySem_drop _ _ he
+    | cpol_seq_ok _ _ _ _ _ _ he => exact he
   · exact deadlock_no_step env
 
-theorem a1_sound (env : RecEnv) (z y : NetKAT) (p : DyNetKAT) :
+theorem a1_sound (env : RecEnv schema) (z y : NetKAT schema) (p : DyNetKAT schema) :
     Bisimilar env (.nSeq (.union z y) p) (.choice (.nSeq z p) (.nSeq y p)) := by
   apply bisimilar_of_step_iff
   intro pt hl a r pt' hl'
@@ -135,33 +137,33 @@ theorem packetHeads_bisimilar {schema : PacketSchema} [DiagramLayout schema] (en
       exact .cpol_seq_ok _ _ _ _ _ _ ((historySemantics_singleton_iff_packetSemantics ..).mpr
         ((mem_symbolicPairsFor policy i o).mp hit))
 
-theorem a2_sound (env : RecEnv) (p q : DyNetKAT) :
+theorem a2_sound (env : RecEnv schema) (p q : DyNetKAT schema) :
     Bisimilar env (.choice p q) (.choice q p) := by
   apply bisimilar_of_step_iff
   intros
   simp only [choice_step_iff, or_comm]
 
-theorem a3_sound (env : RecEnv) (p q r : DyNetKAT) :
+theorem a3_sound (env : RecEnv schema) (p q r : DyNetKAT schema) :
     Bisimilar env (.choice (.choice p q) r) (.choice p (.choice q r)) := by
   apply bisimilar_of_step_iff
   intros
   simp only [choice_step_iff, or_assoc]
 
-theorem a4_sound (env : RecEnv) (p : DyNetKAT) : Bisimilar env (.choice p p) p := by
+theorem a4_sound (env : RecEnv schema) (p : DyNetKAT schema) : Bisimilar env (.choice p p) p := by
   apply bisimilar_of_step_iff
   intros
   simp only [choice_step_iff, or_self]
 
-theorem a5_sound (env : RecEnv) (p : DyNetKAT) :
+theorem a5_sound (env : RecEnv schema) (p : DyNetKAT schema) :
     Bisimilar env (.choice p .deadlock) p := by
   apply bisimilar_of_step_iff
   intro pt hl a r pt' hl'
   rw [choice_step_iff, or_iff_left]
   exact deadlock_no_step env pt hl a _
 
-theorem a6_sound (env : RecEnv) (p q : DyNetKAT) :
+theorem a6_sound (env : RecEnv schema) (p q : DyNetKAT schema) :
     Bisimilar env (.parallel p q) (.parallel q p) := by
-  let R (s t : DyNetKAT) := ∃ x y, s = .parallel x y ∧ t = .parallel y x
+  let R (s t : DyNetKAT schema) := ∃ x y, s = .parallel x y ∧ t = .parallel y x
   refine ⟨R, ⟨?_, ?_⟩, p, q, rfl, rfl⟩
   · rintro _ _ ⟨x, y, rfl, rfl⟩
     exact ⟨y, x, rfl, rfl⟩
@@ -174,9 +176,9 @@ theorem a6_sound (env : RecEnv) (p q : DyNetKAT) :
     | cpol_sync_send_recv _ _ _ _ _ _ _ _ h k =>
       exact ⟨_, .cpol_sync_recv_send _ _ _ _ _ _ _ _ k h, _, _, rfl, rfl⟩
 
-theorem a7_sound (env : RecEnv) (p : DyNetKAT) :
+theorem a7_sound (env : RecEnv schema) (p : DyNetKAT schema) :
     Bisimilar env (.parallel p .deadlock) p := by
-  let R (s t : DyNetKAT) := s = .parallel t .deadlock ∨ t = .parallel s .deadlock
+  let R (s t : DyNetKAT schema) := s = .parallel t .deadlock ∨ t = .parallel s .deadlock
   refine ⟨R, ⟨fun _ _ h => h.symm, ?_⟩, Or.inl rfl⟩
   rintro s t (rfl | rfl) pt hl a r pt' hl' hs
   · cases hs with
@@ -186,7 +188,7 @@ theorem a7_sound (env : RecEnv) (p : DyNetKAT) :
     | cpol_sync_send_recv _ _ _ _ _ _ _ _ _ h => cases h
   · exact ⟨_, .cpol_par_l _ _ _ _ _ _ _ _ hs, Or.inr rfl⟩
 
-theorem a8_sound (env : RecEnv) (p q : DyNetKAT) :
+theorem a8_sound (env : RecEnv schema) (p q : DyNetKAT schema) :
     Bisimilar env (.parallel p q)
       (.choice (.choice (.leftMerge p q) (.leftMerge q p)) (.commMerge p q)) := by
   apply bisimilar_of_matches
@@ -219,7 +221,7 @@ theorem a8_sound (env : RecEnv) (p q : DyNetKAT) :
       | cpol_comm_merge_send_recv _ _ _ _ _ _ _ _ h k =>
         exact ⟨_, .cpol_sync_send_recv _ _ _ _ _ _ _ _ h k, Bisimilar.refl env _⟩
 
-theorem a9_sound (env : RecEnv) (p : DyNetKAT) :
+theorem a9_sound (env : RecEnv schema) (p : DyNetKAT schema) :
     Bisimilar env (.leftMerge .deadlock p) .deadlock := by
   apply bisimilar_of_no_steps
   · intro pt hl a d hs
@@ -227,7 +229,7 @@ theorem a9_sound (env : RecEnv) (p : DyNetKAT) :
     | cpol_left_merge _ _ _ _ _ _ _ _ h => cases h
   · exact deadlock_no_step env
 
-theorem a10_sound (env : RecEnv) (l : MoveLabel) (p q : DyNetKAT) :
+theorem a10_sound (env : RecEnv schema) (l : MoveLabel schema) (p q : DyNetKAT schema) :
     Bisimilar env (.leftMerge (l.prefix p) q) (l.prefix (.parallel p q)) := by
   apply bisimilar_of_step_iff
   intro pt hl a r pt' hl'
@@ -241,7 +243,7 @@ theorem a10_sound (env : RecEnv) (l : MoveLabel) (p q : DyNetKAT) :
   · rintro ⟨rfl, hr⟩
     exact .cpol_left_merge _ _ _ _ _ _ _ _ ((MoveLabel.prefix_step_iff ..).mpr ⟨rfl, hr⟩)
 
-theorem a11_sound (env : RecEnv) (p q r : DyNetKAT) :
+theorem a11_sound (env : RecEnv schema) (p q r : DyNetKAT schema) :
     Bisimilar env (.leftMerge (.choice p q) r) (.choice (.leftMerge p r) (.leftMerge q r)) := by
   apply bisimilar_of_step_iff
   intro pt hl a s pt' hl'
@@ -256,7 +258,7 @@ theorem a11_sound (env : RecEnv) (p q r : DyNetKAT) :
     · exact .cpol_left_merge _ _ _ _ _ _ _ _ (choice_step_iff.mpr (.inl (by assumption)))
     · exact .cpol_left_merge _ _ _ _ _ _ _ _ (choice_step_iff.mpr (.inr (by assumption)))
 
-theorem a12_sound (env : RecEnv) (x : Channel) (z : NetKAT) (p q : DyNetKAT) :
+theorem a12_sound (env : RecEnv schema) (x : Channel) (z : NetKAT schema) (p q : DyNetKAT schema) :
     Bisimilar env (.commMerge (.recv x z p) (.send x z q)) (.rcfgPrefix x z (.parallel p q)) := by
   apply bisimilar_of_step_iff
   intro pt hl a r pt' hl'
@@ -273,7 +275,7 @@ theorem a12_sound (env : RecEnv) (x : Channel) (z : NetKAT) (p q : DyNetKAT) :
     exact .cpol_comm_merge_recv_send _ _ _ _ _ _ _ _
       (.cpol_recv _ _ _ _ _) (.cpol_send _ _ _ _ _)
 
-theorem a13_sound (env : RecEnv) (p q r : DyNetKAT) :
+theorem a13_sound (env : RecEnv schema) (p q r : DyNetKAT schema) :
     Bisimilar env (.commMerge (.choice p q) r) (.choice (.commMerge p r) (.commMerge q r)) := by
   apply bisimilar_of_step_iff
   intro pt hl a s pt' hl'
@@ -299,9 +301,9 @@ theorem a13_sound (env : RecEnv) (p q r : DyNetKAT) :
     · exact .cpol_comm_merge_send_recv _ _ _ _ _ _ _ _
         (choice_step_iff.mpr (.inr (by assumption))) (by assumption)
 
-theorem a14_sound (env : RecEnv) (p q : DyNetKAT) :
+theorem a14_sound (env : RecEnv schema) (p q : DyNetKAT schema) :
     Bisimilar env (.commMerge p q) (.commMerge q p) := by
-  have swap (x y : DyNetKAT) : ∀ pt hl a r pt' hl',
+  have swap (x y : DyNetKAT schema) : ∀ pt hl a r pt' hl',
       Step env ⟨.commMerge x y, pt, hl⟩ a ⟨r, pt', hl'⟩ →
       ∃ s, Step env ⟨.commMerge y x, pt, hl⟩ a ⟨s, pt', hl'⟩ ∧ Bisimilar env r s := by
     intro pt hl a r pt' hl' hs
@@ -314,7 +316,7 @@ theorem a14_sound (env : RecEnv) (p q : DyNetKAT) :
 
 /-- Appendix A (96)–(100), and the deadlock case of the printed otherwise rule.
 Swapped operands use A14. -/
-inductive CommMismatch : DyNetKAT → DyNetKAT → Prop
+inductive CommMismatch {schema : PacketSchema} : DyNetKAT schema → DyNetKAT schema → Prop
   | packet : CommMismatch (.nSeq z p) q
   | recvRecv : CommMismatch (.recv x z p) (.recv y w q)
   | sendSend : CommMismatch (.send x z p) (.send y w q)
@@ -322,7 +324,7 @@ inductive CommMismatch : DyNetKAT → DyNetKAT → Prop
   | rcfg : CommMismatch (.rcfgPrefix x z p) q
   | deadlock : CommMismatch .deadlock q
 
-theorem a15_sound (env : RecEnv) {p q : DyNetKAT} (h : CommMismatch p q) :
+theorem a15_sound (env : RecEnv schema) {p q : DyNetKAT schema} (h : CommMismatch p q) :
     Bisimilar env (.commMerge p q) .deadlock := by
   apply bisimilar_of_no_steps
   · intro pt hl a d hs
@@ -348,21 +350,21 @@ theorem a15_sound (env : RecEnv) {p q : DyNetKAT} (h : CommMismatch p q) :
 
 /-- Figure 11's narrower `at` sort. Its packet branch is a complete
 test followed by a complete assignment. -/
-inductive AtomicPrefix : MoveLabel → Prop
-  | packet (α : CompleteTest) (π : CompleteAssignmentValuation) :
-      AtomicPrefix (.visible (.packet (.seq (.completeTest α) (NetKAT.completeAssignExpr π))))
-  | recv (x : Channel) (z : NetKAT) : AtomicPrefix (.recv x z)
-  | send (x : Channel) (z : NetKAT) : AtomicPrefix (.send x z)
-  | rcfg (x : Channel) (z : NetKAT) : AtomicPrefix (.visible (.rcfg x z))
+inductive AtomicPrefix {schema : PacketSchema} [DiagramLayout schema] : MoveLabel schema → Prop
+  | packet (α π : schema.Packet) :
+      AtomicPrefix (.visible (.packet (packetSummand (α, π))))
+  | recv (x : Channel) (z : NetKAT schema) : AtomicPrefix (.recv x z)
+  | send (x : Channel) (z : NetKAT schema) : AtomicPrefix (.send x z)
+  | rcfg (x : Channel) (z : NetKAT schema) : AtomicPrefix (.visible (.rcfg x z))
 
 /-- Only sends and receives are members of a restriction set. -/
-def PrefixBlocked (L : Set CommunicationAction) : MoveLabel → Prop
+def PrefixBlocked (L : Set (CommunicationAction schema)) : MoveLabel schema → Prop
   | .recv x z => .recv x z ∈ L
   | .send x z => .send x z ∈ L
   | .visible _ => False
 
-theorem restrict_prefix_allowed_sound (env : RecEnv) (L : Set CommunicationAction)
-    (l : MoveLabel) (p : DyNetKAT) (h : ¬ PrefixBlocked L l) :
+theorem restrict_prefix_allowed_sound (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (l : MoveLabel schema) (p : DyNetKAT schema) (h : ¬ PrefixBlocked L l) :
     Bisimilar env (.restrict L (l.prefix p)) (l.prefix (.restrict L p)) := by
   cases l with
   | visible l =>
@@ -372,15 +374,15 @@ theorem restrict_prefix_allowed_sound (env : RecEnv) (L : Set CommunicationActio
   | recv => exact restrict_recv_allowed_bisim env L _ _ p h
   | send => exact restrict_send_allowed_bisim env L _ _ p h
 
-theorem restrict_prefix_blocked_sound (env : RecEnv) (L : Set CommunicationAction)
-    (l : MoveLabel) (p : DyNetKAT) (h : PrefixBlocked L l) :
+theorem restrict_prefix_blocked_sound (env : RecEnv schema) (L : Set (CommunicationAction schema))
+    (l : MoveLabel schema) (p : DyNetKAT schema) (h : PrefixBlocked L l) :
     Bisimilar env (.restrict L (l.prefix p)) .deadlock := by
   cases l with
   | visible => exact False.elim h
   | recv => exact restrict_recv_blocked_bisim env L _ _ p h
   | send => exact restrict_send_blocked_bisim env L _ _ p h
 
-theorem project_prefix_sound (env : RecEnv) (n : Nat) (l : MoveLabel) (p : DyNetKAT) :
+theorem project_prefix_sound (env : RecEnv schema) (n : Nat) (l : MoveLabel schema) (p : DyNetKAT schema) :
     Bisimilar env (.project (n + 1) (l.prefix p)) (l.prefix (.project n p)) := by
   cases l with
   | visible l =>
@@ -390,7 +392,7 @@ theorem project_prefix_sound (env : RecEnv) (n : Nat) (l : MoveLabel) (p : DyNet
   | recv => exact project_recv_bisim env n _ _ p
   | send => exact project_send_bisim env n _ _ p
 
-theorem prefix_congr (env : RecEnv) (l : MoveLabel) {p q : DyNetKAT}
+theorem prefix_congr (env : RecEnv schema) (l : MoveLabel schema) {p q : DyNetKAT schema}
     (h : Bisimilar env p q) : Bisimilar env (l.prefix p) (l.prefix q) := by
   cases l with
   | visible l =>
@@ -400,7 +402,7 @@ theorem prefix_congr (env : RecEnv) (l : MoveLabel) {p q : DyNetKAT}
   | recv => exact Bisimilar.recv_left env h
   | send => exact Bisimilar.send_left env h
 
-theorem unfold_sound (env : RecEnv) {x : Var} {p : DyNetKAT}
+theorem unfold_sound (env : RecEnv schema) {x : Var} {p : DyNetKAT schema}
     (h : env.lookup x = some p) : Bisimilar env (.var x) p := by
   apply bisimilar_of_step_iff
   intro pt hl a r pt' hl'
@@ -419,11 +421,11 @@ open Equations
 /-- The typed non-AIP equational system. Process contexts keep all payloads,
 restriction sets, and projection depths fixed. Named definitions refer to
 the same environment on both sides. -/
-inductive DerivesNoAIP (env : RecEnv) : DyNetKAT → DyNetKAT → Prop
+inductive DerivesNoAIP {schema : PacketSchema} (env : RecEnv schema) : DyNetKAT schema → DyNetKAT schema → Prop
   | refl (p) : DerivesNoAIP env p p
   | symm : DerivesNoAIP env p q → DerivesNoAIP env q p
   | trans : DerivesNoAIP env p q → DerivesNoAIP env q r → DerivesNoAIP env p r
-  | prefixCongr (l : MoveLabel) : DerivesNoAIP env p q →
+  | prefixCongr (l : MoveLabel schema) : DerivesNoAIP env p q →
       DerivesNoAIP env (l.prefix p) (l.prefix q)
   | choiceCongr : DerivesNoAIP env p p' → DerivesNoAIP env q q' →
       DerivesNoAIP env (.choice p q) (.choice p' q')
@@ -433,12 +435,12 @@ inductive DerivesNoAIP (env : RecEnv) : DyNetKAT → DyNetKAT → Prop
       DerivesNoAIP env (.leftMerge p q) (.leftMerge p' q')
   | commMergeCongr : DerivesNoAIP env p p' → DerivesNoAIP env q q' →
       DerivesNoAIP env (.commMerge p q) (.commMerge p' q')
-  | restrictCongr (L : Set CommunicationAction) : DerivesNoAIP env p q →
+  | restrictCongr (L : Set (CommunicationAction schema)) : DerivesNoAIP env p q →
       DerivesNoAIP env (.restrict L p) (.restrict L q)
   | projectCongr (n : Nat) : DerivesNoAIP env p q →
       DerivesNoAIP env (.project n p) (.project n q)
   | unfold : env.lookup x = some p → DerivesNoAIP env (.var x) p
-  | netkat (p : DyNetKAT) : NetKAT.Derives z y → DerivesNoAIP env (.nSeq z p) (.nSeq y p)
+  | netkat (p : DyNetKAT schema) : NetKAT.Derives z y → DerivesNoAIP env (.nSeq z p) (.nSeq y p)
   | a0 (p) : DerivesNoAIP env (.nSeq .drop p) .deadlock
   | a1 (z y p) : DerivesNoAIP env (.nSeq (.union z y) p) (.choice (.nSeq z p) (.nSeq y p))
   | a2 (p q) : DerivesNoAIP env (.choice p q) (.choice q p)
@@ -450,7 +452,7 @@ inductive DerivesNoAIP (env : RecEnv) : DyNetKAT → DyNetKAT → Prop
   | a8 (p q) : DerivesNoAIP env (.parallel p q)
       (.choice (.choice (.leftMerge p q) (.leftMerge q p)) (.commMerge p q))
   | a9 (p) : DerivesNoAIP env (.leftMerge .deadlock p) .deadlock
-  | a10 (l : MoveLabel) (p q) : DerivesNoAIP env (.leftMerge (l.prefix p) q)
+  | a10 (l : MoveLabel schema) (p q) : DerivesNoAIP env (.leftMerge (l.prefix p) q)
       (l.prefix (.parallel p q))
   | a11 (p q r) : DerivesNoAIP env (.leftMerge (.choice p q) r)
       (.choice (.leftMerge p r) (.leftMerge q r))
@@ -461,27 +463,27 @@ inductive DerivesNoAIP (env : RecEnv) : DyNetKAT → DyNetKAT → Prop
   | a14 (p q) : DerivesNoAIP env (.commMerge p q) (.commMerge q p)
   | a15 : CommMismatch p q → DerivesNoAIP env (.commMerge p q) .deadlock
   | restrictDeadlock (L) : DerivesNoAIP env (.restrict L .deadlock) .deadlock
-  | restrictAllowed (L l p) : AtomicPrefix l → (¬ PrefixBlocked L l) →
+  | restrictAllowed {layout : DiagramLayout schema} (L l p) : @AtomicPrefix schema layout l → (¬ PrefixBlocked L l) →
       DerivesNoAIP env (.restrict L (l.prefix p)) (l.prefix (.restrict L p))
-  | restrictBlocked (L l p) : AtomicPrefix l → PrefixBlocked L l →
+  | restrictBlocked {layout : DiagramLayout schema} (L l p) : @AtomicPrefix schema layout l → PrefixBlocked L l →
       DerivesNoAIP env (.restrict L (l.prefix p)) .deadlock
   | restrictChoice (L p q) : DerivesNoAIP env (.restrict L (.choice p q))
       (.choice (.restrict L p) (.restrict L q))
   | projectZero (p) : DerivesNoAIP env (.project 0 p) .deadlock
   | projectDeadlock (n) : DerivesNoAIP env (.project n .deadlock) .deadlock
-  | projectPrefix (n l p) : AtomicPrefix l →
+  | projectPrefix {layout : DiagramLayout schema} (n l p) : @AtomicPrefix schema layout l →
       DerivesNoAIP env (.project (n + 1) (l.prefix p)) (l.prefix (.project n p))
   | projectChoice (n p q) : DerivesNoAIP env (.project n (.choice p q))
       (.choice (.project n p) (.project n q))
 
-theorem DerivesNoAIP.a12_reverse (env : RecEnv) (x : Channel) (z : NetKAT)
-    (p q : DyNetKAT) : DerivesNoAIP env (.commMerge (.send x z p) (.recv x z q))
+theorem DerivesNoAIP.a12_reverse (env : RecEnv schema) (x : Channel) (z : NetKAT schema)
+    (p q : DyNetKAT schema) : DerivesNoAIP env (.commMerge (.send x z p) (.recv x z q))
       (.rcfgPrefix x z (.parallel p q)) :=
   .trans (.a14 _ _) (.trans (.a12 _ _ _ _) (.prefixCongr (.visible (.rcfg x z)) (.a6 _ _)))
 
 /-- Soundness of the typed non-AIP system, with literal action labels and
 both initial and final packet lists preserved by strong bisimilarity. -/
-theorem DerivesNoAIP.sound {env : RecEnv} {p q : DyNetKAT}
+theorem DerivesNoAIP.sound {env : RecEnv schema} {p q : DyNetKAT schema}
     (h : DerivesNoAIP env p q) : Bisimilar env p q := by
   induction h with
   | refl => exact Bisimilar.refl env _

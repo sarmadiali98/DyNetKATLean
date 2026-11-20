@@ -34,7 +34,7 @@ private def CoversLookups (env : RecEnv schema) (resolve : Var → List (DyNetKA
   | .var x => ∀ b, env.lookup x = some b → ∀ q, ProcessStep env b q → q ∈ resolve x
   | _ => True
 
-private theorem Step.mem_headTargets {env : (RecEnv schema)} {c d : (Config schema)} {a : (Action schema)}
+private theorem Step.mem_headTargets {env : RecEnv schema} {c d : Config schema} {a : Action schema}
     (h : Step env c a d) (resolve : Var → List (DyNetKAT schema))
     (hc : CoversLookups env resolve c.proc) : d.proc ∈ headTargets resolve c.proc := by
   induction h with
@@ -58,14 +58,14 @@ private theorem Step.mem_headTargets {env : (RecEnv schema)} {c d : (Config sche
   | cpol_var x b q a pt pt' hl hl' hb hs _ =>
       exact hc b hb q ⟨pt, hl, a, pt', hl', hs⟩
 
-private theorem guarded_covers {env : (RecEnv schema)} {p : (DyNetKAT schema)} (h : GuardedOccurrences p)
+private theorem guarded_covers {env : RecEnv schema} {p : DyNetKAT schema} (h : GuardedOccurrences p)
     (resolve : Var → List (DyNetKAT schema)) : CoversLookups env resolve p := by
   induction p with
   | project n p ih => cases n <;> simp_all [CoversLookups, GuardedOccurrences]
   | _ => simp_all [CoversLookups, GuardedOccurrences]
 
-private theorem covers_of_refs {env : (RecEnv schema)} {resolve : Var → List (DyNetKAT schema)}
-    {p : (DyNetKAT schema)} (h : ∀ x ∈ recursiveVars p, CoversLookups env resolve (.var x)) :
+private theorem covers_of_refs {env : RecEnv schema} {resolve : Var → List (DyNetKAT schema)}
+    {p : DyNetKAT schema} (h : ∀ x ∈ recursiveVars p, CoversLookups env resolve (.var x)) :
     CoversLookups env resolve p := by
   induction p with
   | project n p ih => cases n <;> simp_all [CoversLookups, recursiveVars]
@@ -74,7 +74,7 @@ private theorem covers_of_refs {env : (RecEnv schema)} {resolve : Var → List (
 
 /-- Guarded bodies contribute finitely many targets without following any
 active references. A root lookup uses one such bound per referenced name. -/
-theorem WellFormed.finite_targets {env : (RecEnv schema)} {p : (DyNetKAT schema)} (hw : WellFormed env p) :
+theorem WellFormed.finite_targets {env : RecEnv schema} {p : DyNetKAT schema} (hw : WellFormed env p) :
     {q | ProcessStep env p q}.Finite := by
   let resolve (x : Var) := ((env.lookup x).map (headTargets (fun _ => []))).getD []
   have hc : CoversLookups env resolve p := covers_of_refs (by
@@ -86,8 +86,8 @@ theorem WellFormed.finite_targets {env : (RecEnv schema)} {p : (DyNetKAT schema)
   rintro q ⟨pt, hl, a, pt', hl', hs⟩
   exact hs.mem_headTargets resolve hc
 
-private theorem Step.direct_vars_reachable {env : (RecEnv schema)} {c d : (Config schema)} {a : (Action schema)}
-    (hs : Step env c a d) {root : (DyNetKAT schema)}
+private theorem Step.direct_vars_reachable {env : RecEnv schema} {c d : Config schema} {a : Action schema}
+    (hs : Step env c a d) {root : DyNetKAT schema}
     (h : ∀ x ∈ recursiveVars c.proc, ReachableVar env root x) :
     ∀ x ∈ recursiveVars d.proc, ReachableVar env root x := by
   induction hs with
@@ -99,22 +99,22 @@ private theorem Step.direct_vars_reachable {env : (RecEnv schema)} {c d : (Confi
 
 /-- Stepping cannot introduce recursive names outside the original reachable
 definition closure. -/
-theorem Step.reachableVar_mono {env : (RecEnv schema)} {c d : (Config schema)} {a : (Action schema)}
+theorem Step.reachableVar_mono {env : RecEnv schema} {c d : Config schema} {a : Action schema}
     (hs : Step env c a d) {x : Var} (hx : ReachableVar env d.proc x) :
     ReachableVar env c.proc x := by
   induction hx with
   | direct h => exact hs.direct_vars_reachable (fun _ hx => .direct hx) _ h
   | throughDefinition _ hb hx ih => exact .throughDefinition ih hb hx
 
-theorem Step.preserves_wellFormed {env : (RecEnv schema)} {c d : (Config schema)} {a : (Action schema)}
+theorem Step.preserves_wellFormed {env : RecEnv schema} {c d : Config schema} {a : Action schema}
     (hs : Step env c a d) (hw : WellFormed env c.proc) : WellFormed env d.proc :=
   ⟨fun x hx => hw.1 x (hs.reachableVar_mono hx),
    fun x hx => hw.2 x (hs.reachableVar_mono hx)⟩
 
 /-- Local finite branching on the closed, guarded source domain, independent
 of the cardinality of the global derivative set or of the environment. -/
-theorem WellFormed.finite_targets_from {env : RecEnv} {p : DyNetKAT} (hw : WellFormed env p)
-    {q : DyNetKAT} (h : Relation.ReflTransGen (ProcessStep env) p q) :
+theorem WellFormed.finite_targets_from {env : RecEnv schema} {p : DyNetKAT schema} (hw : WellFormed env p)
+    {q : DyNetKAT schema} (h : Relation.ReflTransGen (ProcessStep env) p q) :
     {r | ProcessStep env q r}.Finite := by
   have hwq : WellFormed env q := by
     induction h with
@@ -124,7 +124,7 @@ theorem WellFormed.finite_targets_from {env : RecEnv} {p : DyNetKAT} (hw : WellF
       exact hs.preserves_wellFormed ih
   exact hwq.finite_targets
 
-theorem WellFormed.imageFiniteFrom {env : RecEnv} {p : DyNetKAT} (hw : WellFormed env p) :
+theorem WellFormed.imageFiniteFrom {env : RecEnv schema} {p : DyNetKAT schema} (hw : WellFormed env p) :
     ImageFiniteFrom env p := by
   intro q h pt hl a pt' hl'
   exact (hw.finite_targets_from h).subset (fun _ hs => ⟨pt, hl, a, pt', hl', hs⟩)

@@ -6,47 +6,49 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 open DyNetKAT.NetKAT
 
 /-- Packet pairs contributed by prefixes whose preceding reconfiguration events
     all belong to `R`. References follow graph labels, and each witness is a
     finite derivation ending at a packet prefix. -/
-inductive GraphAllRSpec (G : ProcessGraph) (R : ReconfigSet) :
-    GProc → CtxPkt → CtxPkt → Prop
-  | nSeq_of_sem (N : NetKAT) (cont : GProc) (σ τ : CtxPkt)
+inductive GraphAllRSpec {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) (R : ReconfigSet schema) :
+    (GProc schema) → schema.Packet → schema.Packet → Prop
+  | nSeq_of_sem (N : NetKAT schema) (cont : GProc schema) (σ τ : schema.Packet)
       (h : Semantics N σ τ) : GraphAllRSpec G R (.nSeq N cont) σ τ
-  | nSeq_of (N : NetKAT) (cont : GProc) (σ τ : CtxPkt)
+  | nSeq_of (N : NetKAT schema) (cont : GProc schema) (σ τ : schema.Packet)
       (h : GraphAllRSpec G R cont σ τ) : GraphAllRSpec G R (.nSeq N cont) σ τ
-  | choice_left (a b : GProc) (σ τ : CtxPkt)
+  | choice_left (a b : GProc schema) (σ τ : schema.Packet)
       (h : GraphAllRSpec G R a σ τ) : GraphAllRSpec G R (.choice a b) σ τ
-  | choice_right (a b : GProc) (σ τ : CtxPkt)
+  | choice_right (a b : GProc schema) (σ τ : schema.Packet)
       (h : GraphAllRSpec G R b σ τ) : GraphAllRSpec G R (.choice a b) σ τ
-  | rcfgPrefix_of (x : Channel) (N : NetKAT) (cont : GProc) (σ τ : CtxPkt)
+  | rcfgPrefix_of (x : Channel) (N : NetKAT schema) (cont : GProc schema) (σ τ : schema.Packet)
       (hmem : (x, N) ∈ R) (h : GraphAllRSpec G R cont σ τ) :
       GraphAllRSpec G R (.rcfgPrefix x N cont) σ τ
-  | ref_of (i : NodeId) (σ τ : CtxPkt)
+  | ref_of (i : NodeId) (σ τ : schema.Packet)
       (h : GraphAllRSpec G R (G.label i) σ τ) : GraphAllRSpec G R (.ref i) σ τ
 
 /-- Packet pairs contributed after at least one reconfiguration, with every
     preceding reconfiguration event in `R`. The first match discharges the
     requirement to cross a reconfiguration and leaves the all-R obligation. -/
-inductive GraphTailSpec (G : ProcessGraph) (R : ReconfigSet) :
-    GProc → CtxPkt → CtxPkt → Prop
-  | nSeq_of (N : NetKAT) (cont : GProc) (σ τ : CtxPkt)
+inductive GraphTailSpec {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) (R : ReconfigSet schema) :
+    (GProc schema) → schema.Packet → schema.Packet → Prop
+  | nSeq_of (N : NetKAT schema) (cont : GProc schema) (σ τ : schema.Packet)
       (h : GraphTailSpec G R cont σ τ) : GraphTailSpec G R (.nSeq N cont) σ τ
-  | choice_left (a b : GProc) (σ τ : CtxPkt)
+  | choice_left (a b : GProc schema) (σ τ : schema.Packet)
       (h : GraphTailSpec G R a σ τ) : GraphTailSpec G R (.choice a b) σ τ
-  | choice_right (a b : GProc) (σ τ : CtxPkt)
+  | choice_right (a b : GProc schema) (σ τ : schema.Packet)
       (h : GraphTailSpec G R b σ τ) : GraphTailSpec G R (.choice a b) σ τ
-  | rcfgPrefix_of (x : Channel) (N : NetKAT) (cont : GProc) (σ τ : CtxPkt)
+  | rcfgPrefix_of (x : Channel) (N : NetKAT schema) (cont : GProc schema) (σ τ : schema.Packet)
       (hmem : (x, N) ∈ R) (h : GraphAllRSpec G R cont σ τ) :
       GraphTailSpec G R (.rcfgPrefix x N cont) σ τ
-  | ref_of (i : NodeId) (σ τ : CtxPkt)
+  | ref_of (i : NodeId) (σ τ : schema.Packet)
       (h : GraphTailSpec G R (G.label i) σ τ) : GraphTailSpec G R (.ref i) σ τ
 
-variable {G : ProcessGraph} {R : ReconfigSet} {gp : GProc} {σ τ : CtxPkt}
+variable {G : ProcessGraph schema} {R : ReconfigSet schema} {gp : GProc schema} {σ τ : schema.Packet}
 
-theorem graphAllRSpec_nSeq_iff (N : NetKAT) (cont : GProc) :
+theorem graphAllRSpec_nSeq_iff (N : NetKAT schema) (cont : GProc schema) :
     GraphAllRSpec G R (.nSeq N cont) σ τ ↔
       Semantics N σ τ ∨ GraphAllRSpec G R cont σ τ := by
   constructor
@@ -58,7 +60,7 @@ theorem graphAllRSpec_nSeq_iff (N : NetKAT) (cont : GProc) :
     · exact .nSeq_of_sem N cont σ τ hsem
     · exact .nSeq_of N cont σ τ hcont
 
-theorem graphAllRSpec_choice_iff (a b : GProc) :
+theorem graphAllRSpec_choice_iff (a b : GProc schema) :
     GraphAllRSpec G R (.choice a b) σ τ ↔
       GraphAllRSpec G R a σ τ ∨ GraphAllRSpec G R b σ τ := by
   constructor
@@ -70,7 +72,7 @@ theorem graphAllRSpec_choice_iff (a b : GProc) :
     · exact .choice_left a b σ τ ha
     · exact .choice_right a b σ τ hb
 
-theorem graphAllRSpec_rcfgPrefix_iff (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem graphAllRSpec_rcfgPrefix_iff (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     GraphAllRSpec G R (.rcfgPrefix x N cont) σ τ ↔
       (x, N) ∈ R ∧ GraphAllRSpec G R cont σ τ := by
   constructor
@@ -88,7 +90,7 @@ theorem graphAllRSpec_ref_iff (i : NodeId) :
     | ref_of _ _ _ hlabel => exact hlabel
   · exact GraphAllRSpec.ref_of i σ τ
 
-theorem graphTailSpec_nSeq_iff (N : NetKAT) (cont : GProc) :
+theorem graphTailSpec_nSeq_iff (N : NetKAT schema) (cont : GProc schema) :
     GraphTailSpec G R (.nSeq N cont) σ τ ↔ GraphTailSpec G R cont σ τ := by
   constructor
   · intro h
@@ -96,7 +98,7 @@ theorem graphTailSpec_nSeq_iff (N : NetKAT) (cont : GProc) :
     | nSeq_of _ _ _ _ hcont => exact hcont
   · exact GraphTailSpec.nSeq_of N cont σ τ
 
-theorem graphTailSpec_choice_iff (a b : GProc) :
+theorem graphTailSpec_choice_iff (a b : GProc schema) :
     GraphTailSpec G R (.choice a b) σ τ ↔
       GraphTailSpec G R a σ τ ∨ GraphTailSpec G R b σ τ := by
   constructor
@@ -108,7 +110,7 @@ theorem graphTailSpec_choice_iff (a b : GProc) :
     · exact .choice_left a b σ τ ha
     · exact .choice_right a b σ τ hb
 
-theorem graphTailSpec_rcfgPrefix_iff (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem graphTailSpec_rcfgPrefix_iff (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     GraphTailSpec G R (.rcfgPrefix x N cont) σ τ ↔
       (x, N) ∈ R ∧ GraphAllRSpec G R cont σ τ := by
   constructor
@@ -194,7 +196,7 @@ theorem graphAllR_iff_head_or_tail :
 
 /-- On a variable-free AST, the graph translation has the same all-R relation
     for every choice of graph labels. -/
-theorem graphAllRSpec_toGProc_iff (d : DyNetKAT) (hfree : recursiveVars d = ∅) :
+theorem graphAllRSpec_toGProc_iff (d : DyNetKAT schema) (hfree : recursiveVars d = ∅) :
     GraphAllRSpec G R (toGProc d) σ τ ↔ AllRSpec R d σ τ := by
   induction d with
   | deadlock =>
@@ -212,7 +214,7 @@ theorem graphAllRSpec_toGProc_iff (d : DyNetKAT) (hfree : recursiveVars d = ∅)
       constructor <;> intro h <;> cases h
 
 /-- On a variable-free AST, graph-tail and AST tail-head specifications agree. -/
-theorem graphTailSpec_toGProc_iff (d : DyNetKAT) (hfree : recursiveVars d = ∅) :
+theorem graphTailSpec_toGProc_iff (d : DyNetKAT schema) (hfree : recursiveVars d = ∅) :
     GraphTailSpec G R (toGProc d) σ τ ↔ TailHeadSpec R d σ τ := by
   induction d with
   | deadlock =>
@@ -234,7 +236,7 @@ theorem graphTailSpec_toGProc_iff (d : DyNetKAT) (hfree : recursiveVars d = ∅)
 
 /-- List the references exposed by a term, in left-to-right order. Labels
     are inspected separately by the worklist. -/
-def tailRefsR (R : ReconfigSet) : GProc → List NodeId
+def tailRefsR (R : ReconfigSet schema) : GProc schema → List NodeId
   | .deadlock => []
   | .nSeq _ cont => tailRefsR R cont
   | .choice a b => tailRefsR R a ++ tailRefsR R b
@@ -243,7 +245,7 @@ def tailRefsR (R : ReconfigSet) : GProc → List NodeId
   | _ => []
 
 /-- A reference at an R-visible position of a single term. -/
-inductive TailRefOf (R : ReconfigSet) : GProc → NodeId → Prop
+inductive TailRefOf {schema : NetKAT.PacketSchema} (R : ReconfigSet schema) : GProc schema → NodeId → Prop
   | ref (i : NodeId) : TailRefOf R (.ref i) i
   | nSeq {N cont i} : TailRefOf R cont i → TailRefOf R (.nSeq N cont) i
   | choice_left {a b i} : TailRefOf R a i → TailRefOf R (.choice a b) i
@@ -251,7 +253,7 @@ inductive TailRefOf (R : ReconfigSet) : GProc → NodeId → Prop
   | rcfgPrefix {x N cont i} :
       (x, N) ∈ R → TailRefOf R cont i → TailRefOf R (.rcfgPrefix x N cont) i
 
-theorem mem_tailRefsR_iff (R : ReconfigSet) (gp : GProc) (i : NodeId) :
+theorem mem_tailRefsR_iff (R : ReconfigSet schema) (gp : GProc schema) (i : NodeId) :
     i ∈ tailRefsR R gp ↔ TailRefOf R gp i := by
   constructor
   · induction gp with
@@ -283,7 +285,7 @@ theorem mem_tailRefsR_iff (R : ReconfigSet) (gp : GProc) (i : NodeId) :
     | choice_right _ ih => exact List.mem_append_right _ ih
     | rcfgPrefix hmem _ ih => simpa [tailRefsR, hmem] using ih
 
-theorem tailRefsR_subset_gprocRefs (R : ReconfigSet) (gp : GProc) {i : NodeId}
+theorem tailRefsR_subset_gprocRefs (R : ReconfigSet schema) (gp : GProc schema) {i : NodeId}
     (hi : i ∈ tailRefsR R gp) : i ∈ gprocRefs gp := by
   have h := (mem_tailRefsR_iff R gp i).mp hi
   clear hi
@@ -294,21 +296,21 @@ theorem tailRefsR_subset_gprocRefs (R : ReconfigSet) (gp : GProc) {i : NodeId}
   | choice_right _ ih => exact Finset.mem_union_right _ ih
 
 /-- Finite node paths along the R-visible references of node labels. -/
-inductive TailRefReach (G : ProcessGraph) (R : ReconfigSet) : NodeId → NodeId → Prop
+inductive TailRefReach {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) (R : ReconfigSet schema) : NodeId → NodeId → Prop
   | refl (i : NodeId) : TailRefReach G R i i
   | step {i v j} : v ∈ tailRefsR R (G.label i) →
       TailRefReach G R v j → TailRefReach G R i j
 
 /-- A path from a process first finds an R-visible reference in the term
     and then follows a finite node path. -/
-def TailPathTo (G : ProcessGraph) (R : ReconfigSet) (gp : GProc) (j : NodeId) : Prop :=
+def TailPathTo (G : ProcessGraph schema) (R : ReconfigSet schema) (gp : GProc schema) (j : NodeId) : Prop :=
   ∃ i, TailRefOf R gp i ∧ TailRefReach G R i j
 
-theorem tailPathTo_iff (G : ProcessGraph) (R : ReconfigSet) (gp : GProc) (j : NodeId) :
+theorem tailPathTo_iff (G : ProcessGraph schema) (R : ReconfigSet schema) (gp : GProc schema) (j : NodeId) :
     TailPathTo G R gp j ↔ ∃ i, i ∈ tailRefsR R gp ∧ TailRefReach G R i j := by
   simp only [TailPathTo, mem_tailRefsR_iff]
 
-theorem tailRefReach_iff_tailPathTo (G : ProcessGraph) (R : ReconfigSet) (i j : NodeId) :
+theorem tailRefReach_iff_tailPathTo (G : ProcessGraph schema) (R : ReconfigSet schema) (i j : NodeId) :
     TailRefReach G R i j ↔ TailPathTo G R (.ref i) j := by
   simp [tailPathTo_iff, tailRefsR]
 
@@ -338,7 +340,7 @@ theorem tailPathTo_nodes_closed {j : NodeId} (h : TailPathTo G R G.root j) :
 
 /-- Process pending references in order, recording visits by prepending
     to the accumulator. An unvisited reference outside the graph fails. -/
-def tailRun (G : ProcessGraph) (R : ReconfigSet) :
+def tailRun (G : ProcessGraph schema) (R : ReconfigSet schema) :
     List NodeId → Finset NodeId → List NodeId → Option (List NodeId)
   | [], _, acc => some acc
   | i :: rest, visited, acc =>
@@ -354,7 +356,7 @@ decreasing_by
     rw [Finset.sdiff_insert]
     exact Finset.card_erase_lt_of_mem hmem
 
-private theorem tailRun_cover_visited (G : ProcessGraph) (R : ReconfigSet)
+private theorem tailRun_cover_visited (G : ProcessGraph schema) (R : ReconfigSet schema)
     (visited : Finset NodeId) (pending : List NodeId)
     (hExpanded : ∀ i ∈ visited, ∀ v ∈ tailRefsR R (G.label i), v ∈ visited ∨ v ∈ pending)
     {i j : NodeId} (h : TailRefReach G R i j) (hi : i ∈ visited) (hj : j ∉ visited) :
@@ -371,7 +373,7 @@ private theorem tailRun_cover_visited (G : ProcessGraph) (R : ReconfigSet)
 /-- The visited set contains only live, root-reachable nodes. The accumulator
     lists exactly those nodes once. The pending list accounts for every
     reachable node still to visit and every outstanding edge of a visited node. -/
-theorem tailRun_spec (G : ProcessGraph) (R : ReconfigSet) (pending : List NodeId)
+theorem tailRun_spec (G : ProcessGraph schema) (R : ReconfigSet schema) (pending : List NodeId)
     (visited : Finset NodeId) (acc : List NodeId)
     (hVisited : ∀ i ∈ visited, TailPathTo G R G.root i ∧ i ∈ G.nodes)
     (hAcc : ∀ i, i ∈ acc ↔ i ∈ visited)
@@ -470,7 +472,7 @@ theorem tailRun_spec (G : ProcessGraph) (R : ReconfigSet) (pending : List NodeId
     exact ⟨fun _ => ⟨i, hPending i (List.Mem.head _), hiNode⟩,
       fun _ h => Option.noConfusion h⟩
 
-private theorem tailRun_root_spec (G : ProcessGraph) (R : ReconfigSet) :
+private theorem tailRun_root_spec (G : ProcessGraph schema) (R : ReconfigSet schema) :
     (tailRun G R (tailRefsR R G.root) ∅ [] = none →
       ∃ j, TailPathTo G R G.root j ∧ j ∉ G.nodes) ∧
     (∀ L, tailRun G R (tailRefsR R G.root) ∅ [] = some L →
@@ -483,17 +485,17 @@ private theorem tailRun_root_spec (G : ProcessGraph) (R : ReconfigSet) :
     (fun j hj => Or.inr ((tailPathTo_iff G R G.root j).mp hj))
     (by simp)
 
-theorem tailRun_root_success (G : ProcessGraph) (R : ReconfigSet) (L : List NodeId)
+theorem tailRun_root_success (G : ProcessGraph schema) (R : ReconfigSet schema) (L : List NodeId)
     (h : tailRun G R (tailRefsR R G.root) ∅ [] = some L) :
     L.Nodup ∧ (∀ j, j ∈ L ↔ TailPathTo G R G.root j) ∧ ∀ j ∈ L, j ∈ G.nodes :=
   (tailRun_root_spec G R).2 L h
 
-theorem tailRun_root_failure (G : ProcessGraph) (R : ReconfigSet)
+theorem tailRun_root_failure (G : ProcessGraph schema) (R : ReconfigSet schema)
     (h : tailRun G R (tailRefsR R G.root) ∅ [] = none) :
     ∃ j, TailPathTo G R G.root j ∧ j ∉ G.nodes :=
   (tailRun_root_spec G R).1 h
 
-theorem tailRun_root_some (G : ProcessGraph) (R : ReconfigSet) :
+theorem tailRun_root_some (G : ProcessGraph schema) (R : ReconfigSet schema) :
     ∃ L, tailRun G R (tailRefsR R G.root) ∅ [] = some L := by
   cases h : tailRun G R (tailRefsR R G.root) ∅ [] with
   | none =>
@@ -506,8 +508,8 @@ theorem tailRun_root_some (G : ProcessGraph) (R : ReconfigSet) :
 /-- Collect a local tail without following graph labels. A matching event
     contributes its original continuation alongside the recursively collected
     tail. Only references reached by the collector are replaced. -/
-def tailCollectR (G : ProcessGraph) (R : ReconfigSet)
-    (fresh : NodeId → NodeId) : GProc → Option GProc
+def tailCollectR (G : ProcessGraph schema) (R : ReconfigSet schema)
+    (fresh : NodeId → NodeId) : GProc schema → Option (GProc schema)
   | .deadlock => some .deadlock
   | .nSeq _ cont => tailCollectR G R fresh cont
   | .choice a b =>
@@ -536,16 +538,16 @@ variable {fresh : NodeId → NodeId}
 @[simp] theorem tailCollectR_deadlock :
     tailCollectR G R fresh .deadlock = some .deadlock := rfl
 
-@[simp] theorem tailCollectR_nSeq (N : NetKAT) (cont : GProc) :
+@[simp] theorem tailCollectR_nSeq (N : NetKAT schema) (cont : GProc schema) :
     tailCollectR G R fresh (.nSeq N cont) = tailCollectR G R fresh cont := rfl
 
-theorem tailCollectR_choice (a b : GProc) :
+theorem tailCollectR_choice (a b : GProc schema) :
     tailCollectR G R fresh (.choice a b) =
       match tailCollectR G R fresh a, tailCollectR G R fresh b with
       | some a', some b' => some (.choice a' b')
       | _, _ => none := rfl
 
-theorem tailCollectR_rcfgPrefix (x : Channel) (N : NetKAT) (cont : GProc) :
+theorem tailCollectR_rcfgPrefix (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     tailCollectR G R fresh (.rcfgPrefix x N cont) =
       if (x, N) ∈ R then (tailCollectR G R fresh cont).map (.choice cont)
       else some .deadlock := by
@@ -554,61 +556,61 @@ theorem tailCollectR_rcfgPrefix (x : Channel) (N : NetKAT) (cont : GProc) :
 @[simp] theorem tailCollectR_ref (i : NodeId) :
     tailCollectR G R fresh (.ref i) = some (.ref (fresh i)) := rfl
 
-@[simp] theorem tailCollectR_recv (x : Channel) (N : NetKAT) (cont : GProc) :
+@[simp] theorem tailCollectR_recv (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     tailCollectR G R fresh (.recv x N cont) = none := rfl
 
-@[simp] theorem tailCollectR_send (x : Channel) (N : NetKAT) (cont : GProc) :
+@[simp] theorem tailCollectR_send (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
     tailCollectR G R fresh (.send x N cont) = none := rfl
 
-@[simp] theorem tailCollectR_parallel (a b : GProc) :
+@[simp] theorem tailCollectR_parallel (a b : GProc schema) :
     tailCollectR G R fresh (.parallel a b) = none := rfl
 
-@[simp] theorem tailCollectR_leftMerge (a b : GProc) :
+@[simp] theorem tailCollectR_leftMerge (a b : GProc schema) :
     tailCollectR G R fresh (.leftMerge a b) = none := rfl
 
-@[simp] theorem tailCollectR_commMerge (a b : GProc) :
+@[simp] theorem tailCollectR_commMerge (a b : GProc schema) :
     tailCollectR G R fresh (.commMerge a b) = none := rfl
 
-@[simp] theorem tailCollectR_restrict (actions : Set CommunicationAction) (cont : GProc) :
+@[simp] theorem tailCollectR_restrict (actions : Set (CommunicationAction schema)) (cont : GProc schema) :
     tailCollectR G R fresh (.restrict actions cont) = none := rfl
 
-@[simp] theorem tailCollectR_project (n : Nat) (cont : GProc) :
+@[simp] theorem tailCollectR_project (n : Nat) (cont : GProc schema) :
     tailCollectR G R fresh (.project n cont) = none := rfl
 
-theorem tailCollectR_choice_some_iff {a b out : GProc} :
+theorem tailCollectR_choice_some_iff {a b out : GProc schema} :
     tailCollectR G R fresh (.choice a b) = some out ↔
       ∃ a' b', tailCollectR G R fresh a = some a' ∧
         tailCollectR G R fresh b = some b' ∧ out = .choice a' b' := by
   cases ha : tailCollectR G R fresh a <;> cases hb : tailCollectR G R fresh b <;>
     simp [tailCollectR_choice, ha, hb, eq_comm]
 
-theorem tailCollectR_choice_none_iff {a b : GProc} :
+theorem tailCollectR_choice_none_iff {a b : GProc schema} :
     tailCollectR G R fresh (.choice a b) = none ↔
       tailCollectR G R fresh a = none ∨ tailCollectR G R fresh b = none := by
   cases ha : tailCollectR G R fresh a <;> cases hb : tailCollectR G R fresh b <;>
     simp [tailCollectR_choice, ha, hb]
 
-theorem tailCollectR_rcfgPrefix_mem_some_iff {x : Channel} {N : NetKAT}
-    {cont out : GProc} (hmem : (x, N) ∈ R) :
+theorem tailCollectR_rcfgPrefix_mem_some_iff {x : Channel} {N : NetKAT schema}
+    {cont out : GProc schema} (hmem : (x, N) ∈ R) :
     tailCollectR G R fresh (.rcfgPrefix x N cont) = some out ↔
       ∃ tail, tailCollectR G R fresh cont = some tail ∧ out = .choice cont tail := by
   rw [tailCollectR_rcfgPrefix, if_pos hmem, Option.map_eq_some']
   simp only [eq_comm]
 
-theorem tailCollectR_rcfgPrefix_mem_none_iff {x : Channel} {N : NetKAT}
-    {cont : GProc} (hmem : (x, N) ∈ R) :
+theorem tailCollectR_rcfgPrefix_mem_none_iff {x : Channel} {N : NetKAT schema}
+    {cont : GProc schema} (hmem : (x, N) ∈ R) :
     tailCollectR G R fresh (.rcfgPrefix x N cont) = none ↔
       tailCollectR G R fresh cont = none := by
   simp [tailCollectR_rcfgPrefix, hmem]
 
-@[simp] theorem tailCollectR_rcfgPrefix_not_mem {x : Channel} {N : NetKAT}
-    (cont : GProc) (hmem : (x, N) ∉ R) :
+@[simp] theorem tailCollectR_rcfgPrefix_not_mem {x : Channel} {N : NetKAT schema}
+    (cont : GProc schema) (hmem : (x, N) ∉ R) :
     tailCollectR G R fresh (.rcfgPrefix x N cont) = some .deadlock := by
   simp [tailCollectR_rcfgPrefix, hmem]
 
 /-- Shape of the outer constructor only. A verbatim branch of a choice can
     still contain packet prefixes and original references. -/
-theorem tailCollectR_image_shape {out : GProc} (h : tailCollectR G R fresh gp = some out) :
+theorem tailCollectR_image_shape {out : GProc schema} (h : tailCollectR G R fresh gp = some out) :
     out = .deadlock ∨ (∃ a b, out = .choice a b) ∨ (∃ i, out = .ref (fresh i)) := by
   induction gp with
   | deadlock => exact Or.inl (Option.some.inj h).symm
@@ -628,9 +630,9 @@ theorem tailCollectR_image_shape {out : GProc} (h : tailCollectR G R fresh gp = 
 end
 
 /-- A reference preceded by zero or more packet-processing prefixes. -/
-inductive NSeqRefSpine : GProc → NodeId → Prop
+inductive NSeqRefSpine {schema : NetKAT.PacketSchema} : GProc schema → NodeId → Prop
   | ref (i : NodeId) : NSeqRefSpine (.ref i) i
-  | nSeq {N : NetKAT} {cont : GProc} {i : NodeId} :
+  | nSeq {N : NetKAT schema} {cont : GProc schema} {i : NodeId} :
       NSeqRefSpine cont i → NSeqRefSpine (.nSeq N cont) i
 
 theorem NSeqRefSpine.mem_tailRefsR {i : NodeId} (h : NSeqRefSpine gp i) :
@@ -692,14 +694,14 @@ end
 /-! ## Fresh auxiliary identifiers -/
 
 /-- Greatest original auxiliary index, using zero if there are no auxiliaries. -/
-def maxAux (G : ProcessGraph) : Nat :=
+def maxAux (G : ProcessGraph schema) : Nat :=
   G.nodes.fold max 0 (fun
     | .inl _ => 0
     | .inr k => k)
 
 /-- Allocate above every original auxiliary index, in worklist order.
     Identifiers outside the list all have the same fallback index. -/
-def fresh (G : ProcessGraph) (L : List NodeId) (i : NodeId) : NodeId :=
+def fresh (G : ProcessGraph schema) (L : List NodeId) (i : NodeId) : NodeId :=
   auxNode (maxAux G + 1 + @List.idxOf NodeId instBEqOfDecidableEq i L)
 
 theorem fresh_inj {L : List NodeId} {i j : NodeId} (hi : i ∈ L) (hj : j ∈ L)
@@ -710,7 +712,7 @@ theorem fresh_inj_iff {L : List NodeId} {i j : NodeId} (hi : i ∈ L) (hj : j �
     fresh G L i = fresh G L j ↔ i = j :=
   ⟨fresh_inj hi hj, congrArg (fresh G L)⟩
 
-theorem fresh_notMem_nodes (G : ProcessGraph) (L : List NodeId) (i : NodeId) :
+theorem fresh_notMem_nodes (G : ProcessGraph schema) (L : List NodeId) (i : NodeId) :
     fresh G L i ∉ G.nodes := by
   intro h
   have hle : maxAux G + 1 + @List.idxOf NodeId instBEqOfDecidableEq i L ≤ maxAux G := by
@@ -720,7 +722,7 @@ theorem fresh_notMem_nodes (G : ProcessGraph) (L : List NodeId) (i : NodeId) :
 
 /-- A duplicate-free worklist allocates exactly the consecutive auxiliary
     indices, starting at `maxAux G + 1`, in the order of the returned list. -/
-theorem fresh_getElem (G : ProcessGraph) {L : List NodeId} (hL : L.Nodup)
+theorem fresh_getElem (G : ProcessGraph schema) {L : List NodeId} (hL : L.Nodup)
     (n : Nat) (hn : n < L.length) :
     fresh G L L[n] = auxNode (maxAux G + 1 + n) := by
   rw [fresh, List.idxOf_getElem hL n hn]
@@ -753,13 +755,13 @@ theorem tailCollectR_label_ref_iff {L : List NodeId} {i j : NodeId}
 /-! ## Graph assembly -/
 
 /-- Original references retained by the verbatim continuation branches. -/
-def tailVerbatimRefs (R : ReconfigSet) : GProc → Finset NodeId
+def tailVerbatimRefs (R : ReconfigSet schema) : GProc schema → Finset NodeId
   | .nSeq _ cont => tailVerbatimRefs R cont
   | .choice a b => tailVerbatimRefs R a ∪ tailVerbatimRefs R b
   | .rcfgPrefix x N cont => if (x, N) ∈ R then gprocRefs cont else ∅
   | _ => ∅
 
-theorem tailVerbatimRefs_subset (R : ReconfigSet) (gp : GProc) :
+theorem tailVerbatimRefs_subset (R : ReconfigSet schema) (gp : GProc schema) :
     tailVerbatimRefs R gp ⊆ gprocRefs gp := by
   induction gp with
   | nSeq _ _ ih => exact ih
@@ -775,7 +777,7 @@ theorem tailVerbatimRefs_subset (R : ReconfigSet) (gp : GProc) :
 
 /-- Successful local collection exposes exactly the verbatim original
     references and the renamed R-visible references. -/
-theorem tailCollectR_refs_iff {rename : NodeId → NodeId} {out : GProc} {i : NodeId}
+theorem tailCollectR_refs_iff {rename : NodeId → NodeId} {out : GProc schema} {i : NodeId}
     (h : tailCollectR G R rename gp = some out) :
     i ∈ gprocRefs out ↔ i ∈ tailVerbatimRefs R gp ∨
       ∃ j ∈ tailRefsR R gp, rename j = i := by
@@ -819,7 +821,7 @@ theorem tailCollectR_refs_iff {rename : NodeId → NodeId} {out : GProc} {i : No
       simp [hout, gprocRefs, tailVerbatimRefs, tailRefsR, eq_comm]
   | recv | send | parallel | leftMerge | commMerge | restrict | project => simp at h
 
-theorem tailCollectR_refs_closed {L : List NodeId} {out : GProc}
+theorem tailCollectR_refs_closed {L : List NodeId} {out : GProc schema}
     (h : tailCollectR G R (fresh G L) gp = some out)
     (hOriginal : gprocRefs gp ⊆ G.nodes) (hFresh : ∀ j ∈ tailRefsR R gp, j ∈ L) :
     gprocRefs out ⊆ G.nodes ∪ L.toFinset.image (fresh G L) := by
@@ -830,13 +832,13 @@ theorem tailCollectR_refs_closed {L : List NodeId} {out : GProc}
       ⟨j, List.mem_toFinset.mpr (hFresh j hj), rfl⟩)
 
 /-- Collect each requested label once and retain its original identifier. -/
-def collectTailLabels (collect : NodeId → Option GProc) :
-    List NodeId → Option (List (NodeId × GProc))
+def collectTailLabels (collect : NodeId → Option (GProc schema)) :
+    List NodeId → Option (List (NodeId × (GProc schema)))
   | [] => some []
   | i :: rest =>
       (collect i).bind (fun p => (collectTailLabels collect rest).map (List.cons (i, p)))
 
-theorem collectTailLabels_some_iff (collect : NodeId → Option GProc) (L : List NodeId) :
+theorem collectTailLabels_some_iff (collect : NodeId → Option (GProc schema)) (L : List NodeId) :
     (∃ entries, collectTailLabels collect L = some entries) ↔
       ∀ i ∈ L, collect i ≠ none := by
   induction L with
@@ -851,9 +853,9 @@ theorem collectTailLabels_some_iff (collect : NodeId → Option GProc) (L : List
       · rintro ⟨rest, hr⟩
         exact ⟨_, rest, hr, rfl⟩
 
-theorem mem_collectTailLabels {collect : NodeId → Option GProc} {L : List NodeId}
-    {entries : List (NodeId × GProc)} (h : collectTailLabels collect L = some entries)
-    (i : NodeId) (p : GProc) :
+theorem mem_collectTailLabels {collect : NodeId → Option (GProc schema)} {L : List NodeId}
+    {entries : List (NodeId × (GProc schema))} (h : collectTailLabels collect L = some entries)
+    (i : NodeId) (p : GProc schema) :
     (i, p) ∈ entries ↔ i ∈ L ∧ collect i = some p := by
   induction L generalizing entries with
   | nil =>
@@ -875,19 +877,19 @@ theorem mem_collectTailLabels {collect : NodeId → Option GProc} {L : List Node
             · exact Or.inl ⟨rfl, Option.some.inj (hp.symm.trans hj)⟩
             · exact Or.inr ⟨hi, hp⟩
 
-private def tailGraphLabel (G : ProcessGraph) (L : List NodeId)
-    (entries : List (NodeId × GProc)) (k : NodeId) : GProc :=
+private def tailGraphLabel (G : ProcessGraph schema) (L : List NodeId)
+    (entries : List (NodeId × (GProc schema))) (k : NodeId) : GProc schema :=
   if k ∈ G.nodes then G.label k
   else (entries.findSome? (fun (i, p) => if fresh G L i = k then some p else none))
     |>.getD .deadlock
 
-private theorem tailGraphLabel_fresh {L : List NodeId} {entries : List (NodeId × GProc)}
+private theorem tailGraphLabel_fresh {L : List NodeId} {entries : List (NodeId × (GProc schema))}
     (h : collectTailLabels (fun j => tailCollectR G R (fresh G L) (G.label j)) L =
-      some entries) {i : NodeId} {p : GProc} (hi : i ∈ L)
+      some entries) {i : NodeId} {p : GProc schema} (hi : i ∈ L)
     (hp : tailCollectR G R (fresh G L) (G.label i) = some p) :
     tailGraphLabel G L entries (fresh G L i) = p := by
   rw [tailGraphLabel, if_neg (fresh_notMem_nodes G L i)]
-  let lookup : NodeId × GProc → Option GProc :=
+  let lookup : NodeId × (GProc schema) → Option (GProc schema) :=
     fun (j, q) => if fresh G L j = fresh G L i then some q else none
   change (entries.findSome? lookup).getD .deadlock = p
   cases hfind : entries.findSome? lookup with
@@ -907,12 +909,12 @@ private theorem tailGraphLabel_fresh {L : List NodeId} {entries : List (NodeId �
 
 /-- Assemble the collected root and label table. Original labels take
     precedence, and only the visited identifiers receive fresh nodes. -/
-def tailGraphOf (G : ProcessGraph) (R : ReconfigSet) (L : List NodeId)
-    (root : GProc) (entries : List (NodeId × GProc))
+def tailGraphOf (G : ProcessGraph schema) (R : ReconfigSet schema) (L : List NodeId)
+    (root : GProc schema) (entries : List (NodeId × (GProc schema)))
     (hrun : tailRun G R (tailRefsR R G.root) ∅ [] = some L)
     (hroot : tailCollectR G R (fresh G L) G.root = some root)
     (hentries : collectTailLabels (fun i => tailCollectR G R (fresh G L) (G.label i)) L =
-      some entries) : ProcessGraph where
+      some entries) : (ProcessGraph schema) where
   nodes := G.nodes ∪ L.toFinset.image (fresh G L)
   root := root
   label := tailGraphLabel G L entries
@@ -932,7 +934,7 @@ def tailGraphOf (G : ProcessGraph) (R : ReconfigSet) (L : List NodeId)
         ((tailRun_root_refs_mem hrun).2 i hiL)
 
 /-- Traverse the R-visible region, collect its root and labels, and assemble. -/
-def graphTail (G : ProcessGraph) (R : ReconfigSet) : Option ProcessGraph :=
+def graphTail (G : ProcessGraph schema) (R : ReconfigSet schema) : Option (ProcessGraph schema) :=
   match hrun : tailRun G R (tailRefsR R G.root) ∅ [] with
   | none => none
   | some L =>
@@ -946,13 +948,13 @@ def graphTail (G : ProcessGraph) (R : ReconfigSet) : Option ProcessGraph :=
 
 /-- Exact collection domain, with the fresh allocator determined by the
     actual root traversal. -/
-def GraphTailDomain (G : ProcessGraph) (R : ReconfigSet) : Prop :=
+def GraphTailDomain (G : ProcessGraph schema) (R : ReconfigSet schema) : Prop :=
   ∃ L, tailRun G R (tailRefsR R G.root) ∅ [] = some L ∧
     tailCollectR G R (fresh G L) G.root ≠ none ∧
     ∀ i, TailPathTo G R G.root i → tailCollectR G R (fresh G L) (G.label i) ≠ none
 
-theorem graphTail_eq_some_tailGraphOf {L : List NodeId} {root : GProc}
-    {entries : List (NodeId × GProc)}
+theorem graphTail_eq_some_tailGraphOf {L : List NodeId} {root : GProc schema}
+    {entries : List (NodeId × (GProc schema))}
     (hrun : tailRun G R (tailRefsR R G.root) ∅ [] = some L)
     (hroot : tailCollectR G R (fresh G L) G.root = some root)
     (hentries : collectTailLabels (fun i => tailCollectR G R (fresh G L) (G.label i)) L =
@@ -984,8 +986,8 @@ theorem graphTail_domain_some (h : GraphTailDomain G R) :
     (fun i hi => hl i ((tailRun_root_success G R L hrun).2.1 i |>.mp hi))
   exact ⟨_, graphTail_eq_some_tailGraphOf hrun hroot hentries⟩
 
-theorem graphTail_some_inv {G' : ProcessGraph} (h : graphTail G R = some G') :
-    ∃ (L : List NodeId) (root : GProc) (entries : List (NodeId × GProc))
+theorem graphTail_some_inv {G' : ProcessGraph schema} (h : graphTail G R = some G') :
+    ∃ (L : List NodeId) (root : GProc schema) (entries : List (NodeId × (GProc schema)))
       (hrun : tailRun G R (tailRefsR R G.root) ∅ [] = some L)
       (hroot : tailCollectR G R (fresh G L) G.root = some root)
       (hentries : collectTailLabels (fun i => tailCollectR G R (fresh G L) (G.label i)) L =
@@ -1013,7 +1015,7 @@ theorem graphTail_domain_iff : GraphTailDomain G R ↔ ∃ G', graphTail G R = s
 
 section
 
-variable {L : List NodeId} {root : GProc} {entries : List (NodeId × GProc)}
+variable {L : List NodeId} {root : GProc schema} {entries : List (NodeId × (GProc schema))}
   {hrun : tailRun G R (tailRefsR R G.root) ∅ [] = some L}
   {hroot : tailCollectR G R (fresh G L) G.root = some root}
   {hentries : collectTailLabels (fun i => tailCollectR G R (fresh G L) (G.label i)) L =
@@ -1030,7 +1032,7 @@ theorem tailGraphOf_label_original {i : NodeId} (hi : i ∈ G.nodes) :
     (tailGraphOf G R L root entries hrun hroot hentries).label i = G.label i :=
   if_pos hi
 
-theorem tailGraphOf_label_fresh {i : NodeId} {p : GProc} (hi : i ∈ L)
+theorem tailGraphOf_label_fresh {i : NodeId} {p : GProc schema} (hi : i ∈ L)
     (hp : tailCollectR G R (fresh G L) (G.label i) = some p) :
     (tailGraphOf G R L root entries hrun hroot hentries).label (fresh G L i) = p :=
   tailGraphLabel_fresh hentries hi hp
@@ -1058,7 +1060,7 @@ end
 
 /-- Supported local syntax, checking the continuation of every
     reconfiguration and treating a live reference as a leaf. -/
-inductive TailShapeOk (G : ProcessGraph) : GProc → Prop
+inductive TailShapeOk {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) : GProc schema → Prop
   | deadlock : TailShapeOk G .deadlock
   | nSeq {N cont} : TailShapeOk G cont → TailShapeOk G (.nSeq N cont)
   | choice {a b} : TailShapeOk G a → TailShapeOk G b → TailShapeOk G (.choice a b)
@@ -1068,7 +1070,7 @@ inductive TailShapeOk (G : ProcessGraph) : GProc → Prop
 /-- The root and all labels reachable along syntactic references have
     supported local syntax. Reachability includes references behind any
     reconfiguration. -/
-def GraphTailSupported (G : ProcessGraph) : Prop :=
+def GraphTailSupported (G : ProcessGraph schema) : Prop :=
   TailShapeOk G G.root ∧
     ∀ i ∈ gprocRefs G.root, ∀ j,
       Relation.ReflTransGen (fun a b => b ∈ gprocRefs (G.label a)) i j →
@@ -1104,18 +1106,18 @@ theorem graphTail_supported_some (h : GraphTailSupported G) :
 
 /-! ## Head extraction after successful graph-tail extraction -/
 
-private def HeadCollectOk (live : NodeId → Prop) (p : GProc) : Prop :=
+private def HeadCollectOk (live : NodeId → Prop) (p : GProc schema) : Prop :=
   headCollect p ≠ none ∧ ∀ i ∈ headRefs p, live i
 
 private theorem HeadCollectOk.deadlock (live : NodeId → Prop) :
-    HeadCollectOk live .deadlock := by
+    HeadCollectOk (schema := schema) live .deadlock := by
   simp [HeadCollectOk, headCollect_deadlock, headRefs]
 
-private theorem HeadCollectOk.nSeq {live : NodeId → Prop} {p : GProc}
-    (h : HeadCollectOk live p) (N : NetKAT) : HeadCollectOk live (.nSeq N p) := by
+private theorem HeadCollectOk.nSeq {live : NodeId → Prop} {p : GProc schema}
+    (h : HeadCollectOk live p) (N : NetKAT schema) : HeadCollectOk live (.nSeq N p) := by
   exact ⟨by simpa [headCollect_nSeq] using h.1, h.2⟩
 
-private theorem HeadCollectOk.choice {live : NodeId → Prop} {a b : GProc}
+private theorem HeadCollectOk.choice {live : NodeId → Prop} {a b : GProc schema}
     (ha : HeadCollectOk live a) (hb : HeadCollectOk live b) :
     HeadCollectOk live (.choice a b) := by
   obtain ⟨A, hA⟩ := Option.ne_none_iff_exists'.mp ha.1
@@ -1127,13 +1129,13 @@ private theorem HeadCollectOk.choice {live : NodeId → Prop} {a b : GProc}
   · exact hb.2 i hi
 
 private theorem HeadCollectOk.ref {live : NodeId → Prop} {i : NodeId} (h : live i) :
-    HeadCollectOk live (.ref i) := by
+    HeadCollectOk (schema := schema) live (.ref i) := by
   simp [HeadCollectOk, headCollect_ref, headRefs, h]
 
 /-- Successful collection guarantees that the input and output both
     collect locally for head. Their head references stay within any
     region containing the exposed original and renamed identifiers. -/
-private theorem tailCollectR_head_collect_ok {rename : NodeId → NodeId} {out : GProc}
+private theorem tailCollectR_head_collect_ok {rename : NodeId → NodeId} {out : GProc schema}
     {live : NodeId → Prop} (h : tailCollectR G R rename gp = some out)
     (hLive : ∀ i ∈ tailRefsR R gp, live i ∧ live (rename i)) :
     HeadCollectOk live gp ∧ HeadCollectOk live out := by
@@ -1169,12 +1171,12 @@ private theorem tailCollectR_head_collect_ok {rename : NodeId → NodeId} {out :
   | recv | send | parallel | leftMerge | commMerge | restrict | project => simp at h
 
 /-- Head extraction succeeds on every successfully assembled tail graph. -/
-theorem graphTail_head_some {G' : ProcessGraph} (h : graphTail G R = some G') :
+theorem graphTail_head_some {G' : ProcessGraph schema} (h : graphTail G R = some G') :
     ∃ H, graphHead G' = some H := by
   obtain ⟨L, root, entries, hrun, hroot, hentries, rfl⟩ := graphTail_some_inv h
   let out := tailGraphOf G R L root entries hrun hroot hentries
   let live : NodeId → Prop := fun k => k ∈ L ∨ ∃ j ∈ L, fresh G L j = k
-  have hLocal {p q : GProc} (hcol : tailCollectR G R (fresh G L) p = some q)
+  have hLocal {p q : GProc schema} (hcol : tailCollectR G R (fresh G L) p = some q)
       (hRefs : ∀ i ∈ tailRefsR R p, i ∈ L) : HeadCollectOk live p ∧ HeadCollectOk live q :=
     tailCollectR_head_collect_ok hcol (fun i hi =>
       ⟨Or.inl (hRefs i hi), Or.inr ⟨i, hRefs i hi, rfl⟩⟩)
@@ -1220,11 +1222,11 @@ theorem graphTail_head_some {G' : ProcessGraph} (h : graphTail G R = some G') :
 
 /-- Head derivations of a closed original term are invariant under extending
     the graph while preserving its original labels. -/
-theorem graphHeadSpec_agree {G' : ProcessGraph}
+theorem graphHeadSpec_agree {G' : ProcessGraph schema}
     (hAgree : ∀ i ∈ G.nodes, G'.label i = G.label i)
     (hClosed : gprocRefs gp ⊆ G.nodes) :
     GraphHeadSpec G' gp σ τ ↔ GraphHeadSpec G gp σ τ := by
-  have transfer {src dst : ProcessGraph}
+  have transfer {src dst : ProcessGraph schema}
       (hSrc : ∀ i ∈ G.nodes, src.label i = G.label i)
       (hDst : ∀ i ∈ G.nodes, dst.label i = G.label i)
       {p σ τ} (h : GraphHeadSpec src p σ τ) :
@@ -1245,18 +1247,18 @@ theorem graphHeadSpec_agree {G' : ProcessGraph}
   exact ⟨fun h => transfer hAgree (fun _ _ => rfl) h hClosed,
     fun h => transfer (fun _ _ => rfl) hAgree h hClosed⟩
 
-private def TailRegion (G : ProcessGraph) (R : ReconfigSet) (L : List NodeId) (p : GProc) :
+private def TailRegion (G : ProcessGraph schema) (R : ReconfigSet schema) (L : List NodeId) (p : GProc schema) :
     Prop :=
   gprocRefs p ⊆ G.nodes ∧ ∀ i ∈ tailRefsR R p, i ∈ L
 
-private theorem tailRegion_choice {L : List NodeId} {a b : GProc} :
+private theorem tailRegion_choice {L : List NodeId} {a b : GProc schema} :
     TailRegion G R L (.choice a b) ↔ TailRegion G R L a ∧ TailRegion G R L b := by
   simp only [TailRegion, gprocRefs, Finset.union_subset_iff, tailRefsR, List.mem_append,
     or_imp, forall_and]
   exact and_and_and_comm
 
-private theorem tailRegion_rcfg {L : List NodeId} {x : Channel} {N : NetKAT}
-    {p : GProc} (h : (x, N) ∈ R) :
+private theorem tailRegion_rcfg {L : List NodeId} {x : Channel} {N : NetKAT schema}
+    {p : GProc schema} (h : (x, N) ∈ R) :
     TailRegion G R L (.rcfgPrefix x N p) ↔ TailRegion G R L p := by
   simp only [TailRegion, gprocRefs, tailRefsR, if_pos h]
 
@@ -1268,10 +1270,10 @@ private theorem NSeqRefSpine.liftTail {i : NodeId} (h : NSeqRefSpine gp i)
 
 section
 
-variable {G' : ProcessGraph} {L : List NodeId}
+variable {G' : ProcessGraph schema} {L : List NodeId}
 
 private theorem tailCollectR_choice_sound (hAgree : ∀ i ∈ G.nodes, G'.label i = G.label i)
-    {a b : GProc}
+    {a b : GProc schema}
     (hBranch :
       (GraphHeadSpec G' a σ τ ∧
         (∀ p, tailCollectR G R (fresh G L) p = some a →
@@ -1307,7 +1309,7 @@ private theorem tailCollectR_choice_sound (hAgree : ∀ i ∈ G.nodes, G'.label 
 private theorem tailCollectR_sound (hAgree : ∀ i ∈ G.nodes, G'.label i = G.label i)
     (hLabels : ∀ i ∈ L, TailRegion G R L (G.label i) ∧
       tailCollectR G R (fresh G L) (G.label i) = some (G'.label (fresh G L i)))
-    {out : GProc} (hh : GraphHeadSpec G' out σ τ) :
+    {out : GProc schema} (hh : GraphHeadSpec G' out σ τ) :
     ∀ p, tailCollectR G R (fresh G L) p = some out →
       TailRegion G R L p → GraphTailSpec G R p σ τ := by
   induction hh with
@@ -1394,7 +1396,7 @@ private theorem tailCollectR_complete
 
 end
 
-theorem graphTail_bridge {G' : ProcessGraph} (h : graphTail G R = some G') :
+theorem graphTail_bridge {G' : ProcessGraph schema} (h : graphTail G R = some G') :
     GraphHeadSpec G' G'.root σ τ ↔ GraphTailSpec G R G.root σ τ := by
   obtain ⟨L, root, entries, hRun, hRoot, hEntries, rfl⟩ := graphTail_some_inv h
   let out := tailGraphOf G R L root entries hRun hRoot hEntries
@@ -1414,12 +1416,12 @@ theorem graphTail_bridge {G' : ProcessGraph} (h : graphTail G R = some G') :
   exact ⟨fun hh => tailCollectR_sound hAgree hLabels hh _ hRoot hRegion,
     fun ht => tailCollectR_complete hAgree hLabels ht hRoot hRegion⟩
 
-theorem graphTail_sound {G' : ProcessGraph} {H : NetKAT}
+theorem graphTail_sound {G' : ProcessGraph schema} {H : NetKAT schema}
     (h : graphTail G R = some G') (hHead : graphHead G' = some H)
     (hSem : Semantics H σ τ) : GraphTailSpec G R G.root σ τ :=
   (graphTail_bridge h).mp (graphHead_sound G' H hHead σ τ hSem)
 
-theorem graphTail_complete {G' : ProcessGraph} {H : NetKAT}
+theorem graphTail_complete {G' : ProcessGraph schema} {H : NetKAT schema}
     (h : graphTail G R = some G') (hHead : graphHead G' = some H)
     (hSpec : GraphTailSpec G R G.root σ τ) : Semantics H σ τ :=
   graphHead_complete G' H hHead σ τ ((graphTail_bridge h).mpr hSpec)
@@ -1442,7 +1444,7 @@ theorem graphTail_spec_iff (h : GraphTailSupported G) :
 
 /-- Supported local syntax of the root and all labels suffices for both
     extractors on a closed graph. -/
-theorem graphSupported_of_shapes {Q : ProcessGraph}
+theorem graphSupported_of_shapes {Q : ProcessGraph schema}
     (rootShape : TailShapeOk Q Q.root)
     (labelShape : ∀ i ∈ Q.nodes, TailShapeOk Q (Q.label i)) :
     GraphHeadSupported Q ∧ GraphTailSupported Q := by
@@ -1470,7 +1472,7 @@ theorem graphSupported_of_shapes {Q : ProcessGraph}
 
 
 /-- The original continuations selected by a structural tail. -/
-inductive TailSelect (G : ProcessGraph) (R : ReconfigSet) : GProc → GProc → Prop
+inductive TailSelect {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) (R : ReconfigSet schema) : GProc schema → GProc schema → Prop
   | packet : TailSelect G R p q → TailSelect G R (.nSeq N p) q
   | left : TailSelect G R p q → TailSelect G R (.choice p r) q
   | right : TailSelect G R r q → TailSelect G R (.choice p r) q
@@ -1479,10 +1481,10 @@ inductive TailSelect (G : ProcessGraph) (R : ReconfigSet) : GProc → GProc → 
   | next : (x, N) ∈ R → TailSelect G R p q → TailSelect G R (.rcfgPrefix x N p) q
 
 section
-variable {G Q : ProcessGraph} {R : ReconfigSet} {L : List NodeId}
-variable {pt hl pt' hl' : List CtxPkt} {a : Action} {dst : GProc}
+variable {G Q : ProcessGraph schema} {R : ReconfigSet schema} {L : List NodeId}
+variable {pt hl pt' hl' : List schema.Packet} {a : Action schema} {dst : GProc schema}
 
-private theorem select_closed {p q : GProc} (s : TailSelect G R p q) :
+private theorem select_closed {p q : GProc schema} (s : TailSelect G R p q) :
     gprocRefs p ⊆ G.nodes → gprocRefs q ⊆ G.nodes := by
   induction s with
   | packet _ ih | next _ _ ih => exact ih
@@ -1491,13 +1493,13 @@ private theorem select_closed {p q : GProc} (s : TailSelect G R p q) :
   | ref _ ih => exact fun hc => ih (G.closed _ (hc (Finset.mem_singleton_self _)))
   | stop => exact id
 
-private theorem select_spine {p q : GProc} {i : NodeId} (h : NSeqRefSpine p i)
+private theorem select_spine {p q : GProc schema} {i : NodeId} (h : NSeqRefSpine p i)
     (s : TailSelect G R (G.label i) q) : TailSelect G R p q := by
   induction h with
   | ref => exact .ref s
   | nSeq _ ih => exact .packet (ih s)
 
-private theorem collectedChoice_select {p l r : GProc}
+private theorem collectedChoice_select {p l r : GProc schema}
     (found :
       ((gprocRefs l ⊆ G.nodes → GStep G ⟨l, pt, hl⟩ a ⟨dst, pt', hl'⟩) ∧
         (∀ p, tailCollectR G R (fresh G L) p = some l → TailRegion G R L p →
@@ -1537,7 +1539,7 @@ private theorem collectedStep_sound
     (agree : ∀ i ∈ G.nodes, Q.label i = G.label i)
     (labels : ∀ i ∈ L, TailRegion G R L (G.label i) ∧
       tailCollectR G R (fresh G L) (G.label i) = some (Q.label (fresh G L i)))
-    {src out : GConfig} {a : Action} (step : GStep Q src a out) :
+    {src out : GConfig schema} {a : Action schema} (step : GStep Q src a out) :
     ∀ p, tailCollectR G R (fresh G L) p = some src.proc → TailRegion G R L p →
       ∃ q, TailSelect G R p q ∧ GStep G {src with proc := q} a out := by
   have closed : ∀ i ∈ G.nodes, gprocRefs (Q.label i) ⊆ G.nodes := by
@@ -1563,7 +1565,7 @@ private theorem collectedStep_complete
     (agree : ∀ i ∈ G.nodes, Q.label i = G.label i)
     (labels : ∀ i ∈ L, TailRegion G R L (G.label i) ∧
       tailCollectR G R (fresh G L) (G.label i) = some (Q.label (fresh G L i)))
-    {p q : GProc} (sel : TailSelect G R p q)
+    {p q : GProc schema} (sel : TailSelect G R p q)
     (step : GStep G ⟨q, pt, hl⟩ a ⟨dst, pt', hl'⟩) :
     ∀ out, tailCollectR G R (fresh G L) p = some out → TailRegion G R L p →
       GStep Q ⟨out, pt, hl⟩ a ⟨dst, pt', hl'⟩ := by
@@ -1596,8 +1598,8 @@ end
 
 /-- A nonempty execution of the collected tail starts in one original
 selected continuation. Its endpoint and action word are preserved. -/
-theorem graphTail_path_iff {G Q : ProcessGraph} {R : ReconfigSet}
-    (h : graphTail G R = some Q) {a : Action} {w : List Action} {dst : GProc} :
+theorem graphTail_path_iff {G Q : ProcessGraph schema} {R : ReconfigSet schema}
+    (h : graphTail G R = some Q) {a : Action schema} {w : List (Action schema)} {dst : GProc schema} :
     GraphPath Q Q.root (a :: w) dst ↔
       ∃ p, TailSelect G R G.root p ∧ GraphPath G p (a :: w) dst := by
   obtain ⟨L, root, entries, hRun, hRoot, hEntries, rfl⟩ := graphTail_some_inv h

@@ -75,6 +75,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 open DyNetKAT.NetKAT
 
 ------------------------------------------------------------------------
@@ -84,14 +86,15 @@ open DyNetKAT.NetKAT
 /-- Packet-level existence probe: the input packet `σ` reaches a nonempty
     output set under `p`.  Defined by matching on the verified evaluator's
     result, keeping `unsupported` distinct from a supported empty set. -/
-def netkatNonemptyAt (p : NetKAT) (σ : CtxPkt) : Prop :=
+def netkatNonemptyAt (p : NetKAT schema) (σ : schema.Packet) : Prop :=
   match execute p σ with
   | .supported B => B ≠ ∅
   | .unsupported => False
 
 /-- Decidability of the probe, by matching on the evaluator's result. -/
-instance instDecidableNetkatNonemptyAt (p : NetKAT) (σ : CtxPkt) :
+instance instDecidableNetkatNonemptyAt (p : NetKAT schema) (σ : schema.Packet) :
     Decidable (netkatNonemptyAt p σ) := by
+  letI := schema.packetEq
   unfold netkatNonemptyAt
   cases h : execute p σ with
   | supported B => exact inferInstanceAs (Decidable (B ≠ ∅))
@@ -99,26 +102,27 @@ instance instDecidableNetkatNonemptyAt (p : NetKAT) (σ : CtxPkt) :
 
 /-- The probe on supported executions is exactly nonemptiness of the
     computed output set. -/
-theorem netkatNonemptyAt_iff (p : NetKAT) (σ : CtxPkt) (B : Finset CtxPkt)
+theorem netkatNonemptyAt_iff (p : NetKAT schema) (σ : schema.Packet) (B : Finset schema.Packet)
     (hB : execute p σ = .supported B) : netkatNonemptyAt p σ ↔ B ≠ ∅ := by
   simp only [netkatNonemptyAt, hB]
 
 /-- Rejection of equality with drop gives a related packet pair. -/
-theorem netkatIsZero_false_iff_exists (p : NetKAT) :
-    netkatIsZero p = false ↔ ∃ σ τ : CtxPkt, Semantics p σ τ := by
-  change netkatNativeEquiv p .drop = false ↔ _
-  rw [netkatNativeEquiv_false_iff]
-  simp [Semantics]
+theorem netkatIsZero_false_iff_exists (p : NetKAT schema) :
+    netkatIsZero p = false ↔ ∃ σ τ : schema.Packet, Semantics p σ τ := by
+  classical
+  refine Bool.eq_false_iff.trans ((not_congr (netkatIsZero_correct p)).trans ?_)
+  push_neg
+  rfl
 
 /-- Symbolic nonemptiness probe for the packet relation. -/
-def netkatExistsNonempty (p : NetKAT) : Bool := !netkatIsZero p
+def netkatExistsNonempty (p : NetKAT schema) : Bool := !netkatIsZero p
 
-theorem netkatExistsNonempty_sound (p : NetKAT)
-    (h : netkatExistsNonempty p = true) : ∃ σ τ : CtxPkt, Semantics p σ τ :=
+theorem netkatExistsNonempty_sound (p : NetKAT schema)
+    (h : netkatExistsNonempty p = true) : ∃ σ τ : schema.Packet, Semantics p σ τ :=
   (netkatIsZero_false_iff_exists p).mp (by simpa [netkatExistsNonempty] using h)
 
-theorem netkatExistsNonempty_complete (p : NetKAT)
-    (h : ∃ σ τ : CtxPkt, Semantics p σ τ) : netkatExistsNonempty p = true :=
+theorem netkatExistsNonempty_complete (p : NetKAT schema)
+    (h : ∃ σ τ : schema.Packet, Semantics p σ τ) : netkatExistsNonempty p = true :=
   by simpa [netkatExistsNonempty] using (netkatIsZero_false_iff_exists p).mpr h
 
 ------------------------------------------------------------------------
@@ -131,7 +135,7 @@ theorem netkatExistsNonempty_complete (p : NetKAT)
     NetKAT policies (predicates are tests, and tests are policies), so
     no new semantic relation is introduced: the composition is the
     existing `NetKAT.seq`. -/
-def reachabilityPolicy (ingress core egress : NetKAT) : NetKAT :=
+def reachabilityPolicy (ingress core egress : NetKAT schema) : NetKAT schema :=
   NetKAT.seq ingress (NetKAT.seq core egress)
 
 /-- Composition characterization of the property policy: a packet pair
@@ -139,9 +143,9 @@ def reachabilityPolicy (ingress core egress : NetKAT) : NetKAT :=
     packets `ρ, κ` with `σ` reaching `ρ` through the ingress predicate,
     `ρ` reaching `κ` through the core policy, and `κ` reaching `τ`
     through the egress predicate.  Proved from the existing `seq_sem`. -/
-theorem reachabilityPolicy_sem (ingress core egress : NetKAT) (σ τ : CtxPkt) :
+theorem reachabilityPolicy_sem (ingress core egress : NetKAT schema) (σ τ : schema.Packet) :
     Semantics (reachabilityPolicy ingress core egress) σ τ ↔
-      ∃ ρ κ : CtxPkt,
+      ∃ ρ κ : schema.Packet,
         Semantics ingress σ ρ ∧ Semantics core ρ κ ∧ Semantics egress κ τ := by
   rw [reachabilityPolicy, seq_sem]
   constructor
@@ -155,9 +159,9 @@ theorem reachabilityPolicy_sem (ingress core egress : NetKAT) (σ τ : CtxPkt) :
 /-- Zero characterization of the property policy: `in · H · out ≡ 0`
     exactly when no triple of packet pairs composes an ingress step, a
     core step, and an egress step. -/
-theorem netkatIsZero_reachabilityPolicy_true_iff (ingress core egress : NetKAT) :
+theorem netkatIsZero_reachabilityPolicy_true_iff (ingress core egress : NetKAT schema) :
     netkatIsZero (reachabilityPolicy ingress core egress) = true ↔
-      ∀ σ ρ κ τ : CtxPkt,
+      ∀ σ ρ κ τ : schema.Packet,
         ¬ (Semantics ingress σ ρ ∧ Semantics core ρ κ ∧ Semantics egress κ τ) := by
   rw [netkatIsZero_correct]
   constructor
@@ -172,9 +176,9 @@ theorem netkatIsZero_reachabilityPolicy_true_iff (ingress core egress : NetKAT) 
     exactly when at least one triple of packet pairs composes an ingress
     step, a core step, and an egress step (finite-domain existential,
     via `netkatIsZero_false_iff_exists`). -/
-theorem netkatIsZero_reachabilityPolicy_false_iff (ingress core egress : NetKAT) :
+theorem netkatIsZero_reachabilityPolicy_false_iff (ingress core egress : NetKAT schema) :
     netkatIsZero (reachabilityPolicy ingress core egress) = false ↔
-      ∃ σ ρ κ τ : CtxPkt,
+      ∃ σ ρ κ τ : schema.Packet,
         Semantics ingress σ ρ ∧ Semantics core ρ κ ∧ Semantics egress κ τ := by
   rw [netkatIsZero_false_iff_exists]
   constructor
@@ -185,7 +189,7 @@ theorem netkatIsZero_reachabilityPolicy_false_iff (ingress core egress : NetKAT)
     exact ⟨σ, τ, (reachabilityPolicy_sem ingress core egress σ τ).mpr ⟨ρ, κ, h₁, h₂, h₃⟩⟩
 
 /-- Predicate tests denote the test relation (definitional). -/
-theorem sem_test_iff (Pr : Predicate) (σ τ : CtxPkt) :
+theorem sem_test_iff (Pr : Predicate schema) (σ τ : schema.Packet) :
     Semantics (.test Pr) σ τ ↔ (Pr.holds σ ∧ σ = τ) := by
   simp only [Semantics]
 
@@ -194,10 +198,10 @@ theorem sem_test_iff (Pr : Predicate) (σ τ : CtxPkt) :
     `(σ, κ)` of `H` leads from a packet satisfying `in` to a packet
     satisfying `out`.  This is the paper's reading of (34): packets at
     `ext` are not able to reach `int` under the extracted configuration. -/
-theorem netkatIsZero_reachabilityPolicy_tests_true_iff (core : NetKAT)
-    (Pin Pout : Predicate) :
+theorem netkatIsZero_reachabilityPolicy_tests_true_iff (core : NetKAT schema)
+    (Pin Pout : Predicate schema) :
     netkatIsZero (reachabilityPolicy (.test Pin) core (.test Pout)) = true ↔
-      ∀ σ κ : CtxPkt, Semantics core σ κ → ¬ (Pin.holds σ ∧ Pout.holds κ) := by
+      ∀ σ κ : schema.Packet, Semantics core σ κ → ¬ (Pin.holds σ ∧ Pout.holds κ) := by
   rw [netkatIsZero_reachabilityPolicy_true_iff]
   constructor
   · intro h σ κ hH hpair
@@ -216,10 +220,10 @@ theorem netkatIsZero_reachabilityPolicy_tests_true_iff (core : NetKAT)
     `(σ, κ)` of `H` leads from a packet satisfying `in` to a packet
     satisfying `out`.  This is the paper's reading of (35): the
     configuration after the reconfiguration allows the flow. -/
-theorem netkatIsZero_reachabilityPolicy_tests_false_iff (core : NetKAT)
-    (Pin Pout : Predicate) :
+theorem netkatIsZero_reachabilityPolicy_tests_false_iff (core : NetKAT schema)
+    (Pin Pout : Predicate schema) :
     netkatIsZero (reachabilityPolicy (.test Pin) core (.test Pout)) = false ↔
-      ∃ σ κ : CtxPkt, Semantics core σ κ ∧ Pin.holds σ ∧ Pout.holds κ := by
+      ∃ σ κ : schema.Packet, Semantics core σ κ ∧ Pin.holds σ ∧ Pout.holds κ := by
   rw [netkatIsZero_reachabilityPolicy_false_iff]
   constructor
   · rintro ⟨σ, ρ, κ, τ, hPin, hCore, hPout⟩
@@ -241,7 +245,7 @@ theorem netkatIsZero_reachabilityPolicy_tests_false_iff (core : NetKAT)
     condition holds), `some false` when it is nonzero (the condition
     fails), and `none` when `head` extraction fails.  A failed extraction
     is NEVER interpreted as a zero policy: `none` is not `some true`. -/
-def checkCondition34 (ingress egress : NetKAT) (init : DyNetKAT) : Option Bool :=
+def checkCondition34 (ingress egress : NetKAT schema) (init : DyNetKAT schema) : Option Bool :=
   match head init with
   | some H => some (netkatIsZero (reachabilityPolicy ingress H egress))
   | none => none
@@ -253,7 +257,7 @@ def checkCondition34 (ingress egress : NetKAT) (init : DyNetKAT) : Option Bool :
     and `none` when `tail` extraction or the subsequent `head` extraction
     fails.  A failed extraction is NEVER interpreted as a zero policy:
     `none` is not `some false`. -/
-def checkCondition35 (ingress egress : NetKAT) (R : ReconfigSet) (init : DyNetKAT) :
+def checkCondition35 (ingress egress : NetKAT schema) (R : ReconfigSet schema) (init : DyNetKAT schema) :
     Option Bool :=
   match tail R init with
   | none => none
@@ -263,37 +267,37 @@ def checkCondition35 (ingress egress : NetKAT) (R : ReconfigSet) (init : DyNetKA
       | some H => some (!netkatIsZero (reachabilityPolicy ingress H egress))
 
 /-- Behavior of `checkCondition34` on failed head extraction. -/
-theorem checkCondition34_none (ingress egress : NetKAT) (D : DyNetKAT)
+theorem checkCondition34_none (ingress egress : NetKAT schema) (D : DyNetKAT schema)
     (h : head D = none) : checkCondition34 ingress egress D = none := by
   simp only [checkCondition34, h]
 
 /-- Behavior of `checkCondition34` on successful head extraction: the
     returned Boolean is exactly the verified zero checker applied to
     `in · H · out`. -/
-theorem checkCondition34_some (ingress egress : NetKAT) (D : DyNetKAT) (H : NetKAT)
+theorem checkCondition34_some (ingress egress : NetKAT schema) (D : DyNetKAT schema) (H : NetKAT schema)
     (h : head D = some H) :
     checkCondition34 ingress egress D =
       some (netkatIsZero (reachabilityPolicy ingress H egress)) := by
   simp only [checkCondition34, h]
 
 /-- Behavior of `checkCondition35` on failed tail extraction. -/
-theorem checkCondition35_none_tail (ingress egress : NetKAT) (R : ReconfigSet)
-    (D : DyNetKAT) (h : tail R D = none) :
+theorem checkCondition35_none_tail (ingress egress : NetKAT schema) (R : ReconfigSet schema)
+    (D : DyNetKAT schema) (h : tail R D = none) :
     checkCondition35 ingress egress R D = none := by
   simp only [checkCondition35, h]
 
 /-- Behavior of `checkCondition35` on a successful tail extraction whose
     head extraction fails. -/
-theorem checkCondition35_none_head (ingress egress : NetKAT) (R : ReconfigSet)
-    (D Q : DyNetKAT) (hQ : tail R D = some Q) (hH : head Q = none) :
+theorem checkCondition35_none_head (ingress egress : NetKAT schema) (R : ReconfigSet schema)
+    (D Q : DyNetKAT schema) (hQ : tail R D = some Q) (hH : head Q = none) :
     checkCondition35 ingress egress R D = none := by
   simp only [checkCondition35, hQ, hH]
 
 /-- Behavior of `checkCondition35` on fully successful extraction: the
     returned Boolean is exactly the negation of the verified zero checker
     applied to `in · H · out` (the paper's `≢ 0`). -/
-theorem checkCondition35_some (ingress egress : NetKAT) (R : ReconfigSet)
-    (D Q : DyNetKAT) (H : NetKAT) (hQ : tail R D = some Q) (hH : head Q = some H) :
+theorem checkCondition35_some (ingress egress : NetKAT schema) (R : ReconfigSet schema)
+    (D Q : DyNetKAT schema) (H : NetKAT schema) (hQ : tail R D = some Q) (hH : head Q = some H) :
     checkCondition35 ingress egress R D =
       some (!netkatIsZero (reachabilityPolicy ingress H egress)) := by
   simp only [checkCondition35, hQ, hH]
@@ -301,9 +305,9 @@ theorem checkCondition35_some (ingress egress : NetKAT) (R : ReconfigSet)
 /-- Semantic correctness of the condition-(34) checker: on successful
     head extraction with policy `H`, the checker result is `true` exactly
     when the property policy `in · H · out` denotes the empty relation. -/
-theorem checkCondition34_correct (ingress egress : NetKAT) (D : DyNetKAT) (H : NetKAT)
+theorem checkCondition34_correct (ingress egress : NetKAT schema) (D : DyNetKAT schema) (H : NetKAT schema)
     (hH : head D = some H) (b : Bool) (h : checkCondition34 ingress egress D = some b) :
-    b = true ↔ ∀ σ τ : CtxPkt, ¬ Semantics (reachabilityPolicy ingress H egress) σ τ := by
+    b = true ↔ ∀ σ τ : schema.Packet, ¬ Semantics (reachabilityPolicy ingress H egress) σ τ := by
   rw [checkCondition34_some ingress egress D H hH] at h
   have hb : b = netkatIsZero (reachabilityPolicy ingress H egress) :=
     (Option.some.inj h).symm
@@ -317,10 +321,10 @@ theorem checkCondition34_correct (ingress egress : NetKAT) (D : DyNetKAT) (H : N
     step before it and an egress step after it.  This is the absence of
     all corresponding relational transitions of the initial
     configuration. -/
-theorem checkCondition34_headSpec (ingress egress : NetKAT) (D : DyNetKAT)
-    (hsup : HeadSupported D) (H : NetKAT) (hH : head D = some H) (b : Bool)
+theorem checkCondition34_headSpec (ingress egress : NetKAT schema) (D : DyNetKAT schema)
+    (hsup : HeadSupported D) (H : NetKAT schema) (hH : head D = some H) (b : Bool)
     (h : checkCondition34 ingress egress D = some b) :
-    b = true ↔ ∀ σ ρ κ τ : CtxPkt,
+    b = true ↔ ∀ σ ρ κ τ : schema.Packet,
       ¬ (Semantics ingress σ ρ ∧ HeadSpec D ρ κ ∧ Semantics egress κ τ) := by
   rw [checkCondition34_correct ingress egress D H hH b h]
   constructor
@@ -338,10 +342,10 @@ theorem checkCondition34_headSpec (ingress egress : NetKAT) (D : DyNetKAT)
     exactly when the property policy `in · H · out` denotes a nonempty
     relation (finite-domain existential, via
     `netkatIsZero_false_iff_exists`). -/
-theorem checkCondition35_correct (ingress egress : NetKAT) (R : ReconfigSet)
-    (D Q : DyNetKAT) (H : NetKAT) (hQ : tail R D = some Q) (hH : head Q = some H)
+theorem checkCondition35_correct (ingress egress : NetKAT schema) (R : ReconfigSet schema)
+    (D Q : DyNetKAT schema) (H : NetKAT schema) (hQ : tail R D = some Q) (hH : head Q = some H)
     (b : Bool) (h : checkCondition35 ingress egress R D = some b) :
-    b = true ↔ ∃ σ τ : CtxPkt, Semantics (reachabilityPolicy ingress H egress) σ τ := by
+    b = true ↔ ∃ σ τ : schema.Packet, Semantics (reachabilityPolicy ingress H egress) σ τ := by
   rw [checkCondition35_some ingress egress R D Q H hQ hH] at h
   have hb : b = !netkatIsZero (reachabilityPolicy ingress H egress) :=
     (Option.some.inj h).symm
@@ -365,11 +369,11 @@ theorem checkCondition35_correct (ingress egress : NetKAT) (R : ReconfigSet)
     composes with an ingress step before it and an egress step after it.
     This is the existence of at least one corresponding relational
     transition of the post-reconfiguration configuration. -/
-theorem checkCondition35_tailHeadSpec (ingress egress : NetKAT) (R : ReconfigSet)
-    (D : DyNetKAT) (hsup : TailSupported D) (Q : DyNetKAT) (H : NetKAT)
+theorem checkCondition35_tailHeadSpec (ingress egress : NetKAT schema) (R : ReconfigSet schema)
+    (D : DyNetKAT schema) (hsup : TailSupported D) (Q : DyNetKAT schema) (H : NetKAT schema)
     (hQ : tail R D = some Q) (hH : head Q = some H) (b : Bool)
     (h : checkCondition35 ingress egress R D = some b) :
-    b = true ↔ ∃ σ ρ κ τ : CtxPkt,
+    b = true ↔ ∃ σ ρ κ τ : schema.Packet,
       Semantics ingress σ ρ ∧ TailHeadSpec R D ρ κ ∧ Semantics egress κ τ := by
   rw [checkCondition35_correct ingress egress R D Q H hQ hH b h]
   constructor
@@ -463,8 +467,8 @@ theorem bothHold_true_iff (r : SafetyCheckResult) :
 
     Stage 3: the verified zero checker `netkatIsZero` decides both
     property policies. -/
-def Internal.safetyCheck (env : RecEnv) (p : DyNetKAT) (R : ReconfigSet)
-    (ingress egress : NetKAT) : SafetyCheckResult :=
+def Internal.safetyCheck (env : RecEnv schema) (p : DyNetKAT schema) (R : ReconfigSet schema)
+    (ingress egress : NetKAT schema) : SafetyCheckResult :=
   match preprocess env p with
   | none => ⟨.preprocessFailure, .preprocessFailure⟩
   | some q =>
@@ -480,8 +484,8 @@ def Internal.safetyCheck (env : RecEnv) (p : DyNetKAT) (R : ReconfigSet)
 
 /-- Preprocessing failure yields the explicit failure result on both
     conditions. -/
-theorem safetyCheck_preprocessFailure (env : RecEnv) (p : DyNetKAT) (R : ReconfigSet)
-    (ingress egress : NetKAT) (h : preprocess env p = none) :
+theorem safetyCheck_preprocessFailure (env : RecEnv schema) (p : DyNetKAT schema) (R : ReconfigSet schema)
+    (ingress egress : NetKAT schema) (h : preprocess env p = none) :
     Internal.safetyCheck env p R ingress egress =
       ⟨Cond34Result.preprocessFailure, Cond35Result.preprocessFailure⟩ := by
   simp only [Internal.safetyCheck, h]
@@ -494,8 +498,8 @@ theorem safetyCheck_preprocessFailure (env : RecEnv) (p : DyNetKAT) (R : Reconfi
     preprocessing conditions, preprocessing succeeds, both extractions
     succeed, and the composed procedure evaluates exactly the two
     verified zero checks of Eqs. (34)–(35) on the extracted policies. -/
-theorem safetyCheck_supported (env : RecEnv) (p : DyNetKAT) (R : ReconfigSet)
-    (ingress egress : NetKAT) (h : PreprocessingConditions env p) :
+theorem safetyCheck_supported (env : RecEnv schema) (p : DyNetKAT schema) (R : ReconfigSet schema)
+    (ingress egress : NetKAT schema) (h : PreprocessingConditions env p) :
     ∃ q Q H₁ H₂,
       preprocess env p = some q ∧ head q = some H₁ ∧
       tail R q = some Q ∧ head Q = some H₂ ∧
@@ -537,18 +541,18 @@ theorem cond35Result_nonzero_eq_true_iff {b : Bool} :
     This is a verified checker for the supported preprocessing fragment
     (δ-axiom fragment, S4B), not a claim of equivalence with the complete
     original DyNetiKAT tool. -/
-theorem safetyCheck_pipeline_semantic (env : RecEnv) (p : DyNetKAT) (R : ReconfigSet)
-    (ingress egress : NetKAT) (h : PreprocessingConditions env p) :
+theorem safetyCheck_pipeline_semantic (env : RecEnv schema) (p : DyNetKAT schema) (R : ReconfigSet schema)
+    (ingress egress : NetKAT schema) (h : PreprocessingConditions env p) :
     ∃ q Q H₁ H₂,
       preprocess env p = some q ∧ head q = some H₁ ∧
       tail R q = some Q ∧ head Q = some H₂ ∧
       ((Internal.safetyCheck env p R ingress egress).initialCondition =
          Cond34Result.isZero true ↔
-         ∀ σ ρ κ τ : CtxPkt,
+         ∀ σ ρ κ τ : schema.Packet,
            ¬ (Semantics ingress σ ρ ∧ HeadSpec q ρ κ ∧ Semantics egress κ τ)) ∧
       ((Internal.safetyCheck env p R ingress egress).postReconfigurationCondition =
          Cond35Result.nonzero true ↔
-         ∃ σ ρ κ τ : CtxPkt,
+         ∃ σ ρ κ τ : schema.Packet,
            Semantics ingress σ ρ ∧ TailHeadSpec R q ρ κ ∧ Semantics egress κ τ) := by
   obtain ⟨q, Q, H₁, H₂, hq, hH₁, hQ, hH₂, hres⟩ :=
     safetyCheck_supported env p R ingress egress h
@@ -566,8 +570,8 @@ theorem safetyCheck_pipeline_semantic (env : RecEnv) (p : DyNetKAT) (R : Reconfi
 
 /-- Check equations (34) and (35) on the graph supplied to the paper's
     head and tail operators. Each failed extraction has its own result. -/
-def Internal.safetyCheckGraph (G : ProcessGraph) (R : ReconfigSet)
-    (ingress egress : NetKAT) : SafetyCheckResult :=
+def Internal.safetyCheckGraph (G : ProcessGraph schema) (R : ReconfigSet schema)
+    (ingress egress : NetKAT schema) : SafetyCheckResult :=
   ⟨match graphHead G with
    | none => .headFailure
    | some H => .isZero (netkatIsZero (reachabilityPolicy ingress H egress)),
@@ -584,7 +588,7 @@ def flowVia {schema : PacketSchema} (ingress egress : NetKAT schema)
     (config : schema.Packet → schema.Packet → Prop) : Prop :=
   ∃ σ ρ κ τ, Semantics ingress σ ρ ∧ config ρ κ ∧ Semantics egress κ τ
 
-private theorem flowVia_semantics (ingress H egress : NetKAT) :
+private theorem flowVia_semantics (ingress H egress : NetKAT schema) :
     flowVia ingress egress (Semantics H) ↔
       ∃ σ τ, Semantics (reachabilityPolicy ingress H egress) σ τ := by
   constructor
@@ -596,8 +600,8 @@ private theorem flowVia_semantics (ingress H egress : NetKAT) :
     exact ⟨σ, ρ, κ, τ, hIn, hCore, hOut⟩
 
 /-- Condition (34) is exact whenever initial-head extraction succeeds. -/
-theorem safetyCheckGraph_initial_correct {G : ProcessGraph} {R : ReconfigSet}
-    {ingress egress H : NetKAT} (hHead : graphHead G = some H) :
+theorem safetyCheckGraph_initial_correct {G : ProcessGraph schema} {R : ReconfigSet schema}
+    {ingress egress H : NetKAT schema} (hHead : graphHead G = some H) :
     (Internal.safetyCheckGraph G R ingress egress).initialCondition = .isZero true ↔
       ¬ flowVia ingress egress (GraphHeadSpec G G.root) := by
   have hSem : Semantics H = GraphHeadSpec G G.root := by
@@ -607,8 +611,8 @@ theorem safetyCheckGraph_initial_correct {G : ProcessGraph} {R : ReconfigSet}
     ← hSem, flowVia_semantics, not_exists]
 
 /-- Condition (35) is exact whenever tail and head-of-tail extraction succeed. -/
-theorem safetyCheckGraph_post_correct {G T : ProcessGraph} {R : ReconfigSet}
-    {ingress egress H : NetKAT} (hTail : graphTail G R = some T)
+theorem safetyCheckGraph_post_correct {G T : ProcessGraph schema} {R : ReconfigSet schema}
+    {ingress egress H : NetKAT schema} (hTail : graphTail G R = some T)
     (hHead : graphHead T = some H) :
     (Internal.safetyCheckGraph G R ingress egress).postReconfigurationCondition = .nonzero true ↔
       flowVia ingress egress (GraphTailSpec G R G.root) := by
@@ -620,8 +624,8 @@ theorem safetyCheckGraph_post_correct {G T : ProcessGraph} {R : ReconfigSet}
 
 /-- On the supported domain the graph checker evaluates both conditions.
     The relational specifications give their exact truth values. -/
-theorem safetyCheckGraph_correct (G : ProcessGraph) (R : ReconfigSet)
-    (ingress egress : NetKAT) (hHead : GraphHeadSupported G) (hTail : GraphTailDomain G R) :
+theorem safetyCheckGraph_correct (G : ProcessGraph schema) (R : ReconfigSet schema)
+    (ingress egress : NetKAT schema) (hHead : GraphHeadSupported G) (hTail : GraphTailDomain G R) :
     ∃ H₁ T H₂, graphHead G = some H₁ ∧ graphTail G R = some T ∧ graphHead T = some H₂ ∧
       ((Internal.safetyCheckGraph G R ingress egress).initialCondition = .isZero true ↔
         ¬ flowVia ingress egress (GraphHeadSpec G G.root)) ∧
@@ -640,16 +644,16 @@ inductive GraphInputError where
   deriving DecidableEq, BEq, Repr
 
 /-- Validate closure when the graph arrives as raw nodes and labels. -/
-def validateProcessGraph (nodes : Finset NodeId) (root : GProc) (label : NodeId → GProc) :
-    Except GraphInputError ProcessGraph :=
+def validateProcessGraph (nodes : Finset NodeId) (root : GProc schema) (label : NodeId → GProc schema) :
+    Except GraphInputError (ProcessGraph schema) :=
   if hRoot : gprocRefs root ⊆ nodes then
     if hLabels : ∀ i ∈ nodes, gprocRefs (label i) ⊆ nodes then
       .ok ⟨nodes, root, label, hRoot, hLabels⟩
     else .error .invalidGraph
   else .error .invalidGraph
 
-theorem validateProcessGraph_invalid_iff (nodes : Finset NodeId) (root : GProc)
-    (label : NodeId → GProc) :
+theorem validateProcessGraph_invalid_iff (nodes : Finset NodeId) (root : GProc schema)
+    (label : NodeId → GProc schema) :
     validateProcessGraph nodes root label = .error .invalidGraph ↔
       ¬ (gprocRefs root ⊆ nodes ∧ ∀ i ∈ nodes, gprocRefs (label i) ⊆ nodes) := by
   unfold validateProcessGraph
@@ -657,7 +661,7 @@ theorem validateProcessGraph_invalid_iff (nodes : Finset NodeId) (root : GProc)
   · split <;> simp_all
   · simp_all
 
-theorem preprocessGraph_supported {G Q : ProcessGraph} (h : preprocessGraph G = some Q) :
+theorem preprocessGraph_supported {G Q : ProcessGraph schema} (h : preprocessGraph G = some Q) :
     GraphHeadSupported Q ∧ GraphTailSupported Q :=
   let ready := preprocessGraph_traceReady h
   graphSupported_of_shapes ready.root.shape (fun i hi => (ready.label i hi).shape)
@@ -665,14 +669,14 @@ theorem preprocessGraph_supported {G Q : ProcessGraph} (h : preprocessGraph G = 
 /-- Check the graph under restriction of all communication actions. If
     restriction cannot be eliminated in the sequential fragment, both
     conditions report preprocessing failure. -/
-def Internal.safetyCheckRestrictedGraph (G : ProcessGraph) (R : ReconfigSet)
-    (ingress egress : NetKAT) : SafetyCheckResult :=
+def Internal.safetyCheckRestrictedGraph (G : ProcessGraph schema) (R : ReconfigSet schema)
+    (ingress egress : NetKAT schema) : SafetyCheckResult :=
   match preprocessGraph G with
   | none => ⟨.preprocessFailure, .preprocessFailure⟩
   | some Q => Internal.safetyCheckGraph Q R ingress egress
 
-theorem safetyCheckRestrictedGraph_correct {G Q : ProcessGraph} {R : ReconfigSet}
-    {ingress egress : NetKAT} (h : preprocessGraph G = some Q) :
+theorem safetyCheckRestrictedGraph_correct {G Q : ProcessGraph schema} {R : ReconfigSet schema}
+    {ingress egress : NetKAT schema} (h : preprocessGraph G = some Q) :
     ∃ H₁ T H₂, graphHead Q = some H₁ ∧ graphTail Q R = some T ∧ graphHead T = some H₂ ∧
       ((Internal.safetyCheckRestrictedGraph G R ingress egress).initialCondition = .isZero true ↔
         ¬ flowVia ingress egress (GraphHeadSpec Q Q.root)) ∧
@@ -683,17 +687,17 @@ theorem safetyCheckRestrictedGraph_correct {G Q : ProcessGraph} {R : ReconfigSet
     safetyCheckGraph_correct Q R ingress egress hHead (graphTailSupported_implies_domain hTail)
 
 /-- Resolve recursion once, then restrict and verify the closed graph. -/
-def Internal.compileAndSafetyCheckGraph (env : RecEnv) (p : DyNetKAT) (support : Finset Var)
-    (R : ReconfigSet) (ingress egress : NetKAT) : Except GraphInputError SafetyCheckResult :=
+def Internal.compileAndSafetyCheckGraph (env : RecEnv schema) (p : DyNetKAT schema) (support : Finset Var)
+    (R : ReconfigSet schema) (ingress egress : NetKAT schema) : Except GraphInputError SafetyCheckResult :=
   match compileGraph env p support with
   | none => .error .compilationFailed
   | some G => .ok (Internal.safetyCheckRestrictedGraph G R ingress egress)
 
 /-- Successful frontend compilation relates the root to the original SOS.
     After restriction elimination the result decides (34) and (35). -/
-theorem Internal.compileAndSafetyCheckGraph_correct {env : RecEnv} {p : DyNetKAT}
-    {support : Finset Var} {G Q : ProcessGraph} (hCompile : compileGraph env p support = some G)
-    {R : ReconfigSet} {ingress egress : NetKAT}
+theorem Internal.compileAndSafetyCheckGraph_correct {env : RecEnv schema} {p : DyNetKAT schema}
+    {support : Finset Var} {G Q : ProcessGraph schema} (hCompile : compileGraph env p support = some G)
+    {R : ReconfigSet schema} {ingress egress : NetKAT schema}
     (hPrep : preprocessGraph G = some Q) :
     Corr G env p G.root ∧
       ∃ result, Internal.compileAndSafetyCheckGraph env p support R ingress egress = .ok result ∧

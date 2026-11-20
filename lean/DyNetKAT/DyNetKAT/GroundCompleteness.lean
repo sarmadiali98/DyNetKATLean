@@ -6,31 +6,35 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
 open DyNetKAT.NetKAT Equations
+
+variable [DiagramLayout schema]
 
 namespace Equations.AtomicPrefix
 
-theorem packet_label_eq {z : NetKAT} {σ τ : CtxPkt}
+theorem packet_label_eq {z : NetKAT schema} {σ τ : schema.Packet}
     (h : AtomicPrefix (.visible (.packet z)))
     (hs : HistorySemantics z (History.singleton σ) (History.singleton τ)) :
-    z = NormalForm.ofSummand (σ, τ) := by
+    z = packetSummand (σ, τ) := by
   cases h with
   | packet α π =>
-    have ⟨rfl, rfl⟩ := (ofSummand_singleton α π σ τ).mp
+    have eq := (packetSummand_sem σ τ (α, π)).mp
       ((historySemantics_singleton_iff_packetSemantics ..).mp hs)
-    rfl
+    rw [← eq]
 
-theorem packet_realizes {z : NetKAT} {σ τ : CtxPkt}
-    {pt hl pt' hl' : List CtxPkt}
+theorem packet_realizes {z : NetKAT schema} {σ τ : schema.Packet}
+    {pt hl pt' hl' : List schema.Packet}
     (h : AtomicPrefix (.visible (.packet z)))
     (hs : MoveLabel.Realizes (.visible (.packet z)) pt hl (.packet σ τ) pt' hl') :
-    z = NormalForm.ofSummand (σ, τ) := by
+    z = packetSummand (σ, τ) := by
   cases hs with
   | packet hsem => exact h.packet_label_eq hsem
 
 /-- An atomic label realizing an observation is uniquely determined by it. -/
-theorem label_eq_of_realizes {l k : MoveLabel} {a : Action}
-    {pt hl pt' hl' : List CtxPkt}
+theorem label_eq_of_realizes {l k : MoveLabel schema} {a : Action schema}
+    {pt hl pt' hl' : List schema.Packet}
     (hl₀ : AtomicPrefix l) (hk₀ : AtomicPrefix k)
     (hl₁ : l.Realizes pt hl a pt' hl') (hk₁ : k.Realizes pt hl a pt' hl') :
     l = k := by
@@ -44,13 +48,13 @@ theorem label_eq_of_realizes {l k : MoveLabel} {a : Action}
   | rcfg => cases hk₁; rfl
 
 /-- Each atomic label has a concrete enabled transition, including packet heads. -/
-theorem exists_realizes {l : MoveLabel} (h : AtomicPrefix l) :
+theorem exists_realizes {l : MoveLabel schema} (h : AtomicPrefix l) :
     ∃ pt hl a pt' hl', l.Realizes pt hl a pt' hl' := by
   cases h with
   | packet α π =>
     exact ⟨[α], [], .packet α π, [], [π], .packet
       ((historySemantics_singleton_iff_packetSemantics ..).mpr
-        ((ofSummand_singleton α π α π).mpr ⟨rfl, rfl⟩))⟩
+        ((packetSummand_sem α π (α, π)).mpr rfl))⟩
   | recv x z => exact ⟨[], [], .recv x z, [], [], .recv⟩
   | send x z => exact ⟨[], [], .send x z, [], [], .send⟩
   | rcfg x z => exact ⟨[], [], .rcfg x z, [], [], .rcfg⟩
@@ -59,9 +63,9 @@ end Equations.AtomicPrefix
 
 namespace HeadNormalForm
 
-theorem ground_render_iff (xs : HeadNormalForm) :
+theorem ground_render_iff (xs : HeadNormalForm schema) :
     Ground xs.render ↔ ∀ b ∈ xs, Ground b.continuation := by
-  have prefix_ground (b : HeadSummand) : Ground b.render ↔ Ground b.continuation := by
+  have prefix_ground (b : HeadSummand schema) : Ground b.render ↔ Ground b.continuation := by
     rcases b with ⟨_, h, _⟩
     cases h <;> rfl
   induction xs with
@@ -79,8 +83,8 @@ theorem ground_render_iff (xs : HeadNormalForm) :
       exact ⟨h b List.mem_cons_self, ih.mpr
         (fun c hc => h c (List.mem_cons_of_mem _ hc))⟩
 
-theorem match_head {env : RecEnv} {xs ys : HeadNormalForm}
-    (h : Bisimilar env xs.render ys.render) {a : HeadSummand} (ha : a ∈ xs) :
+theorem match_head {env : RecEnv schema} {xs ys : HeadNormalForm schema}
+    (h : Bisimilar env xs.render ys.render) {a : HeadSummand schema} (ha : a ∈ xs) :
     ∃ b ∈ ys, a.label = b.label ∧ Bisimilar env a.continuation b.continuation := by
   obtain ⟨pt, hl, act, pt', hl', realizes⟩ := a.atomic.exists_realizes
   have step := (step_iff env xs pt hl act a.continuation pt' hl').mpr ⟨a, ha, rfl, realizes⟩
@@ -89,7 +93,7 @@ theorem match_head {env : RecEnv} {xs ys : HeadNormalForm}
   obtain ⟨b, hb, rfl, realizes'⟩ := (step_iff env ys ..).mp hs
   exact ⟨b, hb, a.atomic.label_eq_of_realizes b.atomic realizes realizes', ⟨R, hR, related⟩⟩
 
-theorem eq_nil_of_bisimilar_nil {env : RecEnv} {xs : HeadNormalForm}
+theorem eq_nil_of_bisimilar_nil {env : RecEnv schema} {xs : HeadNormalForm schema}
     (h : Bisimilar env xs.render (render [])) : xs = [] := by
   cases xs with
   | nil => rfl
@@ -98,13 +102,13 @@ theorem eq_nil_of_bisimilar_nil {env : RecEnv} {xs : HeadNormalForm}
     simp at hb
 
 /-- Absorb a list whose summands all match derivably in the receiving list. -/
-theorem absorb (env : RecEnv) {xs ys : HeadNormalForm}
+theorem absorb (env : RecEnv schema) {xs ys : HeadNormalForm schema}
     (h : ∀ a ∈ xs, ∃ b ∈ ys, a.label = b.label ∧
       DerivesNoAIP env a.continuation b.continuation) :
     DerivesNoAIP env (.choice xs.render ys.render) ys.render := by
-  have one (b : HeadSummand) (zs : HeadNormalForm) (hb : b ∈ zs) :
+  have one (b : HeadSummand schema) (zs : HeadNormalForm schema) (hb : b ∈ zs) :
       DerivesNoAIP env (.choice b.render zs.render) zs.render := by
-    have same (c : HeadSummand) : c ∈ b :: zs ↔ c ∈ zs := by
+    have same (c : HeadSummand schema) : c ∈ b :: zs ↔ c ∈ zs := by
       simp only [List.mem_cons]
       exact ⟨fun hc => hc.elim (fun e => e.symm ▸ hb) id, Or.inr⟩
     exact render_derives_of_mem_iff env same
@@ -121,7 +125,7 @@ theorem absorb (env : RecEnv) {xs ys : HeadNormalForm}
       (one b ys hb))
 
 /-- Reduce equality of bisimilar head forms to equality of matched residuals. -/
-theorem complete_of_continuations {env : RecEnv} {xs ys : HeadNormalForm}
+theorem complete_of_continuations {env : RecEnv schema} {xs ys : HeadNormalForm schema}
     (h : Bisimilar env xs.render ys.render)
     (complete : ∀ a ∈ xs, ∀ b ∈ ys, Bisimilar env a.continuation b.continuation →
       DerivesNoAIP env a.continuation b.continuation) :
@@ -141,10 +145,10 @@ theorem complete_of_continuations {env : RecEnv} {xs ys : HeadNormalForm}
 end HeadNormalForm
 
 /-- The completeness direction of Theorem 1 for ground terms, without AIP. -/
-theorem ground_complete {env : RecEnv} {p q : DyNetKAT}
+theorem ground_complete {env : RecEnv schema} {p q : DyNetKAT schema}
     (hp : Ground p) (hq : Ground q) (h : Bisimilar env p q) :
     DerivesNoAIP env p q := by
-  suffices aux : ∀ n (s t : DyNetKAT), prefixCount s + prefixCount t = n →
+  suffices aux : ∀ n (s t : DyNetKAT schema), prefixCount s + prefixCount t = n →
       Ground s → Ground t → Bisimilar env s t → DerivesNoAIP env s t from
     aux _ p q rfl hp hq h
   intro n
@@ -160,13 +164,13 @@ theorem ground_complete {env : RecEnv} {p q : DyNetKAT}
     obtain ⟨gb, lb⟩ := bys b hb
     exact ih _ (hn ▸ Nat.add_lt_add la lb) _ _ rfl ga gb hab
 
-theorem HeadNormalForm.ground_complete {env : RecEnv} {xs ys : HeadNormalForm}
+theorem HeadNormalForm.ground_complete {env : RecEnv schema} {xs ys : HeadNormalForm schema}
     (hx : Ground xs.render) (hy : Ground ys.render)
     (h : Bisimilar env xs.render ys.render) : DerivesNoAIP env xs.render ys.render :=
   DyNetKAT.DyNetKAT.ground_complete hx hy h
 
 /-- Theorem 1 on the typed ground domain. Soundness holds without the ground hypotheses. -/
-theorem ground_derives_iff_bisimilar {env : RecEnv} {p q : DyNetKAT}
+theorem ground_derives_iff_bisimilar {env : RecEnv schema} {p q : DyNetKAT schema}
     (hp : Ground p) (hq : Ground q) :
     Derives env p q ↔ Bisimilar env p q :=
   ⟨Derives.sound, fun h => .ofNoAIP (ground_complete hp hq h)⟩

@@ -153,10 +153,10 @@ Formalize equational derivability and the NetKAT import boundary, including
 A0–A15, four restriction axioms, four projection axioms, named definitions
 and the infinitary AIP rule. Prove each axiom instance and Lemma 10 under the
 resolved side conditions. Use Phase 4 branching and Phase 6 projection
-lemmas for AIP and Theorem 1. Lemma 9 is proved for `CtxPkt` by
+lemmas for AIP and Theorem 1. Lemma 9 is proved over arbitrary finite schemas by
 `guarded_normalizes` and `WellFormed.normalizes`, which derive finite
 head normal forms with arbitrary continuations. Theorem 1 is proved for
-variable-free `CtxPkt` terms by `ground_derives_iff_bisimilar`. The reverse
+variable-free terms in a shared recursion environment by `ground_derives_iff_bisimilar`. The reverse
 direction uses summand matching and induction on process-prefix counts in
 `DerivesNoAIP`. Completeness for recursive entry terms remains separate.
 
@@ -166,17 +166,18 @@ Prove general finite branching for the actual closed guarded domain, including
 derivatives. Resolve root references, mutual recursion and finite support for
 finite specifications. Prove guarded reference resolution and finite exact
 one-step enumeration under the paper's assumptions. Proposition 1 is proved
-for all histories over `CtxPkt` and a shared continuation in any fixed
-environment. `Program.historySemantics_iff_packetPrefix_bisimilar` covers
+for histories over any finite packet schema and a shared continuation in
+any fixed environment. `Program.historySemantics_iff_packetPrefix_bisimilar` covers
 admitted base-sorted continuations, including recursive ones. Complete the
-general-schema and recursive-binding scope of Lemma 3. Generalize the existing
-finite-support graph/SOS correspondence and connect independent closed graphs to the paper's
-bisimilarity, including name independence and agreement with source closure.
+remaining recursive-binding scope of Lemma 3. The finite-support graph/SOS
+correspondence is schema-generic. Connections between independent closed
+graphs and the paper's bisimilarity still have open name-independence and
+environment-closure questions.
 
 ### Phase 5 — Full safety-property theory
 
-Definitions 12–16 and Eq. (27) are proved over the admitted `CtxPkt`
-domain and the supplied finite safety alphabet. Definition 17's explicit
+Definitions 12–16 and Eq. (27) are proved for admitted programs over
+arbitrary finite schemas and a supplied finite safety alphabet. Definition 17's explicit
 desugaring clauses and the all-length Eq. (28) padding theorem are proved.
 The word checker is exact for supplied forbidden words using certified
 symbolic moves, with a completeness bound
@@ -189,8 +190,9 @@ are machine checked. The [FatTree migration audit](docs/PAPER_CONFORMANCE.md#fat
 records all three v4 checks. The semantic foundation now represents
 1,344 distinct switch identities without changing `CtxPkt`. Symbolic
 policy equivalence and algebraic NetKATLean normalization are now
-schema-generic. The DyNetKATLean certified analysis transfer, full
-FatTree model, and three case-study proofs remain open.
+schema-generic. The DyNetKATLean equational and certified analysis
+transfer is schema-generic as well. The FatTree model and its three
+case-study proofs remain open.
 
 ### Phase 6 — Extraction and normalization
 
@@ -203,7 +205,7 @@ exclude impossible packet prefixes. The executable finite rendering is
 also derivable in E_DNK without AIP via `renderProjection_derives`.
 `Program.Compiled.State.renderProjectionTotal_derives` covers the total
 renderer used by the bounded strategy. Neither proof needs global finite
-derivative closure. General schemas and parser integration remain open.
+derivative closure. Parser integration remains open.
 
 ### Paper-faithful recursive execution acceleration
 

@@ -85,6 +85,8 @@
 
  namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
  open DyNetKAT.NetKAT
 
  ------------------------------------------------------------------------
@@ -127,7 +129,7 @@
      unsupported subterm is never silently treated as `⊥`.  Eq. (33) is
      unconditional on `D`, exactly as the paper states it.  Structurally
      recursive and executable. -/
- def tail (R : ReconfigSet) : DyNetKAT → Option DyNetKAT
+ def tail (R : ReconfigSet schema) : DyNetKAT schema → Option (DyNetKAT schema)
    | .deadlock => some .deadlock
    | .nSeq _ D => tail R D
    | .choice D Q =>
@@ -150,50 +152,50 @@
 
  /-- Eq. (29): `tail(⊥, R) = ⊥`.  Both ⊥'s are the DyNetKAT process
      `.deadlock`; `tail` returns a process, not a NetKAT policy. -/
- theorem tail_deadlock (R : ReconfigSet) : tail R .deadlock = some .deadlock := rfl
+ theorem tail_deadlock (R : ReconfigSet schema) : tail R .deadlock = some .deadlock := rfl
 
  /-- Eq. (30): `tail(N;D, R) = tail(D, R)`.  A NetKAT-policy prefix is
      skipped: `tail` looks past packet-processing steps. -/
- theorem tail_nSeq (R : ReconfigSet) (N : NetKAT) (D : DyNetKAT) :
+ theorem tail_nSeq (R : ReconfigSet schema) (N : NetKAT schema) (D : DyNetKAT schema) :
      tail R (.nSeq N D) = tail R D := rfl
 
  /-- Eq. (31): `tail(D ⊕ Q, R) = tail(D, R) ⊕ tail(Q, R)`, as a bind/map
      over the optional sub-results.  If either side fails, the whole
      extraction fails. -/
- theorem tail_choice (R : ReconfigSet) (D Q : DyNetKAT) :
+ theorem tail_choice (R : ReconfigSet schema) (D Q : DyNetKAT schema) :
      tail R (.choice D Q) =
        (tail R D).bind (fun D' => (tail R Q).map (fun Q' => .choice D' Q')) := rfl
 
  /-- Eqs. (32)–(33): the reconfiguration-prefix cases, as an `if` on the
      membership of the event `rcfg_{x,N}` in `R`. -/
- theorem tail_rcfgPrefix (R : ReconfigSet) (x : Channel) (N : NetKAT) (D : DyNetKAT) :
+ theorem tail_rcfgPrefix (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) :
      tail R (.rcfgPrefix x N D) =
        if (x, N) ∈ R then (tail R D).map (fun D' => .choice D D')
        else some .deadlock := rfl
 
  /-- Unsupported constructors fail explicitly. -/
- theorem tail_recv (R : ReconfigSet) (x : Channel) (N : NetKAT) (D : DyNetKAT) :
+ theorem tail_recv (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) :
      tail R (.recv x N D) = none := rfl
 
- theorem tail_send (R : ReconfigSet) (x : Channel) (N : NetKAT) (D : DyNetKAT) :
+ theorem tail_send (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) :
      tail R (.send x N D) = none := rfl
 
- theorem tail_parallel (R : ReconfigSet) (D Q : DyNetKAT) :
+ theorem tail_parallel (R : ReconfigSet schema) (D Q : DyNetKAT schema) :
      tail R (.parallel D Q) = none := rfl
 
- theorem tail_leftMerge (R : ReconfigSet) (D Q : DyNetKAT) :
+ theorem tail_leftMerge (R : ReconfigSet schema) (D Q : DyNetKAT schema) :
      tail R (.leftMerge D Q) = none := rfl
 
- theorem tail_commMerge (R : ReconfigSet) (D Q : DyNetKAT) :
+ theorem tail_commMerge (R : ReconfigSet schema) (D Q : DyNetKAT schema) :
      tail R (.commMerge D Q) = none := rfl
 
- theorem tail_restrict (R : ReconfigSet) (L : Set CommunicationAction) (D : DyNetKAT) :
+ theorem tail_restrict (R : ReconfigSet schema) (L : Set (CommunicationAction schema)) (D : DyNetKAT schema) :
      tail R (.restrict L D) = none := rfl
 
- theorem tail_project (R : ReconfigSet) (n : Nat) (D : DyNetKAT) :
+ theorem tail_project (R : ReconfigSet schema) (n : Nat) (D : DyNetKAT schema) :
      tail R (.project n D) = none := rfl
 
- theorem tail_var (R : ReconfigSet) (name : Var) : tail R (.var name) = none := rfl
+ theorem tail_var (R : ReconfigSet schema) (name : Var) : tail R (.var name) = none := rfl
 
  ------------------------------------------------------------------------
  -- §3 Constructor-specific equations and failure propagation
@@ -201,27 +203,27 @@
 
  /-- Eq. (30) propagates failure: if `tail R D` fails, `tail R (N;D)`
      fails. -/
- theorem tail_nSeq_none (R : ReconfigSet) (N : NetKAT) (D : DyNetKAT)
+ theorem tail_nSeq_none (R : ReconfigSet schema) (N : NetKAT schema) (D : DyNetKAT schema)
      (h : tail R D = none) : tail R (.nSeq N D) = none := by
    rw [tail_nSeq, h]
 
  /-- Eq. (31) in the paper's shape: if `tail R D` and `tail R Q` succeed
      with `D'` and `Q'`, then `tail R (D ⊕ Q) = D' ⊕ Q'`. -/
- theorem tail_choice_eq (R : ReconfigSet) (D Q D' Q' : DyNetKAT)
+ theorem tail_choice_eq (R : ReconfigSet schema) (D Q D' Q' : DyNetKAT schema)
      (hD : tail R D = some D') (hQ : tail R Q = some Q') :
      tail R (.choice D Q) = some (.choice D' Q') := by
    rw [tail_choice, hD, hQ]
    rfl
 
  /-- Failure propagation through `D ⊕ Q` from the left branch. -/
- theorem tail_choice_none_left (R : ReconfigSet) (D Q : DyNetKAT)
+ theorem tail_choice_none_left (R : ReconfigSet schema) (D Q : DyNetKAT schema)
      (h : tail R D = none) : tail R (.choice D Q) = none := by
    rw [tail_choice, h]
    rfl
 
  /-- Failure propagation through `D ⊕ Q` from the right branch.  Both
      possible values of `tail R D` are discharged explicitly. -/
- theorem tail_choice_none_right (R : ReconfigSet) (D Q : DyNetKAT)
+ theorem tail_choice_none_right (R : ReconfigSet schema) (D Q : DyNetKAT schema)
      (h : tail R Q = none) : tail R (.choice D Q) = none := by
    cases hD : tail R D with
    | none => rw [tail_choice, hD]; rfl
@@ -229,7 +231,7 @@
 
  /-- Inversion for Eq. (31): a successful extraction from `D ⊕ Q`
      determines successful extractions of both branches. -/
- theorem tail_choice_inv (R : ReconfigSet) (D Q X : DyNetKAT)
+ theorem tail_choice_inv (R : ReconfigSet schema) (D Q X : DyNetKAT schema)
      (h : tail R (.choice D Q) = some X) :
      ∃ D' Q', tail R D = some D' ∧ tail R Q = some Q' ∧ X = .choice D' Q' := by
    rw [tail_choice, Option.bind_eq_some] at h
@@ -242,7 +244,7 @@
      succeeds with `D'`, then `tail R (rcfg_{x,N};D) = D ⊕ D'`.  Note
      that the continuation `D` itself enters the result unmodified,
      exactly as Eq. (32) states. -/
- theorem tail_rcfgPrefix_mem (R : ReconfigSet) (x : Channel) (N : NetKAT) (D D' : DyNetKAT)
+ theorem tail_rcfgPrefix_mem (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D D' : DyNetKAT schema)
      (hmem : (x, N) ∈ R) (hD : tail R D = some D') :
      tail R (.rcfgPrefix x N D) = some (.choice D D') := by
    rw [tail_rcfgPrefix, if_pos hmem, hD]
@@ -252,7 +254,7 @@
      continuation `D` is outside the supported fragment, the whole
      extraction fails — the unsupported continuation is never silently
      embedded. -/
- theorem tail_rcfgPrefix_mem_none (R : ReconfigSet) (x : Channel) (N : NetKAT) (D : DyNetKAT)
+ theorem tail_rcfgPrefix_mem_none (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema)
      (hmem : (x, N) ∈ R) (hD : tail R D = none) :
      tail R (.rcfgPrefix x N D) = none := by
    rw [tail_rcfgPrefix, if_pos hmem, hD]
@@ -261,7 +263,7 @@
  /-- Eq. (33): if `rcfg_{x,N} ∉ R` then `tail R (rcfg_{x,N};D) = ⊥`,
      unconditionally on `D` — the paper's equation does not inspect the
      continuation in this case. -/
- theorem tail_rcfgPrefix_not_mem (R : ReconfigSet) (x : Channel) (N : NetKAT) (D : DyNetKAT)
+ theorem tail_rcfgPrefix_not_mem (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema)
      (hmem : (x, N) ∉ R) : tail R (.rcfgPrefix x N D) = some .deadlock := by
    rw [tail_rcfgPrefix, if_neg hmem]
 
@@ -269,7 +271,7 @@
      reconfiguration prefix either has its event in `R` (and then the
      continuation extraction succeeded and the result is `D ⊕ D'`), or
      its event is outside `R` (and then the result is `⊥`). -/
- theorem tail_rcfgPrefix_inv (R : ReconfigSet) (x : Channel) (N : NetKAT) (D Q : DyNetKAT)
+ theorem tail_rcfgPrefix_inv (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D Q : DyNetKAT schema)
      (h : tail R (.rcfgPrefix x N D) = some Q) :
      ((x, N) ∈ R ∧ ∃ D', tail R D = some D' ∧ Q = .choice D D') ∨
        ((x, N) ∉ R ∧ Q = .deadlock) := by
@@ -303,20 +305,20 @@
      expressions `tail` returns `none` (explicit failure), with the one
      faithful exception recorded in `TailDomain`: Eq. (33) never
      inspects the continuation. -/
- inductive TailSupported : DyNetKAT → Prop
+ inductive TailSupported {schema : PacketSchema} : DyNetKAT schema → Prop
    | deadlock : TailSupported .deadlock
-   | nSeq : ∀ (N : NetKAT) (D : DyNetKAT),
+   | nSeq : ∀ (N : NetKAT schema) (D : DyNetKAT schema),
        TailSupported D → TailSupported (.nSeq N D)
-   | choice : ∀ (D Q : DyNetKAT),
+   | choice : ∀ (D Q : DyNetKAT schema),
        TailSupported D → TailSupported Q → TailSupported (.choice D Q)
-   | rcfgPrefix : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT),
+   | rcfgPrefix : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema),
        TailSupported D → TailSupported (.rcfgPrefix x N D)
 
  /-- The supported fragment of `tail` is contained in the supported
      fragment of S4A's `head`: every `tail`-supported process is also
      `head`-supported, so `head` can always consume `tail`'s output on
      this fragment. -/
- theorem TailSupported.headSupported (D : DyNetKAT) (h : TailSupported D) : HeadSupported D := by
+ theorem TailSupported.headSupported (D : DyNetKAT schema) (h : TailSupported D) : HeadSupported D := by
    induction h with
    | deadlock => exact HeadSupported.deadlock
    | nSeq N D _ ih => exact HeadSupported.nSeq N D ih
@@ -328,8 +330,8 @@
      `HeadSupported` (S4A discards the continuation) but not
      `TailSupported` (S5A recurses into it). -/
  theorem tailSupported_strictly_stronger :
-     HeadSupported (.rcfgPrefix "c" NetKAT.id (.var "X")) ∧
-       ¬ TailSupported (.rcfgPrefix "c" NetKAT.id (.var "X")) := by
+     HeadSupported (schema := schema) (.rcfgPrefix "c" NetKAT.id (.var "X")) ∧
+       ¬ TailSupported (schema := schema) (.rcfgPrefix "c" NetKAT.id (.var "X")) := by
    constructor
    · exact HeadSupported.rcfgPrefix "c" NetKAT.id _
    · intro h
@@ -339,7 +341,7 @@
  /-- Every `TailSupported` process satisfies the paper's §V precondition
      for `head`/`tail`: it contains no terms of shape `x?N` or `x!N`
      (`CommFree`, S4B's formulation of the precondition). -/
- theorem TailSupported.commFree (D : DyNetKAT) (h : TailSupported D) : CommFree D := by
+ theorem TailSupported.commFree (D : DyNetKAT schema) (h : TailSupported D) : CommFree D := by
    induction h with
    | deadlock => exact trivial
    | nSeq N D _ ih => exact ih
@@ -349,7 +351,7 @@
  /-- Every `TailSupported` process is variable-free: recursive variables
      are not resolved by `tail` (H6A), so they are excluded from its
      supported domain rather than silently dropped. -/
- theorem TailSupported.varFree (D : DyNetKAT) (h : TailSupported D) : recursiveVars D = ∅ := by
+ theorem TailSupported.varFree (D : DyNetKAT schema) (h : TailSupported D) : recursiveVars D = ∅ := by
    induction h with
    | deadlock => rfl
    | nSeq N D _ ih => exact ih
@@ -364,7 +366,7 @@
      `tail` result, for every reconfiguration-event set `R`.  This is
      the domain theorem for `tail`: extraction never fails on
      `TailSupported` input. -/
- theorem tail_supported_some (R : ReconfigSet) (D : DyNetKAT) (h : TailSupported D) :
+ theorem tail_supported_some (R : ReconfigSet schema) (D : DyNetKAT schema) (h : TailSupported D) :
      ∃ Q, tail R D = some Q := by
    induction h with
    | deadlock => exact ⟨.deadlock, tail_deadlock R⟩
@@ -383,7 +385,7 @@
 
  /-- Extraction never succeeds on unsupported input: if `tail R D`
      fails then `D` is outside the supported fragment. -/
- theorem tail_none_not_supported (R : ReconfigSet) (D : DyNetKAT)
+ theorem tail_none_not_supported (R : ReconfigSet schema) (D : DyNetKAT schema)
      (h : tail R D = none) : ¬ TailSupported D := by
    intro hsup
    obtain ⟨Q, hQ⟩ := tail_supported_some R D hsup
@@ -402,22 +404,22 @@
      On the paper's intended inputs — restricted normal forms, in which
      every continuation is itself in the fragment — `TailDomain R` and
      `TailSupported` coincide (`tailDomain_all_supported`). -/
- inductive TailDomain (R : ReconfigSet) : DyNetKAT → Prop
+ inductive TailDomain {schema : PacketSchema} (R : ReconfigSet schema) : DyNetKAT schema → Prop
    | deadlock : TailDomain R .deadlock
-   | nSeq : ∀ (N : NetKAT) (D : DyNetKAT),
+   | nSeq : ∀ (N : NetKAT schema) (D : DyNetKAT schema),
        TailDomain R D → TailDomain R (.nSeq N D)
-   | choice : ∀ (D Q : DyNetKAT),
+   | choice : ∀ (D Q : DyNetKAT schema),
        TailDomain R D → TailDomain R Q → TailDomain R (.choice D Q)
-   | rcfgPrefix_in : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT), (x, N) ∈ R →
+   | rcfgPrefix_in : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema), (x, N) ∈ R →
        TailDomain R D → TailDomain R (.rcfgPrefix x N D)
-   | rcfgPrefix_out : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT), (x, N) ∉ R →
+   | rcfgPrefix_out : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema), (x, N) ∉ R →
        TailDomain R (.rcfgPrefix x N D)
 
  /-- Totality with explicit failure: every DyNetKAT expression either
      lies in the exact success domain of `tail R` or makes `tail` fail
      explicitly with `none`.  No expression is silently mapped to a
      process. -/
- theorem tail_none_or_domain (R : ReconfigSet) (D : DyNetKAT) :
+ theorem tail_none_or_domain (R : ReconfigSet schema) (D : DyNetKAT schema) :
      tail R D = none ∨ TailDomain R D := by
    induction D with
    | deadlock => exact Or.inr TailDomain.deadlock
@@ -447,7 +449,7 @@
    | var X => exact Or.inl rfl
 
  /-- A successful extraction implies membership in the exact domain. -/
- theorem tail_domain_of_some (R : ReconfigSet) (D : DyNetKAT) :
+ theorem tail_domain_of_some (R : ReconfigSet schema) (D : DyNetKAT schema) :
      ∀ Q, tail R D = some Q → TailDomain R D := by
    induction D with
    | deadlock =>
@@ -479,7 +481,7 @@
    | var name => intro Q h; rw [tail_var] at h; exact absurd h (by simp)
 
  /-- Membership in the exact domain implies a successful extraction. -/
- theorem tail_some_of_domain (R : ReconfigSet) (D : DyNetKAT) (h : TailDomain R D) :
+ theorem tail_some_of_domain (R : ReconfigSet schema) (D : DyNetKAT schema) (h : TailDomain R D) :
      ∃ Q, tail R D = some Q := by
    induction h with
    | deadlock => exact ⟨.deadlock, tail_deadlock R⟩
@@ -497,7 +499,7 @@
        exact ⟨.deadlock, tail_rcfgPrefix_not_mem R x N D hmem⟩
 
  /-- The success domain of `tail R` is exactly `TailDomain R`. -/
- theorem tail_domain_iff (R : ReconfigSet) (D : DyNetKAT) :
+ theorem tail_domain_iff (R : ReconfigSet schema) (D : DyNetKAT schema) :
      (∃ Q, tail R D = some Q) ↔ TailDomain R D := by
    constructor
    · intro h
@@ -507,7 +509,7 @@
 
  /-- The R-independent fragment is contained in every R-dependent exact
      domain. -/
- theorem TailSupported.tailDomain (R : ReconfigSet) (D : DyNetKAT) (h : TailSupported D) :
+ theorem TailSupported.tailDomain (R : ReconfigSet schema) (D : DyNetKAT schema) (h : TailSupported D) :
      TailDomain R D := by
    induction h with
    | deadlock => exact TailDomain.deadlock
@@ -523,8 +525,8 @@
      The strengthening is needed because Eq. (33) succeeds without
      inspecting the continuation, so a single `R` never constrains the
      continuation of an out-of-`R` reconfiguration prefix. -/
- theorem tailDomain_superset_supported (D : DyNetKAT) (S : ReconfigSet)
-     (h : ∀ R : ReconfigSet, S ⊆ R → TailDomain R D) : TailSupported D := by
+ theorem tailDomain_superset_supported (D : DyNetKAT schema) (S : ReconfigSet schema)
+     (h : ∀ R : ReconfigSet schema, S ⊆ R → TailDomain R D) : TailSupported D := by
    induction D generalizing S with
    | deadlock => exact TailSupported.deadlock
    | nSeq N D ih =>
@@ -558,8 +560,8 @@
      every reconfiguration-event set `R` (in particular for every
      single-event set, which is how the pipeline exercises `tail`) if
      and only if `D` is `TailSupported`. -/
- theorem tailDomain_all_supported (D : DyNetKAT) :
-     (∀ R : ReconfigSet, TailDomain R D) ↔ TailSupported D := by
+ theorem tailDomain_all_supported (D : DyNetKAT schema) :
+     (∀ R : ReconfigSet schema, TailDomain R D) ↔ TailSupported D := by
    constructor
    · intro h
      exact tailDomain_superset_supported D ∅ (fun R _ => h R)
@@ -587,20 +589,20 @@
      `tail`; there are no constructors for `recv`, `send`, `parallel`,
      `leftMerge`, `commMerge`, `restrict`, `project`, or `var`, so the
      spec is uninhabited for those shapes. -/
- inductive TailSpec (R : ReconfigSet) : DyNetKAT → DyNetKAT → Prop
+ inductive TailSpec {schema : PacketSchema} (R : ReconfigSet schema) : DyNetKAT schema → DyNetKAT schema → Prop
    | deadlock : TailSpec R .deadlock .deadlock
-   | nSeq : ∀ (N : NetKAT) (D Q : DyNetKAT),
+   | nSeq : ∀ (N : NetKAT schema) (D Q : DyNetKAT schema),
        TailSpec R D Q → TailSpec R (.nSeq N D) Q
-   | choice : ∀ (D Q D' Q' : DyNetKAT),
+   | choice : ∀ (D Q D' Q' : DyNetKAT schema),
        TailSpec R D D' → TailSpec R Q Q' → TailSpec R (.choice D Q) (.choice D' Q')
-   | rcfgPrefix_in : ∀ (x : Channel) (N : NetKAT) (D D' : DyNetKAT), (x, N) ∈ R →
+   | rcfgPrefix_in : ∀ (x : Channel) (N : NetKAT schema) (D D' : DyNetKAT schema), (x, N) ∈ R →
        TailSpec R D D' → TailSpec R (.rcfgPrefix x N D) (.choice D D')
-   | rcfgPrefix_out : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT), (x, N) ∉ R →
+   | rcfgPrefix_out : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema), (x, N) ∉ R →
        TailSpec R (.rcfgPrefix x N D) .deadlock
 
  /-- The extraction meets the specification: every successful `tail`
      result satisfies the paper-equation relation. -/
- theorem tail_spec (R : ReconfigSet) (D : DyNetKAT) :
+ theorem tail_spec (R : ReconfigSet schema) (D : DyNetKAT schema) :
      ∀ Q, tail R D = some Q → TailSpec R D Q := by
    induction D with
    | deadlock =>
@@ -632,7 +634,7 @@
 
  /-- The paper equations define a partial function: the specification is
      deterministic. -/
- theorem tailSpec_deterministic (R : ReconfigSet) (D : DyNetKAT) :
+ theorem tailSpec_deterministic (R : ReconfigSet schema) (D : DyNetKAT schema) :
      ∀ Q Q', TailSpec R D Q → TailSpec R D Q' → Q = Q' := by
    intro Q Q' h h'
    induction h generalizing Q' with
@@ -657,7 +659,7 @@
 
  /-- The specification determines the extraction: every process
      satisfying the paper-equation relation is produced by `tail`. -/
- theorem tailSpec_of_tail (R : ReconfigSet) (D Q : DyNetKAT) (h : TailSpec R D Q) :
+ theorem tailSpec_of_tail (R : ReconfigSet schema) (D Q : DyNetKAT schema) (h : TailSpec R D Q) :
      tail R D = some Q := by
    induction h with
    | deadlock => exact tail_deadlock R
@@ -668,14 +670,14 @@
 
  /-- Full correspondence: `tail R D` succeeds with exactly `Q` iff `Q`
      satisfies the paper-equation specification. -/
- theorem tail_spec_iff (R : ReconfigSet) (D Q : DyNetKAT) :
+ theorem tail_spec_iff (R : ReconfigSet schema) (D Q : DyNetKAT schema) :
      tail R D = some Q ↔ TailSpec R D Q := by
    constructor
    · exact tail_spec R D Q
    · exact tailSpec_of_tail R D Q
 
  /-- The specification's domain is the exact success domain. -/
- theorem tailSpec_domain (R : ReconfigSet) (D Q : DyNetKAT) (h : TailSpec R D Q) :
+ theorem tailSpec_domain (R : ReconfigSet schema) (D Q : DyNetKAT schema) (h : TailSpec R D Q) :
      TailDomain R D := by
    induction h with
    | deadlock => exact TailDomain.deadlock
@@ -697,16 +699,16 @@
 
      This predicate is defined independently of `tail` and is the
      process-level reading of the paper's intuition for `tail`. -/
- inductive TailSuffix (R : ReconfigSet) : DyNetKAT → DyNetKAT → Prop
-   | rcfgPrefix_here : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT), (x, N) ∈ R →
+ inductive TailSuffix {schema : PacketSchema} (R : ReconfigSet schema) : DyNetKAT schema → DyNetKAT schema → Prop
+   | rcfgPrefix_here : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema), (x, N) ∈ R →
        TailSuffix R (.rcfgPrefix x N D) D
-   | rcfgPrefix_of : ∀ (x : Channel) (N : NetKAT) (D S : DyNetKAT), (x, N) ∈ R →
+   | rcfgPrefix_of : ∀ (x : Channel) (N : NetKAT schema) (D S : DyNetKAT schema), (x, N) ∈ R →
        TailSuffix R D S → TailSuffix R (.rcfgPrefix x N D) S
-   | nSeq_of : ∀ (N : NetKAT) (D S : DyNetKAT),
+   | nSeq_of : ∀ (N : NetKAT schema) (D S : DyNetKAT schema),
        TailSuffix R D S → TailSuffix R (.nSeq N D) S
-   | choice_left : ∀ (D Q S : DyNetKAT),
+   | choice_left : ∀ (D Q S : DyNetKAT schema),
        TailSuffix R D S → TailSuffix R (.choice D Q) S
-   | choice_right : ∀ (D Q S : DyNetKAT),
+   | choice_right : ∀ (D Q S : DyNetKAT schema),
        TailSuffix R Q S → TailSuffix R (.choice D Q) S
 
  /-- Step-level soundness of the extraction (no invented behaviour):
@@ -719,21 +721,21 @@
      This is stated for `TailSupported` inputs; on the Eq.-33 case of
      `rcfgPrefix` the extracted process is `⊥`, which affords no
      transitions, so the statement is vacuous there. -/
- theorem tail_step_suffix (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
+ theorem tail_step_suffix (env : RecEnv schema) (R : ReconfigSet schema) (D : DyNetKAT schema)
      (hsup : TailSupported D) :
      ∀ Q, tail R D = some Q →
-       ∀ (pending handled : List CtxPkt) (action : Action) (Q' : DyNetKAT)
-         (pending' handled' : List CtxPkt),
+       ∀ (pending handled : List schema.Packet) (action : Action schema) (Q' : DyNetKAT schema)
+         (pending' handled' : List schema.Packet),
          Step env
-           (show Config from { proc := Q, pending := pending, handled := handled })
+           (show (Config schema) from { proc := Q, pending := pending, handled := handled })
            action
-           (show Config from
+           (show (Config schema) from
              { proc := Q', pending := pending', handled := handled' }) →
          ∃ S, TailSuffix R D S ∧
            Step env
-             (show Config from { proc := S, pending := pending, handled := handled })
+             (show (Config schema) from { proc := S, pending := pending, handled := handled })
              action
-             (show Config from
+             (show (Config schema) from
                { proc := Q', pending := pending', handled := handled' }) := by
    induction hsup with
    | deadlock =>
@@ -778,21 +780,21 @@
     suffixes of `D`, i.e. the paper's "sum of DyNetKAT policies inside
     D that appear after the reconfiguration events in R" is extracted
     behaviourally without invention or loss. -/
-theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
+theorem suffix_step_tail (env : RecEnv schema) (R : ReconfigSet schema) (D : DyNetKAT schema)
     (hsup : TailSupported D) :
     ∀ S S', TailSuffix R D S →
-      ∀ (pending handled : List CtxPkt) (action : Action)
-        (pending' handled' : List CtxPkt),
+      ∀ (pending handled : List schema.Packet) (action : Action schema)
+        (pending' handled' : List schema.Packet),
         Step env
-          (show Config from { proc := S, pending := pending, handled := handled })
+          (show (Config schema) from { proc := S, pending := pending, handled := handled })
           action
-          (show Config from
+          (show (Config schema) from
             { proc := S', pending := pending', handled := handled' }) →
         ∀ Q, tail R D = some Q →
           Step env
-            (show Config from { proc := Q, pending := pending, handled := handled })
+            (show (Config schema) from { proc := Q, pending := pending, handled := handled })
             action
-            (show Config from
+            (show (Config schema) from
               { proc := S', pending := pending', handled := handled' }) := by
   induction hsup with
   | deadlock =>
@@ -842,16 +844,16 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      (unblocked) `R`-reconfiguration, and it is the relation that
      `head D` and `head (tail R D)` jointly describe (see
      `allR_head_spec`). -/
- inductive AllRSpec (R : ReconfigSet) : DyNetKAT → CtxPkt → CtxPkt → Prop
-   | nSeq_of_sem : ∀ (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt),
+ inductive AllRSpec {schema : PacketSchema} (R : ReconfigSet schema) : DyNetKAT schema → schema.Packet → schema.Packet → Prop
+   | nSeq_of_sem : ∀ (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet),
        Semantics N σ τ → AllRSpec R (.nSeq N D) σ τ
-   | nSeq_of_allR : ∀ (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt),
+   | nSeq_of_allR : ∀ (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet),
        AllRSpec R D σ τ → AllRSpec R (.nSeq N D) σ τ
-   | choice_left : ∀ (D Q : DyNetKAT) (σ τ : CtxPkt),
+   | choice_left : ∀ (D Q : DyNetKAT schema) (σ τ : schema.Packet),
        AllRSpec R D σ τ → AllRSpec R (.choice D Q) σ τ
-   | choice_right : ∀ (D Q : DyNetKAT) (σ τ : CtxPkt),
+   | choice_right : ∀ (D Q : DyNetKAT schema) (σ τ : schema.Packet),
        AllRSpec R Q σ τ → AllRSpec R (.choice D Q) σ τ
-   | rcfgPrefix_of : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt),
+   | rcfgPrefix_of : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet),
        (x, N) ∈ R → AllRSpec R D σ τ → AllRSpec R (.rcfgPrefix x N D) σ τ
 
  /-- Independent packet-pair specification of `head (tail R D)` (paper
@@ -863,19 +865,19 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      This formalizes the paper's intuition — the policies that appear
      after the reconfiguration events in `R` — at the level the safety
      pipeline consumes it (Eq. (35): `in · head(tail(Init, R)) · out`). -/
- inductive TailHeadSpec (R : ReconfigSet) : DyNetKAT → CtxPkt → CtxPkt → Prop
-   | nSeq_of : ∀ (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt),
+ inductive TailHeadSpec {schema : PacketSchema} (R : ReconfigSet schema) : DyNetKAT schema → schema.Packet → schema.Packet → Prop
+   | nSeq_of : ∀ (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet),
        TailHeadSpec R D σ τ → TailHeadSpec R (.nSeq N D) σ τ
-   | choice_left : ∀ (D Q : DyNetKAT) (σ τ : CtxPkt),
+   | choice_left : ∀ (D Q : DyNetKAT schema) (σ τ : schema.Packet),
        TailHeadSpec R D σ τ → TailHeadSpec R (.choice D Q) σ τ
-   | choice_right : ∀ (D Q : DyNetKAT) (σ τ : CtxPkt),
+   | choice_right : ∀ (D Q : DyNetKAT schema) (σ τ : schema.Packet),
        TailHeadSpec R Q σ τ → TailHeadSpec R (.choice D Q) σ τ
-   | rcfgPrefix_of : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt),
+   | rcfgPrefix_of : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet),
        (x, N) ∈ R → AllRSpec R D σ τ → TailHeadSpec R (.rcfgPrefix x N D) σ τ
 
  /-- Spec clause: the all-R contribution of `N;D` is `⟦N⟧` together with
      the all-R contribution of `D`. -/
- theorem allRSpec_nSeq_iff (R : ReconfigSet) (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt) :
+ theorem allRSpec_nSeq_iff (R : ReconfigSet schema) (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet) :
      AllRSpec R (.nSeq N D) σ τ ↔ (Semantics N σ τ ∨ AllRSpec R D σ τ) := by
    constructor
    · intro h
@@ -889,7 +891,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
 
  /-- Spec clause: the all-R contribution of `D ⊕ Q` is the union of the
      contributions of both branches. -/
- theorem allRSpec_choice_iff (R : ReconfigSet) (D Q : DyNetKAT) (σ τ : CtxPkt) :
+ theorem allRSpec_choice_iff (R : ReconfigSet schema) (D Q : DyNetKAT schema) (σ τ : schema.Packet) :
      AllRSpec R (.choice D Q) σ τ ↔ (AllRSpec R D σ τ ∨ AllRSpec R Q σ τ) := by
    constructor
    · intro h
@@ -904,8 +906,8 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
  /-- Spec clause: past a reconfiguration prefix the all-R contribution
      continues only when the event itself is in `R` (Eq. 33 cuts the
      branch otherwise). -/
- theorem allRSpec_rcfgPrefix_iff (R : ReconfigSet) (x : Channel) (N : NetKAT)
-     (D : DyNetKAT) (σ τ : CtxPkt) :
+ theorem allRSpec_rcfgPrefix_iff (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema)
+     (D : DyNetKAT schema) (σ τ : schema.Packet) :
      AllRSpec R (.rcfgPrefix x N D) σ τ ↔ ((x, N) ∈ R ∧ AllRSpec R D σ τ) := by
    constructor
    · intro h
@@ -916,7 +918,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      exact AllRSpec.rcfgPrefix_of x N D σ τ hmem hD
 
  /-- ⊥ contributes nothing to the all-R relation. -/
- theorem allRSpec_deadlock_false (R : ReconfigSet) (σ τ : CtxPkt) :
+ theorem allRSpec_deadlock_false (R : ReconfigSet schema) (σ τ : schema.Packet) :
      ¬ AllRSpec R .deadlock σ τ := by
    intro h
    cases h
@@ -924,7 +926,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
  /-- Spec clause: the tail contribution of `N;D` is the tail
      contribution of `D` (the policy `N` at the current position is
      *before* any reconfiguration and does not contribute). -/
- theorem tailHeadSpec_nSeq_iff (R : ReconfigSet) (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt) :
+ theorem tailHeadSpec_nSeq_iff (R : ReconfigSet schema) (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet) :
      TailHeadSpec R (.nSeq N D) σ τ ↔ TailHeadSpec R D σ τ := by
    constructor
    · intro h
@@ -935,7 +937,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
 
  /-- Spec clause: the tail contribution of `D ⊕ Q` is the union of the
      contributions of both branches. -/
- theorem tailHeadSpec_choice_iff (R : ReconfigSet) (D Q : DyNetKAT) (σ τ : CtxPkt) :
+ theorem tailHeadSpec_choice_iff (R : ReconfigSet schema) (D Q : DyNetKAT schema) (σ τ : schema.Packet) :
      TailHeadSpec R (.choice D Q) σ τ ↔ (TailHeadSpec R D σ τ ∨ TailHeadSpec R Q σ τ) := by
    constructor
    · intro h
@@ -950,8 +952,8 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
  /-- Spec clause: the tail contribution of `rcfg_{x,N};D` is the all-R
      contribution of `D` when the event is in `R`, and nothing
      otherwise (Eq. 33). -/
- theorem tailHeadSpec_rcfgPrefix_iff (R : ReconfigSet) (x : Channel) (N : NetKAT)
-     (D : DyNetKAT) (σ τ : CtxPkt) :
+ theorem tailHeadSpec_rcfgPrefix_iff (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema)
+     (D : DyNetKAT schema) (σ τ : schema.Packet) :
      TailHeadSpec R (.rcfgPrefix x N D) σ τ ↔ ((x, N) ∈ R ∧ AllRSpec R D σ τ) := by
    constructor
    · intro h
@@ -962,7 +964,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      exact TailHeadSpec.rcfgPrefix_of x N D σ τ hmem hD
 
  /-- ⊥ contributes nothing to the tail relation. -/
- theorem tailHeadSpec_deadlock_false (R : ReconfigSet) (σ τ : CtxPkt) :
+ theorem tailHeadSpec_deadlock_false (R : ReconfigSet schema) (σ τ : schema.Packet) :
      ¬ TailHeadSpec R .deadlock σ τ := by
    intro h
    cases h
@@ -970,14 +972,14 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
  /-- Eq. (30) for `head` in map form: definitionally equal to the match
      of `head_nSeq`, but amenable to the standard `Option` inversion
      lemmas. -/
- theorem head_nSeq_map (N : NetKAT) (D : DyNetKAT) :
+ theorem head_nSeq_map (N : NetKAT schema) (D : DyNetKAT schema) :
      head (.nSeq N D) = (head D).map (fun H' => NetKAT.union N H') := by
    rw [head_nSeq]
    cases hD : head D <;> rfl
 
  /-- Inversion for S4A's `head` on `N;D`: a successful extraction
      determines a successful extraction of the continuation. -/
- theorem head_nSeq_inv (N : NetKAT) (D : DyNetKAT) (H : NetKAT)
+ theorem head_nSeq_inv (N : NetKAT schema) (D : DyNetKAT schema) (H : NetKAT schema)
      (h : head (.nSeq N D) = some H) :
      ∃ H', head D = some H' ∧ H = NetKAT.union N H' := by
    rw [head_nSeq_map, Option.map_eq_some'] at h
@@ -987,7 +989,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
  /-- Eq. (31) for `head` in bind/map form: definitionally equal to the
      two-scrutinee match of `head_choice`, but amenable to the standard
      `Option` inversion lemmas. -/
- theorem head_choice_bind (D Q : DyNetKAT) :
+ theorem head_choice_bind (D Q : DyNetKAT schema) :
      head (.choice D Q) =
        (head D).bind (fun H₁ => (head Q).map (fun H₂ => NetKAT.union H₁ H₂)) := by
    rw [head_choice]
@@ -995,9 +997,9 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
 
  /-- Inversion for S4A's `head` on `D ⊕ Q`: a successful extraction
      determines successful extractions of both branches. -/
- theorem head_choice_inv (D Q : DyNetKAT) (H : NetKAT)
+ theorem head_choice_inv (D Q : DyNetKAT schema) (H : NetKAT schema)
      (h : head (.choice D Q) = some H) :
-     ∃ H₁ H₂ : NetKAT, head D = some H₁ ∧ head Q = some H₂ ∧ H = NetKAT.union H₁ H₂ := by
+     ∃ H₁ H₂ : NetKAT schema, head D = some H₁ ∧ head Q = some H₂ ∧ H = NetKAT.union H₁ H₂ := by
    rw [head_choice_bind, Option.bind_eq_some] at h
    obtain ⟨H₁, hD, hmap⟩ := h
    rw [Option.map_eq_some'] at hmap
@@ -1029,11 +1031,11 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      The theorem is stated only on `TailSupported` inputs; the empty
      spec on unsupported shapes is never used to claim anything about
      them. -/
- theorem tail_head_spec_aux (R : ReconfigSet) (D : DyNetKAT) (hsup : TailSupported D) :
-     (∀ (Q : DyNetKAT) (H : NetKAT), tail R D = some Q → head Q = some H →
-         ∀ σ τ : CtxPkt, Semantics H σ τ ↔ TailHeadSpec R D σ τ) ∧
-     (∀ (H : NetKAT), head D = some H →
-         ∀ σ τ : CtxPkt, AllRSpec R D σ τ ↔ (Semantics H σ τ ∨ TailHeadSpec R D σ τ)) := by
+ theorem tail_head_spec_aux (R : ReconfigSet schema) (D : DyNetKAT schema) (hsup : TailSupported D) :
+     (∀ (Q : DyNetKAT schema) (H : NetKAT schema), tail R D = some Q → head Q = some H →
+         ∀ σ τ : schema.Packet, Semantics H σ τ ↔ TailHeadSpec R D σ τ) ∧
+     (∀ (H : NetKAT schema), head D = some H →
+         ∀ σ τ : schema.Packet, AllRSpec R D σ τ ↔ (Semantics H σ τ ∨ TailHeadSpec R D σ τ)) := by
    induction hsup with
    | deadlock =>
        constructor
@@ -1159,9 +1161,9 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      whose preceding reconfiguration prefixes carry events of `R`
      (paper §V: "the sum of DyNetKAT policies inside D that appear
      after the reconfiguration events in R", consumed as in Eq. (35)). -/
- theorem tail_head_spec (R : ReconfigSet) (D : DyNetKAT) (hsup : TailSupported D)
-     (Q : DyNetKAT) (H : NetKAT) (hQ : tail R D = some Q) (hH : head Q = some H)
-     (σ τ : CtxPkt) :
+ theorem tail_head_spec (R : ReconfigSet schema) (D : DyNetKAT schema) (hsup : TailSupported D)
+     (Q : DyNetKAT schema) (H : NetKAT schema) (hQ : tail R D = some Q) (hH : head Q = some H)
+     (σ τ : schema.Packet) :
      Semantics H σ τ ↔ TailHeadSpec R D σ τ :=
    (tail_head_spec_aux R D hsup).1 Q H hQ hH σ τ
 
@@ -1170,15 +1172,15 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      reconfiguration on each branch) together with the tail
      contribution.  For `R = ∅` the tail contribution is empty and the
      identity reduces to `AllRSpec ∅ D ↔ ⟦head D⟧`. -/
- theorem allR_head_spec (R : ReconfigSet) (D : DyNetKAT) (hsup : TailSupported D)
-     (H : NetKAT) (hH : head D = some H) (σ τ : CtxPkt) :
+ theorem allR_head_spec (R : ReconfigSet schema) (D : DyNetKAT schema) (hsup : TailSupported D)
+     (H : NetKAT schema) (hH : head D = some H) (σ τ : schema.Packet) :
      AllRSpec R D σ τ ↔ (Semantics H σ τ ∨ TailHeadSpec R D σ τ) :=
    (tail_head_spec_aux R D hsup).2 H hH σ τ
 
  /-- The output of `tail` on supported input is again `HeadSupported`,
      so S4A's `head` can always consume it — the composition
      `head (tail R D)` is defined on the whole supported fragment. -/
- theorem tail_headSupported (R : ReconfigSet) (D : DyNetKAT) (hsup : TailSupported D) :
+ theorem tail_headSupported (R : ReconfigSet schema) (D : DyNetKAT schema) (hsup : TailSupported D) :
      ∀ Q, tail R D = some Q → HeadSupported Q := by
    induction hsup with
    | deadlock =>
@@ -1202,7 +1204,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
 
  /-- The full extraction `head (tail R D)` succeeds on the whole
      supported fragment. -/
- theorem tail_head_some (R : ReconfigSet) (D : DyNetKAT) (hsup : TailSupported D) :
+ theorem tail_head_some (R : ReconfigSet schema) (D : DyNetKAT schema) (hsup : TailSupported D) :
      ∃ Q H, tail R D = some Q ∧ head Q = some H := by
    obtain ⟨Q, hQ⟩ := tail_supported_some R D hsup
    obtain ⟨H, hH⟩ := head_supported_some Q (tail_headSupported R D hsup Q hQ)
@@ -1219,7 +1221,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      the stronger fragment matters: Eq. (32) recurses into the
      continuation, and the induction hypothesis provides exactly the
      required `TailSupported D'`. -/
- theorem restrictElim_tailSupported (L : Finset CommunicationAction) (p : DyNetKAT) :
+ theorem restrictElim_tailSupported (L : Finset (CommunicationAction schema)) (p : DyNetKAT schema) :
      (∀ a ∈ commActions p, a ∈ L) →
        ∀ q, restrictElim L p = some q → CommFree q ∧ TailSupported q := by
    induction p with
@@ -1279,7 +1281,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      paper's §V precondition (`CommFree`) *and* lies in the S5A
      `TailSupported` fragment — no additional conditions beyond S4B's
      are needed for `tail`. -/
- theorem preprocess_tail_supported (env : RecEnv) (p : DyNetKAT) (q : DyNetKAT)
+ theorem preprocess_tail_supported (env : RecEnv schema) (p : DyNetKAT schema) (q : DyNetKAT schema)
      (hq : preprocess env p = some q) : CommFree q ∧ TailSupported q := by
    simp only [preprocess] at hq
    exact restrictElim_tailSupported (commActions p) p (fun _ ha => ha) q hq
@@ -1288,7 +1290,7 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      conditions, `preprocess` succeeds and both extractions succeed on
      its result — the preprocessed process feeds `head` and `tail`
      simultaneously, as in the paper's Eqs. (34)–(35). -/
- theorem preprocess_head_tail_some (env : RecEnv) (p : DyNetKAT) (R : ReconfigSet)
+ theorem preprocess_head_tail_some (env : RecEnv schema) (p : DyNetKAT schema) (R : ReconfigSet schema)
      (h : PreprocessingConditions env p) :
      ∃ q Q H, preprocess env p = some q ∧ HeadSupported q ∧ TailSupported q ∧
        tail R q = some Q ∧ head Q = some H := by
@@ -1302,9 +1304,9 @@ theorem suffix_step_tail (env : RecEnv) (R : ReconfigSet) (D : DyNetKAT)
      input: for `q` produced by S4B's `preprocess`, the NetKAT policy
      extracted by `head (tail R q)` denotes exactly the `TailHeadSpec`
      relation of `q`. -/
- theorem preprocess_tail_head_spec (env : RecEnv) (p : DyNetKAT) (R : ReconfigSet)
-     (q : DyNetKAT) (hq : preprocess env p = some q) (Q : DyNetKAT) (H : NetKAT)
-     (hQ : tail R q = some Q) (hH : head Q = some H) (σ τ : CtxPkt) :
+ theorem preprocess_tail_head_spec (env : RecEnv schema) (p : DyNetKAT schema) (R : ReconfigSet schema)
+     (q : DyNetKAT schema) (hq : preprocess env p = some q) (Q : DyNetKAT schema) (H : NetKAT schema)
+     (hQ : tail R q = some Q) (hH : head Q = some H) (σ τ : schema.Packet) :
      Semantics H σ τ ↔ TailHeadSpec R q σ τ :=
    tail_head_spec R q (preprocess_tail_supported env p q hq).2 Q H hQ hH σ τ
 

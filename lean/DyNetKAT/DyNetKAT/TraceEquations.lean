@@ -4,6 +4,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
 open DyNetKAT.NetKAT
 
 /-- Both sends and receives remain observable here, so the trace equivalence
@@ -24,30 +26,30 @@ theorem trace_a16 {schema : PacketSchema} (env : RecEnv schema) (l : MoveLabel s
 private inductive Combination
   | parallel | leftMerge | commMerge
 
-private def Combination.term : Combination → DyNetKAT → DyNetKAT → DyNetKAT
+private def Combination.term : Combination → DyNetKAT schema → DyNetKAT schema → DyNetKAT schema
   | .parallel => .parallel
   | .leftMerge => .leftMerge
   | .commMerge => .commMerge
 
-private inductive Turn : Option Action → Option Action → Action → Prop
+private inductive Turn {schema : PacketSchema} : Option (Action schema) → Option (Action schema) → Action schema → Prop
   | left : Turn (some a) none a
   | right : Turn none (some a) a
   | recvSend : Turn (some (.recv x p)) (some (.send x p)) (.rcfg x p)
   | sendRecv : Turn (some (.send x p)) (some (.recv x p)) (.rcfg x p)
 
-private def Combination.permits : Combination → Option Action → Option Action → Prop
+private def Combination.permits : Combination → Option (Action schema) → Option (Action schema) → Prop
   | .parallel, _, _ => True
   | .leftMerge, some _, none => True
   | .commMerge, some _, some _ => True
   | _, _, _ => False
 
-private def Follows (env : RecEnv) (p : DyNetKAT) (a : Option Action) (q : DyNetKAT) : Prop :=
+private def Follows (env : RecEnv schema) (p : DyNetKAT schema) (a : Option (Action schema)) (q : DyNetKAT schema) : Prop :=
   match a with
   | none => q = p
   | some a => ActionStep env p a q
 
-private theorem combine_step_iff {env : RecEnv} {m : Combination} {p q r : DyNetKAT}
-    {a : Action} :
+private theorem combine_step_iff {env : RecEnv schema} {m : Combination} {p q r : DyNetKAT schema}
+    {a : Action schema} :
     ActionStep env (m.term p q) a r ↔
       ∃ x y u v, Turn u v a ∧ m.permits u v ∧
         Follows env p u x ∧ Follows env q v y ∧ r = .parallel x y := by
@@ -95,27 +97,27 @@ private theorem combine_step_iff {env : RecEnv} {m : Combination} {p q r : DyNet
         | leftMerge => exact False.elim allowed
         | commMerge => exact .cpol_comm_merge_send_recv _ _ _ _ _ _ [] [] first second
 
-private def addAction (a : Option Action) (w : List Action) : List Action :=
+private def addAction (a : Option (Action schema)) (w : List (Action schema)) : List (Action schema) :=
   match a with
   | none => w
   | some a => a :: w
 
-private inductive Schedule : Combination → List Action → List Action → List Action → Prop
+private inductive Schedule {schema : PacketSchema} : Combination → List (Action schema) → List (Action schema) → List (Action schema) → Prop
   | nil (mode) : Schedule mode [] [] []
   | cons (mode) (turn : Turn u v a) (allowed : mode.permits u v)
       (rest : Schedule .parallel l r w) :
       Schedule mode (addAction u l) (addAction v r) (a :: w)
 
-private theorem trace_addAction {env : RecEnv} {p : DyNetKAT} {a : Option Action}
-    {w : List Action} :
+private theorem trace_addAction {env : RecEnv schema} {p : DyNetKAT schema} {a : Option (Action schema)}
+    {w : List (Action schema)} :
     SourceTrace env p (addAction a w) ↔
       ∃ q, Follows env p a q ∧ SourceTrace env q w := by
   cases a with
   | some a => exact sourceTrace_cons_actionStep
   | none => simp [addAction, Follows]
 
-private theorem trace_combination_iff {env : RecEnv} {mode : Combination} {p q : DyNetKAT}
-    {w : List Action} :
+private theorem trace_combination_iff {env : RecEnv schema} {mode : Combination} {p q : DyNetKAT schema}
+    {w : List (Action schema)} :
     SourceTrace env (mode.term p q) w ↔
       ∃ u v, Schedule mode u v w ∧ SourceTrace env p u ∧ SourceTrace env q v := by
   induction w generalizing mode p q with
@@ -138,8 +140,8 @@ private theorem trace_combination_iff {env : RecEnv} {mode : Combination} {p q :
               ⟨.parallel x y, combine_step_iff.mpr ⟨x, y, _, _, turn, allowed, sx, sy, rfl⟩,
                 (ih (mode := .parallel)).mpr ⟨_, _, schedule, tu, tv⟩⟩
 
-private theorem trace_combination_congr {env : RecEnv} {mode : Combination}
-    {p p' q q' : DyNetKAT} (hp : TraceEquivalent env p p') (hq : TraceEquivalent env q q') :
+private theorem trace_combination_congr {env : RecEnv schema} {mode : Combination}
+    {p p' q q' : DyNetKAT schema} (hp : TraceEquivalent env p p') (hq : TraceEquivalent env q q') :
     TraceEquivalent env (mode.term p q) (mode.term p' q') := by
   intro w
   rw [trace_combination_iff, trace_combination_iff]
@@ -149,8 +151,8 @@ private theorem trace_combination_congr {env : RecEnv} {mode : Combination}
   · rintro ⟨u, v, plan, first, second⟩
     exact ⟨u, v, plan, (hp u).mpr first, (hq v).mpr second⟩
 
-theorem sourceTrace_restrict_iff {env : RecEnv} {L : Set CommunicationAction}
-    {p : DyNetKAT} {w : List Action} :
+theorem sourceTrace_restrict_iff {env : RecEnv schema} {L : Set (CommunicationAction schema)}
+    {p : DyNetKAT schema} {w : List (Action schema)} :
     SourceTrace env (.restrict L p) w ↔ SourceTrace env p w ∧
       ∀ a ∈ w, actionAllowed L a := by
   induction w generalizing p with
@@ -170,13 +172,13 @@ theorem sourceTrace_restrict_iff {env : RecEnv} {L : Set CommunicationAction}
 
 /-- Definition 15. Retain the Figure 11 derivations, close under the same
 process contexts and AIP, and add the prefix distributivity axiom (26). -/
-inductive TraceDerives (env : RecEnv) : DyNetKAT → DyNetKAT → Prop
+inductive TraceDerives {schema : PacketSchema} (env : RecEnv schema) : DyNetKAT schema → DyNetKAT schema → Prop
   | strong : Derives env p q → TraceDerives env p q
-  | a16 (l : MoveLabel) (p q : DyNetKAT) :
+  | a16 (l : MoveLabel schema) (p q : DyNetKAT schema) :
       TraceDerives env (l.prefix (.choice p q)) (.choice (l.prefix p) (l.prefix q))
   | symm : TraceDerives env p q → TraceDerives env q p
   | trans : TraceDerives env p q → TraceDerives env q r → TraceDerives env p r
-  | prefixCongr (l : MoveLabel) : TraceDerives env p q → TraceDerives env (l.prefix p) (l.prefix q)
+  | prefixCongr (l : MoveLabel schema) : TraceDerives env p q → TraceDerives env (l.prefix p) (l.prefix q)
   | choiceCongr : TraceDerives env p p' → TraceDerives env q q' →
       TraceDerives env (.choice p q) (.choice p' q')
   | parallelCongr : TraceDerives env p p' → TraceDerives env q q' →
@@ -185,13 +187,13 @@ inductive TraceDerives (env : RecEnv) : DyNetKAT → DyNetKAT → Prop
       TraceDerives env (.leftMerge p q) (.leftMerge p' q')
   | commMergeCongr : TraceDerives env p p' → TraceDerives env q q' →
       TraceDerives env (.commMerge p q) (.commMerge p' q')
-  | restrictCongr (L : Set CommunicationAction) : TraceDerives env p q →
+  | restrictCongr (L : Set (CommunicationAction schema)) : TraceDerives env p q →
       TraceDerives env (.restrict L p) (.restrict L q)
   | projectCongr (n : Nat) : TraceDerives env p q → TraceDerives env (.project n p) (.project n q)
   | aip : ImageFiniteFrom env p → ImageFiniteFrom env q →
       (∀ n : Nat, TraceDerives env (.project n p) (.project n q)) → TraceDerives env p q
 
-theorem TraceDerives.sound {env : RecEnv} {p q : DyNetKAT} (derives : TraceDerives env p q) :
+theorem TraceDerives.sound {env : RecEnv schema} {p q : DyNetKAT schema} (derives : TraceDerives env p q) :
     TraceEquivalent env p q := by
   induction derives with
   | strong h => exact h.sound.sourceTrace_iff
@@ -214,39 +216,41 @@ theorem TraceDerives.sound {env : RecEnv} {p q : DyNetKAT} (derives : TraceDeriv
       simpa only [sourceTrace_project_iff, Nat.le_refl, and_true] using ih w.length w
 
 
-theorem TraceDerives.ofNoAIP {env : RecEnv} {p q : DyNetKAT}
+theorem TraceDerives.ofNoAIP {env : RecEnv schema} {p q : DyNetKAT schema}
     (h : DerivesNoAIP env p q) : TraceDerives env p q := .strong (.ofNoAIP h)
 
-private def renderTraceWord : List Action → DyNetKAT
+variable [DiagramLayout schema]
+
+private def renderTraceWord : List (Action schema) → DyNetKAT schema
   | [] => .deadlock
   | a :: w => a.atomicLabel.prefix (renderTraceWord w)
 
-private def traceWordSum (ws : List (List Action)) : DyNetKAT :=
+private def traceWordSum (ws : List (List (Action schema))) : DyNetKAT schema :=
   choiceOf (ws.map renderTraceWord)
 
-private def prefixWords (a : Action) (ws : List (List Action)) : List (List Action) :=
+private def prefixWords (a : Action schema) (ws : List (List (Action schema))) : List (List (Action schema)) :=
   ws.map (a :: ·) ++ [[a]]
 
-private theorem prefix_wordSum (env : RecEnv) (a : Action) (ws : List (List Action)) :
+private theorem prefix_wordSum (env : RecEnv schema) (a : Action schema) (ws : List (List (Action schema))) :
     TraceDerives env (a.atomicLabel.prefix (traceWordSum ws)) (traceWordSum (prefixWords a ws)) := by
   induction ws with
   | nil => exact .ofNoAIP (.symm (.a5 _))
   | cons w rest ih =>
       exact .trans (.a16 _ _ _) (.choiceCongr (.strong (Derives.refl _ _)) ih)
 
-private theorem traceWordSum_append (env : RecEnv) (xs ys : List (List Action)) :
+private theorem traceWordSum_append (env : RecEnv schema) (xs ys : List (List (Action schema))) :
     TraceDerives env (.choice (traceWordSum xs) (traceWordSum ys)) (traceWordSum (xs ++ ys)) :=
   .ofNoAIP (by simpa only [traceWordSum, List.map_append] using
     choiceOf_append env (xs.map renderTraceWord) (ys.map renderTraceWord))
 
-private theorem traceWordSum_eq (env : RecEnv) {xs ys : List (List Action)}
+private theorem traceWordSum_eq (env : RecEnv schema) {xs ys : List (List (Action schema))}
     (h : ∀ w, w ∈ xs ↔ w ∈ ys) :
     TraceDerives env (traceWordSum xs) (traceWordSum ys) :=
   .ofNoAIP (choiceOf_derives_of_mem_iff env (by intro p; simp only [List.mem_map, h]))
 
-private theorem mem_prefixWords {env : RecEnv} {p : DyNetKAT} {a x : Action}
-    {ws : List (List Action)} (h : ∀ w, w ≠ [] → (w ∈ ws ↔ SourceTrace env p w))
-    (w : List Action) :
+private theorem mem_prefixWords {env : RecEnv schema} {p : DyNetKAT schema} {a x : Action schema}
+    {ws : List (List (Action schema))} (h : ∀ w, w ≠ [] → (w ∈ ws ↔ SourceTrace env p w))
+    (w : List (Action schema)) :
     x :: w ∈ prefixWords a ws ↔ SourceTrace env (a.atomicLabel.prefix p) (x :: w) := by
   rw [sourceTrace_atomicPrefix_iff]
   cases w with
@@ -260,12 +264,12 @@ private theorem mem_prefixWords {env : RecEnv} {p : DyNetKAT} {a x : Action}
       · rintro ⟨rfl, trace⟩
         exact ⟨b :: w, (h _ (by simp)).mpr trace, rfl, rfl⟩
 
-private def Represents (env : RecEnv) (p : DyNetKAT) (ws : List (List Action)) : Prop :=
+private def Represents (env : RecEnv schema) (p : DyNetKAT schema) (ws : List (List (Action schema))) : Prop :=
   [] ∉ ws ∧ ∀ w, w ≠ [] → (w ∈ ws ↔ SourceTrace env p w)
 
 /-- Every finite projection has an equational word sum that lists exactly
 its nonempty traces. A16 is used to distribute prefixes over continuations. -/
-private theorem project_wordSum (env : RecEnv) (n : Nat) {p : DyNetKAT}
+private theorem project_wordSum (env : RecEnv schema) (n : Nat) {p : DyNetKAT schema}
     (hp : WellFormed env p) :
     ∃ ws, TraceDerives env (.project n p) (traceWordSum ws) ∧
       Represents env (.project n p) ws := by
@@ -280,7 +284,7 @@ private theorem project_wordSum (env : RecEnv) (n : Nat) {p : DyNetKAT}
       obtain ⟨xs, derives, closed⟩ := hp.exists_headNormalForm_closed
       have heads : TraceDerives env (.project (n + 1) p) (xs.project (n + 1)).render :=
         .ofNoAIP (.trans (.projectCongr _ derives) (HeadNormalForm.project_correct ..))
-      have normalizeHeads (xs : HeadNormalForm)
+      have normalizeHeads (xs : HeadNormalForm schema)
           (closed : ∀ b ∈ xs, WellFormed env b.continuation) :
           ∃ ws, TraceDerives env (xs.project (n + 1)).render (traceWordSum ws) ∧
             Represents env (xs.project (n + 1)).render ws := by
@@ -324,7 +328,7 @@ private theorem project_wordSum (env : RecEnv) (n : Nat) {p : DyNetKAT}
 /-- Trace completeness on closed guarded processes. There is one finite
 word-sum derivation at each projection depth, and AIP combines them.
 No finite global derivative space or support set is required. -/
-theorem TraceDerives.complete {env : RecEnv} {p q : DyNetKAT}
+theorem TraceDerives.complete {env : RecEnv schema} {p q : DyNetKAT schema}
     (hp : WellFormed env p) (hq : WellFormed env q) (traces : TraceEquivalent env p q) :
     TraceDerives env p q := by
   apply TraceDerives.aip hp.imageFiniteFrom hq.imageFiniteFrom
@@ -339,7 +343,7 @@ theorem TraceDerives.complete {env : RecEnv} {p q : DyNetKAT}
   · rw [ex w empty, ey w empty]
     simp only [sourceTrace_project_iff, traces w]
 
-theorem TraceDerives.iff_traces {env : RecEnv} {p q : DyNetKAT}
+theorem TraceDerives.iff_traces {env : RecEnv schema} {p q : DyNetKAT schema}
     (hp : WellFormed env p) (hq : WellFormed env q) :
     TraceDerives env p q ↔ TraceEquivalent env p q :=
   ⟨TraceDerives.sound, TraceDerives.complete hp hq⟩

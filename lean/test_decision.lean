@@ -35,13 +35,13 @@ namespace DyNetKAT.NetKAT
 ------------------------------------------------------------------------
 
 -- `drop` denotes the empty relation: zero.
-#eval netkatIsZero .drop                              -- true
+#eval netkatIsZero (schema := ctxSchema) .drop                              -- true
 
 -- The always-false predicate test denotes the empty relation: zero.
-#eval netkatIsZero (.test .pFalse)                    -- true
+#eval netkatIsZero (schema := ctxSchema) (.test .pFalse)                    -- true
 
 -- `id` relates every packet to itself: not zero.
-#eval netkatIsZero .id                                -- false
+#eval netkatIsZero (schema := ctxSchema) .id                                -- false
 
 -- Sequential contradictory tests on one field:
 -- (tpSrc = v8); (tpSrc = v9) admits no packet: zero.

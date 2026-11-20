@@ -671,8 +671,8 @@ theorem safe_iff_all_projections {extended : Bool} {env : RecEnv schema} (p : Pr
 
 /-- Exact conditional transfer to a compiled graph. A graph is needed only
 for this representation theorem. -/
-theorem safe_iff_compiled {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (compiled : p.Compiled) (forbidden : List Word) :
+theorem safe_iff_compiled {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (compiled : p.Compiled) (forbidden : List (Word schema)) :
     Safe p forbidden ↔ ∀ bad ∈ forbidden, ¬ ∃ pt hl d,
       GSteps compiled.graph ⟨compiled.graph.root, pt, hl⟩ (bad.map Letter.action) d := by
   unfold Safe
@@ -681,14 +681,14 @@ theorem safe_iff_compiled {extended : Bool} {env : RecEnv} (p : Program extended
 
 /-- Definition 16, Eq. (27), in one declaration system. The translated
 specification and the network have disjoint recursive names in that system. -/
-def EquationalSafety {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (forbidden : List Word) : Prop :=
+def EquationalSafety {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (forbidden : List (Word schema)) : Prop :=
   let specification := (translate A forbidden).inLeft env
   let network := p.inRight (translationEnv A)
   TraceDerives ((translationEnv A).disjoint env) (specification.choice network).term specification.term
 
-theorem equationalSafety_iff_safe {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (forbidden : List Word) (nonemptyWords : [] ∉ forbidden)
+theorem equationalSafety_iff_safe {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (forbidden : List (Word schema)) (nonemptyWords : [] ∉ forbidden)
     (alphabet : UsesAlphabet p A) :
     EquationalSafety p A forbidden ↔ Safe p forbidden := by
   unfold EquationalSafety
@@ -760,15 +760,15 @@ theorem ExtendedRegexp.mem_desugar_repeat {A : Alphabet schema} {r : ExtendedReg
   mem_wordPower
 
 /-- Paper-facing Eq. (27) for a core formula `[r]false`. -/
-theorem Formula.equational_iff {extended : Bool} {env : RecEnv} {A : Alphabet}
+theorem Formula.equational_iff {extended : Bool} {env : RecEnv schema} {A : Alphabet schema}
     (r : Formula A) (p : Program extended env) (alphabet : UsesAlphabet p A) :
     EquationalSafety p A r.val.hnf ↔
       ∀ w, r.val.Matches w → ¬ p.Trace (w.map Letter.action) := by
   rw [equationalSafety_iff_safe p A _ (fun h => Regexp.hnf_nonempty_word h rfl) alphabet]
   simp only [Safe, Regexp.mem_hnf]
 
-theorem ExtendedRegexp.equational_iff {extended : Bool} {env : RecEnv}
-    (r : ExtendedRegexp) (p : Program extended env) (A : Alphabet) (alphabet : UsesAlphabet p A) :
+theorem ExtendedRegexp.equational_iff {extended : Bool} {env : RecEnv schema}
+    (r : ExtendedRegexp schema) (p : Program extended env) (A : Alphabet schema) (alphabet : UsesAlphabet p A) :
     EquationalSafety p A (r.desugar A) ↔ Safe p (r.desugar A) :=
   equationalSafety_iff_safe p A _ (r.desugar_nonempty_word A) alphabet
 
@@ -818,8 +818,8 @@ theorem Regexp.matches_repeatPositive (r : Regexp schema) (n : Nat) (w : Word sc
       ∃ ws : List (Word schema), ws.length = n + 1 ∧ (∀ u ∈ ws, r.Matches u) ∧ ws.flatten = w := by
   simp only [← Regexp.mem_hnf, hnf_repeatPositive, mem_wordPower]
 
-theorem ExtendedRegexp.equational_iff_matches {extended : Bool} {env : RecEnv}
-    (r : ExtendedRegexp) (p : Program extended env) (A : Alphabet) (alphabet : UsesAlphabet p A) :
+theorem ExtendedRegexp.equational_iff_matches {extended : Bool} {env : RecEnv schema}
+    (r : ExtendedRegexp schema) (p : Program extended env) (A : Alphabet schema) (alphabet : UsesAlphabet p A) :
     EquationalSafety p A (r.desugar A) ↔ ∀ w, r.Matches A w → ¬ p.Trace (w.map Letter.action) := by
   rw [r.equational_iff p A alphabet]
   simp only [Safe, desugar_correct]
@@ -904,8 +904,8 @@ theorem safe_padded_iff_project {extended : Bool} {env : RecEnv schema} (p : Pro
       simp [len]
     exact projected w mem (sourceTrace_project_iff.mpr ⟨run, by simp [len]⟩)
 
-theorem padded_equational_iff {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (alphabet : UsesAlphabet p A) (a : Letter) (n : Nat) :
+theorem padded_equational_iff {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (alphabet : UsesAlphabet p A) (a : Letter schema) (n : Nat) :
     EquationalSafety p A ((padded a n).desugar A) ↔
       ∀ u, u.length = n → InAlphabet A u → ¬ p.Trace ((u ++ [a]).map Letter.action) :=
   ((padded a n).equational_iff p A alphabet).trans (safe_padded_iff p A a n)
@@ -935,8 +935,8 @@ theorem safe_padded_all_iff_no_occurrence {extended : Bool} {env : RecEnv schema
 
 
 /-- Eq. (28) in the equational system, using the trace characterization above. -/
-theorem eq28_iff_no_occurrence {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (A : Alphabet) (alphabet : UsesAlphabet p A) (a : Letter) :
+theorem eq28_iff_no_occurrence {extended : Bool} {env : RecEnv schema} (p : Program extended env)
+    (A : Alphabet schema) (alphabet : UsesAlphabet p A) (a : Letter schema) :
     (∀ n, EquationalSafety p A ((padded a n).desugar A)) ↔
       ∀ t, p.Trace t → a.action ∉ t := by
   rw [← safe_padded_all_iff_no_occurrence p A alphabet a]
@@ -1008,8 +1008,8 @@ theorem ExtendedRegexp.exists_coreFormula {A : Alphabet schema} {r : ExtendedReg
     (fun _ mem => desugar_inAlphabet valid mem)
   exact ⟨f, fun w => (exactWords w).trans (r.desugar_correct A w)⟩
 
-theorem ExtendedRegexp.equational_iff_core {extended : Bool} {env : RecEnv}
-    (r : ExtendedRegexp) (p : Program extended env) (A : Alphabet) (alphabet : UsesAlphabet p A)
+theorem ExtendedRegexp.equational_iff_core {extended : Bool} {env : RecEnv schema}
+    (r : ExtendedRegexp schema) (p : Program extended env) (A : Alphabet schema) (alphabet : UsesAlphabet p A)
     (valid : r.Over A) (hasWord : r.desugar A ≠ []) :
     ∃ f : Formula A, (∀ w, f.val.Matches w ↔ r.Matches A w) ∧
       (EquationalSafety p A (r.desugar A) ↔ EquationalSafety p A f.val.hnf) := by
@@ -1069,13 +1069,13 @@ theorem positiveSpecification_trace_iff {A : Alphabet schema} (r : Formula A) (t
         simpa only [List.append_nil, positiveBranch_word r witness] using pref
 
 /-- The positive absorption equation of §V, in a shared declaration system. -/
-def PositiveAbsorption {extended : Bool} {env : RecEnv} {A : Alphabet}
+def PositiveAbsorption {extended : Bool} {env : RecEnv schema} {A : Alphabet schema}
     (p : Program extended env) (r : Formula A) : Prop :=
   let network := p.inLeft (translationEnv A)
   let witness := (positiveSpecification r).inRight env
   TraceDerives (env.disjoint (translationEnv A)) (network.choice witness).term network.term
 
-theorem positiveAbsorption_iff_traces {extended : Bool} {env : RecEnv} {A : Alphabet}
+theorem positiveAbsorption_iff_traces {extended : Bool} {env : RecEnv schema} {A : Alphabet schema}
     (p : Program extended env) (r : Formula A) :
     PositiveAbsorption p r ↔ ∀ w, r.val.Matches w → p.Trace (w.map Letter.action) := by
   unfold PositiveAbsorption

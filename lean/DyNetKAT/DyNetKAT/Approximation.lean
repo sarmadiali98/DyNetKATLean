@@ -4,24 +4,26 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
 open DyNetKAT.NetKAT
 
 /-- The finite image needed to match a single SOS transition. Both the
 initial and final packet lists and the action are fixed. -/
-def ImageFiniteAt (env : RecEnv) (p : DyNetKAT) : Prop :=
-  ∀ (pt hl : List CtxPkt) (a : Action) (pt' hl' : List CtxPkt),
-    {q : DyNetKAT | Step env ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩}.Finite
+def ImageFiniteAt (env : RecEnv schema) (p : DyNetKAT schema) : Prop :=
+  ∀ (pt hl : List schema.Packet) (a : Action schema) (pt' hl' : List schema.Packet),
+    {q : (DyNetKAT schema) | Step env ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩}.Finite
 
-def ImageFiniteFrom (env : RecEnv) (p : DyNetKAT) : Prop :=
+def ImageFiniteFrom (env : RecEnv schema) (p : DyNetKAT schema) : Prop :=
   ∀ q, Relation.ReflTransGen (ProcessStep env) p q → ImageFiniteAt env q
 
-theorem ImageFiniteFrom.step {env : RecEnv} {p q : DyNetKAT}
+theorem ImageFiniteFrom.step {env : RecEnv schema} {p q : DyNetKAT schema}
     (h : ImageFiniteFrom env p) (hs : ProcessStep env p q) : ImageFiniteFrom env q :=
   fun r hr => h r ((Relation.ReflTransGen.single hs).trans hr)
 
 /-- The successor uses precisely one less level, with identical packet effects. -/
-theorem project_step_exact_iff {env : RecEnv} {p q : DyNetKAT} {n : Nat}
-    {pt hl pt' hl' : List CtxPkt} {a : Action} :
+theorem project_step_exact_iff {env : RecEnv schema} {p q : DyNetKAT schema} {n : Nat}
+    {pt hl pt' hl' : List schema.Packet} {a : Action schema} :
     Step env ⟨.project (n + 1) p, pt, hl⟩ a ⟨.project n q, pt', hl'⟩ ↔
       Step env ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩ := by
   constructor
@@ -32,9 +34,9 @@ theorem project_step_exact_iff {env : RecEnv} {p q : DyNetKAT} {n : Nat}
   · exact Step.cpol_project n p q a pt pt' hl hl'
 
 /-- Projecting an already projected process to a smaller budget. -/
-theorem project_truncate (env : RecEnv) (p : DyNetKAT) {m n : Nat} (hmn : m ≤ n) :
+theorem project_truncate (env : RecEnv schema) (p : DyNetKAT schema) {m n : Nat} (hmn : m ≤ n) :
     Bisimilar env (.project m (.project n p)) (.project m p) := by
-  let R (x y : DyNetKAT) : Prop :=
+  let R (x y : DyNetKAT schema) : Prop :=
     ∃ m n p, m ≤ n ∧ x = .project m (.project n p) ∧ y = .project m p
   refine ⟨fun x y => R x y ∨ R y x, ⟨fun _ _ h => h.symm, ?_⟩,
     Or.inl ⟨m, n, p, hmn, rfl, rfl⟩⟩
@@ -61,7 +63,7 @@ theorem project_truncate (env : RecEnv) (p : DyNetKAT) {m n : Nat} (hmn : m ≤ 
           project_step_exact_iff.mpr (project_step_exact_iff.mpr hv),
           Or.inr ⟨m, n, v, Nat.le_of_succ_le_succ hmn, rfl, rfl⟩⟩
 
-theorem project_bisimilar_of_le {env : RecEnv} {p q : DyNetKAT} {m n : Nat}
+theorem project_bisimilar_of_le {env : RecEnv schema} {p q : DyNetKAT schema} {m n : Nat}
     (hmn : m ≤ n) (h : Bisimilar env (.project n p) (.project n q)) :
     Bisimilar env (.project m p) (.project m q) :=
   Bisimilar.trans env (Bisimilar.symm env (project_truncate env p hmn))
@@ -94,10 +96,10 @@ private theorem finite_depth_match {α : Type} {s : Set α} (hf : s.Finite)
   exact hdepth ⟨x, hx⟩ (hmono (hn ⟨x, hx⟩ (Finset.mem_univ _)) hm)
 
 /-- Only the matching side needs an image-finite state for this direction. -/
-theorem approximation_match {env : RecEnv} {p q p' : DyNetKAT}
+theorem approximation_match {env : RecEnv schema} {p q p' : DyNetKAT schema}
     (hf : ImageFiniteAt env q)
     (h : ∀ n, Bisimilar env (.project n p) (.project n q))
-    {pt hl pt' hl' : List CtxPkt} {a : Action}
+    {pt hl pt' hl' : List schema.Packet} {a : Action schema}
     (hp : Step env ⟨p, pt, hl⟩ a ⟨p', pt', hl'⟩) :
     ∃ q', Step env ⟨q, pt, hl⟩ a ⟨q', pt', hl'⟩ ∧
       ∀ n, Bisimilar env (.project n p') (.project n q') := by
@@ -111,10 +113,10 @@ theorem approximation_match {env : RecEnv} {p q p' : DyNetKAT}
     exact ⟨q', hq, R, hR, hr⟩
 
 /-- Semantic AIP for processes whose reachable states are image finite. -/
-theorem approximation_induction {env : RecEnv} {p q : DyNetKAT}
+theorem approximation_induction {env : RecEnv schema} {p q : DyNetKAT schema}
     (hp : ImageFiniteFrom env p) (hq : ImageFiniteFrom env q)
     (h : ∀ n, Bisimilar env (.project n p) (.project n q)) : Bisimilar env p q := by
-  let R (p q : DyNetKAT) : Prop := ImageFiniteFrom env p ∧ ImageFiniteFrom env q ∧
+  let R (p q : DyNetKAT schema) : Prop := ImageFiniteFrom env p ∧ ImageFiniteFrom env q ∧
     ∀ n, Bisimilar env (.project n p) (.project n q)
   refine ⟨R, ⟨?_, ?_⟩, hp, hq, h⟩
   · rintro p q ⟨hp, hq, he⟩
@@ -126,7 +128,7 @@ theorem approximation_induction {env : RecEnv} {p q : DyNetKAT}
 
 /-- On image-finite reachable states, finite projections characterize
 strong source bisimilarity. -/
-theorem approximation_induction_iff {env : RecEnv} {p q : DyNetKAT}
+theorem approximation_induction_iff {env : RecEnv schema} {p q : DyNetKAT schema}
     (hp : ImageFiniteFrom env p) (hq : ImageFiniteFrom env q) :
     Bisimilar env p q ↔ ∀ n, Bisimilar env (.project n p) (.project n q) :=
   ⟨project_bisim_all_depths env, approximation_induction hp hq⟩

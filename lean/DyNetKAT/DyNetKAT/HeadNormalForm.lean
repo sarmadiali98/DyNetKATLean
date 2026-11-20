@@ -6,10 +6,14 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
 open DyNetKAT.NetKAT
 open Equations
 
-theorem choiceOf_append (env : RecEnv) (xs ys : List DyNetKAT) :
+variable [DiagramLayout schema]
+
+theorem choiceOf_append (env : RecEnv schema) (xs ys : List (DyNetKAT schema)) :
     DerivesNoAIP env (.choice (choiceOf xs) (choiceOf ys)) (choiceOf (xs ++ ys)) := by
   induction xs with
   | nil => exact .trans (.a2 _ _) (.a5 _)
@@ -17,9 +21,9 @@ theorem choiceOf_append (env : RecEnv) (xs ys : List DyNetKAT) :
     exact .trans (.a3 _ _ _) (.choiceCongr (.refl _) ih)
 
 /-- The rendered choice depends equationally only on summand membership. -/
-theorem choiceOf_derives_of_mem_iff (env : RecEnv) {xs ys : List DyNetKAT}
+theorem choiceOf_derives_of_mem_iff (env : RecEnv schema) {xs ys : List (DyNetKAT schema)}
     (h : ∀ b, b ∈ xs ↔ b ∈ ys) : DerivesNoAIP env (choiceOf xs) (choiceOf ys) := by
-  have absorb (b : DyNetKAT) (zs : List DyNetKAT) (hb : b ∈ zs) :
+  have absorb (b : DyNetKAT schema) (zs : List (DyNetKAT schema)) (hb : b ∈ zs) :
       DerivesNoAIP env (.choice b (choiceOf zs)) (choiceOf zs) := by
     induction zs with
     | nil => simp at hb
@@ -28,7 +32,7 @@ theorem choiceOf_derives_of_mem_iff (env : RecEnv) {xs ys : List DyNetKAT}
       · exact .trans (.symm (.a3 _ _ _)) (.choiceCongr (.a4 _) (.refl _))
       · exact .trans (.symm (.a3 _ _ _)) (.trans (.choiceCongr (.a2 _ _) (.refl _))
           (.trans (.a3 _ _ _) (.choiceCongr (.refl _) (ih ht))))
-  have absorbList (us vs : List DyNetKAT) (sub : ∀ b ∈ us, b ∈ vs) :
+  have absorbList (us vs : List (DyNetKAT schema)) (sub : ∀ b ∈ us, b ∈ vs) :
       DerivesNoAIP env (.choice (choiceOf us) (choiceOf vs)) (choiceOf vs) := by
     induction us with
     | nil => exact .trans (.a2 _ _) (.a5 _)
@@ -40,49 +44,49 @@ theorem choiceOf_derives_of_mem_iff (env : RecEnv) {xs ys : List DyNetKAT}
     (.trans (.a2 _ _) (absorbList xs ys (fun b => (h b).mp)))
 
 /-- Definition 6's head sort, with an unrestricted process continuation. -/
-structure HeadSummand where
-  label : MoveLabel
+structure HeadSummand (schema : PacketSchema := ctxSchema) [DiagramLayout schema] where
+  label : MoveLabel schema
   atomic : AtomicPrefix label
-  continuation : DyNetKAT
+  continuation : DyNetKAT schema
 
 namespace HeadSummand
 
-def render (b : HeadSummand) : DyNetKAT := b.label.prefix b.continuation
+def render (b : HeadSummand schema) : DyNetKAT schema := b.label.prefix b.continuation
 
-def withContinuation (b : HeadSummand) (p : DyNetKAT) : HeadSummand :=
+def withContinuation (b : HeadSummand schema) (p : DyNetKAT schema) : HeadSummand schema :=
   { b with continuation := p }
 
-def packet (α : CompleteTest) (π : CompleteAssignmentValuation) (p : DyNetKAT) :
-    HeadSummand :=
-  ⟨.visible (.packet (NormalForm.ofSummand (α, π))), .packet α π, p⟩
+def packet (α π : schema.Packet) (p : DyNetKAT schema) :
+    (HeadSummand schema) :=
+  ⟨.visible (.packet (packetSummand (α, π))), .packet α π, p⟩
 
-def recv (x : Channel) (z : NetKAT) (p : DyNetKAT) : HeadSummand :=
+def recv (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema) : HeadSummand schema :=
   ⟨.recv x z, .recv x z, p⟩
 
-def send (x : Channel) (z : NetKAT) (p : DyNetKAT) : HeadSummand :=
+def send (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema) : HeadSummand schema :=
   ⟨.send x z, .send x z, p⟩
 
-def rcfg (x : Channel) (z : NetKAT) (p : DyNetKAT) : HeadSummand :=
+def rcfg (x : Channel) (z : NetKAT schema) (p : DyNetKAT schema) : HeadSummand schema :=
   ⟨.visible (.rcfg x z), .rcfg x z, p⟩
 
 end HeadSummand
 
 /-- A finite choice of heads, with deadlock as the empty choice and trailing unit. -/
-abbrev HeadNormalForm := List HeadSummand
+abbrev HeadNormalForm (schema : PacketSchema := ctxSchema) [DiagramLayout schema] := List (HeadSummand schema)
 
 namespace HeadNormalForm
 
-def render (xs : HeadNormalForm) : DyNetKAT :=
+def render (xs : HeadNormalForm schema) : DyNetKAT schema :=
   choiceOf (xs.map HeadSummand.render)
 
-@[simp] theorem render_nil : render [] = .deadlock := rfl
+@[simp] theorem render_nil : render (schema := schema) [] = .deadlock := rfl
 
-@[simp] theorem render_cons (b : HeadSummand) (xs : HeadNormalForm) :
+@[simp] theorem render_cons (b : HeadSummand schema) (xs : HeadNormalForm schema) :
     render (b :: xs) = .choice b.render (render xs) := rfl
 
 /-- Invert a rendered step to a head and its exact continuation. -/
-theorem step_iff (env : RecEnv) (xs : HeadNormalForm) (pt hl : List CtxPkt)
-    (a : Action) (q : DyNetKAT) (pt' hl' : List CtxPkt) :
+theorem step_iff (env : RecEnv schema) (xs : HeadNormalForm schema) (pt hl : List schema.Packet)
+    (a : Action schema) (q : DyNetKAT schema) (pt' hl' : List schema.Packet) :
     Step env ⟨render xs, pt, hl⟩ a ⟨q, pt', hl'⟩ ↔
       ∃ b ∈ xs, q = b.continuation ∧ b.label.Realizes pt hl a pt' hl' := by
   simp only [render, choiceOf_step_iff, List.mem_map]
@@ -92,61 +96,61 @@ theorem step_iff (env : RecEnv) (xs : HeadNormalForm) (pt hl : List CtxPkt)
   · rintro ⟨b, hb, hs⟩
     exact ⟨b.render, ⟨b, hb, rfl⟩, (b.label.prefix_step_iff env ..).mpr hs⟩
 
-theorem render_singleton (env : RecEnv) (b : HeadSummand) :
+theorem render_singleton (env : RecEnv schema) (b : HeadSummand schema) :
     DerivesNoAIP env (render [b]) b.render := .a5 _
 
-theorem render_append (env : RecEnv) (xs ys : HeadNormalForm) :
+theorem render_append (env : RecEnv schema) (xs ys : HeadNormalForm schema) :
     DerivesNoAIP env (.choice (render xs) (render ys)) (render (xs ++ ys)) := by
   simpa only [render, List.map_append] using choiceOf_append env
     (xs.map HeadSummand.render) (ys.map HeadSummand.render)
 
-theorem render_derives_of_mem_iff (env : RecEnv) {xs ys : HeadNormalForm}
+theorem render_derives_of_mem_iff (env : RecEnv schema) {xs ys : HeadNormalForm schema}
     (h : ∀ b, b ∈ xs ↔ b ∈ ys) : DerivesNoAIP env (render xs) (render ys) := by
   apply choiceOf_derives_of_mem_iff
   intro q
   simp only [List.mem_map, h]
 
-private theorem distribute (env : RecEnv) (f : DyNetKAT → DyNetKAT)
-    (branches : HeadSummand → HeadNormalForm)
+private theorem distribute (env : RecEnv schema) (f : DyNetKAT schema → DyNetKAT schema)
+    (branches : HeadSummand schema → HeadNormalForm schema)
     (empty : DerivesNoAIP env (f .deadlock) .deadlock)
     (choice : ∀ p q, DerivesNoAIP env (f (.choice p q)) (.choice (f p) (f q)))
     (head : ∀ b, DerivesNoAIP env (f b.render) (render (branches b)))
-    (xs : HeadNormalForm) :
+    (xs : HeadNormalForm schema) :
     DerivesNoAIP env (f (render xs)) (render (xs.flatMap branches)) := by
   induction xs with
   | nil => exact empty
   | cons b xs ih =>
     exact .trans (choice _ _) (.trans (.choiceCongr (head b) ih) (render_append ..))
 
-def packetHeads (z : NetKAT) (p : DyNetKAT) : HeadNormalForm :=
-  (symbolicPairs z).map fun (α, π) => .packet α π p
+def packetHeads (z : NetKAT schema) (p : DyNetKAT schema) : HeadNormalForm schema :=
+  (symbolicPairsFor z).map fun (α, π) => .packet α π p
 
-private theorem pairSum_prefix (env : RecEnv) (p : DyNetKAT)
-    (xs : List (CompleteTest × CompleteAssignmentValuation)) :
+private theorem pairSum_prefix (env : RecEnv schema) (p : DyNetKAT schema)
+    (xs : List (schema.Packet × schema.Packet)) :
     DerivesNoAIP env (.nSeq (pairSum xs) p) (render (xs.map fun (α, π) => .packet α π p)) := by
   induction xs with
   | nil => exact .a0 _
   | cons b xs ih => exact .trans (.a1 _ _ _) (.choiceCongr (.refl _) ih)
 
-theorem packetHeads_correct (env : RecEnv) (z : NetKAT) (p : DyNetKAT) :
+theorem packetHeads_correct (env : RecEnv schema) (z : NetKAT schema) (p : DyNetKAT schema) :
     DerivesNoAIP env (.nSeq z p) (render (packetHeads z p)) :=
   .trans (.netkat p (NetKAT.normalize_derives z)) (pairSum_prefix ..)
 
-def leftMerge (xs : HeadNormalForm) (q : DyNetKAT) : HeadNormalForm :=
+def leftMerge (xs : HeadNormalForm schema) (q : DyNetKAT schema) : HeadNormalForm schema :=
   xs.flatMap fun b => [b.withContinuation (.parallel b.continuation q)]
 
-theorem leftMerge_correct (env : RecEnv) (xs : HeadNormalForm) (q : DyNetKAT) :
+theorem leftMerge_correct (env : RecEnv schema) (xs : HeadNormalForm schema) (q : DyNetKAT schema) :
     DerivesNoAIP env (.leftMerge (render xs) q) (render (leftMerge xs q)) :=
   distribute env (fun p => .leftMerge p q) _ (.a9 _) (fun _ _ => .a11 _ _ _)
     (fun b => .trans (.a10 b.label _ _) (.symm (.a5 _))) xs
 
-def synchronize (a b : HeadSummand) : HeadNormalForm :=
+def synchronize (a b : HeadSummand schema) : HeadNormalForm schema :=
   match a.label, b.label with
   | .recv x z, .send y w | .send x z, .recv y w =>
     if x = y ∧ z = w then [.rcfg x z (.parallel a.continuation b.continuation)] else []
   | _, _ => []
 
-theorem synchronize_correct (env : RecEnv) (a b : HeadSummand) :
+theorem synchronize_correct (env : RecEnv schema) (a b : HeadSummand schema) :
     DerivesNoAIP env (.commMerge a.render b.render) (render (synchronize a b)) := by
   rcases a with ⟨_, ha, p⟩
   rcases b with ⟨_, hb, q⟩
@@ -175,10 +179,10 @@ theorem synchronize_correct (env : RecEnv) (a b : HeadSummand) :
       have hm : y ≠ x ∨ w ≠ z := (not_and_or.mp h).imp Ne.symm Ne.symm
       exact .trans (.a14 _ _) (.a15 (.recvSend hm))
 
-def commMerge (xs ys : HeadNormalForm) : HeadNormalForm :=
+def commMerge (xs ys : HeadNormalForm schema) : HeadNormalForm schema :=
   xs.flatMap fun a => ys.flatMap (synchronize a)
 
-theorem commMerge_correct (env : RecEnv) (xs ys : HeadNormalForm) :
+theorem commMerge_correct (env : RecEnv schema) (xs ys : HeadNormalForm schema) :
     DerivesNoAIP env (.commMerge (render xs) (render ys)) (render (commMerge xs ys)) := by
   apply distribute env (fun p => .commMerge p (render ys)) _
     (.a15 .deadlock) (fun _ _ => .a13 _ _ _) _ xs
@@ -189,10 +193,10 @@ theorem commMerge_correct (env : RecEnv) (xs ys : HeadNormalForm) :
   exact .trans (.a14 _ _) (.trans (.a13 _ _ _) (.choiceCongr (.a14 _ _) (.a14 _ _)))
 
 /-- Keep the original operands in interleaving continuations. -/
-def parallel (p q : DyNetKAT) (xs ys : HeadNormalForm) : HeadNormalForm :=
+def parallel (p q : DyNetKAT schema) (xs ys : HeadNormalForm schema) : HeadNormalForm schema :=
   (leftMerge xs q ++ leftMerge ys p) ++ commMerge xs ys
 
-theorem parallel_correct (env : RecEnv) {p q : DyNetKAT} {xs ys : HeadNormalForm}
+theorem parallel_correct (env : RecEnv schema) {p q : DyNetKAT schema} {xs ys : HeadNormalForm schema}
     (hp : DerivesNoAIP env p (render xs)) (hq : DerivesNoAIP env q (render ys)) :
     DerivesNoAIP env (.parallel p q) (render (parallel p q xs ys)) := by
   have left := DerivesNoAIP.trans (.leftMergeCongr hp (.refl q)) (leftMerge_correct env xs q)
@@ -203,11 +207,11 @@ theorem parallel_correct (env : RecEnv) {p q : DyNetKAT} {xs ys : HeadNormalForm
     (render_append ..))
 
 open Classical in
-noncomputable def restrict (L : Set CommunicationAction) (xs : HeadNormalForm) : HeadNormalForm :=
+noncomputable def restrict (L : Set (CommunicationAction schema)) (xs : HeadNormalForm schema) : HeadNormalForm schema :=
   xs.flatMap fun b =>
     if PrefixBlocked L b.label then [] else [b.withContinuation (.restrict L b.continuation)]
 
-theorem restrict_correct (env : RecEnv) (L : Set CommunicationAction) (xs : HeadNormalForm) :
+theorem restrict_correct (env : RecEnv schema) (L : Set (CommunicationAction schema)) (xs : HeadNormalForm schema) :
     DerivesNoAIP env (.restrict L (render xs)) (render (restrict L xs)) := by
   classical
   apply distribute env (DyNetKAT.restrict L) _ (.restrictDeadlock _)
@@ -219,12 +223,12 @@ theorem restrict_correct (env : RecEnv) (L : Set CommunicationAction) (xs : Head
   · simp only [if_neg h]
     exact .trans (.restrictAllowed L b.label b.continuation b.atomic h) (.symm (.a5 _))
 
-def project (n : Nat) (xs : HeadNormalForm) : HeadNormalForm :=
+def project (n : Nat) (xs : HeadNormalForm schema) : HeadNormalForm schema :=
   match n with
   | 0 => []
   | k + 1 => xs.flatMap fun b => [b.withContinuation (.project k b.continuation)]
 
-theorem project_correct (env : RecEnv) (n : Nat) (xs : HeadNormalForm) :
+theorem project_correct (env : RecEnv schema) (n : Nat) (xs : HeadNormalForm schema) :
     DerivesNoAIP env (.project n (render xs)) (render (project n xs)) := by
   cases n with
   | zero => exact .projectZero _
@@ -234,20 +238,20 @@ theorem project_correct (env : RecEnv) (n : Nat) (xs : HeadNormalForm) :
       (fun b => .trans (.projectPrefix k b.label b.continuation b.atomic) (.symm (.a5 _))) xs
 
 /-- Every continuation is ground and strictly below the original process. -/
-def ResidualBound (p : DyNetKAT) (xs : HeadNormalForm) : Prop :=
+def ResidualBound (p : DyNetKAT schema) (xs : HeadNormalForm schema) : Prop :=
   ∀ b ∈ xs, Ground b.continuation ∧ prefixCount b.continuation < prefixCount p
 
-private theorem ResidualBound.mono {p q : DyNetKAT} {xs : HeadNormalForm}
+private theorem ResidualBound.mono {p q : DyNetKAT schema} {xs : HeadNormalForm schema}
     (h : ResidualBound p xs) (hle : prefixCount p ≤ prefixCount q) :
     ResidualBound q xs :=
   fun b hb => ⟨(h b hb).1, (h b hb).2.trans_le hle⟩
 
-private theorem ResidualBound.append {p : DyNetKAT} {xs ys : HeadNormalForm}
+private theorem ResidualBound.append {p : DyNetKAT schema} {xs ys : HeadNormalForm schema}
     (hx : ResidualBound p xs) (hy : ResidualBound p ys) : ResidualBound p (xs ++ ys) := by
   intro b hb
   exact (List.mem_append.mp hb).elim (hx b) (hy b)
 
-private theorem leftMerge_bound {p q : DyNetKAT} {xs : HeadNormalForm}
+private theorem leftMerge_bound {p q : DyNetKAT schema} {xs : HeadNormalForm schema}
     (hx : ResidualBound p xs) (hq : Ground q) :
     ResidualBound (.leftMerge p q) (leftMerge xs q) := by
   intro b hb
@@ -258,14 +262,14 @@ private theorem leftMerge_bound {p q : DyNetKAT} {xs : HeadNormalForm}
       using And.intro hg hq,
     Nat.add_lt_add_right hlt _⟩
 
-private theorem synchronize_continuation {a b c : HeadSummand}
+private theorem synchronize_continuation {a b c : HeadSummand schema}
     (h : c ∈ synchronize a b) : c.continuation = .parallel a.continuation b.continuation := by
   cases ha : a.label <;> cases hb : b.label <;> simp [synchronize, ha, hb] at h
   all_goals
     rw [h.2]
     rfl
 
-private theorem commMerge_bound {p q : DyNetKAT} {xs ys : HeadNormalForm}
+private theorem commMerge_bound {p q : DyNetKAT schema} {xs ys : HeadNormalForm schema}
     (hx : ResidualBound p xs) (hy : ResidualBound q ys) :
     ResidualBound (.commMerge p q) (commMerge xs ys) := by
   intro c hc
@@ -277,8 +281,8 @@ private theorem commMerge_bound {p q : DyNetKAT} {xs ys : HeadNormalForm}
   exact ⟨by simpa [Ground, recursiveVars, Finset.union_eq_empty] using And.intro hga hgb,
     Nat.add_lt_add hla hlb⟩
 
-private theorem restrict_bound {p : DyNetKAT} {xs : HeadNormalForm}
-    (L : Set CommunicationAction) (hx : ResidualBound p xs) :
+private theorem restrict_bound {p : DyNetKAT schema} {xs : HeadNormalForm schema}
+    (L : Set (CommunicationAction schema)) (hx : ResidualBound p xs) :
     ResidualBound (.restrict L p) (restrict L xs) := by
   classical
   intro b hb
@@ -289,7 +293,7 @@ private theorem restrict_bound {p : DyNetKAT} {xs : HeadNormalForm}
     subst b
     exact hx a ha
 
-private theorem project_bound {p : DyNetKAT} {xs : HeadNormalForm}
+private theorem project_bound {p : DyNetKAT schema} {xs : HeadNormalForm schema}
     (n : Nat) (hx : ResidualBound p xs) :
     ResidualBound (.project n p) (project n xs) := by
   cases n with
@@ -301,14 +305,14 @@ private theorem project_bound {p : DyNetKAT} {xs : HeadNormalForm}
     exact hx a ha
 
 /-- All continuation references belong to the given source name set. -/
-def NamesWithin (S : Set Var) (xs : HeadNormalForm) : Prop :=
+def NamesWithin (S : Set Var) (xs : HeadNormalForm schema) : Prop :=
   ∀ b ∈ xs, ∀ x ∈ recursiveVars b.continuation, x ∈ S
 
-private theorem NamesWithin.append {S : Set Var} {xs ys : HeadNormalForm}
+private theorem NamesWithin.append {S : Set Var} {xs ys : HeadNormalForm schema}
     (hx : NamesWithin S xs) (hy : NamesWithin S ys) : NamesWithin S (xs ++ ys) :=
   fun b hb => (List.mem_append.mp hb).elim (hx b) (hy b)
 
-private theorem NamesWithin.leftMerge {S : Set Var} {xs : HeadNormalForm} {q : DyNetKAT}
+private theorem NamesWithin.leftMerge {S : Set Var} {xs : HeadNormalForm schema} {q : DyNetKAT schema}
     (hx : NamesWithin S xs) (hq : ∀ x ∈ recursiveVars q, x ∈ S) :
     NamesWithin S (leftMerge xs q) := by
   intro b hb x occurs
@@ -316,7 +320,7 @@ private theorem NamesWithin.leftMerge {S : Set Var} {xs : HeadNormalForm} {q : D
   obtain rfl := List.mem_singleton.mp hb
   exact (Finset.mem_union.mp occurs).elim (hx a ha x) (hq x)
 
-private theorem NamesWithin.commMerge {S : Set Var} {xs ys : HeadNormalForm}
+private theorem NamesWithin.commMerge {S : Set Var} {xs ys : HeadNormalForm schema}
     (hx : NamesWithin S xs) (hy : NamesWithin S ys) : NamesWithin S (commMerge xs ys) := by
   intro c hc x occurs
   obtain ⟨a, ha, hc⟩ := List.mem_flatMap.mp hc
@@ -324,8 +328,8 @@ private theorem NamesWithin.commMerge {S : Set Var} {xs ys : HeadNormalForm}
   rw [synchronize_continuation hc, recursiveVars] at occurs
   exact (Finset.mem_union.mp occurs).elim (hx a ha x) (hy b hb x)
 
-private theorem NamesWithin.restrict {S : Set Var} {xs : HeadNormalForm}
-    (hx : NamesWithin S xs) (L : Set CommunicationAction) :
+private theorem NamesWithin.restrict {S : Set Var} {xs : HeadNormalForm schema}
+    (hx : NamesWithin S xs) (L : Set (CommunicationAction schema)) :
     NamesWithin S (restrict L xs) := by
   classical
   intro b hb
@@ -336,7 +340,7 @@ private theorem NamesWithin.restrict {S : Set Var} {xs : HeadNormalForm}
     subst b
     exact hx a ha
 
-private theorem NamesWithin.project {S : Set Var} {xs : HeadNormalForm}
+private theorem NamesWithin.project {S : Set Var} {xs : HeadNormalForm schema}
     (hx : NamesWithin S xs) (n : Nat) : NamesWithin S (project n xs) := by
   cases n with
   | zero => simp [NamesWithin, HeadNormalForm.project]
@@ -348,35 +352,35 @@ private theorem NamesWithin.project {S : Set Var} {xs : HeadNormalForm}
 
 end HeadNormalForm
 
-def IsDNKNormalForm (q : DyNetKAT) : Prop :=
-  ∃ xs : HeadNormalForm, q = xs.render
+def IsDNKNormalForm (q : DyNetKAT schema) : Prop :=
+  ∃ xs : HeadNormalForm schema, q = xs.render
 
 open HeadNormalForm in
-private theorem normalizeHead_aux (env : RecEnv) (p : DyNetKAT) (names : Set Var)
+private theorem normalizeHead_aux (env : RecEnv schema) (p : DyNetKAT schema) (names : Set Var)
     (bounded : ∀ x ∈ recursiveVars p, x ∈ names)
     (h : GuardedOccurrences p ∨
-      ∀ x ∈ recursiveVars p, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) :
-    ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render ∧
+      ∀ x ∈ recursiveVars p, ∃ xs : HeadNormalForm schema, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) :
+    ∃ xs : HeadNormalForm schema, DerivesNoAIP env p xs.render ∧
       (Ground p → ResidualBound p xs) ∧ NamesWithin names xs := by
-  have split (p q : DyNetKAT)
+  have split (p q : DyNetKAT schema)
       (h : (GuardedOccurrences p ∧ GuardedOccurrences q) ∨
         ∀ x ∈ recursiveVars p ∪ recursiveVars q,
-          ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) :
+          ∃ xs : HeadNormalForm schema, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) :
       (GuardedOccurrences p ∨
-        ∀ x ∈ recursiveVars p, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) ∧
+        ∀ x ∈ recursiveVars p, ∃ xs : HeadNormalForm schema, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) ∧
       (GuardedOccurrences q ∨
-        ∀ x ∈ recursiveVars q, ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) := by
+        ∀ x ∈ recursiveVars q, ∃ xs : HeadNormalForm schema, DerivesNoAIP env (.var x) xs.render ∧ NamesWithin names xs) := by
     rcases h with ⟨hp, hq⟩ | h
     · exact ⟨Or.inl hp, Or.inl hq⟩
     · exact ⟨Or.inr (fun x hx => h x (Finset.mem_union_left _ hx)),
         Or.inr (fun x hx => h x (Finset.mem_union_right _ hx))⟩
-  have groundPair {p q : DyNetKAT} (h : recursiveVars p ∪ recursiveVars q = ∅) :
+  have groundPair {p q : DyNetKAT schema} (h : recursiveVars p ∪ recursiveVars q = ∅) :
       Ground p ∧ Ground q := Finset.union_eq_empty.mp h
-  have leftNames {p q : DyNetKAT}
+  have leftNames {p q : DyNetKAT schema}
       (allNames : ∀ x ∈ recursiveVars p ∪ recursiveVars q, x ∈ names) :
       ∀ x ∈ recursiveVars p, x ∈ names :=
     fun x hx => allNames x (Finset.mem_union_left _ hx)
-  have rightNames {p q : DyNetKAT}
+  have rightNames {p q : DyNetKAT schema}
       (allNames : ∀ x ∈ recursiveVars p ∪ recursiveVars q, x ∈ names) :
       ∀ x ∈ recursiveVars q, x ∈ names :=
     fun x hx => allNames x (Finset.mem_union_right _ hx)
@@ -460,31 +464,31 @@ private theorem normalizeHead_aux (env : RecEnv) (p : DyNetKAT) (names : Set Var
     · obtain ⟨xs, dx, nx⟩ := h x (by simp)
       exact ⟨xs, dx, by simp [Ground], nx⟩
 
-theorem Ground.exists_headNormalForm {env : RecEnv} {p : DyNetKAT} (h : Ground p) :
-    ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render ∧ HeadNormalForm.ResidualBound p xs := by
+theorem Ground.exists_headNormalForm {env : RecEnv schema} {p : DyNetKAT schema} (h : Ground p) :
+    ∃ xs : HeadNormalForm schema, DerivesNoAIP env p xs.render ∧ HeadNormalForm.ResidualBound p xs := by
   obtain ⟨xs, dx, hx, _⟩ := normalizeHead_aux env p Set.univ (by simp) (Or.inl h.guarded)
   exact ⟨xs, dx, hx h⟩
 
 /-- Head-summand witness for the typed syntactically guarded domain. -/
-theorem exists_headNormalForm_of_guarded (env : RecEnv) {p : DyNetKAT}
+theorem exists_headNormalForm_of_guarded (env : RecEnv schema) {p : DyNetKAT schema}
     (h : GuardedOccurrences p) :
-    ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render :=
+    ∃ xs : HeadNormalForm schema, DerivesNoAIP env p xs.render :=
   let ⟨xs, dx, _, _⟩ := normalizeHead_aux env p Set.univ (by simp) (Or.inl h)
   ⟨xs, dx⟩
 
 /-- arXiv v4 Lemma 9, under the Lean interpretation of guarded occurrences. -/
-theorem guarded_normalizes (env : RecEnv) {p : DyNetKAT} (h : GuardedOccurrences p) :
+theorem guarded_normalizes (env : RecEnv schema) {p : DyNetKAT schema} (h : GuardedOccurrences p) :
     ∃ q, IsDNKNormalForm q ∧ DerivesNoAIP env p q := by
   obtain ⟨xs, d⟩ := exists_headNormalForm_of_guarded env h
   exact ⟨xs.render, ⟨xs, rfl⟩, d⟩
 
 /-- Normalize without introducing unrelated recursive names into continuations. -/
-theorem WellFormed.exists_headNormalForm_closed {env : RecEnv} {p : DyNetKAT}
-    (h : WellFormed env p) : ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render ∧
+theorem WellFormed.exists_headNormalForm_closed {env : RecEnv schema} {p : DyNetKAT schema}
+    (h : WellFormed env p) : ∃ xs : HeadNormalForm schema, DerivesNoAIP env p xs.render ∧
       ∀ b ∈ xs, WellFormed env b.continuation := by
   let S := {x | ReachableVar env p x}
   have refs (x : Var) (hx : x ∈ recursiveVars p) :
-      ∃ xs : HeadNormalForm, DerivesNoAIP env (.var x) xs.render ∧ xs.NamesWithin S := by
+      ∃ xs : HeadNormalForm schema, DerivesNoAIP env (.var x) xs.render ∧ xs.NamesWithin S := by
     obtain ⟨body, lookup, guarded⟩ := h.2 x (.direct hx)
     obtain ⟨xs, d, _, names⟩ := normalizeHead_aux env body S
       (fun _ mem => ReachableVar.throughDefinition (.direct hx) lookup mem) (Or.inl guarded)
@@ -498,12 +502,12 @@ theorem WellFormed.exists_headNormalForm_closed {env : RecEnv} {p : DyNetKAT}
   exact ⟨fun x hx => h.1 x (subset hx), fun x hx => h.2 x (subset hx)⟩
 
 /-- Resolve needed head variables, leaving references behind prefixes as continuations. -/
-theorem WellFormed.exists_headNormalForm {env : RecEnv} {p : DyNetKAT} (h : WellFormed env p) :
-    ∃ xs : HeadNormalForm, DerivesNoAIP env p xs.render := by
+theorem WellFormed.exists_headNormalForm {env : RecEnv schema} {p : DyNetKAT schema} (h : WellFormed env p) :
+    ∃ xs : HeadNormalForm schema, DerivesNoAIP env p xs.render := by
   obtain ⟨xs, d, _⟩ := h.exists_headNormalForm_closed
   exact ⟨xs, d⟩
 
-theorem WellFormed.normalizes {env : RecEnv} {p : DyNetKAT} (h : WellFormed env p) :
+theorem WellFormed.normalizes {env : RecEnv schema} {p : DyNetKAT schema} (h : WellFormed env p) :
     ∃ q, IsDNKNormalForm q ∧ DerivesNoAIP env p q := by
   obtain ⟨xs, d⟩ := h.exists_headNormalForm
   exact ⟨xs.render, ⟨xs, rfl⟩, d⟩

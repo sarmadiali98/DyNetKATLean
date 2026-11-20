@@ -8,7 +8,7 @@ variable {schema : PacketSchema}
 
 /-- A symmetric process relation that matches labeled transitions while
     preserving both packet histories. -/
-def IsBisimulation (env : RecEnv schema) (R : DyNetKAT schema → (DyNetKAT schema) → Prop) : Prop :=
+def IsBisimulation (env : RecEnv schema) (R : DyNetKAT schema → DyNetKAT schema → Prop) : Prop :=
   (∀ p q, R p q → R q p) ∧
   ∀ p q, R p q →
     ∀ (pending handled : List schema.Packet) (action : Action schema)
@@ -37,16 +37,16 @@ theorem Bisimilar.refl (env : RecEnv schema) (p : DyNetKAT schema) : Bisimilar e
     subst q
     exact ⟨p', step, rfl⟩
 
-theorem Bisimilar.symm (env : RecEnv schema) {p q : (DyNetKAT schema)} (h : Bisimilar env p q) :
+theorem Bisimilar.symm (env : RecEnv schema) {p q : DyNetKAT schema} (h : Bisimilar env p q) :
     Bisimilar env q p := by
   rcases h with ⟨R, hR, hpq⟩
   exact ⟨R, hR, hR.1 p q hpq⟩
 
-theorem Bisimilar.trans (env : RecEnv schema) {p q r : (DyNetKAT schema)}
+theorem Bisimilar.trans (env : RecEnv schema) {p q r : DyNetKAT schema}
     (hpq : Bisimilar env p q) (hqr : Bisimilar env q r) : Bisimilar env p r := by
   rcases hpq with ⟨R, hR, hpq⟩
   rcases hqr with ⟨S, hS, hqr⟩
-  let T : DyNetKAT schema → (DyNetKAT schema) → Prop := fun x z =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x z =>
     (∃ y, R x y ∧ S y z) ∨ (∃ y, R z y ∧ S y x)
   refine ⟨T, ?_, Or.inl ⟨q, hpq, hqr⟩⟩
   constructor
@@ -67,11 +67,11 @@ theorem Bisimilar.trans (env : RecEnv schema) {p q r : (DyNetKAT schema)}
         ⟨z', step'', hzy'⟩
       exact ⟨z', step'', Or.inr ⟨y', hR.1 y' z' hzy', hS.1 x' y' hyx'⟩⟩
 
-theorem Bisimilar.choice_left (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.choice_left (env : RecEnv schema) {p q r : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.choice p r) (.choice q r) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (x = .choice p r ∧ y = .choice q r) ∨
     (x = .choice q r ∧ y = .choice p r) ∨
     R x y ∨ x = y
@@ -108,11 +108,11 @@ theorem Bisimilar.choice_left (env : RecEnv) {p q r : DyNetKAT}
       exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
     · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.choice_right (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.choice_right (env : RecEnv schema) {p q r : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.choice r p) (.choice r q) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (x = .choice r p ∧ y = .choice r q) ∨
     (x = .choice r q ∧ y = .choice r p) ∨
     R x y ∨ x = y
@@ -149,11 +149,11 @@ theorem Bisimilar.choice_right (env : RecEnv) {p q r : DyNetKAT}
       exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
     · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.parallel_right (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.parallel_right (env : RecEnv schema) {p q r : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.parallel p r) (.parallel q r) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (∃ a b c, R a b ∧ x = .parallel a c ∧ y = .parallel b c) ∨
     (∃ a b c, R a b ∧ x = .parallel b c ∧ y = .parallel a c) ∨
     R x y ∨ x = y
@@ -213,11 +213,11 @@ theorem Bisimilar.parallel_right (env : RecEnv) {p q r : DyNetKAT}
       exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
     · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.parallel_left (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.parallel_left (env : RecEnv schema) {p q r : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.parallel r p) (.parallel r q) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (∃ a b c, R a b ∧ x = .parallel c a ∧ y = .parallel c b) ∨
     (∃ a b c, R a b ∧ x = .parallel c b ∧ y = .parallel c a) ∨
     R x y ∨ x = y
@@ -277,11 +277,11 @@ theorem Bisimilar.parallel_left (env : RecEnv) {p q r : DyNetKAT}
       exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
     · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.leftMerge_left (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.leftMerge_left (env : RecEnv schema) {p q r : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.leftMerge p r) (.leftMerge q r) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (x = .leftMerge p r ∧ y = .leftMerge q r) ∨
     (x = .leftMerge q r ∧ y = .leftMerge p r) ∨
     Bisimilar env x y
@@ -313,10 +313,10 @@ theorem Bisimilar.leftMerge_left (env : RecEnv) {p q r : DyNetKAT}
         ⟨y', step', hxy'⟩
       exact ⟨y', step', Or.inr (Or.inr ⟨S, hS, hxy'⟩)⟩
 
-theorem Bisimilar.leftMerge_right (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.leftMerge_right (env : RecEnv schema) {p q r : DyNetKAT schema}
      (hpq : Bisimilar env p q) :
      Bisimilar env (.leftMerge r p) (.leftMerge r q) := by
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (x = .leftMerge r p ∧ y = .leftMerge r q) ∨
     (x = .leftMerge r q ∧ y = .leftMerge r p) ∨
     Bisimilar env x y
@@ -344,11 +344,11 @@ theorem Bisimilar.leftMerge_right (env : RecEnv) {p q r : DyNetKAT}
         ⟨y', step', hxy'⟩
       exact ⟨y', step', Or.inr (Or.inr ⟨S, hS, hxy'⟩)⟩
 
-theorem Bisimilar.commMerge_right (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.commMerge_right (env : RecEnv schema) {p q r : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.commMerge p r) (.commMerge q r) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (x = .commMerge p r ∧ y = .commMerge q r) ∨
     (x = .commMerge q r ∧ y = .commMerge p r) ∨
     Bisimilar env x y
@@ -392,11 +392,11 @@ theorem Bisimilar.commMerge_right (env : RecEnv) {p q r : DyNetKAT}
         ⟨y', step', hxy'⟩
       exact ⟨y', step', Or.inr (Or.inr ⟨S, hS, hxy'⟩)⟩
 
-theorem Bisimilar.commMerge_left (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.commMerge_left (env : RecEnv schema) {p q r : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.commMerge r p) (.commMerge r q) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (x = .commMerge r p ∧ y = .commMerge r q) ∨
     (x = .commMerge r q ∧ y = .commMerge r p) ∨
     Bisimilar env x y
@@ -440,11 +440,11 @@ theorem Bisimilar.commMerge_left (env : RecEnv) {p q r : DyNetKAT}
         ⟨y', step', hxy'⟩
       exact ⟨y', step', Or.inr (Or.inr ⟨S, hS, hxy'⟩)⟩
 
-theorem Bisimilar.nSeq_left (env : RecEnv) {n : NetKAT} {p q : DyNetKAT}
+theorem Bisimilar.nSeq_left (env : RecEnv schema) {n : NetKAT schema} {p q : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.nSeq n p) (.nSeq n q) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x y =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun x y =>
     (x = .nSeq n p ∧ y = .nSeq n q) ∨
     (x = .nSeq n q ∧ y = .nSeq n p) ∨
     R x y ∨ x = y
@@ -471,11 +471,11 @@ theorem Bisimilar.nSeq_left (env : RecEnv) {n : NetKAT} {p q : DyNetKAT}
       exact ⟨y', step', Or.inr (Or.inr (Or.inl hxy'))⟩
     · exact ⟨x', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.recv_left (env : RecEnv) {x : Channel} {n : NetKAT}
-    {p q : DyNetKAT} (hpq : Bisimilar env p q) :
+theorem Bisimilar.recv_left (env : RecEnv schema) {x : Channel} {n : NetKAT schema}
+    {p q : DyNetKAT schema} (hpq : Bisimilar env p q) :
     Bisimilar env (.recv x n p) (.recv x n q) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .recv x n p ∧ b = .recv x n q) ∨
     (a = .recv x n q ∧ b = .recv x n p) ∨
     R a b ∨ a = b
@@ -502,11 +502,11 @@ theorem Bisimilar.recv_left (env : RecEnv) {x : Channel} {n : NetKAT}
       exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
     · exact ⟨a', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.send_left (env : RecEnv) {x : Channel} {n : NetKAT}
-    {p q : DyNetKAT} (hpq : Bisimilar env p q) :
+theorem Bisimilar.send_left (env : RecEnv schema) {x : Channel} {n : NetKAT schema}
+    {p q : DyNetKAT schema} (hpq : Bisimilar env p q) :
     Bisimilar env (.send x n p) (.send x n q) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .send x n p ∧ b = .send x n q) ∨
     (a = .send x n q ∧ b = .send x n p) ∨
     R a b ∨ a = b
@@ -533,11 +533,11 @@ theorem Bisimilar.send_left (env : RecEnv) {x : Channel} {n : NetKAT}
       exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
     · exact ⟨a', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.rcfgPrefix_left (env : RecEnv) {x : Channel} {n : NetKAT}
-    {p q : DyNetKAT} (hpq : Bisimilar env p q) :
+theorem Bisimilar.rcfgPrefix_left (env : RecEnv schema) {x : Channel} {n : NetKAT schema}
+    {p q : DyNetKAT schema} (hpq : Bisimilar env p q) :
     Bisimilar env (.rcfgPrefix x n p) (.rcfgPrefix x n q) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (a = .rcfgPrefix x n p ∧ b = .rcfgPrefix x n q) ∨
     (a = .rcfgPrefix x n q ∧ b = .rcfgPrefix x n p) ∨
     R a b ∨ a = b
@@ -564,11 +564,11 @@ theorem Bisimilar.rcfgPrefix_left (env : RecEnv) {x : Channel} {n : NetKAT}
       exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
     · exact ⟨a', step, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.restrict (env : RecEnv) {actions : Set CommunicationAction}
-    {p q : DyNetKAT} (hpq : Bisimilar env p q) :
+theorem Bisimilar.restrict (env : RecEnv schema) {actions : Set (CommunicationAction schema)}
+    {p q : DyNetKAT schema} (hpq : Bisimilar env p q) :
     Bisimilar env (.restrict actions p) (.restrict actions q) := by
   rcases hpq with ⟨R, hR, hpq⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+  let T : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
     (∃ c d, R c d ∧ a = .restrict actions c ∧ b = .restrict actions d) ∨
     (∃ c d, R c d ∧ a = .restrict actions d ∧ b = .restrict actions c) ∨
     R a b ∨ a = b
@@ -583,9 +583,9 @@ theorem Bisimilar.restrict (env : RecEnv) {actions : Set CommunicationAction}
   · intro a b h pending handled action a' pending' handled' step
     rcases h with ⟨c, d, hcd, hac, hbd⟩ | ⟨c, d, hcd, hac, hbd⟩ | hab | hab
     · have step_c : Step env
-          (show Config from { proc := .restrict actions c, pending := pending, handled := handled })
+          (show (Config schema) from { proc := .restrict actions c, pending := pending, handled := handled })
           action
-          (show Config from { proc := a', pending := pending', handled := handled' }) := by
+          (show (Config schema) from { proc := a', pending := pending', handled := handled' }) := by
           simpa [hac] using step
       cases step_c with
       | cpol_restrict _ c c' action pending pending' handled handled' allowed step' =>
@@ -595,9 +595,9 @@ theorem Bisimilar.restrict (env : RecEnv) {actions : Set CommunicationAction}
           exact ⟨.restrict actions q', Step.cpol_restrict actions d q' action pending pending'
             handled handled' allowed step'', Or.inl ⟨c', q', hp'q', rfl, rfl⟩⟩
     · have step_d : Step env
-          (show Config from { proc := .restrict actions d, pending := pending, handled := handled })
+          (show (Config schema) from { proc := .restrict actions d, pending := pending, handled := handled })
           action
-          (show Config from { proc := a', pending := pending', handled := handled' }) := by
+          (show (Config schema) from { proc := a', pending := pending', handled := handled' }) := by
           simpa [hac] using step
       cases step_d with
       | cpol_restrict _ d d' action pending pending' handled handled' allowed step' =>
@@ -610,18 +610,18 @@ theorem Bisimilar.restrict (env : RecEnv) {actions : Set CommunicationAction}
         ⟨b', step', hab'⟩
       exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
     · have step_b : Step env
-          (show Config from { proc := b, pending := pending, handled := handled })
+          (show (Config schema) from { proc := b, pending := pending, handled := handled })
           action
-          (show Config from { proc := a', pending := pending', handled := handled' }) := by
+          (show (Config schema) from { proc := a', pending := pending', handled := handled' }) := by
           simpa [hab] using step
       exact ⟨a', step_b, Or.inr (Or.inr (Or.inr rfl))⟩
 
-theorem Bisimilar.project (env : RecEnv) {n : Nat} {p q : DyNetKAT}
+theorem Bisimilar.project (env : RecEnv schema) {n : Nat} {p q : DyNetKAT schema}
     (hpq : Bisimilar env p q) :
     Bisimilar env (.project n p) (.project n q) := by
   cases n with
   | zero =>
-      let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+      let T : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
         (a = .project 0 p ∧ b = .project 0 q) ∨
         (a = .project 0 q ∧ b = .project 0 p) ∨
         a = b
@@ -639,7 +639,7 @@ theorem Bisimilar.project (env : RecEnv) {n : Nat} {p q : DyNetKAT}
         · exact ⟨a', step, Or.inr (Or.inr rfl)⟩
   | succ n =>
     rcases hpq with ⟨R, hR, hpq⟩
-    let T : DyNetKAT → DyNetKAT → Prop := fun a b =>
+    let T : DyNetKAT schema → DyNetKAT schema → Prop := fun a b =>
       (∃ k c d, k ≤ n + 1 ∧ R c d ∧ a = .project k c ∧ b = .project k d) ∨
       (∃ k c d, k ≤ n + 1 ∧ R c d ∧ a = .project k d ∧ b = .project k c) ∨
       R a b ∨ a = b
@@ -656,9 +656,9 @@ theorem Bisimilar.project (env : RecEnv) {n : Nat} {p q : DyNetKAT}
       rcases h with ⟨k, c, d, hk, hcd, hac, hbd⟩ |
           ⟨k, c, d, hk, hcd, hac, hbd⟩ | hab | hab
       · have step_c : Step env
-            (show Config from { proc := .project k c, pending := pending, handled := handled })
+            (show (Config schema) from { proc := .project k c, pending := pending, handled := handled })
             action
-            (show Config from { proc := a', pending := pending', handled := handled' }) := by
+            (show (Config schema) from { proc := a', pending := pending', handled := handled' }) := by
             simpa [hac] using step
         cases step_c with
         | cpol_project m c c' action pending pending' handled handled' step' =>
@@ -669,9 +669,9 @@ theorem Bisimilar.project (env : RecEnv) {n : Nat} {p q : DyNetKAT}
             exact ⟨.project m d', Step.cpol_project m d d' action pending pending'
               handled handled' step'', Or.inl ⟨m, c', d', hm, hcd', rfl, rfl⟩⟩
       · have step_d : Step env
-            (show Config from { proc := .project k d, pending := pending, handled := handled })
+            (show (Config schema) from { proc := .project k d, pending := pending, handled := handled })
             action
-            (show Config from { proc := a', pending := pending', handled := handled' }) := by
+            (show (Config schema) from { proc := a', pending := pending', handled := handled' }) := by
             simpa [hac] using step
         cases step_d with
         | cpol_project m d d' action pending pending' handled handled' step' =>
@@ -685,9 +685,9 @@ theorem Bisimilar.project (env : RecEnv) {n : Nat} {p q : DyNetKAT}
           ⟨b', step', hab'⟩
         exact ⟨b', step', Or.inr (Or.inr (Or.inl hab'))⟩
       · have step_b : Step env
-            (show Config from { proc := b, pending := pending, handled := handled })
+            (show (Config schema) from { proc := b, pending := pending, handled := handled })
             action
-            (show Config from { proc := a', pending := pending', handled := handled' }) := by
+            (show (Config schema) from { proc := a', pending := pending', handled := handled' }) := by
             simpa [hab] using step
         exact ⟨a', step_b, Or.inr (Or.inr (Or.inr rfl))⟩
 

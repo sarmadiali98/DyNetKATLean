@@ -6,38 +6,51 @@ namespace DyNetKAT.DyNetKAT.InfiniteDerivativesTests
 
 open DyNetKAT.NetKAT
 
-private def blocker : GProc := .rcfgPrefix "b" .id .deadlock
+private def blockerFor (schema : PacketSchema) : GProc schema := .rcfgPrefix "b" .id .deadlock
 
-private def spawnEnv : RecEnv :=
-  RecEnv.empty.define "X" (.rcfgPrefix "a" .id
+private def spawnEnvFor (schema : PacketSchema) : RecEnv schema :=
+  (RecEnv.emptyFor schema).define "X" (.rcfgPrefix "a" .id
     (.parallel (.var "X") (.rcfgPrefix "b" .id .deadlock)))
 
-private theorem spawnSupported : FiniteSupport spawnEnv (.var "X") {"X"} := by
+private theorem spawnSupportedFor (schema : PacketSchema) :
+    FiniteSupport (spawnEnvFor schema) (.var "X") {"X"} := by
   refine ⟨by simp [recursiveVars], ?_⟩
   intro x hx
   have hx' : x = "X" := Finset.mem_singleton.mp hx
   subst x
-  simp [spawnEnv, recursiveVars]
+  simp [spawnEnvFor, recursiveVars]
 
-private def graph : ProcessGraph := toGraph spawnEnv (.var "X") {"X"} spawnSupported
+private def graphFor (schema : PacketSchema) : ProcessGraph schema :=
+  toGraph (spawnEnvFor schema) (.var "X") {"X"} (spawnSupportedFor schema)
 
-private def spawnState : Nat → GProc
+private def spawnStateFor (schema : PacketSchema) : Nat → GProc schema
   | 0 => .ref (varNode "X")
-  | n + 1 => .parallel (spawnState n) blocker
+  | n + 1 => .parallel (spawnStateFor schema n) (blockerFor schema)
 
-private theorem spawnStep (n : Nat) :
-    GStep graph ⟨spawnState n, [], []⟩ (.rcfg "a" .id) ⟨spawnState (n + 1), [], []⟩ := by
+private theorem spawnStepFor (schema : PacketSchema) (n : Nat) :
+    GStep (graphFor schema) ⟨spawnStateFor schema n, [], []⟩ (.rcfg "a" .id)
+      ⟨spawnStateFor schema (n + 1), [], []⟩ := by
   induction n with
   | zero =>
       exact .var _ _ _ _ _ _ _ (by
-        have hLabel : graph.label (varNode "X") =
-            .rcfgPrefix "a" .id (.parallel (.ref (varNode "X")) blocker) := by
-          simp [graph, spawnEnv, toGProc, blocker]
-        change GStep graph ⟨graph.label (varNode "X"), [], []⟩ _ _
+        have hLabel : (graphFor schema).label (varNode "X") =
+            .rcfgPrefix "a" .id (.parallel (.ref (varNode "X")) (blockerFor schema)) := by
+          simp [graphFor, spawnEnvFor, toGProc, blockerFor]
+        change GStep (graphFor schema) ⟨(graphFor schema).label (varNode "X"), [], []⟩ _ _
         rw [hLabel]
         exact .rcfg _ _ _ _ _)
   | succ n ih =>
       exact .par_l _ _ _ _ _ _ _ _ ih
+
+private abbrev blocker := blockerFor ctxSchema
+private abbrev spawnEnv := spawnEnvFor ctxSchema
+private theorem spawnSupported : FiniteSupport spawnEnv (.var "X") {"X"} :=
+  spawnSupportedFor ctxSchema
+private abbrev graph := graphFor ctxSchema
+private abbrev spawnState := spawnStateFor ctxSchema
+private theorem spawnStep (n : Nat) :
+    GStep graph ⟨spawnState n, [], []⟩ (.rcfg "a" .id) ⟨spawnState (n + 1), [], []⟩ :=
+  spawnStepFor ctxSchema n
 
 /-- One-step enumeration succeeds at every growing derivative. -/
 theorem spawn_guardedMoves_exact (n : Nat) :
@@ -47,18 +60,19 @@ theorem spawn_guardedMoves_exact (n : Nat) :
     induction n with
     | zero =>
         change MoveAdmissible (fun _ => False) (graph.label (varNode "X"))
-        simp [graph, spawnEnv, toGProc, MoveAdmissible]
+        simp [graph, graphFor, spawnEnv, spawnEnvFor, toGProc, MoveAdmissible]
     | succ n ih =>
         exact ⟨ih, trivial⟩
   obtain ⟨row, h⟩ := supportedRow
   exact ⟨row, h, guardedMoves_exact h⟩
 
-private theorem spawnReach (n : Nat) : ReachableDerivative graph (spawnState n) := by
+private theorem spawnReachFor (schema : PacketSchema) (n : Nat) :
+    ReachableDerivative (graphFor schema) (spawnStateFor schema n) := by
   induction n with
   | zero => exact .refl
-  | succ n ih => exact ih.tail ⟨[], [], .rcfg "a" .id, [], [], trivial, spawnStep n⟩
+  | succ n ih => exact ih.tail ⟨[], [], .rcfg "a" .id, [], [], trivial, spawnStepFor schema n⟩
 
-private theorem spawnInjective : Function.Injective spawnState := by
+private theorem spawnInjectiveFor (schema : PacketSchema) : Function.Injective (spawnStateFor schema) := by
   intro n
   induction n with
   | zero =>
@@ -74,11 +88,36 @@ private theorem spawnInjective : Function.Injective spawnState := by
 
 /-- One recursive definition gives infinitely many distinct process
     derivatives under the restricted SOS, with both packet lists empty. -/
-theorem spawn_no_finite_derivatives : ¬ HasFiniteDerivatives graph := by
+theorem spawn_no_finite_derivatives_for (schema : PacketSchema) :
+    ¬ HasFiniteDerivatives (graphFor schema) := by
   rintro ⟨S, hFinite, hClosure⟩
-  apply (Set.infinite_range_of_injective spawnInjective) (hFinite.subset ?_)
+  apply (Set.infinite_range_of_injective (spawnInjectiveFor schema)) (hFinite.subset ?_)
   rintro _ ⟨n, rfl⟩
-  exact (hClosure.mem_iff _).mpr (spawnReach n)
+  exact (hClosure.mem_iff _).mpr (spawnReachFor schema n)
+
+theorem spawn_source_trace_for (schema : PacketSchema) (n : Nat) :
+    SourceTrace (spawnEnvFor schema) (.var "X")
+      (List.replicate n (.rcfg "a" .id)) := by
+  have path (count start : Nat) : GSteps (graphFor schema)
+      ⟨spawnStateFor schema start, [], []⟩ (List.replicate count (.rcfg "a" .id))
+      ⟨spawnStateFor schema (start + count), [], []⟩ := by
+    induction count generalizing start with
+    | zero => exact .nil _
+    | succ count ih =>
+      have rest := ih (start + 1)
+      rw [show start + 1 + count = start + (count + 1) by omega] at rest
+      exact .cons _ _ _ _ _ (spawnStepFor schema start) rest
+  obtain ⟨q, steps, _⟩ := gsteps_to_steps _ _ _ _ _ (path n 0) _
+    (toGraph_corr (spawnEnvFor schema) (.var "X") _ (spawnSupportedFor schema))
+  exact ⟨[], [], ⟨q, [], []⟩, steps⟩
+
+private theorem spawnReach (n : Nat) : ReachableDerivative graph (spawnState n) :=
+  spawnReachFor ctxSchema n
+
+private theorem spawnInjective : Function.Injective spawnState := spawnInjectiveFor ctxSchema
+
+theorem spawn_no_finite_derivatives : ¬ HasFiniteDerivatives graph :=
+  spawn_no_finite_derivatives_for ctxSchema
 
 theorem spawn_rejects_every_candidate {n : Nat} (C : NormalizationCandidate n) :
     normalizeGraph graph C = .error .invalidCertificate := by
@@ -87,12 +126,12 @@ theorem spawn_rejects_every_candidate {n : Nat} (C : NormalizationCandidate n) :
   | false => rfl
   | true => exact (spawn_no_finite_derivatives (checkNormalization_finite h)).elim
 
-private def checks : RestrictionChecks := fun _ _ => false
+private def checksFor (schema : PacketSchema) : RestrictionChecks schema := fun _ _ => false
 
-private theorem spawnWellFormed : WellFormed spawnEnv (.var "X") := by
-  have body (x : Var) (hx : ReachableVar spawnEnv (.var "X") x) :
+private theorem spawnWellFormedFor (schema : PacketSchema) : WellFormed (spawnEnvFor schema) (.var "X") := by
+  have body (x : Var) (hx : ReachableVar (spawnEnvFor schema) (.var "X") x) :
       x = "X" := Finset.mem_singleton.mp
-    (reachableVars_subset_of_finiteSupport spawnEnv _ _ spawnSupported x hx)
+    (reachableVars_subset_of_finiteSupport (spawnEnvFor schema) _ _ (spawnSupportedFor schema) x hx)
   constructor
   · intro x hx
     rw [body x hx]
@@ -100,6 +139,11 @@ private theorem spawnWellFormed : WellFormed spawnEnv (.var "X") := by
   · intro x hx
     rw [body x hx]
     exact ⟨_, rfl, trivial⟩
+
+private abbrev checks := checksFor ctxSchema
+
+private theorem spawnWellFormed : WellFormed spawnEnv (.var "X") :=
+  spawnWellFormedFor ctxSchema
 
 private theorem spawnPaperAdmissible : PaperAdmissible true spawnEnv (.var "X") := by
   refine ⟨spawnWellFormed, trivial, ?_⟩
@@ -130,7 +174,7 @@ example (n : Nat) : ∃ p, PaperAdmissible true spawnEnv p ∧ Corr graph spawnE
     spawnPaperAdmissible
 
 -- Environment closure and guardedness do not make the spawning root ground.
-example : WellFormed spawnEnv (.var "X") ∧ ¬ Ground (.var "X") :=
+example : WellFormed spawnEnv (.var "X") ∧ ¬ Ground (schema := ctxSchema) (.var "X") :=
   ⟨spawnWellFormed, by simp [Ground]⟩
 
 example : WellFormed spawnEnv (.var "X") ∧ ¬ TypedPaperGuarded (.var "X" : DyNetKAT) :=
@@ -148,21 +192,32 @@ example {C : Finset Var} (hC : C ∈ spawnDependencies.sccs) {x : Var} (hx : x �
   ⟨DependencyGraph.guarded_scc spawnSupported spawnWellFormed hC hx,
     spawn_no_finite_derivatives⟩
 
-private theorem spawnBodyChecks (x : Var) (b : DyNetKAT)
-    (hx : ReachableVar spawnEnv (.var "X") x) (hb : spawnEnv.lookup x = some b) :
-    AllRestrictionChecksCorrect (toGProc b) checks := by
+private theorem spawnBodyChecksFor (schema : PacketSchema) (x : Var) (b : DyNetKAT schema)
+    (hx : ReachableVar (spawnEnvFor schema) (.var "X") x) (hb : (spawnEnvFor schema).lookup x = some b) :
+    AllRestrictionChecksCorrect (toGProc b) (checksFor schema) := by
   have he : x = "X" := Finset.mem_singleton.mp
-    (reachableVars_subset_of_finiteSupport spawnEnv _ _ spawnSupported x hx)
+    (reachableVars_subset_of_finiteSupport (spawnEnvFor schema) _ _ (spawnSupportedFor schema) x hx)
   subst x
-  simp only [spawnEnv, RecEnv.lookup_define_same, Option.some.injEq] at hb
+  simp only [spawnEnvFor, RecEnv.lookup_define_same, Option.some.injEq] at hb
   subst b
   exact ⟨trivial, trivial⟩
+
+theorem spawn_projection_for (schema : PacketSchema) (n : Nat) : ∃ q,
+    renderProjection (graphFor schema) (fun _ => checksFor schema) n
+        ⟨(graphFor schema).root, checksFor schema⟩ = some q ∧
+      Bisimilar (spawnEnvFor schema) q (.project n (.var "X")) :=
+  renderProjection_source (spawnSupportedFor schema) (spawnWellFormedFor schema)
+    (checksFor schema) (fun _ => checksFor schema) trivial (spawnBodyChecksFor schema) n
+
+private theorem spawnBodyChecks (x : Var) (b : DyNetKAT)
+    (hx : ReachableVar spawnEnv (.var "X") x) (hb : spawnEnv.lookup x = some b) :
+    AllRestrictionChecksCorrect (toGProc b) checks :=
+  spawnBodyChecksFor ctxSchema x b hx hb
 
 theorem spawn_projection (n : Nat) : ∃ q,
     renderProjection graph (fun _ => checks) n ⟨graph.root, checks⟩ = some q ∧
       Bisimilar spawnEnv q (.project n (.var "X")) :=
-  renderProjection_source spawnSupported spawnWellFormed checks (fun _ => checks) trivial
-    spawnBodyChecks n
+  spawn_projection_for ctxSchema n
 
 -- The global graph derivative family is infinite, and each member has a
 -- finite row. The source theorem covers every reachable residual as well.
@@ -266,7 +321,7 @@ private theorem SpawnResidual.step {n p} (h : SpawnResidual n p) {pt hl a q pt' 
     change GStep graph ⟨.ref (varNode "X"), pt, hl⟩ a ⟨q, pt', hl'⟩ at hs
     have hh := gstep_ref_inv hs
     have label : graph.label (varNode "X") = .rcfgPrefix "a" .id (.parallel graph.root blocker) := by
-      simp [graph, spawnEnv, toGProc, blocker]
+      simp [graph, graphFor, spawnEnv, spawnEnvFor, toGProc, blocker, blockerFor]
       rfl
     rw [label] at hh
     cases hh

@@ -45,6 +45,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : NetKAT.PacketSchema}
+
 open DyNetKAT.NetKAT
 
 ------------------------------------------------------------------------
@@ -71,7 +73,7 @@ open DyNetKAT.NetKAT
     Failure propagates: if a subterm of a supported shape fails, the whole
     extraction fails, so an unsupported subterm is never silently treated
     as the zero policy.  Structurally recursive and executable. -/
-def head : DyNetKAT → Option NetKAT
+def head : DyNetKAT schema → Option (NetKAT schema)
   | .deadlock => some .drop
   | .nSeq N D =>
       match head D with
@@ -97,11 +99,11 @@ def head : DyNetKAT → Option NetKAT
 
 /-- Eq. (29): `head(⊥) = 0`.  The extracted `0` is the NetKAT policy
     `.drop`; ⊥ itself is the DyNetKAT process `.deadlock`. -/
-theorem head_deadlock : head .deadlock = some .drop := rfl
+theorem head_deadlock : head (schema := schema) .deadlock = some .drop := rfl
 
 /-- Eq. (30): `head(N;D) = N + head(D)`, as a match on the optional
     sub-result.  If `head D` fails, the whole extraction fails. -/
-theorem head_nSeq (N : NetKAT) (D : DyNetKAT) :
+theorem head_nSeq (N : NetKAT schema) (D : DyNetKAT schema) :
     head (.nSeq N D) =
       (match head D with
        | some H => some (NetKAT.union N H)
@@ -110,7 +112,7 @@ theorem head_nSeq (N : NetKAT) (D : DyNetKAT) :
 /-- Eq. (31): `head(D ⊕ Q) = head(D) + head(Q)`, as a match on the two
     optional sub-results.  If either side fails, the whole extraction
     fails. -/
-theorem head_choice (D Q : DyNetKAT) :
+theorem head_choice (D Q : DyNetKAT schema) :
     head (.choice D Q) =
       (match head D, head Q with
        | some H₁, some H₂ => some (NetKAT.union H₁ H₂)
@@ -119,38 +121,38 @@ theorem head_choice (D Q : DyNetKAT) :
 /-- Eq. (32): `head(rcfg_{X,N};D) = 0`.  The reconfiguration prefix
     contributes no packet-processing policy and its continuation `D` is
     ignored by `head` (it belongs to `tail`). -/
-theorem head_rcfgPrefix (x : Channel) (N : NetKAT) (D : DyNetKAT) :
+theorem head_rcfgPrefix (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema) :
     head (.rcfgPrefix x N D) = some .drop := rfl
 
 /-- Eq. (30) in the paper's shape: if `head D` succeeds with `H`, then
     `head (N;D) = N + H`. -/
-theorem head_nSeq_eq (N : NetKAT) (D : DyNetKAT) (H : NetKAT)
+theorem head_nSeq_eq (N : NetKAT schema) (D : DyNetKAT schema) (H : NetKAT schema)
     (hD : head D = some H) :
     head (.nSeq N D) = some (NetKAT.union N H) := by
   rw [head_nSeq, hD]
 
 /-- Eq. (31) in the paper's shape: if `head D` and `head Q` succeed with
     `H₁` and `H₂`, then `head (D ⊕ Q) = H₁ + H₂`. -/
-theorem head_choice_eq (D Q : DyNetKAT) (H₁ H₂ : NetKAT)
+theorem head_choice_eq (D Q : DyNetKAT schema) (H₁ H₂ : NetKAT schema)
     (hD : head D = some H₁) (hQ : head Q = some H₂) :
     head (.choice D Q) = some (NetKAT.union H₁ H₂) := by
   rw [head_choice, hD, hQ]
 
 /-- Failure propagation through `N;D`: if `head D` fails, `head (N;D)`
     fails. -/
-theorem head_nSeq_none (N : NetKAT) (D : DyNetKAT) (h : head D = none) :
+theorem head_nSeq_none (N : NetKAT schema) (D : DyNetKAT schema) (h : head D = none) :
     head (.nSeq N D) = none := by
   rw [head_nSeq, h]
 
 /-- Failure propagation through `D ⊕ Q` from the left branch. -/
-theorem head_choice_none_left (D Q : DyNetKAT) (h : head D = none) :
+theorem head_choice_none_left (D Q : DyNetKAT schema) (h : head D = none) :
     head (.choice D Q) = none := by
   rw [head_choice, h]
 
 /-- Failure propagation through `D ⊕ Q` from the right branch.  The match
     in Eq. (31) scrutinizes the left branch first, so both possible values
     of `head D` are discharged explicitly. -/
-theorem head_choice_none_right (D Q : DyNetKAT) (h : head Q = none) :
+theorem head_choice_none_right (D Q : DyNetKAT schema) (h : head Q = none) :
     head (.choice D Q) = none := by
   cases hD : head D with
   | none => rw [head_choice, hD, h]
@@ -174,20 +176,20 @@ theorem head_choice_none_right (D Q : DyNetKAT) (h : head Q = none) :
 
     Every other constructor is outside the fragment; for such expressions
     `head` returns `none` (explicit failure). -/
-inductive HeadSupported : DyNetKAT → Prop
+inductive HeadSupported {schema : NetKAT.PacketSchema} : DyNetKAT schema → Prop
   | deadlock : HeadSupported .deadlock
-  | nSeq : ∀ (N : NetKAT) (D : DyNetKAT),
+  | nSeq : ∀ (N : NetKAT schema) (D : DyNetKAT schema),
       HeadSupported D → HeadSupported (.nSeq N D)
-  | choice : ∀ (D Q : DyNetKAT),
+  | choice : ∀ (D Q : DyNetKAT schema),
       HeadSupported D → HeadSupported Q → HeadSupported (.choice D Q)
-  | rcfgPrefix : ∀ (x : Channel) (N : NetKAT) (D : DyNetKAT),
+  | rcfgPrefix : ∀ (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema),
       HeadSupported (.rcfgPrefix x N D)
 
 /-- Every expression in the supported fragment produces a successful
     `head` result.  This is the domain theorem for `head`: extraction
     never fails on `HeadSupported` input. -/
-theorem head_supported_some (D : DyNetKAT) (h : HeadSupported D) :
-    ∃ H : NetKAT, head D = some H := by
+theorem head_supported_some (D : DyNetKAT schema) (h : HeadSupported D) :
+    ∃ H : NetKAT schema, head D = some H := by
   induction h with
   | deadlock => exact ⟨.drop, head_deadlock⟩
   | nSeq N D _ ih =>
@@ -202,7 +204,7 @@ theorem head_supported_some (D : DyNetKAT) (h : HeadSupported D) :
 /-- Totality with explicit failure: every DyNetKAT expression either is
     supported or makes `head` fail explicitly with `none`.  No expression
     is silently mapped to a policy. -/
-theorem head_none_or_supported (D : DyNetKAT) :
+theorem head_none_or_supported (D : DyNetKAT schema) :
     head D = none ∨ HeadSupported D := by
   induction D with
   | deadlock => exact Or.inr HeadSupported.deadlock
@@ -247,24 +249,24 @@ theorem head_none_or_supported (D : DyNetKAT) :
     theorem `head_spec` is stated only on `HeadSupported` inputs; the
     empty spec on unsupported shapes is never used to claim anything
     about them. -/
-inductive HeadSpec : DyNetKAT → CtxPkt → CtxPkt → Prop
-  | nSeq_of_sem (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt)
+inductive HeadSpec {schema : NetKAT.PacketSchema} : DyNetKAT schema → schema.Packet → schema.Packet → Prop
+  | nSeq_of_sem (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet)
       (h : Semantics N σ τ) : HeadSpec (.nSeq N D) σ τ
-  | nSeq_of_tail (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt)
+  | nSeq_of_tail (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet)
       (h : HeadSpec D σ τ) : HeadSpec (.nSeq N D) σ τ
-  | choice_left (D Q : DyNetKAT) (σ τ : CtxPkt)
+  | choice_left (D Q : DyNetKAT schema) (σ τ : schema.Packet)
       (h : HeadSpec D σ τ) : HeadSpec (.choice D Q) σ τ
-  | choice_right (D Q : DyNetKAT) (σ τ : CtxPkt)
+  | choice_right (D Q : DyNetKAT schema) (σ τ : schema.Packet)
       (h : HeadSpec Q σ τ) : HeadSpec (.choice D Q) σ τ
 
 /-- ⟦0⟧ is the empty relation (local restatement of the NetKAT zero
     semantics; cf. `DyNetKAT.NetKAT.drop_empty`). -/
-theorem sem_drop_empty (σ τ : CtxPkt) : ¬ Semantics (schema := ctxSchema) .drop σ τ :=
+theorem sem_drop_empty (σ τ : schema.Packet) : ¬ Semantics (schema := schema) .drop σ τ :=
   fun h => h
 
 /-- Spec clause for Eq. (30): the head-contribution relation of `N;D` is
     the union of ⟦N⟧ and the contribution of `D`. -/
-theorem headSpec_nSeq_iff (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt) :
+theorem headSpec_nSeq_iff (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet) :
     HeadSpec (.nSeq N D) σ τ ↔ (Semantics N σ τ ∨ HeadSpec D σ τ) := by
   constructor
   · intro h
@@ -278,7 +280,7 @@ theorem headSpec_nSeq_iff (N : NetKAT) (D : DyNetKAT) (σ τ : CtxPkt) :
 
 /-- Spec clause for Eq. (31): the head-contribution relation of `D ⊕ Q`
     is the union of the contributions of `D` and `Q`. -/
-theorem headSpec_choice_iff (D Q : DyNetKAT) (σ τ : CtxPkt) :
+theorem headSpec_choice_iff (D Q : DyNetKAT schema) (σ τ : schema.Packet) :
     HeadSpec (.choice D Q) σ τ ↔ (HeadSpec D σ τ ∨ HeadSpec Q σ τ) := by
   constructor
   · intro h
@@ -291,14 +293,14 @@ theorem headSpec_choice_iff (D Q : DyNetKAT) (σ τ : CtxPkt) :
     · exact HeadSpec.choice_right D Q σ τ h2
 
 /-- Spec clause for Eq. (29): ⊥ contributes the empty relation. -/
-theorem headSpec_deadlock_false (σ τ : CtxPkt) : ¬ HeadSpec .deadlock σ τ := by
+theorem headSpec_deadlock_false (σ τ : schema.Packet) : ¬ HeadSpec .deadlock σ τ := by
   intro h
   cases h
 
 /-- Spec clause for Eq. (32): a reconfiguration prefix contributes the
     empty relation. -/
-theorem headSpec_rcfgPrefix_false (x : Channel) (N : NetKAT) (D : DyNetKAT)
-    (σ τ : CtxPkt) : ¬ HeadSpec (.rcfgPrefix x N D) σ τ := by
+theorem headSpec_rcfgPrefix_false (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema)
+    (σ τ : schema.Packet) : ¬ HeadSpec (.rcfgPrefix x N D) σ τ := by
   intro h
   cases h
 
@@ -320,8 +322,8 @@ theorem headSpec_rcfgPrefix_false (x : Channel) (N : NetKAT) (D : DyNetKAT)
     This does NOT establish correctness of the complete DyNetiKAT safety
     pipeline against arbitrary `Step` traces: no `tail`, no restriction δ,
     no projection π_n, no recursive unfolding, no property compilation. -/
-theorem head_spec (D : DyNetKAT) (hsup : HeadSupported D) (σ τ : CtxPkt) :
-    ∀ H : NetKAT, head D = some H → (Semantics H σ τ ↔ HeadSpec D σ τ) := by
+theorem head_spec (D : DyNetKAT schema) (hsup : HeadSupported D) (σ τ : schema.Packet) :
+    ∀ H : NetKAT schema, head D = some H → (Semantics H σ τ ↔ HeadSpec D σ τ) := by
   induction hsup with
   | deadlock =>
       intro H hhead

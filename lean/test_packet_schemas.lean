@@ -21,6 +21,12 @@ theorem arbitrary_switch_projection (N depth : Nat) (env : RecEnv (switchSchema 
     SourceTrace env (.project depth p) word ↔ SourceTrace env p word ∧ word.length ≤ depth :=
   sourceTrace_project_iff
 
+theorem arbitrary_switch_projection_derives (N depth : Nat) [DiagramLayout (switchSchema N)]
+    (env : RecEnv (switchSchema N)) (p : DyNetKAT (switchSchema N)) (guarded : WellFormed env p) :
+    ∃ q, Ground q ∧ DerivesNoAIP env (.project depth p) q :=
+  guarded.project_exists_ground depth
+
+#print axioms arbitrary_switch_projection_derives
 #print axioms arbitrary_switch_identifiers
 #print axioms arbitrary_switch_equivalence
 #print axioms arbitrary_switch_projection
@@ -160,6 +166,43 @@ theorem loop_admitted {schema : PacketSchema} (p : NetKAT schema) :
 private def loop {schema : PacketSchema} (p : NetKAT schema) : Program false (loopEnv p) :=
   ⟨.var "loop", loop_admitted p⟩
 
+private def compiledLoop {schema : PacketSchema} (p : NetKAT schema) : (loop p).Compiled :=
+  ⟨{"loop"}, by
+    refine ⟨by simp [loop, recursiveVars], ?_⟩
+    intro x hx
+    obtain rfl := Finset.mem_singleton.mp hx
+    simp [loopEnv, recursiveVars]⟩
+
+private def allowAll {schema : PacketSchema} : RestrictionChecks schema := fun _ _ => false
+
+private theorem loopProjectionSupport {schema : PacketSchema} (p : NetKAT schema) :
+    ProjectionSupport (compiledLoop p).graph (fun _ => allowAll)
+      (ProjectionLive (loopEnv p) (loop p).term) := by
+  apply toGraph_projectionSupport (compiledLoop p).support (loop p).admissible.1
+  intro x body _ lookup
+  by_cases name : x = "loop"
+  · subst x
+    have eq : body = .nSeq p (.var "loop") := by simpa [loopEnv] using lookup.symm
+    subst body
+    exact trivial
+  · simp [loopEnv, RecEnv.lookup_define_other _ _ _ _ name] at lookup
+
+private theorem loopProjectionValid {schema : PacketSchema} (p : NetKAT schema) :
+    ((compiledLoop p).initial allowAll).checked.Valid
+      (ProjectionLive (loopEnv p) (loop p).term) :=
+  toGProc_projectionValid trivial
+
+example [DiagramLayout large] :
+    ∃ q, IsDNKNormalForm q ∧ DerivesNoAIP (loopEnv forward) (loop forward).term q :=
+  (loop forward).normalizes
+
+example [DiagramLayout large] (depth : Nat) :
+    ∃ q, renderProjection (compiledLoop forward).graph (fun _ => allowAll) depth
+        ((compiledLoop forward).initial allowAll).checked = some q ∧
+      DerivesNoAIP (loopEnv forward) (.project depth (loop forward).term) q :=
+  (compiledLoop forward).renderProjection_derives allowAll (loopProjectionSupport forward)
+    (loopProjectionValid forward) depth
+
 example [DiagramLayout large] :
     Bisimilar (loopEnv forward) (.nSeq forward (loop forward).term)
       (choiceOf ((symbolicPairsFor forward).map fun pair =>
@@ -181,14 +224,48 @@ theorem large_trace :
 
 private def forwardLetter : TraceSafety.Letter large := .packet (atSwitch 0) arrived
 
-example : ¬ TraceSafety.Safe (loop forward) [[forwardLetter]] := by
+private theorem forwardUnsafe : ¬ TraceSafety.Safe (loop forward) [[forwardLetter]] := by
   intro safe
   exact safe [forwardLetter] (by simp)
     ⟨[atSwitch 0], [], _, .cons _ _ _ _ _ (large_packet_step _ _) (.nil _)⟩
 
-example : EndpointReachable (loop forward) none [] .id .id := by
+private theorem forwardReachable (bound : Option Nat) (fits : ReachabilityBudget bound
+    [forwardLetter.action]) : EndpointReachable (loop forward) bound [] .id .id := by
   refine ⟨atSwitch 0, atSwitch 0, arrived, arrived, rfl, ?_, rfl⟩
-  refine ⟨[.packet (atSwitch 0) arrived], ⟨[], [], rfl, by simp, rfl⟩, ?_, trivial⟩
+  refine ⟨[forwardLetter.action], ⟨[], [], rfl, by simp, rfl⟩, ?_, fits⟩
+  exact ⟨[atSwitch 0], [], _, .cons _ _ _ _ _ (large_packet_step [] []) (.nil _)⟩
+
+example : EndpointReachable (loop forward) none [] .id .id :=
+  forwardReachable none trivial
+
+example :
+    TraceSafety.check (compiledLoop forward) allowAll (loopProjectionSupport forward)
+      (loopProjectionValid forward) [[forwardLetter]] = false :=
+  Bool.eq_false_iff.mpr (fun verdict =>
+    forwardUnsafe ((TraceSafety.check_correct ..).mp verdict))
+
+example :
+    projectedReachability (compiledLoop forward) allowAll (fun _ => allowAll) 1 [] .id .id =
+      some true :=
+  (projectedReachability_correct (compiledLoop forward) allowAll (loopProjectionSupport forward)
+    (loopProjectionValid forward) 1 [] .id .id).mpr (forwardReachable (some 1) (Nat.le_refl 1))
+
+#guard !TraceSafety.check (compiledLoop forward) allowAll (loopProjectionSupport forward)
+  (loopProjectionValid forward) [[forwardLetter]]
+
+-- The symbolic reachability verdict above is proved at large. Execute the
+-- analogous one-step query on a smaller schema to keep the regression quick.
+#guard projectedReachability (compiledLoop smallStep) allowAll (fun _ => allowAll) 1 [] .id .id ==
+  some true
+
+private def forwardFormula : TraceSafety.Formula [forwardLetter] :=
+  ⟨.letter forwardLetter, by simp [TraceSafety.Regexp.Over]⟩
+
+example [DiagramLayout large] : TraceSafety.PositiveAbsorption (loop forward) forwardFormula := by
+  apply (TraceSafety.positiveAbsorption_iff_traces ..).mpr
+  intro w matchWord
+  change w = [forwardLetter] at matchWord
+  subst w
   exact ⟨[atSwitch 0], [], _, .cons _ _ _ _ _ (large_packet_step [] []) (.nil _)⟩
 
 private def concrete : NetKAT ctxSchema := .assign1 .port .v1
@@ -212,6 +289,23 @@ example : Step RecEnv.empty
     ⟨.parallel (.send "ctrl" concrete .deadlock) (.recv "ctrl" concrete .deadlock), [examplePacket], []⟩
     (.rcfg "ctrl" concrete) ⟨.parallel .deadlock .deadlock, [examplePacket], []⟩ :=
   .cpol_sync_send_recv _ _ _ _ _ _ _ _ (.cpol_send _ _ _ _ _) (.cpol_recv _ _ _ _ _)
+
+#print axioms DerivesNoAIP.sound
+#print axioms DyNetKAT.DyNetKAT.Derives.sound
+#print axioms WellFormed.normalizes
+#print axioms ground_derives_iff_bisimilar
+#print axioms DyNetKAT.DyNetKAT.Derives.aip_guarded
+#print axioms renderProjection_derives
+#print axioms gsteps_to_steps
+#print axioms checkedMoves_spec
+#print axioms graphHead_source_iff
+#print axioms graphTails_source_iff
+#print axioms projectedReachability_correct
+#print axioms normalizedReachability_correct
+#print axioms TraceSafety.equationalSafety_iff_safe
+#print axioms TraceSafety.eq28_iff_no_occurrence
+#print axioms TraceSafety.positiveAbsorption_iff_traces
+#print axioms TraceSafety.check_iff_equationalSafety
 
 #print axioms switch_identifiers_injective
 #print axioms execute_packet_step

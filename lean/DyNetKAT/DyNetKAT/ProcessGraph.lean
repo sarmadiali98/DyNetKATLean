@@ -73,6 +73,8 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+variable {schema : PacketSchema}
+
 open DyNetKAT.NetKAT
 
 ------------------------------------------------------------------------
@@ -96,22 +98,22 @@ def auxNode (k : Nat) : NodeId := Sum.inr k
     carried verbatim, including the NetKAT policies, channels,
     restriction sets, projection budgets and the full constructor
     structure, so that the graph semantics can mirror Figure 8 exactly. -/
-inductive GProc : Type
+inductive GProc (schema : PacketSchema := ctxSchema) : Type
   | deadlock                                                  -- ⊥
-  | nSeq : NetKAT → GProc → GProc                             -- N;D
-  | recv : Channel → NetKAT → GProc → GProc                   -- x?N;D
-  | send : Channel → NetKAT → GProc → GProc                   -- x!N;D
-  | rcfgPrefix : Channel → NetKAT → GProc → GProc             -- rcfg_{x,N};D
-  | parallel : GProc → GProc → GProc                          -- D‖D
-  | choice : GProc → GProc → GProc                            -- D⊕D
-  | leftMerge : GProc → GProc → GProc                         -- D⌊⌊D
-  | commMerge : GProc → GProc → GProc                         -- D|D
-  | restrict : Set CommunicationAction → GProc → GProc        -- δ_ℒ(D)
-  | project : Nat → GProc → GProc                             -- π_n(D)
-  | ref : NodeId → GProc                                      -- variable edge
+  | nSeq : NetKAT schema → GProc schema → (GProc schema)                             -- N;D
+  | recv : Channel → NetKAT schema → GProc schema → (GProc schema)                   -- x?N;D
+  | send : Channel → NetKAT schema → GProc schema → (GProc schema)                   -- x!N;D
+  | rcfgPrefix : Channel → NetKAT schema → GProc schema → (GProc schema)             -- rcfg_{x,N};D
+  | parallel : GProc schema → GProc schema → (GProc schema)                          -- D‖D
+  | choice : GProc schema → GProc schema → (GProc schema)                            -- D⊕D
+  | leftMerge : GProc schema → GProc schema → (GProc schema)                         -- D⌊⌊D
+  | commMerge : GProc schema → GProc schema → (GProc schema)                         -- D|D
+  | restrict : Set (CommunicationAction schema) → GProc schema → (GProc schema)        -- δ_ℒ(D)
+  | project : Nat → GProc schema → (GProc schema)                             -- π_n(D)
+  | ref : NodeId → (GProc schema)                                      -- variable edge
 
 /-- The node references occurring in a graph-level process term. -/
-def gprocRefs : GProc → Finset NodeId
+def gprocRefs : GProc schema → Finset NodeId
   | .deadlock => ∅
   | .nSeq _ c => gprocRefs c
   | .recv _ _ c => gprocRefs c
@@ -138,20 +140,20 @@ def gprocRefs : GProc → Finset NodeId
       definitions produce cycles without infinite unfolding.
     * `root_closed` and `closed` say that every referenced node belongs
       to the graph (property 4 of the representation contract). -/
-structure ProcessGraph where
+structure ProcessGraph (schema : PacketSchema := ctxSchema) where
   nodes : Finset NodeId
-  root : GProc
-  label : NodeId → GProc
+  root : GProc schema
+  label : NodeId → GProc schema
   root_closed : gprocRefs root ⊆ nodes
   closed : ∀ i ∈ nodes, gprocRefs (label i) ⊆ nodes
 
 /-- Graph-level configuration: the process component is a graph term,
     and both packet histories are preserved (Figure 8 configurations
     `(d, H, H')`). -/
-structure GConfig where
-  proc : GProc
-  pending : List CtxPkt
-  handled : List CtxPkt
+structure GConfig (schema : PacketSchema := ctxSchema) where
+  proc : GProc schema
+  pending : List schema.Packet
+  handled : List schema.Packet
 
 ------------------------------------------------------------------------
 -- §3 Graph operational semantics (mirror of Figure 8 / `Step`)
@@ -162,190 +164,190 @@ structure GConfig where
     The `(cpolX)` rule becomes edge traversal: a step of `.ref i` is a
     step of the node label `G.label i` — the definition is followed, not
     copied into the syntax. -/
-inductive GStep (G : ProcessGraph) : GConfig → Action → GConfig → Prop
-  | seq_ok (N : NetKAT) (cont : GProc) (σ σ' : CtxPkt) (pt hl : List CtxPkt)
+inductive GStep {schema : PacketSchema} (G : ProcessGraph schema) : GConfig schema → Action schema → GConfig schema → Prop
+  | seq_ok (N : NetKAT schema) (cont : GProc schema) (σ σ' : schema.Packet) (pt hl : List schema.Packet)
       (evaluates : HistorySemantics N (History.singleton σ) (History.singleton σ')) :
       GStep G
-        (show GConfig from
+        (show (GConfig schema) from
           { proc := .nSeq N cont, pending := σ :: pt, handled := hl })
-        (show Action from Action.packet σ σ')
-        (show GConfig from
+        (show (Action schema) from Action.packet σ σ')
+        (show (GConfig schema) from
           { proc := cont, pending := pt, handled := σ' :: hl })
 
-  | choice_l (gp gq gp' : GProc) (a : Action) (pt pt' hl hl' : List CtxPkt)
+  | choice_l (gp gq gp' : GProc schema) (a : Action schema) (pt pt' hl hl' : List schema.Packet)
       (steps : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })) :
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })) :
       GStep G
-        (show GConfig from { proc := .choice gp gq, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .choice gp gq, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })
 
-  | choice_r (gp gq gq' : GProc) (a : Action) (pt pt' hl hl' : List CtxPkt)
+  | choice_r (gp gq gq' : GProc schema) (a : Action schema) (pt pt' hl hl' : List schema.Packet)
       (steps : GStep G
-        (show GConfig from { proc := gq, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := gq, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gq', pending := pt', handled := hl' })) :
+        (show (GConfig schema) from { proc := gq', pending := pt', handled := hl' })) :
       GStep G
-        (show GConfig from { proc := .choice gp gq, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .choice gp gq, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gq', pending := pt', handled := hl' })
+        (show (GConfig schema) from { proc := gq', pending := pt', handled := hl' })
 
-  | par_l (gp gq gp' : GProc) (a : Action) (pt pt' hl hl' : List CtxPkt)
+  | par_l (gp gq gp' : GProc schema) (a : Action schema) (pt pt' hl hl' : List schema.Packet)
       (steps : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })) :
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })) :
       GStep G
-        (show GConfig from { proc := .parallel gp gq, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .parallel gp gq, pending := pt, handled := hl })
         a
-        (show GConfig from
+        (show (GConfig schema) from
           { proc := .parallel gp' gq, pending := pt', handled := hl' })
 
-  | par_r (gp gq gq' : GProc) (a : Action) (pt pt' hl hl' : List CtxPkt)
+  | par_r (gp gq gq' : GProc schema) (a : Action schema) (pt pt' hl hl' : List schema.Packet)
       (steps : GStep G
-        (show GConfig from { proc := gq, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := gq, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gq', pending := pt', handled := hl' })) :
+        (show (GConfig schema) from { proc := gq', pending := pt', handled := hl' })) :
       GStep G
-        (show GConfig from { proc := .parallel gp gq, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .parallel gp gq, pending := pt, handled := hl })
         a
-        (show GConfig from
+        (show (GConfig schema) from
           { proc := .parallel gp gq', pending := pt', handled := hl' })
 
-  | left_merge (gp gq gp' : GProc) (a : Action) (pt pt' hl hl' : List CtxPkt)
+  | left_merge (gp gq gp' : GProc schema) (a : Action schema) (pt pt' hl hl' : List schema.Packet)
       (steps : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })) :
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })) :
       GStep G
-        (show GConfig from { proc := .leftMerge gp gq, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .leftMerge gp gq, pending := pt, handled := hl })
         a
-        (show GConfig from
+        (show (GConfig schema) from
           { proc := .parallel gp' gq, pending := pt', handled := hl' })
 
-  | comm_merge_recv_send (x : Channel) (r : NetKAT) (gp gs gp' gs' : GProc)
-      (pt hl : List CtxPkt)
+  | comm_merge_recv_send (x : Channel) (r : NetKAT schema) (gp gs gp' gs' : GProc schema)
+      (pt hl : List schema.Packet)
       (recv_step : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
-        (show Action from Action.recv x r)
-        (show GConfig from { proc := gp', pending := pt, handled := hl }))
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
+        (show (Action schema) from Action.recv x r)
+        (show (GConfig schema) from { proc := gp', pending := pt, handled := hl }))
       (send_step : GStep G
-        (show GConfig from { proc := gs, pending := pt, handled := hl })
-        (show Action from Action.send x r)
-        (show GConfig from { proc := gs', pending := pt, handled := hl })) :
+        (show (GConfig schema) from { proc := gs, pending := pt, handled := hl })
+        (show (Action schema) from Action.send x r)
+        (show (GConfig schema) from { proc := gs', pending := pt, handled := hl })) :
       GStep G
-        (show GConfig from { proc := .commMerge gp gs, pending := pt, handled := hl })
-        (show Action from Action.rcfg x r)
-        (show GConfig from
+        (show (GConfig schema) from { proc := .commMerge gp gs, pending := pt, handled := hl })
+        (show (Action schema) from Action.rcfg x r)
+        (show (GConfig schema) from
           { proc := .parallel gp' gs', pending := pt, handled := hl })
 
-  | comm_merge_send_recv (x : Channel) (r : NetKAT) (gp gs gp' gs' : GProc)
-      (pt hl : List CtxPkt)
+  | comm_merge_send_recv (x : Channel) (r : NetKAT schema) (gp gs gp' gs' : GProc schema)
+      (pt hl : List schema.Packet)
       (send_step : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
-        (show Action from Action.send x r)
-        (show GConfig from { proc := gp', pending := pt, handled := hl }))
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
+        (show (Action schema) from Action.send x r)
+        (show (GConfig schema) from { proc := gp', pending := pt, handled := hl }))
       (recv_step : GStep G
-        (show GConfig from { proc := gs, pending := pt, handled := hl })
-        (show Action from Action.recv x r)
-        (show GConfig from { proc := gs', pending := pt, handled := hl })) :
+        (show (GConfig schema) from { proc := gs, pending := pt, handled := hl })
+        (show (Action schema) from Action.recv x r)
+        (show (GConfig schema) from { proc := gs', pending := pt, handled := hl })) :
       GStep G
-        (show GConfig from { proc := .commMerge gp gs, pending := pt, handled := hl })
-        (show Action from Action.rcfg x r)
-        (show GConfig from
+        (show (GConfig schema) from { proc := .commMerge gp gs, pending := pt, handled := hl })
+        (show (Action schema) from Action.rcfg x r)
+        (show (GConfig schema) from
           { proc := .parallel gp' gs', pending := pt, handled := hl })
 
-  | recv (x : Channel) (N : NetKAT) (cont : GProc) (pt hl : List CtxPkt) :
+  | recv (x : Channel) (N : NetKAT schema) (cont : GProc schema) (pt hl : List schema.Packet) :
       GStep G
-        (show GConfig from { proc := .recv x N cont, pending := pt, handled := hl })
-        (show Action from Action.recv x N)
-        (show GConfig from { proc := cont, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .recv x N cont, pending := pt, handled := hl })
+        (show (Action schema) from Action.recv x N)
+        (show (GConfig schema) from { proc := cont, pending := pt, handled := hl })
 
-  | send (x : Channel) (N : NetKAT) (cont : GProc) (pt hl : List CtxPkt) :
+  | send (x : Channel) (N : NetKAT schema) (cont : GProc schema) (pt hl : List schema.Packet) :
       GStep G
-        (show GConfig from { proc := .send x N cont, pending := pt, handled := hl })
-        (show Action from Action.send x N)
-        (show GConfig from { proc := cont, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .send x N cont, pending := pt, handled := hl })
+        (show (Action schema) from Action.send x N)
+        (show (GConfig schema) from { proc := cont, pending := pt, handled := hl })
 
-  | rcfg (x : Channel) (N : NetKAT) (cont : GProc) (pt hl : List CtxPkt) :
+  | rcfg (x : Channel) (N : NetKAT schema) (cont : GProc schema) (pt hl : List schema.Packet) :
       GStep G
-        (show GConfig from
+        (show (GConfig schema) from
           { proc := .rcfgPrefix x N cont, pending := pt, handled := hl })
-        (show Action from Action.rcfg x N)
-        (show GConfig from { proc := cont, pending := pt, handled := hl })
+        (show (Action schema) from Action.rcfg x N)
+        (show (GConfig schema) from { proc := cont, pending := pt, handled := hl })
 
-  | var (i : NodeId) (gp' : GProc) (a : Action) (pt pt' hl hl' : List CtxPkt)
+  | var (i : NodeId) (gp' : GProc schema) (a : Action schema) (pt pt' hl hl' : List schema.Packet)
       (step : GStep G
-        (show GConfig from { proc := G.label i, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := G.label i, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })) :
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })) :
       GStep G
-        (show GConfig from { proc := .ref i, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .ref i, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })
 
-  | sync_recv_send (x : Channel) (r : NetKAT) (gp gs gp' gs' : GProc)
-      (pt hl : List CtxPkt)
+  | sync_recv_send (x : Channel) (r : NetKAT schema) (gp gs gp' gs' : GProc schema)
+      (pt hl : List schema.Packet)
       (recv_step : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
-        (show Action from Action.recv x r)
-        (show GConfig from { proc := gp', pending := pt, handled := hl }))
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
+        (show (Action schema) from Action.recv x r)
+        (show (GConfig schema) from { proc := gp', pending := pt, handled := hl }))
       (send_step : GStep G
-        (show GConfig from { proc := gs, pending := pt, handled := hl })
-        (show Action from Action.send x r)
-        (show GConfig from { proc := gs', pending := pt, handled := hl })) :
+        (show (GConfig schema) from { proc := gs, pending := pt, handled := hl })
+        (show (Action schema) from Action.send x r)
+        (show (GConfig schema) from { proc := gs', pending := pt, handled := hl })) :
       GStep G
-        (show GConfig from { proc := .parallel gp gs, pending := pt, handled := hl })
-        (show Action from Action.rcfg x r)
-        (show GConfig from
+        (show (GConfig schema) from { proc := .parallel gp gs, pending := pt, handled := hl })
+        (show (Action schema) from Action.rcfg x r)
+        (show (GConfig schema) from
           { proc := .parallel gp' gs', pending := pt, handled := hl })
 
-  | sync_send_recv (x : Channel) (r : NetKAT) (gp gs gp' gs' : GProc)
-      (pt hl : List CtxPkt)
+  | sync_send_recv (x : Channel) (r : NetKAT schema) (gp gs gp' gs' : GProc schema)
+      (pt hl : List schema.Packet)
       (send_step : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
-        (show Action from Action.send x r)
-        (show GConfig from { proc := gp', pending := pt, handled := hl }))
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
+        (show (Action schema) from Action.send x r)
+        (show (GConfig schema) from { proc := gp', pending := pt, handled := hl }))
       (recv_step : GStep G
-        (show GConfig from { proc := gs, pending := pt, handled := hl })
-        (show Action from Action.recv x r)
-        (show GConfig from { proc := gs', pending := pt, handled := hl })) :
+        (show (GConfig schema) from { proc := gs, pending := pt, handled := hl })
+        (show (Action schema) from Action.recv x r)
+        (show (GConfig schema) from { proc := gs', pending := pt, handled := hl })) :
       GStep G
-        (show GConfig from { proc := .parallel gp gs, pending := pt, handled := hl })
-        (show Action from Action.rcfg x r)
-        (show GConfig from
+        (show (GConfig schema) from { proc := .parallel gp gs, pending := pt, handled := hl })
+        (show (Action schema) from Action.rcfg x r)
+        (show (GConfig schema) from
           { proc := .parallel gp' gs', pending := pt, handled := hl })
 
-  | project (n : Nat) (gp gp' : GProc) (a : Action) (pt pt' hl hl' : List CtxPkt)
+  | project (n : Nat) (gp gp' : GProc schema) (a : Action schema) (pt pt' hl hl' : List schema.Packet)
       (step : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })) :
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })) :
       GStep G
-        (show GConfig from
+        (show (GConfig schema) from
           { proc := .project (n + 1) gp, pending := pt, handled := hl })
         a
-        (show GConfig from
+        (show (GConfig schema) from
           { proc := .project n gp', pending := pt', handled := hl' })
 
-  | restrict (L : Set CommunicationAction) (gp gp' : GProc) (a : Action)
-      (pt pt' hl hl' : List CtxPkt)
+  | restrict (L : Set (CommunicationAction schema)) (gp gp' : GProc schema) (a : Action schema)
+      (pt pt' hl hl' : List schema.Packet)
       (allowed : actionAllowed L a)
       (step : GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
         a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })) :
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })) :
       GStep G
-        (show GConfig from { proc := .restrict L gp, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := .restrict L gp, pending := pt, handled := hl })
         a
-        (show GConfig from
+        (show (GConfig schema) from
           { proc := .restrict L gp', pending := pt', handled := hl' })
 
 ------------------------------------------------------------------------
 /-- A transition of a closed graph term remains within the graph's node set. -/
-theorem GStep.closed {G : ProcessGraph} {src dst : GConfig} {a : Action}
+theorem GStep.closed {G : ProcessGraph schema} {src dst : GConfig schema} {a : Action schema}
     (step : GStep G src a dst) :
     gprocRefs src.proc ⊆ G.nodes → gprocRefs dst.proc ⊆ G.nodes := by
   induction step with
@@ -391,8 +393,8 @@ theorem GStep.closed {G : ProcessGraph} {src dst : GConfig} {a : Action}
     component pairs must again lie in `S`.  The `var` arm unrolls through
     the node label, which is what makes cyclic definitions correspond
     with finite closed witnesses. -/
-def CorrBArm (G : ProcessGraph) (env : RecEnv) (S : DyNetKAT → GProc → Prop)
-    (p : DyNetKAT) (gp : GProc) : Prop :=
+def CorrBArm (G : ProcessGraph schema) (env : RecEnv schema) (S : DyNetKAT schema → GProc schema → Prop)
+    (p : DyNetKAT schema) (gp : GProc schema) : Prop :=
   match p with
   | .deadlock => gp = .deadlock
   | .nSeq N p₀ => ∃ gp₀, gp = .nSeq N gp₀ ∧ S p₀ gp₀
@@ -410,8 +412,8 @@ def CorrBArm (G : ProcessGraph) (env : RecEnv) (S : DyNetKAT → GProc → Prop)
 /-- The closure condition, destructing on the graph shape: for every pair
     in `S`, the graph shape determines the process shape and the component
     pairs must again lie in `S`. -/
-def CorrFArm (G : ProcessGraph) (env : RecEnv) (S : DyNetKAT → GProc → Prop)
-    (p : DyNetKAT) (gp : GProc) : Prop :=
+def CorrFArm (G : ProcessGraph schema) (env : RecEnv schema) (S : DyNetKAT schema → GProc schema → Prop)
+    (p : DyNetKAT schema) (gp : GProc schema) : Prop :=
   match gp with
   | .deadlock => p = .deadlock
   | .nSeq N gp₀ => ∃ p₀, p = .nSeq N p₀ ∧ S p₀ gp₀
@@ -428,91 +430,91 @@ def CorrFArm (G : ProcessGraph) (env : RecEnv) (S : DyNetKAT → GProc → Prop)
 
 /-- A relation is correspondence-closed when every pair in it satisfies
     both closure conditions. -/
-def IsCorrespondence (G : ProcessGraph) (env : RecEnv)
-    (S : DyNetKAT → GProc → Prop) : Prop :=
+def IsCorrespondence (G : ProcessGraph schema) (env : RecEnv schema)
+    (S : DyNetKAT schema → GProc schema → Prop) : Prop :=
   (∀ p gp, S p gp → CorrBArm G env S p gp) ∧
   (∀ p gp, S p gp → CorrFArm G env S p gp)
 
 /-- The process/graph correspondence: membership in some
     correspondence-closed relation. -/
-def Corr (G : ProcessGraph) (env : RecEnv) (p : DyNetKAT) (gp : GProc) : Prop :=
-  ∃ S : DyNetKAT → GProc → Prop, IsCorrespondence G env S ∧ S p gp
+def Corr (G : ProcessGraph schema) (env : RecEnv schema) (p : DyNetKAT schema) (gp : GProc schema) : Prop :=
+  ∃ S : DyNetKAT schema → GProc schema → Prop, IsCorrespondence G env S ∧ S p gp
 
 ------------------------------------------------------------------------
 -- §4.1 Inversion lemmas
 ------------------------------------------------------------------------
 
-theorem corr_nSeq_inv {G : ProcessGraph} {env : RecEnv} {N : NetKAT}
+theorem corr_nSeq_inv {G : ProcessGraph schema} {env : RecEnv schema} {N : NetKAT schema}
     {p gp : _} (h : Corr G env (.nSeq N p) gp) :
     ∃ gp₀, gp = .nSeq N gp₀ ∧ Corr G env p gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨gp₀, heq, hp₀⟩ := hS.1 _ _ hp
   exact ⟨gp₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_recv_inv {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : NetKAT}
+theorem corr_recv_inv {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel} {N : NetKAT schema}
     {p gp : _} (h : Corr G env (.recv x N p) gp) :
     ∃ gp₀, gp = .recv x N gp₀ ∧ Corr G env p gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨gp₀, heq, hp₀⟩ := hS.1 _ _ hp
   exact ⟨gp₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_send_inv {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : NetKAT}
+theorem corr_send_inv {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel} {N : NetKAT schema}
     {p gp : _} (h : Corr G env (.send x N p) gp) :
     ∃ gp₀, gp = .send x N gp₀ ∧ Corr G env p gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨gp₀, heq, hp₀⟩ := hS.1 _ _ hp
   exact ⟨gp₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_rcfgPrefix_inv {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : NetKAT}
+theorem corr_rcfgPrefix_inv {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel} {N : NetKAT schema}
     {p gp : _} (h : Corr G env (.rcfgPrefix x N p) gp) :
     ∃ gp₀, gp = .rcfgPrefix x N gp₀ ∧ Corr G env p gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨gp₀, heq, hp₀⟩ := hS.1 _ _ hp
   exact ⟨gp₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_parallel_inv {G : ProcessGraph} {env : RecEnv} {p₁ p₂ gp : _}
+theorem corr_parallel_inv {G : ProcessGraph schema} {env : RecEnv schema} {p₁ p₂ gp : _}
     (h : Corr G env (.parallel p₁ p₂) gp) :
     ∃ g₁ g₂, gp = .parallel g₁ g₂ ∧ Corr G env p₁ g₁ ∧ Corr G env p₂ g₂ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨g₁, g₂, heq, hp₁, hp₂⟩ := hS.1 _ _ hp
   exact ⟨g₁, g₂, heq, ⟨S, hS, hp₁⟩, ⟨S, hS, hp₂⟩⟩
 
-theorem corr_choice_inv {G : ProcessGraph} {env : RecEnv} {p₁ p₂ gp : _}
+theorem corr_choice_inv {G : ProcessGraph schema} {env : RecEnv schema} {p₁ p₂ gp : _}
     (h : Corr G env (.choice p₁ p₂) gp) :
     ∃ g₁ g₂, gp = .choice g₁ g₂ ∧ Corr G env p₁ g₁ ∧ Corr G env p₂ g₂ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨g₁, g₂, heq, hp₁, hp₂⟩ := hS.1 _ _ hp
   exact ⟨g₁, g₂, heq, ⟨S, hS, hp₁⟩, ⟨S, hS, hp₂⟩⟩
 
-theorem corr_leftMerge_inv {G : ProcessGraph} {env : RecEnv} {p₁ p₂ gp : _}
+theorem corr_leftMerge_inv {G : ProcessGraph schema} {env : RecEnv schema} {p₁ p₂ gp : _}
     (h : Corr G env (.leftMerge p₁ p₂) gp) :
     ∃ g₁ g₂, gp = .leftMerge g₁ g₂ ∧ Corr G env p₁ g₁ ∧ Corr G env p₂ g₂ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨g₁, g₂, heq, hp₁, hp₂⟩ := hS.1 _ _ hp
   exact ⟨g₁, g₂, heq, ⟨S, hS, hp₁⟩, ⟨S, hS, hp₂⟩⟩
 
-theorem corr_commMerge_inv {G : ProcessGraph} {env : RecEnv} {p₁ p₂ gp : _}
+theorem corr_commMerge_inv {G : ProcessGraph schema} {env : RecEnv schema} {p₁ p₂ gp : _}
     (h : Corr G env (.commMerge p₁ p₂) gp) :
     ∃ g₁ g₂, gp = .commMerge g₁ g₂ ∧ Corr G env p₁ g₁ ∧ Corr G env p₂ g₂ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨g₁, g₂, heq, hp₁, hp₂⟩ := hS.1 _ _ hp
   exact ⟨g₁, g₂, heq, ⟨S, hS, hp₁⟩, ⟨S, hS, hp₂⟩⟩
 
-theorem corr_restrict_inv {G : ProcessGraph} {env : RecEnv} {L : Set CommunicationAction}
+theorem corr_restrict_inv {G : ProcessGraph schema} {env : RecEnv schema} {L : Set (CommunicationAction schema)}
     {p gp : _} (h : Corr G env (.restrict L p) gp) :
     ∃ gp₀, gp = .restrict L gp₀ ∧ Corr G env p gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨gp₀, heq, hp₀⟩ := hS.1 _ _ hp
   exact ⟨gp₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_project_inv {G : ProcessGraph} {env : RecEnv} {n : Nat}
+theorem corr_project_inv {G : ProcessGraph schema} {env : RecEnv schema} {n : Nat}
     {p gp : _} (h : Corr G env (.project n p) gp) :
     ∃ gp₀, gp = .project n gp₀ ∧ Corr G env p gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨gp₀, heq, hp₀⟩ := hS.1 _ _ hp
   exact ⟨gp₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_var_inv {G : ProcessGraph} {env : RecEnv} {x : Var} {gp : _}
+theorem corr_var_inv {G : ProcessGraph schema} {env : RecEnv schema} {x : Var} {gp : _}
     (h : Corr G env (.var x) gp) :
     ∃ i b, gp = .ref i ∧ env.lookup x = some b ∧ Corr G env b (G.label i) := by
   obtain ⟨S, hS, hp⟩ := h
@@ -521,79 +523,79 @@ theorem corr_var_inv {G : ProcessGraph} {env : RecEnv} {x : Var} {gp : _}
 
 /-- Inversion on the graph side: a correspondence with an `nSeq` node
     forces the process to have the same prefix. -/
-theorem corr_gp_nSeq_inv {G : ProcessGraph} {env : RecEnv} {N : NetKAT}
-    {gp₀ : GProc} {p : DyNetKAT} (h : Corr G env p (.nSeq N gp₀)) :
+theorem corr_gp_nSeq_inv {G : ProcessGraph schema} {env : RecEnv schema} {N : NetKAT schema}
+    {gp₀ : GProc schema} {p : DyNetKAT schema} (h : Corr G env p (.nSeq N gp₀)) :
     ∃ p₀, p = .nSeq N p₀ ∧ Corr G env p₀ gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₀, heq, hp₀⟩ := hS.2 _ _ hp
   exact ⟨p₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_gp_recv_inv {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : NetKAT}
-    {gp₀ : GProc} {p : DyNetKAT} (h : Corr G env p (.recv x N gp₀)) :
+theorem corr_gp_recv_inv {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel} {N : NetKAT schema}
+    {gp₀ : GProc schema} {p : DyNetKAT schema} (h : Corr G env p (.recv x N gp₀)) :
     ∃ p₀, p = .recv x N p₀ ∧ Corr G env p₀ gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₀, heq, hp₀⟩ := hS.2 _ _ hp
   exact ⟨p₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_gp_send_inv {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : NetKAT}
-    {gp₀ : GProc} {p : DyNetKAT} (h : Corr G env p (.send x N gp₀)) :
+theorem corr_gp_send_inv {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel} {N : NetKAT schema}
+    {gp₀ : GProc schema} {p : DyNetKAT schema} (h : Corr G env p (.send x N gp₀)) :
     ∃ p₀, p = .send x N p₀ ∧ Corr G env p₀ gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₀, heq, hp₀⟩ := hS.2 _ _ hp
   exact ⟨p₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_gp_rcfgPrefix_inv {G : ProcessGraph} {env : RecEnv} {x : Channel}
-    {N : NetKAT} {gp₀ : GProc} {p : DyNetKAT} (h : Corr G env p (.rcfgPrefix x N gp₀)) :
+theorem corr_gp_rcfgPrefix_inv {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel}
+    {N : NetKAT schema} {gp₀ : GProc schema} {p : DyNetKAT schema} (h : Corr G env p (.rcfgPrefix x N gp₀)) :
     ∃ p₀, p = .rcfgPrefix x N p₀ ∧ Corr G env p₀ gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₀, heq, hp₀⟩ := hS.2 _ _ hp
   exact ⟨p₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_gp_parallel_inv {G : ProcessGraph} {env : RecEnv} {g₁ g₂ : GProc}
-    {p : DyNetKAT} (h : Corr G env p (.parallel g₁ g₂)) :
+theorem corr_gp_parallel_inv {G : ProcessGraph schema} {env : RecEnv schema} {g₁ g₂ : GProc schema}
+    {p : DyNetKAT schema} (h : Corr G env p (.parallel g₁ g₂)) :
     ∃ p₁ p₂, p = .parallel p₁ p₂ ∧ Corr G env p₁ g₁ ∧ Corr G env p₂ g₂ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₁, p₂, heq, hp₁, hp₂⟩ := hS.2 _ _ hp
   exact ⟨p₁, p₂, heq, ⟨S, hS, hp₁⟩, ⟨S, hS, hp₂⟩⟩
 
-theorem corr_gp_choice_inv {G : ProcessGraph} {env : RecEnv} {g₁ g₂ : GProc}
-    {p : DyNetKAT} (h : Corr G env p (.choice g₁ g₂)) :
+theorem corr_gp_choice_inv {G : ProcessGraph schema} {env : RecEnv schema} {g₁ g₂ : GProc schema}
+    {p : DyNetKAT schema} (h : Corr G env p (.choice g₁ g₂)) :
     ∃ p₁ p₂, p = .choice p₁ p₂ ∧ Corr G env p₁ g₁ ∧ Corr G env p₂ g₂ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₁, p₂, heq, hp₁, hp₂⟩ := hS.2 _ _ hp
   exact ⟨p₁, p₂, heq, ⟨S, hS, hp₁⟩, ⟨S, hS, hp₂⟩⟩
 
-theorem corr_gp_leftMerge_inv {G : ProcessGraph} {env : RecEnv} {g₁ g₂ : GProc}
-    {p : DyNetKAT} (h : Corr G env p (.leftMerge g₁ g₂)) :
+theorem corr_gp_leftMerge_inv {G : ProcessGraph schema} {env : RecEnv schema} {g₁ g₂ : GProc schema}
+    {p : DyNetKAT schema} (h : Corr G env p (.leftMerge g₁ g₂)) :
     ∃ p₁ p₂, p = .leftMerge p₁ p₂ ∧ Corr G env p₁ g₁ ∧ Corr G env p₂ g₂ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₁, p₂, heq, hp₁, hp₂⟩ := hS.2 _ _ hp
   exact ⟨p₁, p₂, heq, ⟨S, hS, hp₁⟩, ⟨S, hS, hp₂⟩⟩
 
-theorem corr_gp_commMerge_inv {G : ProcessGraph} {env : RecEnv} {g₁ g₂ : GProc}
-    {p : DyNetKAT} (h : Corr G env p (.commMerge g₁ g₂)) :
+theorem corr_gp_commMerge_inv {G : ProcessGraph schema} {env : RecEnv schema} {g₁ g₂ : GProc schema}
+    {p : DyNetKAT schema} (h : Corr G env p (.commMerge g₁ g₂)) :
     ∃ p₁ p₂, p = .commMerge p₁ p₂ ∧ Corr G env p₁ g₁ ∧ Corr G env p₂ g₂ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₁, p₂, heq, hp₁, hp₂⟩ := hS.2 _ _ hp
   exact ⟨p₁, p₂, heq, ⟨S, hS, hp₁⟩, ⟨S, hS, hp₂⟩⟩
 
-theorem corr_gp_restrict_inv {G : ProcessGraph} {env : RecEnv}
-    {L : Set CommunicationAction} {gp₀ : GProc} {p : DyNetKAT}
+theorem corr_gp_restrict_inv {G : ProcessGraph schema} {env : RecEnv schema}
+    {L : Set (CommunicationAction schema)} {gp₀ : GProc schema} {p : DyNetKAT schema}
     (h : Corr G env p (.restrict L gp₀)) :
     ∃ p₀, p = .restrict L p₀ ∧ Corr G env p₀ gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₀, heq, hp₀⟩ := hS.2 _ _ hp
   exact ⟨p₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_gp_project_inv {G : ProcessGraph} {env : RecEnv} {n : Nat}
-    {gp₀ : GProc} {p : DyNetKAT} (h : Corr G env p (.project n gp₀)) :
+theorem corr_gp_project_inv {G : ProcessGraph schema} {env : RecEnv schema} {n : Nat}
+    {gp₀ : GProc schema} {p : DyNetKAT schema} (h : Corr G env p (.project n gp₀)) :
     ∃ p₀, p = .project n p₀ ∧ Corr G env p₀ gp₀ := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨p₀, heq, hp₀⟩ := hS.2 _ _ hp
   exact ⟨p₀, heq, ⟨S, hS, hp₀⟩⟩
 
-theorem corr_gp_ref_inv {G : ProcessGraph} {env : RecEnv} {i : NodeId}
-    {p : DyNetKAT} (h : Corr G env p (.ref i)) :
+theorem corr_gp_ref_inv {G : ProcessGraph schema} {env : RecEnv schema} {i : NodeId}
+    {p : DyNetKAT schema} (h : Corr G env p (.ref i)) :
     ∃ x b, p = .var x ∧ env.lookup x = some b ∧ Corr G env b (G.label i) := by
   obtain ⟨S, hS, hp⟩ := h
   obtain ⟨x, b, heq, hb, hp₀⟩ := hS.2 _ _ hp
@@ -608,11 +610,11 @@ theorem corr_gp_ref_inv {G : ProcessGraph} {env : RecEnv} {i : NodeId}
 -- witnesses.
 ------------------------------------------------------------------------
 
-theorem corrB_transfer_at {G : ProcessGraph} {env : RecEnv}
-    {S₁ S₂ : DyNetKAT → GProc → Prop}
+theorem corrB_transfer_at {G : ProcessGraph schema} {env : RecEnv schema}
+    {S₁ S₂ : DyNetKAT schema → GProc schema → Prop}
     (hS₁ : ∀ p gp, S₁ p gp → CorrBArm G env S₁ p gp)
     (hle : ∀ a b, S₁ a b → S₂ a b)
-    (p : DyNetKAT) (gp : GProc) (hp : S₁ p gp) :
+    (p : DyNetKAT schema) (gp : GProc schema) (hp : S₁ p gp) :
     CorrBArm G env S₂ p gp := by
   cases p with
   | deadlock => exact hS₁ _ _ hp
@@ -638,11 +640,11 @@ theorem corrB_transfer_at {G : ProcessGraph} {env : RecEnv}
       obtain ⟨i, heq, b, hb, hc⟩ := hS₁ _ _ hp
       exact ⟨i, heq, b, hb, hle _ _ hc⟩
 
-theorem corrF_transfer_at {G : ProcessGraph} {env : RecEnv}
-    {S₁ S₂ : DyNetKAT → GProc → Prop}
+theorem corrF_transfer_at {G : ProcessGraph schema} {env : RecEnv schema}
+    {S₁ S₂ : DyNetKAT schema → GProc schema → Prop}
     (hS₁ : ∀ p gp, S₁ p gp → CorrFArm G env S₁ p gp)
     (hle : ∀ a b, S₁ a b → S₂ a b)
-    (p : DyNetKAT) (gp : GProc) (hp : S₁ p gp) :
+    (p : DyNetKAT schema) (gp : GProc schema) (hp : S₁ p gp) :
     CorrFArm G env S₂ p gp := by
   cases gp with
   | deadlock => exact hS₁ _ _ hp
@@ -676,7 +678,7 @@ theorem corrF_transfer_at {G : ProcessGraph} {env : RecEnv}
 -- `S₂` is delegated through the transfer lemmas.
 ------------------------------------------------------------------------
 
-theorem corr_deadlock_intro (G : ProcessGraph) (env : RecEnv) :
+theorem corr_deadlock_intro (G : ProcessGraph schema) (env : RecEnv schema) :
     Corr G env .deadlock .deadlock := by
   refine ⟨fun a b => a = .deadlock ∧ b = .deadlock, ⟨?_, ?_⟩, ⟨rfl, rfl⟩⟩
   · intro a b hab
@@ -708,8 +710,8 @@ theorem corr_deadlock_intro (G : ProcessGraph) (env : RecEnv) :
     | project n gp₀ => exact absurd hab.2 (by simp)
     | ref i => exact absurd hab.2 (by simp)
 
-theorem corr_var_intro {G : ProcessGraph} {env : RecEnv} {x : Var} {i : NodeId}
-    {b : DyNetKAT} (hb : env.lookup x = some b) (hc : Corr G env b (G.label i)) :
+theorem corr_var_intro {G : ProcessGraph schema} {env : RecEnv schema} {x : Var} {i : NodeId}
+    {b : DyNetKAT schema} (hb : env.lookup x = some b) (hc : Corr G env b (G.label i)) :
     Corr G env (.var x) (.ref i) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := hc
   refine ⟨fun a c => (a = .var x ∧ c = .ref i) ∨ S₁ a c, ⟨?_, ?_⟩, Or.inl ⟨rfl, rfl⟩⟩
@@ -724,7 +726,7 @@ theorem corr_var_intro {G : ProcessGraph} {env : RecEnv} {x : Var} {i : NodeId}
       exact ⟨x, b, rfl, hb, Or.inr hp₁⟩
     · exact corrF_transfer_at hS₁.2 (fun a c h => Or.inr h) a c h
 
-theorem corr_nSeq_intro {G : ProcessGraph} {env : RecEnv} {N : NetKAT} {p gp : _}
+theorem corr_nSeq_intro {G : ProcessGraph schema} {env : RecEnv schema} {N : NetKAT schema} {p gp : _}
     (h : Corr G env p gp) :
     Corr G env (.nSeq N p) (.nSeq N gp) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h
@@ -741,7 +743,7 @@ theorem corr_nSeq_intro {G : ProcessGraph} {env : RecEnv} {N : NetKAT} {p gp : _
       exact ⟨p, rfl, Or.inr hp₁⟩
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr h) a b h
 
-theorem corr_recv_intro {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : NetKAT}
+theorem corr_recv_intro {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel} {N : NetKAT schema}
     {p gp : _} (h : Corr G env p gp) :
     Corr G env (.recv x N p) (.recv x N gp) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h
@@ -758,7 +760,7 @@ theorem corr_recv_intro {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : Net
       exact ⟨p, rfl, Or.inr hp₁⟩
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr h) a b h
 
-theorem corr_send_intro {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : NetKAT}
+theorem corr_send_intro {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel} {N : NetKAT schema}
     {p gp : _} (h : Corr G env p gp) :
     Corr G env (.send x N p) (.send x N gp) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h
@@ -775,8 +777,8 @@ theorem corr_send_intro {G : ProcessGraph} {env : RecEnv} {x : Channel} {N : Net
       exact ⟨p, rfl, Or.inr hp₁⟩
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr h) a b h
 
-theorem corr_rcfgPrefix_intro {G : ProcessGraph} {env : RecEnv} {x : Channel}
-    {N : NetKAT} {p gp : _} (h : Corr G env p gp) :
+theorem corr_rcfgPrefix_intro {G : ProcessGraph schema} {env : RecEnv schema} {x : Channel}
+    {N : NetKAT schema} {p gp : _} (h : Corr G env p gp) :
     Corr G env (.rcfgPrefix x N p) (.rcfgPrefix x N gp) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h
   refine ⟨fun a b => (a = .rcfgPrefix x N p ∧ b = .rcfgPrefix x N gp) ∨ S₁ a b,
@@ -792,7 +794,7 @@ theorem corr_rcfgPrefix_intro {G : ProcessGraph} {env : RecEnv} {x : Channel}
       exact ⟨p, rfl, Or.inr hp₁⟩
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr h) a b h
 
-theorem corr_parallel_intro {G : ProcessGraph} {env : RecEnv} {p₁ p₂ g₁ g₂ : _}
+theorem corr_parallel_intro {G : ProcessGraph schema} {env : RecEnv schema} {p₁ p₂ g₁ g₂ : _}
     (h₁ : Corr G env p₁ g₁) (h₂ : Corr G env p₂ g₂) :
     Corr G env (.parallel p₁ p₂) (.parallel g₁ g₂) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h₁
@@ -812,7 +814,7 @@ theorem corr_parallel_intro {G : ProcessGraph} {env : RecEnv} {p₁ p₂ g₁ g�
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr (Or.inl h)) a b h
     · exact corrF_transfer_at hS₂.2 (fun a b h => Or.inr (Or.inr h)) a b h
 
-theorem corr_choice_intro {G : ProcessGraph} {env : RecEnv} {p₁ p₂ g₁ g₂ : _}
+theorem corr_choice_intro {G : ProcessGraph schema} {env : RecEnv schema} {p₁ p₂ g₁ g₂ : _}
     (h₁ : Corr G env p₁ g₁) (h₂ : Corr G env p₂ g₂) :
     Corr G env (.choice p₁ p₂) (.choice g₁ g₂) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h₁
@@ -832,7 +834,7 @@ theorem corr_choice_intro {G : ProcessGraph} {env : RecEnv} {p₁ p₂ g₁ g₂
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr (Or.inl h)) a b h
     · exact corrF_transfer_at hS₂.2 (fun a b h => Or.inr (Or.inr h)) a b h
 
-theorem corr_leftMerge_intro {G : ProcessGraph} {env : RecEnv} {p₁ p₂ g₁ g₂ : _}
+theorem corr_leftMerge_intro {G : ProcessGraph schema} {env : RecEnv schema} {p₁ p₂ g₁ g₂ : _}
     (h₁ : Corr G env p₁ g₁) (h₂ : Corr G env p₂ g₂) :
     Corr G env (.leftMerge p₁ p₂) (.leftMerge g₁ g₂) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h₁
@@ -852,7 +854,7 @@ theorem corr_leftMerge_intro {G : ProcessGraph} {env : RecEnv} {p₁ p₂ g₁ g
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr (Or.inl h)) a b h
     · exact corrF_transfer_at hS₂.2 (fun a b h => Or.inr (Or.inr h)) a b h
 
-theorem corr_commMerge_intro {G : ProcessGraph} {env : RecEnv} {p₁ p₂ g₁ g₂ : _}
+theorem corr_commMerge_intro {G : ProcessGraph schema} {env : RecEnv schema} {p₁ p₂ g₁ g₂ : _}
     (h₁ : Corr G env p₁ g₁) (h₂ : Corr G env p₂ g₂) :
     Corr G env (.commMerge p₁ p₂) (.commMerge g₁ g₂) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h₁
@@ -872,8 +874,8 @@ theorem corr_commMerge_intro {G : ProcessGraph} {env : RecEnv} {p₁ p₂ g₁ g
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr (Or.inl h)) a b h
     · exact corrF_transfer_at hS₂.2 (fun a b h => Or.inr (Or.inr h)) a b h
 
-theorem corr_restrict_intro {G : ProcessGraph} {env : RecEnv}
-    {L : Set CommunicationAction} {p gp : _} (h : Corr G env p gp) :
+theorem corr_restrict_intro {G : ProcessGraph schema} {env : RecEnv schema}
+    {L : Set (CommunicationAction schema)} {p gp : _} (h : Corr G env p gp) :
     Corr G env (.restrict L p) (.restrict L gp) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h
   refine ⟨fun a b => (a = .restrict L p ∧ b = .restrict L gp) ∨ S₁ a b, ⟨?_, ?_⟩,
@@ -889,7 +891,7 @@ theorem corr_restrict_intro {G : ProcessGraph} {env : RecEnv}
       exact ⟨p, rfl, Or.inr hp₁⟩
     · exact corrF_transfer_at hS₁.2 (fun a b h => Or.inr h) a b h
 
-theorem corr_project_intro {G : ProcessGraph} {env : RecEnv} {n : Nat} {p gp : _}
+theorem corr_project_intro {G : ProcessGraph schema} {env : RecEnv schema} {n : Nat} {p gp : _}
     (h : Corr G env p gp) :
     Corr G env (.project n p) (.project n gp) := by
   obtain ⟨S₁, hS₁, hp₁⟩ := h
@@ -913,14 +915,14 @@ theorem corr_project_intro {G : ProcessGraph} {env : RecEnv} {n : Nat} {p gp : _
 /-- **Graph soundness**: every graph transition of a node corresponds to a
     valid transition of the corresponding process in the environment-indexed
     SOS, and the destination process corresponds to the destination node. -/
-theorem gstep_to_step (G : ProcessGraph) (env : RecEnv) (gc gc' : GConfig) (a : Action)
+theorem gstep_to_step (G : ProcessGraph schema) (env : RecEnv schema) (gc gc' : GConfig schema) (a : Action schema)
     (hstep : GStep G gc a gc') :
-    ∀ (p : DyNetKAT), Corr G env p gc.proc →
-      ∃ (p' : DyNetKAT),
+    ∀ (p : DyNetKAT schema), Corr G env p gc.proc →
+      ∃ (p' : DyNetKAT schema),
         Step env
-          (show Config from
+          (show (Config schema) from
             { proc := p, pending := gc.pending, handled := gc.handled }) a
-          (show Config from
+          (show (Config schema) from
             { proc := p', pending := gc'.pending, handled := gc'.handled }) ∧
         Corr G env p' gc'.proc := by
   induction hstep with
@@ -1025,14 +1027,14 @@ theorem gstep_to_step (G : ProcessGraph) (env : RecEnv) (gc gc' : GConfig) (a : 
 /-- **Graph completeness**: every SOS transition of a process corresponds
     to a graph transition of the corresponding node, with the destination
     process corresponding to the destination node. -/
-theorem step_to_gstep (G : ProcessGraph) (env : RecEnv) (c c' : Config) (a : Action)
+theorem step_to_gstep (G : ProcessGraph schema) (env : RecEnv schema) (c c' : Config schema) (a : Action schema)
     (hstep : Step env c a c') :
-    ∀ (gp : GProc), Corr G env c.proc gp →
-      ∃ (gp' : GProc),
+    ∀ (gp : GProc schema), Corr G env c.proc gp →
+      ∃ (gp' : GProc schema),
         GStep G
-          (show GConfig from
+          (show (GConfig schema) from
             { proc := gp, pending := c.pending, handled := c.handled }) a
-          (show GConfig from
+          (show (GConfig schema) from
             { proc := gp', pending := c'.pending, handled := c'.handled }) ∧
         Corr G env c'.proc gp' := by
   induction hstep with
@@ -1139,32 +1141,32 @@ theorem step_to_gstep (G : ProcessGraph) (env : RecEnv) (c c' : Config) (a : Act
 /-- **Combined correspondence** (the central acceptance criterion): for
     corresponding configurations, graph transitions and SOS transitions
     coincide up to the destination correspondence. -/
-theorem graph_step_iff (G : ProcessGraph) (env : RecEnv) (p : DyNetKAT) (gp : GProc)
-    (pt hl : List CtxPkt) (a : Action) (hcorr : Corr G env p gp) :
-    (∃ (gp' : GProc) (pt' hl' : List CtxPkt),
+theorem graph_step_iff (G : ProcessGraph schema) (env : RecEnv schema) (p : DyNetKAT schema) (gp : GProc schema)
+    (pt hl : List schema.Packet) (a : Action schema) (hcorr : Corr G env p gp) :
+    (∃ (gp' : GProc schema) (pt' hl' : List schema.Packet),
         GStep G
-          (show GConfig from { proc := gp, pending := pt, handled := hl }) a
-          (show GConfig from
+          (show (GConfig schema) from { proc := gp, pending := pt, handled := hl }) a
+          (show (GConfig schema) from
             { proc := gp', pending := pt', handled := hl' }) ∧
-        ∃ (p' : DyNetKAT), Corr G env p' gp') ↔
-      ∃ (p' : DyNetKAT) (pt' hl' : List CtxPkt),
+        ∃ (p' : DyNetKAT schema), Corr G env p' gp') ↔
+      ∃ (p' : DyNetKAT schema) (pt' hl' : List schema.Packet),
         Step env
-          (show Config from { proc := p, pending := pt, handled := hl }) a
-          (show Config from
+          (show (Config schema) from { proc := p, pending := pt, handled := hl }) a
+          (show (Config schema) from
             { proc := p', pending := pt', handled := hl' }) := by
   constructor
   · rintro ⟨gp', pt', hl', hstep, p', hcorr'⟩
     obtain ⟨p'', hstep', _⟩ :=
       gstep_to_step G env
-        (show GConfig from { proc := gp, pending := pt, handled := hl })
-        (show GConfig from { proc := gp', pending := pt', handled := hl' })
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl })
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' })
         a hstep p hcorr
     exact ⟨p'', pt', hl', hstep'⟩
   · rintro ⟨p', pt', hl', hstep⟩
     obtain ⟨gp', hstep', hc'⟩ :=
       step_to_gstep G env
-        (show Config from { proc := p, pending := pt, handled := hl })
-        (show Config from { proc := p', pending := pt', handled := hl' })
+        (show (Config schema) from { proc := p, pending := pt, handled := hl })
+        (show (Config schema) from { proc := p', pending := pt', handled := hl' })
         a hstep gp hcorr
     exact ⟨gp', pt', hl', hstep', p', hc'⟩
 
@@ -1185,13 +1187,13 @@ theorem graph_step_iff (G : ProcessGraph) (env : RecEnv) (p : DyNetKAT) (gp : GP
 /-- Finite-support witness: a finite set `S` of variables containing the
     direct variables of `root`, such that every variable in `S` is defined
     and its body only references variables in `S`. -/
-def FiniteSupport (env : RecEnv) (root : DyNetKAT) (S : Finset Var) : Prop :=
+def FiniteSupport (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var) : Prop :=
   recursiveVars root ⊆ S ∧
     ∀ x ∈ S, ∃ b, env.lookup x = some b ∧ recursiveVars b ⊆ S
 
 /-- Every recursively reachable variable of a finitely supported process
     lies in the support set. -/
-theorem reachableVars_subset_of_finiteSupport (env : RecEnv) (root : DyNetKAT)
+theorem reachableVars_subset_of_finiteSupport (env : RecEnv schema) (root : DyNetKAT schema)
     (S : Finset Var) (hsup : FiniteSupport env root S) :
     ∀ name, ReachableVar env root name → name ∈ S := by
   intro name h
@@ -1206,7 +1208,7 @@ theorem reachableVars_subset_of_finiteSupport (env : RecEnv) (root : DyNetKAT)
 /-- Translation of a DyNetKAT term into a graph term: recursive variables
     become edges to their canonical nodes; every other constructor is
     carried over verbatim. -/
-def toGProc : DyNetKAT → GProc
+def toGProc : DyNetKAT schema → GProc schema
   | .deadlock => .deadlock
   | .nSeq N d => .nSeq N (toGProc d)
   | .recv x N d => .recv x N (toGProc d)
@@ -1222,7 +1224,7 @@ def toGProc : DyNetKAT → GProc
 
 /-- The node references of a translated term are exactly the canonical
     nodes of the directly occurring variables. -/
-theorem gprocRefs_toGProc (d : DyNetKAT) :
+theorem gprocRefs_toGProc (d : DyNetKAT schema) :
     gprocRefs (toGProc d) = (recursiveVars d).image varNode := by
   induction d with
   | deadlock => simp [toGProc, gprocRefs, recursiveVars]
@@ -1243,18 +1245,18 @@ theorem gprocRefs_toGProc (d : DyNetKAT) :
   | var x => simp [toGProc, gprocRefs, recursiveVars, varNode, Finset.image_singleton]
 
 /-- Materialize the labels before handing the graph to the verifier. -/
-private def graphLabels (env : RecEnv) (S : Finset Var) : List (Var × GProc) :=
+private def graphLabels (env : RecEnv schema) (S : Finset Var) : List (Var × (GProc schema)) :=
   (S.sort (· ≤ ·)).map fun x => (x, toGProc ((env.lookup x).getD .deadlock))
 
-private def lookupGraphLabel (labels : List (Var × GProc)) : NodeId → GProc
+private def lookupGraphLabel (labels : List (Var × (GProc schema))) : NodeId → GProc schema
   | Sum.inl x => (labels.lookup x).getD .deadlock
   | Sum.inr _ => .deadlock
 
 /-- Lookup in the compiled table. Identifiers outside its domain are inert. -/
-def toGraphLabel (env : RecEnv) (S : Finset Var) : NodeId → GProc :=
+def toGraphLabel (env : RecEnv schema) (S : Finset Var) : NodeId → GProc schema :=
   lookupGraphLabel (graphLabels env S)
 
-@[simp] theorem toGraphLabel_varNode {env : RecEnv} {S : Finset Var} {x : Var}
+@[simp] theorem toGraphLabel_varNode {env : RecEnv schema} {S : Finset Var} {x : Var}
     (hx : x ∈ S) :
     toGraphLabel env S (varNode x) = toGProc ((env.lookup x).getD .deadlock) := by
   have lookup (xs : List Var) (h : x ∈ xs) :
@@ -1276,8 +1278,8 @@ def toGraphLabel (env : RecEnv) (S : Finset Var) : NodeId → GProc :=
     under the finite-support hypothesis: one node per supported variable
     (the canonical `varNode x`), the root being the translation of the
     original process.  Fully constructive. -/
-def toGraph (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
-    (hsup : FiniteSupport env root S) : ProcessGraph :=
+def toGraph (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var)
+    (hsup : FiniteSupport env root S) : ProcessGraph schema :=
   let labels := graphLabels env S
   { nodes := S.image varNode
     root := toGProc root
@@ -1302,13 +1304,13 @@ def toGraph (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
           obtain ⟨y, _, hy_eq⟩ := hi
           simp [varNode] at hy_eq }
 
-@[simp] theorem toGraph_label_varNode {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
+@[simp] theorem toGraph_label_varNode {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
     (hsup : FiniteSupport env root S) {x : Var} (hx : x ∈ S) :
     (toGraph env root S hsup).label (varNode x) =
       toGProc ((env.lookup x).getD .deadlock) :=
   toGraphLabel_varNode hx
 
-instance (env : RecEnv) (root : DyNetKAT) (S : Finset Var) :
+instance (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var) :
     Decidable (FiniteSupport env root S) := by
   have check (x : Var) : Decidable (∃ b, env.lookup x = some b ∧ recursiveVars b ⊆ S) := by
     cases h : env.lookup x with
@@ -1320,24 +1322,24 @@ instance (env : RecEnv) (root : DyNetKAT) (S : Finset Var) :
 
 /-- Compile against a supplied finite set of variables. An undefined variable
     or a reference outside the supplied set makes compilation fail. -/
-def compileGraph (env : RecEnv) (root : DyNetKAT) (S : Finset Var) : Option ProcessGraph :=
+def compileGraph (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var) : Option (ProcessGraph schema) :=
   if h : FiniteSupport env root S then some (toGraph env root S h) else none
 
-theorem compileGraph_eq_some_iff {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
-    {G : ProcessGraph} :
+theorem compileGraph_eq_some_iff {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
+    {G : ProcessGraph schema} :
     compileGraph env root S = some G ↔
       ∃ h : FiniteSupport env root S, G = toGraph env root S h := by
   unfold compileGraph
   split <;> simp_all [eq_comm]
 
-theorem compileGraph_eq_none_iff (env : RecEnv) (root : DyNetKAT) (S : Finset Var) :
+theorem compileGraph_eq_none_iff (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var) :
     compileGraph env root S = none ↔ ¬ FiniteSupport env root S := by
   unfold compileGraph
   split <;> simp_all
 
 /-- The same compiled table interprets every process closed over its support. -/
-theorem toGraph_corr_of_subset (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
-    (hsup : FiniteSupport env root S) (p : DyNetKAT) (hp : recursiveVars p ⊆ S) :
+theorem toGraph_corr_of_subset (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var)
+    (hsup : FiniteSupport env root S) (p : DyNetKAT schema) (hp : recursiveVars p ⊆ S) :
     Corr (toGraph env root S hsup) env p (toGProc p) := by
   refine ⟨fun p gp => gp = toGProc p ∧ recursiveVars p ⊆ S, ⟨?_, ?_⟩, ⟨rfl, hp⟩⟩
   · intro p gp hp
@@ -1438,14 +1440,14 @@ theorem toGraph_corr_of_subset (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
         exact ⟨x, b, rfl, hb, ⟨hlab, hbsub⟩⟩
 
 /-- The root of the graph corresponds to the original process. -/
-theorem toGraph_corr (env : RecEnv) (root : DyNetKAT) (S : Finset Var)
+theorem toGraph_corr (env : RecEnv schema) (root : DyNetKAT schema) (S : Finset Var)
     (hsup : FiniteSupport env root S) :
     Corr (toGraph env root S hsup) env root (toGProc root) :=
   toGraph_corr_of_subset env root S hsup root hsup.1
 
 /-- Successful compilation gives an unbounded two-way step correspondence. -/
-theorem compileGraph_corr {env : RecEnv} {root : DyNetKAT} {S : Finset Var}
-    {G : ProcessGraph} (h : compileGraph env root S = some G) :
+theorem compileGraph_corr {env : RecEnv schema} {root : DyNetKAT schema} {S : Finset Var}
+    {G : ProcessGraph schema} (h : compileGraph env root S = some G) :
     Corr G env root G.root := by
   obtain ⟨hs, rfl⟩ := compileGraph_eq_some_iff.mp h
   exact toGraph_corr env root S hs
@@ -1521,28 +1523,28 @@ theorem infEnv_no_finite_support (S : Finset Var) :
 ------------------------------------------------------------------------
 
 /-- Multi-step execution of the graph semantics. -/
-inductive GSteps (G : ProcessGraph) : GConfig → List Action → GConfig → Prop
-  | nil (c : GConfig) : GSteps G c [] c
-  | cons (c c' c'' : GConfig) (a : Action) (acts : List Action)
+inductive GSteps {schema : PacketSchema} (G : ProcessGraph schema) : GConfig schema → List (Action schema) → GConfig schema → Prop
+  | nil (c : GConfig schema) : GSteps G c [] c
+  | cons (c c' c'' : GConfig schema) (a : Action schema) (acts : List (Action schema))
       (h1 : GStep G c a c') (h2 : GSteps G c' acts c'') :
       GSteps G c (a :: acts) c''
 
 /-- Trace soundness: every finite graph execution corresponds to a finite
     SOS execution with corresponding endpoints. -/
-theorem gsteps_to_steps (G : ProcessGraph) (env : RecEnv) (gc gc' : GConfig)
-    (acts : List Action) (hexec : GSteps G gc acts gc') :
-    ∀ (p : DyNetKAT), Corr G env p gc.proc →
-      ∃ (p' : DyNetKAT),
+theorem gsteps_to_steps (G : ProcessGraph schema) (env : RecEnv schema) (gc gc' : GConfig schema)
+    (acts : List (Action schema)) (hexec : GSteps G gc acts gc') :
+    ∀ (p : DyNetKAT schema), Corr G env p gc.proc →
+      ∃ (p' : DyNetKAT schema),
         Steps env
-          (show Config from
+          (show (Config schema) from
             { proc := p, pending := gc.pending, handled := gc.handled }) acts
-          (show Config from
+          (show (Config schema) from
             { proc := p', pending := gc'.pending, handled := gc'.handled }) ∧
         Corr G env p' gc'.proc := by
   induction hexec with
   | nil c =>
       intro p hcorr
-      exact ⟨p, Steps.nil (show Config from
+      exact ⟨p, Steps.nil (show (Config schema) from
         { proc := p, pending := c.pending, handled := c.handled }), hcorr⟩
   | cons c c₁ c'' a rest h1 h2 ih =>
       intro p hcorr
@@ -1552,20 +1554,20 @@ theorem gsteps_to_steps (G : ProcessGraph) (env : RecEnv) (gc gc' : GConfig)
 
 /-- Trace completeness: every finite SOS execution corresponds to a finite
     graph execution with corresponding endpoints. -/
-theorem steps_to_gsteps (G : ProcessGraph) (env : RecEnv) (c c' : Config)
-    (acts : List Action) (hexec : Steps env c acts c') :
-    ∀ (gp : GProc), Corr G env c.proc gp →
-      ∃ (gp' : GProc),
+theorem steps_to_gsteps (G : ProcessGraph schema) (env : RecEnv schema) (c c' : Config schema)
+    (acts : List (Action schema)) (hexec : Steps env c acts c') :
+    ∀ (gp : GProc schema), Corr G env c.proc gp →
+      ∃ (gp' : GProc schema),
         GSteps G
-          (show GConfig from
+          (show (GConfig schema) from
             { proc := gp, pending := c.pending, handled := c.handled }) acts
-          (show GConfig from
+          (show (GConfig schema) from
             { proc := gp', pending := c'.pending, handled := c'.handled }) ∧
         Corr G env c'.proc gp' := by
   induction hexec with
   | nil c =>
       intro gp hcorr
-      exact ⟨gp, GSteps.nil (show GConfig from
+      exact ⟨gp, GSteps.nil (show (GConfig schema) from
         { proc := gp, pending := c.pending, handled := c.handled }), hcorr⟩
   | cons c c₁ c'' a rest h1 h2 ih =>
       intro gp hcorr
@@ -1576,10 +1578,10 @@ theorem steps_to_gsteps (G : ProcessGraph) (env : RecEnv) (c c' : Config)
 /-- Bounded SOS executions lift to the paper's projection `π_n`: a trace of
     length `≤ n` from `p` is a trace of `π_n(p)` (with the remaining budget
     recorded at the endpoint). -/
-theorem steps_project_lift_aux {schema : PacketSchema} (env : (RecEnv schema)) (c c' : (Config schema)) (acts : List (Action schema))
+theorem steps_project_lift_aux {schema : PacketSchema} (env : RecEnv schema) (c c' : Config schema) (acts : List (Action schema))
     (hexec : Steps env c acts c') :
     ∀ (n : Nat), acts.length ≤ n →
-    ∃ (j : Nat) (p' : (DyNetKAT schema)),
+    ∃ (j : Nat) (p' : DyNetKAT schema),
       c'.proc = p' ∧ j + acts.length = n ∧
       Steps env
         (show (Config schema) from
@@ -1611,12 +1613,12 @@ theorem steps_project_lift_aux {schema : PacketSchema} (env : (RecEnv schema)) (
 
 /-- The literal-form lift: a trace of length `≤ n` from `p` is a trace of
     `π_n(p)`. -/
-theorem steps_project_lift {schema : PacketSchema} (env : (RecEnv schema)) (p : (DyNetKAT schema)) (pt hl : List schema.Packet)
-    (acts : List (Action schema)) (c' : (Config schema))
+theorem steps_project_lift {schema : PacketSchema} (env : RecEnv schema) (p : DyNetKAT schema) (pt hl : List schema.Packet)
+    (acts : List (Action schema)) (c' : Config schema)
     (hexec : Steps env
       (show (Config schema) from { proc := p, pending := pt, handled := hl }) acts c')
     (n : Nat) (hn : acts.length ≤ n) :
-    ∃ (j : Nat) (p' : (DyNetKAT schema)),
+    ∃ (j : Nat) (p' : DyNetKAT schema),
       c'.proc = p' ∧ j + acts.length = n ∧
       Steps env
         (show (Config schema) from
@@ -1629,15 +1631,15 @@ theorem steps_project_lift {schema : PacketSchema} (env : (RecEnv schema)) (p : 
 /-- Conversely, every trace of `π_n(p)` is a trace of `p`, and the
     endpoint keeps the remaining budget: this is the precise sense in
     which `π_n` observes exactly the first `n` steps. -/
-theorem steps_project_unwrap {schema : PacketSchema} (env : (RecEnv schema)) :
-    ∀ (acts : List (Action schema)) (n : Nat) (p : (DyNetKAT schema)) (pt hl : List schema.Packet)
-      (q : (DyNetKAT schema)) (pt' hl' : List schema.Packet),
+theorem steps_project_unwrap {schema : PacketSchema} (env : RecEnv schema) :
+    ∀ (acts : List (Action schema)) (n : Nat) (p : DyNetKAT schema) (pt hl : List schema.Packet)
+      (q : DyNetKAT schema) (pt' hl' : List schema.Packet),
       Steps env
         (show (Config schema) from
           { proc := .project n p, pending := pt, handled := hl }) acts
         (show (Config schema) from
           { proc := q, pending := pt', handled := hl' }) →
-      ∃ (j : Nat) (p' : (DyNetKAT schema)),
+      ∃ (j : Nat) (p' : DyNetKAT schema),
         q = .project j p' ∧ j + acts.length = n ∧
         Steps env
           (show (Config schema) from { proc := p, pending := pt, handled := hl }) acts
@@ -1677,16 +1679,16 @@ theorem steps_project_unwrap {schema : PacketSchema} (env : (RecEnv schema)) :
 
 /-- Bounded graph reachability: `dst` is reachable from `src` in at most
     `n` graph transitions. -/
-inductive GReachableWithin (G : ProcessGraph) : Nat → GConfig → GConfig → Prop
-  | refl (n : Nat) (c : GConfig) : GReachableWithin G n c c
-  | step (n : Nat) (c c' c'' : GConfig) (a : Action)
+inductive GReachableWithin {schema : PacketSchema} (G : ProcessGraph schema) : Nat → GConfig schema → GConfig schema → Prop
+  | refl (n : Nat) (c : GConfig schema) : GReachableWithin G n c c
+  | step (n : Nat) (c c' c'' : GConfig schema) (a : Action schema)
       (h1 : GStep G c a c') (h2 : GReachableWithin G n c' c'') :
       GReachableWithin G (n + 1) c c''
 
 /-- Monotonicity: reachability within `n` steps implies reachability
     within any larger budget. -/
-theorem GReachableWithin.mono {G : ProcessGraph} :
-    ∀ {n m : Nat} {c c' : GConfig}, n ≤ m →
+theorem GReachableWithin.mono {G : ProcessGraph schema} :
+    ∀ {n m : Nat} {c c' : GConfig schema}, n ≤ m →
       GReachableWithin G n c c' → GReachableWithin G m c c' := by
   intro n m c c' hnm h
   induction h generalizing m with
@@ -1703,15 +1705,15 @@ theorem GReachableWithin.mono {G : ProcessGraph} :
 /-- Zero-depth cutoff: within zero steps only the source itself is
     reachable.  A zero-depth exploration says nothing about behavior
     beyond identity. -/
-theorem GReachableWithin.zero_eq {G : ProcessGraph} {c c' : GConfig}
+theorem GReachableWithin.zero_eq {G : ProcessGraph schema} {c c' : GConfig schema}
     (h : GReachableWithin G 0 c c') : c = c' := by
   cases h with
   | refl n c => rfl
 
 /-- Composition: reachability budgets add along concatenated explorations. -/
-theorem GReachableWithin.trans {G : ProcessGraph} :
-    ∀ {n : Nat} {c c₁ : GConfig}, GReachableWithin G n c c₁ →
-      ∀ {m : Nat} {c' : GConfig}, GReachableWithin G m c₁ c' →
+theorem GReachableWithin.trans {G : ProcessGraph schema} :
+    ∀ {n : Nat} {c c₁ : GConfig schema}, GReachableWithin G n c c₁ →
+      ∀ {m : Nat} {c' : GConfig schema}, GReachableWithin G m c₁ c' →
       GReachableWithin G (n + m) c c' := by
   intro n c c₁ h1
   induction h1 with
@@ -1724,8 +1726,8 @@ theorem GReachableWithin.trans {G : ProcessGraph} :
 
 /-- Every finite graph execution of length `≤ n` witnesses bounded
     reachability within `n`. -/
-theorem gsteps_reachable_within {G : ProcessGraph} {gc gc' : GConfig}
-    {acts : List Action} (hexec : GSteps G gc acts gc') :
+theorem gsteps_reachable_within {G : ProcessGraph schema} {gc gc' : GConfig schema}
+    {acts : List (Action schema)} (hexec : GSteps G gc acts gc') :
     ∀ n, acts.length ≤ n → GReachableWithin G n gc gc' := by
   induction hexec with
   | nil c => intro n hn; exact GReachableWithin.refl n c
@@ -1750,25 +1752,25 @@ theorem gsteps_reachable_within {G : ProcessGraph} {gc gc' : GConfig}
     transition while preserving both packet histories — the exact
     counterpart of `IsBisimulation env`, with `GStep` in place of
     `Step env` and no environment anywhere. -/
-def IsGBisimulation (G : ProcessGraph) (R : GProc → GProc → Prop) : Prop :=
+def IsGBisimulation (G : ProcessGraph schema) (R : GProc schema → GProc schema → Prop) : Prop :=
   (∀ gp gq, R gp gq → R gq gp) ∧
   ∀ gp gq, R gp gq →
-    ∀ (pt hl : List CtxPkt) (a : Action) (gp' : GProc) (pt' hl' : List CtxPkt),
+    ∀ (pt hl : List schema.Packet) (a : Action schema) (gp' : GProc schema) (pt' hl' : List schema.Packet),
       GStep G
-        (show GConfig from { proc := gp, pending := pt, handled := hl }) a
-        (show GConfig from { proc := gp', pending := pt', handled := hl' }) →
+        (show (GConfig schema) from { proc := gp, pending := pt, handled := hl }) a
+        (show (GConfig schema) from { proc := gp', pending := pt', handled := hl' }) →
       ∃ gq',
         GStep G
-          (show GConfig from { proc := gq, pending := pt, handled := hl }) a
-          (show GConfig from
+          (show (GConfig schema) from { proc := gq, pending := pt, handled := hl }) a
+          (show (GConfig schema) from
             { proc := gq', pending := pt', handled := hl' }) ∧
         R gp' gq'
 
 /-- Graph bisimilarity: related by some graph bisimulation. -/
-def GBisimilar (G : ProcessGraph) (gp gq : GProc) : Prop :=
+def GBisimilar (G : ProcessGraph schema) (gp gq : GProc schema) : Prop :=
   ∃ R, IsGBisimulation G R ∧ R gp gq
 
-theorem GBisimilar.refl (G : ProcessGraph) (gp : GProc) : GBisimilar G gp gp :=
+theorem GBisimilar.refl (G : ProcessGraph schema) (gp : GProc schema) : GBisimilar G gp gp :=
   ⟨fun a b => a = b, by
     constructor
     · intro a b h; exact h.symm
@@ -1776,22 +1778,22 @@ theorem GBisimilar.refl (G : ProcessGraph) (gp : GProc) : GBisimilar G gp gp :=
       subst h
       exact ⟨gp', hstep, rfl⟩, rfl⟩
 
-theorem GBisimilar.symm (G : ProcessGraph) {gp gq : GProc} (h : GBisimilar G gp gq) :
+theorem GBisimilar.symm (G : ProcessGraph schema) {gp gq : GProc schema} (h : GBisimilar G gp gq) :
     GBisimilar G gq gp := by
   obtain ⟨R, hR, hgp⟩ := h
   exact ⟨R, hR, hR.1 gp gq hgp⟩
 
-theorem gbisimilar_isGBisimulation (G : ProcessGraph) :
+theorem gbisimilar_isGBisimulation (G : ProcessGraph schema) :
     IsGBisimulation G (GBisimilar G) := by
   refine ⟨fun _ _ h => GBisimilar.symm G h, ?_⟩
   rintro p q ⟨R, hR, hpq⟩ pt hl a p' pt' hl' hstep
   obtain ⟨q', hstep', hpq'⟩ := hR.2 p q hpq pt hl a p' pt' hl' hstep
   exact ⟨q', hstep', R, hR, hpq'⟩
 
-theorem GBisimilar.trans (G : ProcessGraph) {p q r : GProc}
+theorem GBisimilar.trans (G : ProcessGraph schema) {p q r : GProc schema}
     (hpq : GBisimilar G p q) (hqr : GBisimilar G q r) :
     GBisimilar G p r := by
-  let R : GProc → GProc → Prop := fun x z =>
+  let R : GProc schema → GProc schema → Prop := fun x z =>
     ∃ y, GBisimilar G x y ∧ GBisimilar G y z
   refine ⟨R, ⟨?_, ?_⟩, q, hpq, hqr⟩
   · rintro x z ⟨y, hxy, hyz⟩
@@ -1806,8 +1808,8 @@ theorem GBisimilar.trans (G : ProcessGraph) {p q r : GProc}
     processes yields genuine unbounded bisimilarity in the original
     environment-indexed SOS.  The proof lifts the graph bisimulation
     through the correspondence; no bounded cutoff is involved anywhere. -/
-theorem gbisimilar_transfer (G : ProcessGraph) (env : RecEnv) {gp gq : GProc}
-    {p q : DyNetKAT} (hR : GBisimilar G gp gq) (hp : Corr G env p gp)
+theorem gbisimilar_transfer (G : ProcessGraph schema) (env : RecEnv schema) {gp gq : GProc schema}
+    {p q : DyNetKAT schema} (hR : GBisimilar G gp gq) (hp : Corr G env p gp)
     (hq : Corr G env q gq) :
     Bisimilar env p q := by
   obtain ⟨R, hR, hRgp⟩ := hR
@@ -1828,8 +1830,8 @@ theorem gbisimilar_transfer (G : ProcessGraph) (env : RecEnv) {gp gq : GProc}
     exact ⟨y', hstep', ⟨gy₁, gz', hcx, hcy, hR'⟩⟩
 
 /-- Bisimilarity is reflected and preserved for corresponding processes. -/
-theorem gbisimilar_iff_bisimilar (G : ProcessGraph) (env : RecEnv)
-    {p q : DyNetKAT} {gp gq : GProc} (hp : Corr G env p gp) (hq : Corr G env q gq) :
+theorem gbisimilar_iff_bisimilar (G : ProcessGraph schema) (env : RecEnv schema)
+    {p q : DyNetKAT schema} {gp gq : GProc schema} (hp : Corr G env p gp) (hq : Corr G env q gq) :
     GBisimilar G gp gq ↔ Bisimilar env p q := by
   refine ⟨fun h => gbisimilar_transfer G env h hp hq, ?_⟩
   rintro ⟨R, hR, hpq⟩
@@ -1845,8 +1847,8 @@ theorem gbisimilar_iff_bisimilar (G : ProcessGraph) (env : RecEnv)
       step_to_gstep G env ⟨v, pt, hl⟩ ⟨v', pt', hl'⟩ a hv' y hv
     exact ⟨y', hy', u', v', hcx, hcy, huv'⟩
 
-theorem compileGraph_bisimilar_iff {env : RecEnv} {p q : DyNetKAT} {S : Finset Var}
-    {G : ProcessGraph} (h : compileGraph env (.choice p q) S = some G) :
+theorem compileGraph_bisimilar_iff {env : RecEnv schema} {p q : DyNetKAT schema} {S : Finset Var}
+    {G : ProcessGraph schema} (h : compileGraph env (.choice p q) S = some G) :
     GBisimilar G (toGProc p) (toGProc q) ↔ Bisimilar env p q := by
   obtain ⟨hs, rfl⟩ := compileGraph_eq_some_iff.mp h
   exact gbisimilar_iff_bisimilar _ env
@@ -1858,9 +1860,9 @@ theorem compileGraph_bisimilar_iff {env : RecEnv} {p q : DyNetKAT} {S : Finset V
     environment.  For a FIXED graph bisimulation `R gp gq`, EVERY
     environment under which `p` corresponds to `gp` and `q` to `gq` makes
     `p` and `q` bisimilar. -/
-theorem graph_bisimulation_environment_independent (G : ProcessGraph)
-    (R : GProc → GProc → Prop) (hR : IsGBisimulation G R) {gp gq : GProc}
-    (hRgp : R gp gq) (env : RecEnv) (p q : DyNetKAT)
+theorem graph_bisimulation_environment_independent (G : ProcessGraph schema)
+    (R : GProc schema → GProc schema → Prop) (hR : IsGBisimulation G R) {gp gq : GProc schema}
+    (hRgp : R gp gq) (env : RecEnv schema) (p q : DyNetKAT schema)
     (hp : Corr G env p gp) (hq : Corr G env q gq) :
     Bisimilar env p q :=
   gbisimilar_transfer G env ⟨R, hR, hRgp⟩ hp hq
@@ -1871,35 +1873,35 @@ theorem graph_bisimulation_environment_independent (G : ProcessGraph)
     other and vice versa.  This is the standard bisimulation notion
     between two labeled transition systems; for `env₁ = env₂` the two
     conditions collapse to the usual symmetric matching. -/
-def IsBisimulation2 (env₁ env₂ : RecEnv) (R : DyNetKAT → DyNetKAT → Prop) : Prop :=
+def IsBisimulation2 (env₁ env₂ : RecEnv schema) (R : DyNetKAT schema → DyNetKAT schema → Prop) : Prop :=
   (∀ p q, R p q →
-    ∀ (pt hl : List CtxPkt) (a : Action) (p' : DyNetKAT) (pt' hl' : List CtxPkt),
+    ∀ (pt hl : List schema.Packet) (a : Action schema) (p' : DyNetKAT schema) (pt' hl' : List schema.Packet),
       Step env₁
-        (show Config from { proc := p, pending := pt, handled := hl }) a
-        (show Config from { proc := p', pending := pt', handled := hl' }) →
+        (show (Config schema) from { proc := p, pending := pt, handled := hl }) a
+        (show (Config schema) from { proc := p', pending := pt', handled := hl' }) →
       ∃ q',
         Step env₂
-          (show Config from { proc := q, pending := pt, handled := hl }) a
-          (show Config from
+          (show (Config schema) from { proc := q, pending := pt, handled := hl }) a
+          (show (Config schema) from
             { proc := q', pending := pt', handled := hl' }) ∧
         R p' q') ∧
   (∀ p q, R p q →
-    ∀ (pt hl : List CtxPkt) (a : Action) (q' : DyNetKAT) (pt' hl' : List CtxPkt),
+    ∀ (pt hl : List schema.Packet) (a : Action schema) (q' : DyNetKAT schema) (pt' hl' : List schema.Packet),
       Step env₂
-        (show Config from { proc := q, pending := pt, handled := hl }) a
-        (show Config from { proc := q', pending := pt', handled := hl' }) →
+        (show (Config schema) from { proc := q, pending := pt, handled := hl }) a
+        (show (Config schema) from { proc := q', pending := pt', handled := hl' }) →
       ∃ p',
         Step env₁
-          (show Config from { proc := p, pending := pt, handled := hl }) a
-          (show Config from
+          (show (Config schema) from { proc := p, pending := pt, handled := hl }) a
+          (show (Config schema) from
             { proc := p', pending := pt', handled := hl' }) ∧
         R p' q')
 
 /-- For a single environment, the symmetric closure of a two-directional
     bisimulation is a genuine bisimulation, so related processes are
     `Bisimilar`. -/
-theorem bisimilar_of_isBisimulation2_same_env {env : RecEnv} {p q : DyNetKAT}
-    {R : DyNetKAT → DyNetKAT → Prop} (h : IsBisimulation2 env env R) (hpq : R p q) :
+theorem bisimilar_of_isBisimulation2_same_env {env : RecEnv schema} {p q : DyNetKAT schema}
+    {R : DyNetKAT schema → DyNetKAT schema → Prop} (h : IsBisimulation2 env env R) (hpq : R p q) :
     Bisimilar env p q := by
   obtain ⟨h1, h2⟩ := h
   refine ⟨fun x y => R x y ∨ R y x, ?_, Or.inl hpq⟩
@@ -1920,8 +1922,8 @@ theorem bisimilar_of_isBisimulation2_same_env {env : RecEnv} {p q : DyNetKAT}
     long as each corresponds to its graph process.  This is the sharpest
     form of environment independence: the graph, not the environment,
     carries the meaning of the recursive variables. -/
-theorem gbisimilar_transfer2 (G : ProcessGraph) {gp gq : GProc} {p q : DyNetKAT}
-    (hR : GBisimilar G gp gq) (env₁ env₂ : RecEnv)
+theorem gbisimilar_transfer2 (G : ProcessGraph schema) {gp gq : GProc schema} {p q : DyNetKAT schema}
+    (hR : GBisimilar G gp gq) (env₁ env₂ : RecEnv schema)
     (hp : Corr G env₁ p gp) (hq : Corr G env₂ q gq) :
     ∃ S, IsBisimulation2 env₁ env₂ S ∧ S p q := by
   obtain ⟨R, hR, hRgp⟩ := hR
@@ -1956,29 +1958,29 @@ theorem gbisimilar_transfer2 (G : ProcessGraph) {gp gq : GProc} {p q : DyNetKAT}
 ------------------------------------------------------------------------
 
 /-- A graph step of a `ref` node is exactly a step of the node label. -/
-theorem gstep_ref_inv {G : ProcessGraph} {i : NodeId} {pt hl : List CtxPkt}
-    {a : Action} {gp' : GProc} {pt' hl' : List CtxPkt}
+theorem gstep_ref_inv {G : ProcessGraph schema} {i : NodeId} {pt hl : List schema.Packet}
+    {a : Action schema} {gp' : GProc schema} {pt' hl' : List schema.Packet}
     (h : GStep G
-      (show GConfig from
+      (show (GConfig schema) from
         { proc := .ref i, pending := pt, handled := hl }) a
-      (show GConfig from
+      (show (GConfig schema) from
         { proc := gp', pending := pt', handled := hl' })) :
     GStep G
-      (show GConfig from
+      (show (GConfig schema) from
         { proc := G.label i, pending := pt, handled := hl }) a
-      (show GConfig from
+      (show (GConfig schema) from
         { proc := gp', pending := pt', handled := hl' }) := by
   cases h with
   | var _ _ _ _ _ _ _ step => exact step
 
 /-- A graph step of an `nSeq` term is a packet step onto the continuation:
     no other Figure 8 rule applies to a bare `N; D`. -/
-theorem gstep_nSeq_inv {G : ProcessGraph} {N : NetKAT} {cont : GProc}
-    {pt hl : List CtxPkt} {a : Action} {gp' : GProc} {pt' hl' : List CtxPkt}
+theorem gstep_nSeq_inv {G : ProcessGraph schema} {N : NetKAT schema} {cont : GProc schema}
+    {pt hl : List schema.Packet} {a : Action schema} {gp' : GProc schema} {pt' hl' : List schema.Packet}
     (h : GStep G
-      (show GConfig from
+      (show (GConfig schema) from
         { proc := .nSeq N cont, pending := pt, handled := hl }) a
-      (show GConfig from
+      (show (GConfig schema) from
         { proc := gp', pending := pt', handled := hl' })) :
     ∃ σ σ' pt₀, pt = σ :: pt₀ ∧ a = Action.packet σ σ' ∧
       gp' = cont ∧ pt' = pt₀ ∧ hl' = σ' :: hl ∧
@@ -1998,12 +2000,12 @@ theorem gstep_nSeq_inv {G : ProcessGraph} {N : NetKAT} {cont : GProc}
 -- source generalized to the two variables / two nodes.
 ------------------------------------------------------------------------
 
-theorem no_step_var_two_cycle (env : RecEnv) (X Y : Var)
+theorem no_step_var_two_cycle (env : RecEnv schema) (X Y : Var)
     (hX : env.lookup X = some (.var Y)) (hY : env.lookup Y = some (.var X))
-    (pt hl : List CtxPkt) (a : Action) (dst : Config) :
+    (pt hl : List schema.Packet) (a : Action schema) (dst : Config schema) :
     ¬ Step env
-      (show Config from { proc := .var X, pending := pt, handled := hl }) a dst := by
-  have general : ∀ (c : Config) (a' : Action) (dst' : Config),
+      (show (Config schema) from { proc := .var X, pending := pt, handled := hl }) a dst := by
+  have general : ∀ (c : Config schema) (a' : Action schema) (dst' : Config schema),
       Step env c a' dst' →
       (c.proc = .var X ∨ c.proc = .var Y) → False := by
     intro c a' dst' hstep
@@ -2068,12 +2070,12 @@ theorem no_step_var_two_cycle (env : RecEnv) (X Y : Var)
   intro hstep
   exact general _ _ _ hstep (Or.inl rfl)
 
-theorem no_gstep_ref_two_cycle (G : ProcessGraph) (i j : NodeId)
+theorem no_gstep_ref_two_cycle (G : ProcessGraph schema) (i j : NodeId)
     (hi : G.label i = .ref j) (hj : G.label j = .ref i)
-    (pt hl : List CtxPkt) (a : Action) (dst : GConfig) :
+    (pt hl : List schema.Packet) (a : Action schema) (dst : GConfig schema) :
     ¬ GStep G
-      (show GConfig from { proc := .ref i, pending := pt, handled := hl }) a dst := by
-  have general : ∀ (c : GConfig) (a' : Action) (dst' : GConfig),
+      (show (GConfig schema) from { proc := .ref i, pending := pt, handled := hl }) a dst := by
+  have general : ∀ (c : GConfig schema) (a' : Action schema) (dst' : GConfig schema),
       GStep G c a' dst' →
       (c.proc = .ref i ∨ c.proc = .ref j) → False := by
     intro c a' dst' hstep
