@@ -474,6 +474,16 @@ admitted examples with infinite growth.
   all-depth overapproximation, and strong quotients give exact finite
   behavioral models.
 
+## Post-development package verification
+
+After paper and parity development, the
+[modularization plan](MODULARIZATION_PLAN.md) requires lower-layer builds
+in isolation, theorem-backed external consumer examples, transitive
+dependency checks, and regression and axiom evidence for the public
+interfaces. Record that evidence against the verified development
+baseline when moving definitions or retiring comparison oracles. These
+release checks are separate from the paper proof obligations above.
+
 ## Optional / experimental tooling
 
 These modules support external comparisons and possible future acceleration.

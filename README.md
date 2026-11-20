@@ -125,6 +125,14 @@ DyNetKAT-Lean/
   `lowerCamelCase` for definitions and theorems. Use Python 3 type hints,
   `snake_case`, and deterministic serialization.
 
+## Future package roadmap
+
+The [post-development modularization plan](docs/MODULARIZATION_PLAN.md)
+describes standalone KATLean, NetKATLean, and DyNetKATLean packages,
+their downstream workflows, and the coordinated rename planned after
+paper and parity development. Use the current build and import instructions
+below for this checkout.
+
 ## Building
 
 ```bash

@@ -253,6 +253,15 @@ all tests and pinned examples in a reproducible release workflow. Publish a
 schema and examples, documented assumptions and known limitations, and the
 benchmark methodology and results.
 
+### Phase 11: Post-development packaging and reproducibility
+
+After the paper and parity work reaches a clean, verified development
+baseline, carry out the [modularization plan](docs/MODULARIZATION_PLAN.md).
+The future target is three independently consumable Lake packages,
+KATLean, NetKATLean, and DyNetKATLean, initially in this repository.
+External consumer tests, a coordinated naming migration, and retirement
+of development-only comparisons belong to this deferred phase.
+
 ## Completion conditions
 
 1. Every relevant paper definition and rule has a Lean representation and

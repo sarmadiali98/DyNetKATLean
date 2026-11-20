@@ -87,6 +87,16 @@ for the SOS packet rule.
 See [KATLEAN.md](KATLEAN.md) for the axiom mapping and
 [NETKAT_AUDIT.md](NETKAT_AUDIT.md#dependency-audit) for import evidence.
 
+## Future supported package boundaries
+
+The deferred target has Mathlib below KATLean, NetKATLean above KATLean,
+and DyNetKATLean consuming the two lower layers. Public umbrellas and
+correctness theorems will support independent clients. Lake dependency
+checks, transitive import checks, and external consumer projects will
+verify the direction and accessibility of the interfaces. See the
+[modularization plan](MODULARIZATION_PLAN.md) for the packaging,
+verification, and migration sequence.
+
 ## Historical design sketch
 
 The initial layout and design notes below predate the current module
