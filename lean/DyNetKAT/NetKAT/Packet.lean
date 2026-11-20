@@ -18,6 +18,7 @@
 -- Packet.update while preserving all semantic properties.
 ------------------------------------------------------------------------
 
+import KATLean.NetKAT.Packet
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Insert
 import Mathlib.Data.Fintype.Basic
@@ -144,8 +145,66 @@ instance : Fintype FieldValueEnum where
     intro x
     cases x <;> simp
 
+/-- Finite dependent field domains over total packet valuations. The model
+supplies the KATLean lookup and update laws. -/
+structure PacketSchema where
+  Field : Type
+  Value : Field → Type
+  fieldEq : DecidableEq Field
+  valueEq : ∀ f, DecidableEq (Value f)
+  fieldFinite : Fintype Field
+  valueFinite : ∀ f, Fintype (Value f)
+  model : KATLean.NetKAT.PacketModel Field Value ((f : Field) → Value f)
+  lookup_eq : ∀ f p, model.lookup f p = p f
+
+def PacketSchema.Packet (s : PacketSchema) := (f : s.Field) → s.Value f
+
+/-- Packet equality checks the fields of the two supplied packets. -/
+def PacketSchema.packetEq (s : PacketSchema) : DecidableEq s.Packet :=
+  letI := s.fieldFinite
+  letI := s.valueEq
+  inferInstanceAs (DecidableEq ((f : s.Field) → s.Value f))
+
+/-- Point updates of dependent functions are the canonical packet model. -/
+def PacketSchema.ofFields (F : Type) (V : F → Type)
+    [DecidableEq F] [Fintype F] [∀ f, DecidableEq (V f)] [∀ f, Fintype (V f)] :
+    PacketSchema where
+  Field := F
+  Value := V
+  fieldEq := inferInstance
+  valueEq := inferInstance
+  fieldFinite := inferInstance
+  valueFinite := inferInstance
+  model :=
+    { lookup := fun f p => p f
+      update := fun f v p => Function.update p f v
+      lookup_update := by intros; simp
+      lookup_update_other := by intros; rw [Function.update_of_ne (Ne.symm ‹_ ≠ _›)]
+      update_lookup := by intros; simp
+      update_overwrite := by intros; simp
+      update_commute := by intros; apply Function.update_comm; assumption }
+  lookup_eq := by intros; rfl
+
+/-- The compatibility schema retains the original executable packet update. -/
+abbrev ctxSchema : PacketSchema where
+  Field := FieldName
+  Value := fun _ => FieldValueEnum
+  fieldEq := inferInstance
+  valueEq := fun _ => inferInstance
+  fieldFinite := inferInstance
+  valueFinite := fun _ => inferInstance
+  model :=
+    { lookup := fun f p => Packet.get p f
+      update := fun f v p => Packet.update p f v
+      lookup_update := fun f v p => Packet.get_update_same p f v
+      lookup_update_other := fun f g v p h => Packet.get_update_diff p f g v h
+      update_lookup := fun f p => Packet.update_id p f
+      update_overwrite := fun f v w p => Packet.update_update_same p f v w
+      update_commute := fun f g v w p h => Packet.update_update_diff p f g h v w }
+  lookup_eq := by intros; rfl
+
 /-- The concrete packet type. -/
-abbrev CtxPkt := Packet FieldName FieldValueEnum
+abbrev CtxPkt := ctxSchema.Packet
 
 /-- Fintype instance for `CtxPkt` (the concrete packet space).
 
@@ -174,10 +233,22 @@ theorem ctxPkt_card : Fintype.card CtxPkt = 256 := by decide
 ------------------------------------------------------------------------
 
 /-- A field-value pair. -/
-structure FieldEq where
-  field : FieldName
-  value : FieldValueEnum
-  deriving Repr, DecidableEq
+structure FieldEq (schema : PacketSchema := ctxSchema) where
+  field : schema.Field
+  value : schema.Value field
+
+instance : Repr FieldEq where
+  reprPrec fe _ :=
+    "{ field := " ++ repr fe.field ++ ", value := " ++ repr fe.value ++ " }"
+
+instance {schema : PacketSchema} : DecidableEq (FieldEq schema) := by
+  letI := schema.fieldEq
+  letI := schema.valueEq
+  intro ⟨f, v⟩ ⟨g, w⟩
+  by_cases fields : f = g
+  · subst g
+    exact decidable_of_iff (v = w) (by simp)
+  · exact isFalse (fun equal => fields (congrArg FieldEq.field equal))
 
 /-- Holds predicate for Finset-based tests (concrete, backward compat).
     A predicate alpha holds on packet p iff all listed field=value pairs match.
@@ -204,7 +275,7 @@ instance : Fintype CompleteTest :=
 
 /-- Holds predicate: a complete test alpha holds on packet sigma iff all
     field values match. Since alpha is total, this checks every field. -/
-def holdsComplete (alpha : CtxPkt) (sigma : CtxPkt) : Prop :=
+def holdsComplete {F : Type} {V : F → Type} (alpha sigma : (f : F) → V f) : Prop :=
   forall f, alpha f = sigma f
 
 /-- **Complete-test uniqueness (Task 3D-1):** A complete test α holds on a
@@ -218,7 +289,7 @@ def holdsComplete (alpha : CtxPkt) (sigma : CtxPkt) : Prop :=
     This is the foundation for the normalization construction (Lemma 5):
     it guarantees that the complete-test component of a normal-form summand
     picks out a unique packet. -/
-theorem     holdsComplete_iff_eq (α : CompleteTest) (σ : CtxPkt) :
+theorem holdsComplete_iff_eq {F : Type} {V : F → Type} (α σ : (f : F) → V f) :
     holdsComplete α σ ↔ σ = α := by
   -- holdsComplete α σ := ∀ f, α f = σ f  (by definition)
   -- By function extensionality: (∀ f, σ f = α f) ↔ σ = α.

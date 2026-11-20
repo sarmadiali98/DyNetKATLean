@@ -43,15 +43,15 @@ example (test other : Predicate) (equal : Derives (.test test) (.test other)) :
   (Derives.notCongr equal).katSound
 
 theorem packet_algebra :
-    katInterp (.assign1 .port .v0 ⨟ .assign1 .tpSrc .v8) =
-      katInterp (.assign1 .tpSrc .v8 ⨟ .assign1 .port .v0) :=
+    katInterp ((.assign1 .port .v0 : NetKAT) ⨟ (.assign1 .tpSrc .v8 : NetKAT)) =
+      katInterp ((.assign1 .tpSrc .v8 : NetKAT) ⨟ (.assign1 .port .v0 : NetKAT)) :=
   (Derives.paModModComm .port .tpSrc .v0 .v8 (by decide)).katSound
 
-example : katInterp (.assign1 .port .v0 ⨟ .assign1 .port .v1) = katInterp (.assign1 .port .v1) :=
+example : katInterp ((.assign1 .port .v0 : NetKAT) ⨟ (.assign1 .port .v1 : NetKAT)) = katInterp ((.assign1 .port .v1 : NetKAT)) :=
   (Derives.paModMod .port .v0 .v1).katSound
 
-example : katInterp (.assign1 .port .v1 ⨟ NetKAT.fieldTest .port .v1) =
-    katInterp (.assign1 .port .v1) := (Derives.paModFilter .port .v1).katSound
+example : katInterp ((.assign1 .port .v1 : NetKAT) ⨟ NetKAT.fieldTest .port .v1) =
+    katInterp ((.assign1 .port .v1 : NetKAT)) := (Derives.paModFilter .port .v1).katSound
 
 example : katInterp (NetKAT.fieldTest .port .v1 ⨟ .assign1 .port .v1) =
     katInterp (NetKAT.fieldTest .port .v1) := (Derives.paFilterMod .port .v1).katSound

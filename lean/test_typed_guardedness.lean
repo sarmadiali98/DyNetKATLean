@@ -4,38 +4,40 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT.TypedGuardednessTests
 
-example (x : Var) : ¬ TypedPaperGuarded (.var x) :=
+open DyNetKAT.NetKAT
+
+example (x : Var) : ¬ TypedPaperGuarded (schema := ctxSchema) (.var x) :=
   fun h => h x .here
 
-example (x : Var) : ProcessVarOccurrence (.nSeq .id (.var x)) x true := .packet .here
-example (x : Var) : TypedPaperGuarded (.nSeq .id (.var x)) := by intro _ h; cases h
-example (x : Var) : TypedPaperGuarded (.send "c" .id (.var x)) := by intro _ h; cases h
-example (x : Var) : TypedPaperGuarded (.recv "c" .id (.var x)) := by intro _ h; cases h
-example (x : Var) : TypedPaperGuarded (.rcfgPrefix "c" .id (.var x)) := by intro _ h; cases h
+example (x : Var) : ProcessVarOccurrence (schema := ctxSchema) (.nSeq .id (.var x)) x true := .packet .here
+example (x : Var) : TypedPaperGuarded (schema := ctxSchema) (.nSeq .id (.var x)) := by intro _ h; cases h
+example (x : Var) : TypedPaperGuarded (schema := ctxSchema) (.send "c" .id (.var x)) := by intro _ h; cases h
+example (x : Var) : TypedPaperGuarded (schema := ctxSchema) (.recv "c" .id (.var x)) := by intro _ h; cases h
+example (x : Var) : TypedPaperGuarded (schema := ctxSchema) (.rcfgPrefix "c" .id (.var x)) := by intro _ h; cases h
 
 example (x : Var) (L : Set CommunicationAction) :
     ¬ TypedPaperGuarded (.restrict L (.var x)) :=
   fun h => h x (.restrict .here)
 
-example (x : Var) (n : Nat) : ¬ TypedPaperGuarded (.project n (.var x)) :=
+example (x : Var) (n : Nat) : ¬ TypedPaperGuarded (schema := ctxSchema) (.project n (.var x)) :=
   fun h => h x (.project .here)
 
 example (p q : DyNetKAT) :
     TypedPaperGuarded (.leftMerge p q) ↔ TypedPaperGuarded p ∧ TypedPaperGuarded q := by
   simp only [typedPaperGuarded_iff_guardedOccurrences, GuardedOccurrences]
 
-example : ¬ TypedPaperGuarded (.parallel (.var "Host") .deadlock) :=
+example : ¬ TypedPaperGuarded (schema := ctxSchema) (.parallel (.var "Host") .deadlock) :=
   fun h => h "Host" (.parallelLeft .here)
 
-example : ¬ TypedPaperGuarded (.commMerge .deadlock (.var "Switch")) :=
+example : ¬ TypedPaperGuarded (schema := ctxSchema) (.commMerge .deadlock (.var "Switch")) :=
   fun h => h "Switch" (.commMergeRight .here)
 
 -- The payload and channel positions cannot accept process ASTs.
 example : True := by
-  fail_if_success have bad := DyNetKAT.recv "c" (DyNetKAT.var "X") .deadlock
-  fail_if_success have bad := DyNetKAT.send "c" (DyNetKAT.var "X") .deadlock
-  fail_if_success have bad := DyNetKAT.rcfgPrefix "c" (DyNetKAT.var "X") .deadlock
-  fail_if_success have bad := DyNetKAT.rcfgPrefix (DyNetKAT.var "X") .id .deadlock
+  fail_if_success have bad := DyNetKAT.recv (schema := ctxSchema) "c" (DyNetKAT.var "X" : DyNetKAT) .deadlock
+  fail_if_success have bad := DyNetKAT.send (schema := ctxSchema) "c" (DyNetKAT.var "X" : DyNetKAT) .deadlock
+  fail_if_success have bad := DyNetKAT.rcfgPrefix (schema := ctxSchema) "c" (DyNetKAT.var "X" : DyNetKAT) .deadlock
+  fail_if_success have bad := DyNetKAT.rcfgPrefix (schema := ctxSchema) (DyNetKAT.var "X" : DyNetKAT) .id .deadlock
   trivial
 
 private def cycle : RecEnv := RecEnv.empty.define "X" (.var "X")

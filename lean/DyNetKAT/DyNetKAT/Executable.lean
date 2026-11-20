@@ -4,15 +4,7 @@ namespace DyNetKAT.DyNetKAT
 
 open DyNetKAT.NetKAT
 
-private def ctxPktDecidableEq : DecidableEq CtxPkt := by
-  intro sigma tau
-  exact decidable_of_iff (∀ f ∈ NetKAT.fieldEnum, sigma f = tau f) (by
-    constructor
-    · intro h
-      funext f
-      exact h f (NetKAT.fieldEnum_complete f)
-    · intro h f hf
-      exact congrFun h f)
+private def ctxPktDecidableEq : DecidableEq CtxPkt := ctxSchema.packetEq
 
 local instance : DecidableEq CtxPkt := ctxPktDecidableEq
 

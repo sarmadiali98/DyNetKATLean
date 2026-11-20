@@ -99,7 +99,7 @@
      the whole extraction executable.  Decidable equality on the pair
      comes from `String` (channels) and the `DecidableEq NetKAT`
      instance registered in `RestrictionProjection.lean`. -/
- abbrev ReconfigSet := Finset (Channel × NetKAT)
+ abbrev ReconfigSet (schema : PacketSchema := ctxSchema) := Finset (Channel × NetKAT schema)
 
  ------------------------------------------------------------------------
  -- §1 Core `tail` operator (paper Eqs. (29)–(33))

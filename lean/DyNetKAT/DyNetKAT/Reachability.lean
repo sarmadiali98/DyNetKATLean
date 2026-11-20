@@ -8,13 +8,14 @@ open DyNetKAT.NetKAT
 
 /-- The bound is on the entire source trace, including selected events and
 the final packet. None denotes all finite traces. -/
-def ReachabilityBudget (bound : Option Nat) (word : List Action) : Prop :=
+def ReachabilityBudget {schema : PacketSchema} (bound : Option Nat) (word : List (Action schema)) : Prop :=
   match bound with
   | none => True
   | some n => word.length ≤ n
 
-def EndpointReachable {extended : Bool} {env : RecEnv} (p : Program extended env)
-    (bound : Option Nat) (stages : List ReconfigSet) (ingress egress : NetKAT) : Prop :=
+def EndpointReachable {schema : PacketSchema} {extended : Bool} {env : RecEnv schema}
+    (p : Program extended env) (bound : Option Nat) (stages : List (ReconfigSet schema))
+    (ingress egress : NetKAT schema) : Prop :=
   flowVia ingress egress fun i o =>
     ∃ word, QueryWord stages i o word ∧ p.Trace word ∧ ReachabilityBudget bound word
 

@@ -8,8 +8,8 @@ open DyNetKAT.NetKAT
 
 /-- Membership in a supported executable result is exactly NetKAT's relational
 semantics for the same input packet. -/
-theorem execute_supported_iff_semantics
-    (p : NetKAT) (sigma tau : CtxPkt) (outputs : Finset CtxPkt)
+theorem execute_supported_iff_semantics {schema : PacketSchema}
+    (p : (NetKAT schema)) (sigma tau : schema.Packet) (outputs : Finset schema.Packet)
     (evaluates : execute p sigma = .supported outputs) :
     tau ∈ outputs ↔ Semantics p sigma tau := by
   obtain ⟨computed, hcomputed, correct⟩ := execute_correct p sigma
@@ -29,8 +29,8 @@ theorem execute_supported_iff_semantics
     `historySemantics_iff_packetSemantics`) instantiated at the empty tails:
     the history clause additionally requires the output packet list to equal
     the input packet list, which for empty tails is `[] = []`, trivially true. -/
-theorem historySemantics_singleton_iff_packetSemantics
-    (p : NetKAT) (sigma tau : CtxPkt) :
+theorem historySemantics_singleton_iff_packetSemantics {schema : PacketSchema}
+    (p : NetKAT schema) (sigma tau : schema.Packet) :
     HistorySemantics p
       (History.singleton sigma)
       (History.singleton tau) ↔
@@ -46,20 +46,20 @@ theorem historySemantics_singleton_iff_packetSemantics
 The packet histories and continuation are those of Figure 8's
 `(cpol_;check)` rule: the input is removed from `pending`, and the output is
 prepended to `handled`. -/
-theorem execute_packet_step
-    (env : RecEnv) (p : NetKAT) (continuation : DyNetKAT)
-    (sigma sigma' : CtxPkt) (pendingTail handled : List CtxPkt)
-    (outputs : Finset CtxPkt)
+theorem execute_packet_step {schema : PacketSchema}
+    (env : (RecEnv schema)) (p : (NetKAT schema)) (continuation : (DyNetKAT schema))
+    (sigma sigma' : schema.Packet) (pendingTail handled : List schema.Packet)
+    (outputs : Finset schema.Packet)
     (evaluates : execute p sigma = .supported outputs)
     (produced : sigma' ∈ outputs) :
     Step env
       ({ proc := .nSeq p continuation,
          pending := sigma :: pendingTail,
-         handled := handled } : Config)
+         handled := handled } : (Config schema))
       (Action.packet sigma sigma')
       ({ proc := continuation,
          pending := pendingTail,
-         handled := sigma' :: handled } : Config) := by
+         handled := sigma' :: handled } : (Config schema)) := by
   apply Step.cpol_seq_ok
   exact (historySemantics_singleton_iff_packetSemantics p sigma sigma').mpr
     ((execute_supported_iff_semantics p sigma sigma' outputs evaluates).mp produced)

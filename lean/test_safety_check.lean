@@ -237,7 +237,7 @@ import DyNetKAT
 -- int-packet, hence the checker returns `true`.
 example :
     netkatIsZero (reachabilityPolicy ingressP Hinit egressP) = true := by
-  simp only [ingressP, egressP, NetKAT.fieldTest]
+  simp only [ingressP, egressP, NetKAT.fieldTest, NetKAT.fieldTestFor]
   rw [netkatIsZero_reachabilityPolicy_tests_true_iff]
   intro σ κ hH hpair
   obtain ⟨ρ, h₁, h₂⟩ := seq_sem _ _ σ κ |>.mp hH
@@ -259,7 +259,7 @@ example :
 -- `true` (the policy is nonzero).
 example :
     netkatIsZero (reachabilityPolicy ingressP Hpost egressP) = false := by
-  simp only [ingressP, egressP, NetKAT.fieldTest]
+  simp only [ingressP, egressP, NetKAT.fieldTest, NetKAT.fieldTestFor]
   rw [netkatIsZero_reachabilityPolicy_tests_false_iff]
   refine ⟨extPacket, intPacket, ⟨extPacket, ⟨rfl, rfl⟩, ?_⟩, rfl, rfl⟩
   exact extPacket_update.symm

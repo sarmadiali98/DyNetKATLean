@@ -49,7 +49,7 @@ import DyNetKAT
 
  /-- The singleton-membership side condition used by the support proofs. -/
  theorem sub_var_self {S : Finset Var} (h : "X" ∈ S) :
-     recursiveVars (.var "X") ⊆ S := by
+     recursiveVars (.var "X" : DyNetKAT) ⊆ S := by
    intro z hz
    simp only [recursiveVars, Finset.mem_singleton] at hz
    subst hz

@@ -11,42 +11,40 @@ import Mathlib.Logic.Function.Iterate
 
 namespace DyNetKAT.NetKAT
 
-private def ctxPktDecidableEq : DecidableEq CtxPkt := by
-  intro σ τ
-  exact decidable_of_iff (∀ f ∈ NetKAT.fieldEnum, σ f = τ f) (by
-    constructor
-    · intro h
-      funext f
-      exact h f (NetKAT.fieldEnum_complete f)
-    · intro h f hf
-      exact congrFun h f)
+variable {schema : PacketSchema}
 
-local instance : DecidableEq CtxPkt := ctxPktDecidableEq
+local instance : DecidableEq schema.Packet := schema.packetEq
+
+local instance : Fintype schema.Packet :=
+  letI := schema.fieldEq
+  letI := schema.fieldFinite
+  letI := schema.valueFinite
+  inferInstanceAs (Fintype ((f : schema.Field) → schema.Value f))
 
 /-- The result of evaluating a NetKAT term.
 
     `supported` deliberately distinguishes a computed empty output from an
     evaluator that does not yet support a term constructor. -/
-inductive EvalResult where
-  | supported (outputs : Finset CtxPkt)
+inductive EvalResult (schema : PacketSchema := ctxSchema) where
+  | supported (outputs : Finset schema.Packet)
   | unsupported
   deriving DecidableEq
 
 namespace EvalResult
 
 /-- Extract computed outputs, if evaluation was supported. -/
-def outputs : EvalResult → Option (Finset CtxPkt)
+def outputs : EvalResult schema → Option (Finset schema.Packet)
   | .supported packets => some packets
   | .unsupported => none
 
 end EvalResult
 
-private def combineEvalResult (left right : EvalResult) : EvalResult :=
+private def combineEvalResult (left right : EvalResult schema) : EvalResult schema :=
   match left, right with
   | .supported a, .supported b => .supported (a ∪ b)
   | _, _ => .unsupported
 
-private def evalSeqWith (step : CtxPkt → EvalResult) (packets : Multiset CtxPkt) : EvalResult :=
+private def evalSeqWith (step : schema.Packet → (EvalResult schema)) (packets : Multiset schema.Packet) : EvalResult schema :=
   let op := fun τ acc => combineEvalResult (step τ) acc
   letI : LeftCommutative op := by
     constructor
@@ -71,10 +69,10 @@ private def evalSeqWith (step : CtxPkt → EvalResult) (packets : Multiset CtxPk
   Multiset.foldr op (.supported ∅) packets
 
 private theorem evalSeqWith_supported
-    (step : CtxPkt → EvalResult)
-    (hstep : ∀ τ, ∃ A : Finset CtxPkt, step τ = .supported A)
-    (packets : Multiset CtxPkt) :
-    ∃ B : Finset CtxPkt, evalSeqWith step packets = .supported B := by
+    (step : schema.Packet → (EvalResult schema))
+    (hstep : ∀ τ, ∃ A : Finset schema.Packet, step τ = .supported A)
+    (packets : Multiset schema.Packet) :
+    ∃ B : Finset schema.Packet, evalSeqWith step packets = .supported B := by
   induction packets using Multiset.induction_on with
   | empty =>
       exact ⟨∅, by simp [evalSeqWith]
@@ -113,17 +111,17 @@ private theorem evalSeqWith_supported
       simp [combineEvalResult,
         Finset.union_assoc, Finset.union_left_comm, Finset.union_comm]
 
-private def postWith (step : CtxPkt → EvalResult) (packets : Finset CtxPkt) : EvalResult :=
+private def postWith (step : schema.Packet → (EvalResult schema)) (packets : Finset schema.Packet) : EvalResult schema :=
   evalSeqWith step packets.1
 
 private theorem postWith_supported
-    (step : CtxPkt → EvalResult)
-    (hstep : ∀ τ, ∃ A : Finset CtxPkt, step τ = .supported A)
-    (packets : Finset CtxPkt) :
-    ∃ B : Finset CtxPkt, postWith step packets = .supported B := by
+    (step : schema.Packet → (EvalResult schema))
+    (hstep : ∀ τ, ∃ A : Finset schema.Packet, step τ = .supported A)
+    (packets : Finset schema.Packet) :
+    ∃ B : Finset schema.Packet, postWith step packets = .supported B := by
   exact evalSeqWith_supported step hstep packets.1
 
-private def boundedStarWith (step : CtxPkt → EvalResult) : Nat → CtxPkt → EvalResult
+private def boundedStarWith (step : schema.Packet → (EvalResult schema)) : Nat → schema.Packet → (EvalResult schema)
   | 0, σ => .supported {σ}
   | n + 1, σ =>
       match boundedStarWith step n σ with
@@ -133,21 +131,21 @@ private def boundedStarWith (step : CtxPkt → EvalResult) : Nat → CtxPkt → 
           | .unsupported => .unsupported
            | .supported next => .supported (packets ∪ next)
 
-private def advanceStar (step : CtxPkt → EvalResult) : EvalResult → EvalResult
+private def advanceStar (step : schema.Packet → (EvalResult schema)) : EvalResult schema → (EvalResult schema)
   | .unsupported => .unsupported
   | .supported packets => combineEvalResult (.supported packets) (postWith step packets)
 
 /-- Stop iterating as soon as the reachable set stabilizes. The maximum
     number of iterations in `execute` comes from the cardinality proof. -/
-private def saturateStar (step : CtxPkt → EvalResult) : Nat → EvalResult → EvalResult
+private def saturateStar (step : schema.Packet → (EvalResult schema)) : Nat → (EvalResult schema) → (EvalResult schema)
   | 0, reached => reached
   | n + 1, reached =>
       let next := advanceStar step reached
       if next = reached then reached else saturateStar step n next
 
 open Function in
-private theorem saturateStar_eq_iterate (step : CtxPkt → EvalResult)
-    (n : Nat) (reached : EvalResult) :
+private theorem saturateStar_eq_iterate (step : schema.Packet → (EvalResult schema))
+    (n : Nat) (reached : EvalResult schema) :
     saturateStar step n reached = (advanceStar step)^[n] reached := by
   induction n generalizing reached with
   | zero => rfl
@@ -158,8 +156,8 @@ private theorem saturateStar_eq_iterate (step : CtxPkt → EvalResult)
       · exact if_neg h ▸ ih _
 
 open Function in
-private theorem saturateStar_eq_boundedStarWith (step : CtxPkt → EvalResult)
-    (n : Nat) (σ : CtxPkt) :
+private theorem saturateStar_eq_boundedStarWith (step : schema.Packet → (EvalResult schema))
+    (n : Nat) (σ : schema.Packet) :
     saturateStar step n (.supported {σ}) = boundedStarWith step n σ := by
   rw [saturateStar_eq_iterate]
   induction n with
@@ -172,9 +170,9 @@ private theorem saturateStar_eq_boundedStarWith (step : CtxPkt → EvalResult)
           cases hPost : postWith step reached <;> simp [advanceStar, hPost, combineEvalResult]
 
 private theorem boundedStarWith_supported
-    (step : CtxPkt → EvalResult)
-    (hstep : ∀ τ, ∃ A : Finset CtxPkt, step τ = .supported A) :
-    ∀ n σ, ∃ B : Finset CtxPkt,
+    (step : schema.Packet → (EvalResult schema))
+    (hstep : ∀ τ, ∃ A : Finset schema.Packet, step τ = .supported A) :
+    ∀ n σ, ∃ B : Finset schema.Packet,
       boundedStarWith step n σ = .supported B := by
   intro n
   induction n with
@@ -188,10 +186,11 @@ private theorem boundedStarWith_supported
       refine ⟨A ∪ B, ?_⟩
       simp [boundedStarWith, hA, hB]
 
-private def evalPredicate : Predicate → CtxPkt → EvalResult
+private def evalPredicate : Predicate schema → schema.Packet → (EvalResult schema)
   | .pFalse, _ => .supported ∅
   | .pTrue, σ => .supported {σ}
   | .pFieldEq ⟨f, v⟩, σ =>
+      letI := schema.valueEq f
       if σ f = v then .supported {σ} else .supported ∅
   | .pAnd p q, σ =>
       match evalPredicate p σ, evalPredicate q σ with
@@ -209,19 +208,24 @@ private def evalPredicate : Predicate → CtxPkt → EvalResult
       | .unsupported => .unsupported
 
 -- Compute the bound from the field cardinalities, without reducing the packet Fintype.
-private def starFuel : Nat :=
-  Fintype.card FieldValueEnum ^ Fintype.card FieldName
+private def starFuel (schema : PacketSchema) : Nat :=
+  letI := schema.fieldFinite
+  letI := schema.valueFinite
+  ∏ f : schema.Field, Fintype.card (schema.Value f)
 
-private theorem starFuel_eq_card : starFuel = Fintype.card CtxPkt :=
-  Fintype.card_fun.symm
+private theorem starFuel_eq_card : starFuel schema = Fintype.card schema.Packet := by
+  letI := schema.fieldEq
+  letI := schema.fieldFinite
+  letI := schema.valueFinite
+  exact Fintype.card_pi.symm
 
 mutual
   /-- Execute a NetKAT term on an input packet. -/
-  def execute : NetKAT → CtxPkt → EvalResult
+  def execute : NetKAT schema → schema.Packet → (EvalResult schema)
     | .drop, _ => .supported ∅
     | .id, σ => .supported {σ}
     | .test p, σ => evalPredicate p σ
-    | .assign1 f v, σ => .supported {Packet.update σ f v}
+    | .assign1 f v, σ => .supported {schema.model.update f v σ}
     | .union n₁ n₂, σ =>
         match execute n₁ σ, execute n₂ σ with
         | .supported outputs₁, .supported outputs₂ =>
@@ -231,12 +235,12 @@ mutual
         match execute p σ with
         | .unsupported => .unsupported
          | .supported A => evalSeq q A.1
-    | .star p, σ => saturateStar (execute p) starFuel (.supported {σ})
+    | .star p, σ => saturateStar (execute p) (starFuel schema) (.supported {σ})
     | .completeTest α, σ =>
         if σ = α then .supported {σ} else .supported ∅
 
   /-- Evaluate the second operand on each reachable intermediate packet. -/
-  def evalSeq : NetKAT → Multiset CtxPkt → EvalResult
+  def evalSeq : NetKAT schema → Multiset schema.Packet → (EvalResult schema)
     | q, packets =>
         let op := fun τ acc => combineEvalResult (execute q τ) acc
         letI : LeftCommutative op := by
@@ -263,14 +267,14 @@ mutual
 end
 
 /-- Evaluate a policy on every packet in a finite reachable set. -/
-def post (p : NetKAT) (packets : Finset CtxPkt) : EvalResult :=
+def post (p : NetKAT schema) (packets : Finset schema.Packet) : EvalResult schema :=
   evalSeq p packets.1
 
-private theorem evalSeqWith_execute_eq (q : NetKAT) (packets : Multiset CtxPkt) :
+private theorem evalSeqWith_execute_eq (q : NetKAT schema) (packets : Multiset schema.Packet) :
     evalSeqWith (execute q) packets = evalSeq q packets := by
   simp [evalSeqWith, evalSeq]
 
-private theorem postWith_execute_eq (q : NetKAT) (packets : Finset CtxPkt) :
+private theorem postWith_execute_eq (q : NetKAT schema) (packets : Finset schema.Packet) :
     postWith (execute q) packets = post q packets := by
   simp [postWith, post, evalSeqWith_execute_eq]
 
@@ -279,7 +283,7 @@ private theorem postWith_execute_eq (q : NetKAT) (packets : Finset CtxPkt) :
     The evaluator keeps `unsupported` distinct from a supported empty set at
     every iteration, so an unsupported required execution is never discarded.
 -/
-def boundedStar (p : NetKAT) : Nat → CtxPkt → EvalResult
+def boundedStar (p : NetKAT schema) : Nat → schema.Packet → (EvalResult schema)
   | 0, σ => .supported {σ}
   | n + 1, σ =>
       match boundedStar p n σ with
@@ -291,11 +295,11 @@ def boundedStar (p : NetKAT) : Nat → CtxPkt → EvalResult
 
 set_option maxRecDepth 100000 in
 theorem execute_star_eq_boundedStar
-    (p : NetKAT) (σ : CtxPkt) :
+    (p : NetKAT schema) (σ : schema.Packet) :
     execute (.star p) σ =
-      boundedStar p (Fintype.card CtxPkt) σ := by
+      boundedStar p (Fintype.card schema.Packet) σ := by
   rw [execute, saturateStar_eq_boundedStarWith, starFuel_eq_card]
-  induction Fintype.card CtxPkt generalizing σ with
+  induction Fintype.card schema.Packet generalizing σ with
   | zero => rfl
   | succ n ih =>
       rw [boundedStarWith, boundedStar, ih]
@@ -306,14 +310,14 @@ theorem execute_star_eq_boundedStar
           rw [postWith_execute_eq]
 
 /-- Zero iterations reach exactly the input packet. -/
-theorem boundedStar_zero (p : NetKAT) (σ : CtxPkt) :
+theorem boundedStar_zero (p : NetKAT schema) (σ : schema.Packet) :
     boundedStar p 0 σ = .supported {σ} := by
   rfl
 
 /-- A supported predecessor and supported post-step yield the union recurrence. -/
 theorem boundedStar_succ_supported
-    (p : NetKAT) (n : Nat) (σ : CtxPkt)
-    (A B : Finset CtxPkt)
+    (p : NetKAT schema) (n : Nat) (σ : schema.Packet)
+    (A B : Finset schema.Packet)
     (hA : boundedStar p n σ = .supported A)
     (hB : post p A = .supported B) :
     boundedStar p (n + 1) σ = .supported (A ∪ B) := by
@@ -321,15 +325,15 @@ theorem boundedStar_succ_supported
 
 /-- An unsupported predecessor propagates through the next bounded iteration. -/
 theorem boundedStar_succ_unsupported_previous
-    (p : NetKAT) (n : Nat) (σ : CtxPkt)
+    (p : NetKAT schema) (n : Nat) (σ : schema.Packet)
     (hA : boundedStar p n σ = .unsupported) :
     boundedStar p (n + 1) σ = .unsupported := by
   simp [boundedStar, hA]
 
 /-- An unsupported post-step propagates through the next bounded iteration. -/
 theorem boundedStar_succ_unsupported_post
-    (p : NetKAT) (n : Nat) (σ : CtxPkt)
-    (A : Finset CtxPkt)
+    (p : NetKAT schema) (n : Nat) (σ : schema.Packet)
+    (A : Finset schema.Packet)
     (hA : boundedStar p n σ = .supported A)
     (hB : post p A = .unsupported) :
     boundedStar p (n + 1) σ = .unsupported := by
@@ -337,8 +341,8 @@ theorem boundedStar_succ_unsupported_post
 
 /-- Supported reachable sets are monotone from one bounded iteration to the next. -/
 theorem boundedStar_monotone
-    (p : NetKAT) (n : Nat) (σ : CtxPkt)
-    (A B : Finset CtxPkt)
+    (p : NetKAT schema) (n : Nat) (σ : schema.Packet)
+    (A B : Finset schema.Packet)
     (hA : boundedStar p n σ = .supported A)
     (hB : boundedStar p (n + 1) σ = .supported B) :
     A ⊆ B := by
@@ -352,77 +356,85 @@ theorem boundedStar_monotone
       exact Finset.subset_union_left
 
 /-- Executing `drop` computes the empty output, rather than unsupported. -/
-theorem execute_drop (σ : CtxPkt) :
+theorem execute_drop (σ : schema.Packet) :
     execute .drop σ = .supported ∅ := by
   simp [execute]
 
 /-- Executing `id` computes the singleton containing its input packet. -/
-theorem execute_id (σ : CtxPkt) :
+theorem execute_id (σ : schema.Packet) :
     execute .id σ = .supported {σ} := by
   simp [execute]
 
 /-- Executing a primitive assignment computes its updated packet. -/
-theorem execute_assign1 (f : FieldName) (v : FieldValueEnum) (σ : CtxPkt) :
-    execute (.assign1 f v) σ = .supported {Packet.update σ f v} := by
+theorem execute_assign1 (f : schema.Field) (v : schema.Value f) (σ : schema.Packet) :
+    execute (.assign1 f v) σ = .supported {schema.model.update f v σ} := by
   simp [execute]
 
 /-- Executing a complete test keeps a matching packet and rejects a nonmatching
     packet with a supported empty result. -/
-theorem execute_completeTest (α : CompleteTest) (σ : CtxPkt) :
+theorem execute_completeTest (α : schema.Packet) (σ : schema.Packet) :
     execute (.completeTest α) σ =
       if σ = α then .supported {σ} else .supported ∅ := by
   simp [execute]
 
 /-- Executing a matching primitive field-equality test keeps its input packet. -/
-theorem execute_fieldTest_match (f : FieldName) (v : FieldValueEnum) (σ : CtxPkt)
+theorem execute_fieldTestFor_match (f : schema.Field) (v : schema.Value f) (σ : schema.Packet)
     (h : σ f = v) :
-    execute (NetKAT.fieldTest f v) σ = .supported {σ} := by
-  simp [execute, evalPredicate, NetKAT.fieldTest, h]
+    execute (NetKAT.fieldTestFor f v) σ = .supported {σ} := by
+  simp [execute, evalPredicate, NetKAT.fieldTestFor, h]
 
 /-- Executing a nonmatching primitive field-equality test produces no packets. -/
-theorem execute_fieldTest_nonmatch (f : FieldName) (v : FieldValueEnum) (σ : CtxPkt)
+theorem execute_fieldTestFor_nonmatch (f : schema.Field) (v : schema.Value f) (σ : schema.Packet)
     (h : σ f ≠ v) :
-    execute (NetKAT.fieldTest f v) σ = .supported ∅ := by
-  simp [execute, evalPredicate, NetKAT.fieldTest, h]
+    execute (NetKAT.fieldTestFor f v) σ = .supported ∅ := by
+  simp [execute, evalPredicate, NetKAT.fieldTestFor, h]
+
+theorem execute_fieldTest_match (f : FieldName) (v : FieldValueEnum) (σ : CtxPkt)
+    (h : σ f = v) : execute (NetKAT.fieldTest f v) σ = .supported {σ} :=
+  execute_fieldTestFor_match (schema := ctxSchema) f v σ h
+
+theorem execute_fieldTest_nonmatch (f : FieldName) (v : FieldValueEnum) (σ : CtxPkt)
+    (h : σ f ≠ v) : execute (NetKAT.fieldTest f v) σ = .supported ∅ :=
+  execute_fieldTestFor_nonmatch (schema := ctxSchema) f v σ h
 
 /-- Executing a union of two supported terms unions their computed outputs. -/
-theorem execute_union_supported (n₁ n₂ : NetKAT) (σ : CtxPkt)
-    (outputs₁ outputs₂ : Finset CtxPkt)
+theorem execute_union_supported (n₁ n₂ : NetKAT schema) (σ : schema.Packet)
+    (outputs₁ outputs₂ : Finset schema.Packet)
     (h₁ : execute n₁ σ = .supported outputs₁)
     (h₂ : execute n₂ σ = .supported outputs₂) :
     execute (.union n₁ n₂) σ = .supported (outputs₁ ∪ outputs₂) := by
   simp [execute, h₁, h₂]
 
 /-- An unsupported left operand makes union evaluation unsupported. -/
-theorem execute_union_unsupported_left (n₁ n₂ : NetKAT) (σ : CtxPkt)
+theorem execute_union_unsupported_left (n₁ n₂ : NetKAT schema) (σ : schema.Packet)
     (h₁ : execute n₁ σ = .unsupported) :
     execute (.union n₁ n₂) σ = .unsupported := by
   simp [execute, h₁]
 
 /-- An unsupported right operand makes union evaluation unsupported. -/
-theorem execute_union_unsupported_right (n₁ n₂ : NetKAT) (σ : CtxPkt)
+theorem execute_union_unsupported_right (n₁ n₂ : NetKAT schema) (σ : schema.Packet)
     (h₂ : execute n₂ σ = .unsupported) :
     execute (.union n₁ n₂) σ = .unsupported := by
   simp [execute, h₂]
 
 /-- Sequential execution exposes the finite second-stage fold after the first
     operand has produced a supported intermediate set. -/
-theorem execute_seq_supported (p q : NetKAT) (σ : CtxPkt)
-    (A : Finset CtxPkt)
+theorem execute_seq_supported (p q : NetKAT schema) (σ : schema.Packet)
+    (A : Finset schema.Packet)
     (h₁ : execute p σ = .supported A) :
     execute (.seq p q) σ = evalSeq q A.1 := by
   simp [execute, h₁]
 
 /-- An unsupported first operand propagates through sequential composition. -/
-theorem execute_seq_unsupported_left (p q : NetKAT) (σ : CtxPkt)
+theorem execute_seq_unsupported_left (p q : NetKAT schema) (σ : schema.Packet)
     (h₁ : execute p σ = .unsupported) :
     execute (.seq p q) σ = .unsupported := by
   simp [execute, h₁]
 
 /-- The empty intermediate set is a supported empty result; the second operand
     is not evaluated. -/
-theorem execute_seq_empty (p q : NetKAT) (σ : CtxPkt)
-    (h₁ : execute p σ = .supported (∅ : Finset CtxPkt)) :
+theorem execute_seq_empty (p q : NetKAT schema) (σ : schema.Packet)
+    (h₁ : execute p σ = .supported (∅ : Finset schema.Packet)) :
     execute (.seq p q) σ = .supported ∅ := by
   rw [execute_seq_supported p q σ ∅ h₁]
   simp [evalSeq]
@@ -430,8 +442,8 @@ theorem execute_seq_empty (p q : NetKAT) (σ : CtxPkt)
 /-- A required unsupported second-stage evaluation propagates.  The hypothesis
     is phrased directly in terms of the executable fold, avoiding any claim
     about unreachable packets. -/
-theorem execute_seq_unsupported_right (p q : NetKAT) (σ : CtxPkt)
-    (A : Finset CtxPkt)
+theorem execute_seq_unsupported_right (p q : NetKAT schema) (σ : schema.Packet)
+    (A : Finset schema.Packet)
     (h₁ : execute p σ = .supported A)
     (h₂ : evalSeq q A.1 = .unsupported) :
     execute (.seq p q) σ = .unsupported := by
@@ -442,8 +454,8 @@ theorem execute_seq_unsupported_right (p q : NetKAT) (σ : CtxPkt)
     executable first-stage result is `A`; `B` is the result of evaluating the
     second stage over exactly those reachable packets. -/
 theorem execute_seq_correct
-    (p q : NetKAT) (σ r : CtxPkt)
-    (A B : Finset CtxPkt)
+    (p q : NetKAT schema) (σ r : schema.Packet)
+    (A B : Finset schema.Packet)
     (h₁ : execute p σ = .supported A)
     (h₂ : evalSeq q A.1 = .supported B)
     (corr₁ : ∀ τ, Semantics p σ τ ↔ τ ∈ A)
@@ -464,7 +476,7 @@ theorem execute_seq_correct
     exact ⟨τ, (corr₁ τ).mpr hp, hq⟩
 
 /-- The executable `drop` result has exactly the denotational outputs. -/
-theorem execute_drop_correct (σ q : CtxPkt) :
+theorem execute_drop_correct (σ q : schema.Packet) :
     Semantics .drop σ q ↔
       q ∈ (match execute .drop σ with
         | .supported packets => packets
@@ -472,7 +484,7 @@ theorem execute_drop_correct (σ q : CtxPkt) :
   simp [execute, Semantics]
 
 /-- The executable `id` result has exactly the denotational outputs. -/
-theorem execute_id_correct (σ q : CtxPkt) :
+theorem execute_id_correct (σ q : schema.Packet) :
     Semantics .id σ q ↔
       q ∈ (match execute .id σ with
         | .supported packets => packets
@@ -481,8 +493,8 @@ theorem execute_id_correct (σ q : CtxPkt) :
 
 /-- The executable primitive-assignment result has exactly the denotational
     assignment outputs, in both directions. -/
-theorem execute_assign1_correct (f : FieldName) (v : FieldValueEnum)
-    (σ q : CtxPkt) :
+theorem execute_assign1_correct (f : schema.Field) (v : schema.Value f)
+    (σ q : schema.Packet) :
     Semantics (.assign1 f v) σ q ↔
       q ∈ (match execute (.assign1 f v) σ with
         | .supported packets => packets
@@ -491,7 +503,7 @@ theorem execute_assign1_correct (f : FieldName) (v : FieldValueEnum)
 
 /-- The executable complete-test result agrees exactly with its relational
     semantics, for both matching and nonmatching packets. -/
-theorem execute_completeTest_correct (α : CompleteTest) (σ q : CtxPkt) :
+theorem execute_completeTest_correct (α : schema.Packet) (σ q : schema.Packet) :
     Semantics (.completeTest α) σ q ↔
       q ∈ (match execute (.completeTest α) σ with
         | .supported packets => packets
@@ -504,20 +516,20 @@ theorem execute_completeTest_correct (α : CompleteTest) (σ q : CtxPkt) :
 
 /-- The executable primitive field-equality result has exactly the denotational
     test outputs, in both directions. -/
-theorem execute_fieldTest_correct (f : FieldName) (v : FieldValueEnum)
-    (σ q : CtxPkt) :
-    Semantics (NetKAT.fieldTest f v) σ q ↔
-      q ∈ (match execute (NetKAT.fieldTest f v) σ with
+theorem execute_fieldTest_correct (f : schema.Field) (v : schema.Value f)
+    (σ q : schema.Packet) :
+    Semantics (NetKAT.fieldTestFor f v) σ q ↔
+      q ∈ (match execute (NetKAT.fieldTestFor f v) σ with
         | .supported packets => packets
         | .unsupported => ∅) := by
-  rw [fieldTest_sem]
+  rw [fieldTestFor_sem]
   by_cases h : σ f = v
-  · simp [execute, evalPredicate, NetKAT.fieldTest, h]
-  · simp [execute, evalPredicate, NetKAT.fieldTest, h]
+  · simp [execute, evalPredicate, NetKAT.fieldTestFor, h]
+  · simp [execute, evalPredicate, NetKAT.fieldTestFor, h]
 
 /-- The executable false-predicate result has exactly the empty denotational
     relation. -/
-theorem execute_pFalse_correct (σ q : CtxPkt) :
+theorem execute_pFalse_correct (σ q : schema.Packet) :
     Semantics (.test Predicate.pFalse) σ q ↔
       q ∈ (match execute (.test Predicate.pFalse) σ with
         | .supported packets => packets
@@ -525,12 +537,12 @@ theorem execute_pFalse_correct (σ q : CtxPkt) :
   simp [execute, evalPredicate, Semantics, Predicate.holds, Predicate.eval]
 
 /-- Executing the true predicate computes the singleton containing its input. -/
-theorem execute_pTrue (σ : CtxPkt) :
+theorem execute_pTrue (σ : schema.Packet) :
     execute (.test Predicate.pTrue) σ = .supported {σ} := by
   simp [execute, evalPredicate]
 
 /-- The executable true-predicate result has exactly the identity relation. -/
-theorem execute_pTrue_correct (σ q : CtxPkt) :
+theorem execute_pTrue_correct (σ q : schema.Packet) :
     Semantics (.test Predicate.pTrue) σ q ↔
       q ∈ (match execute (.test Predicate.pTrue) σ with
         | .supported packets => packets
@@ -540,7 +552,7 @@ theorem execute_pTrue_correct (σ q : CtxPkt) :
 /-- A conjunction of supported component evaluations keeps the input packet
     exactly when both component outputs contain it. -/
 theorem execute_pAnd_supported
-    (a b : Predicate) (σ : CtxPkt) (A B : Finset CtxPkt)
+    (a b : Predicate schema) (σ : schema.Packet) (A B : Finset schema.Packet)
     (h₁ : execute (.test a) σ = .supported A)
     (h₂ : execute (.test b) σ = .supported B) :
     execute (.test (.pAnd a b)) σ =
@@ -554,7 +566,7 @@ theorem execute_pAnd_supported
 /-- A supported conjunction is semantically correct when both component
     executions are supported and semantically correct. -/
 theorem execute_pAnd_correct
-    (a b : Predicate) (σ q : CtxPkt) (A B : Finset CtxPkt)
+    (a b : Predicate schema) (σ q : schema.Packet) (A B : Finset schema.Packet)
     (h₁ : execute (.test a) σ = .supported A)
     (h₂ : execute (.test b) σ = .supported B)
     (corr₁ : ∀ r, Semantics (.test a) σ r ↔ r ∈ A)
@@ -581,7 +593,7 @@ theorem execute_pAnd_correct
 /-- A disjunction of supported component evaluations keeps the input packet
     exactly when either component output contains it. -/
 theorem execute_pOr_supported
-    (a b : Predicate) (σ : CtxPkt) (A B : Finset CtxPkt)
+    (a b : Predicate schema) (σ : schema.Packet) (A B : Finset schema.Packet)
     (h₁ : execute (.test a) σ = .supported A)
     (h₂ : execute (.test b) σ = .supported B) :
     execute (.test (.pOr a b)) σ =
@@ -595,7 +607,7 @@ theorem execute_pOr_supported
 /-- A supported disjunction is semantically correct when both component
     executions are supported and semantically correct. -/
 theorem execute_pOr_correct
-    (a b : Predicate) (σ q : CtxPkt) (A B : Finset CtxPkt)
+    (a b : Predicate schema) (σ q : schema.Packet) (A B : Finset schema.Packet)
     (h₁ : execute (.test a) σ = .supported A)
     (h₂ : execute (.test b) σ = .supported B)
     (corr₁ : ∀ r, Semantics (.test a) σ r ↔ r ∈ A)
@@ -628,7 +640,7 @@ theorem execute_pOr_correct
 /- A supported negation keeps the input packet exactly when its component
    output does not contain that packet. -/
 theorem execute_pNot_supported
-    (a : Predicate) (σ : CtxPkt) (A : Finset CtxPkt)
+    (a : Predicate schema) (σ : schema.Packet) (A : Finset schema.Packet)
     (h : execute (.test a) σ = .supported A) :
     execute (.test (.pNot a)) σ =
       if σ ∈ A then .supported ∅ else .supported {σ} := by
@@ -638,8 +650,8 @@ theorem execute_pNot_supported
 
 /-- Every predicate test evaluates to a supported finite output set. -/
 theorem execute_test_supported
-    (a : Predicate) (σ : CtxPkt) :
-    ∃ A : Finset CtxPkt,
+    (a : Predicate schema) (σ : schema.Packet) :
+    ∃ A : Finset schema.Packet,
       execute (.test a) σ = .supported A := by
   induction a generalizing σ with
   | pFalse => exact ⟨∅, by simp [execute, evalPredicate]⟩
@@ -665,8 +677,8 @@ theorem execute_test_supported
 
 /- Every NetKAT policy evaluates to a finite supported output set. -/
 theorem execute_supported
-    (p : NetKAT) (σ : CtxPkt) :
-    ∃ B : Finset CtxPkt,
+    (p : NetKAT schema) (σ : schema.Packet) :
+    ∃ B : Finset schema.Packet,
       execute p σ = .supported B := by
   induction p generalizing σ with
   | drop =>
@@ -684,7 +696,7 @@ theorem execute_supported
       · exact ⟨∅, by simp [execute, h]
           ⟩
   | assign1 f v =>
-      exact ⟨{Packet.update σ f v}, by simp [execute]
+      exact ⟨{schema.model.update f v σ}, by simp [execute]
         ⟩
   | union p q ihp ihq =>
       obtain ⟨A, hA⟩ := ihp σ
@@ -701,13 +713,13 @@ theorem execute_supported
   | star p ihp =>
       obtain ⟨B, hB⟩ := boundedStarWith_supported (execute p)
         (fun τ => ihp τ)
-        starFuel σ
+        (starFuel schema) σ
       exact ⟨B, by simpa only [execute, saturateStar_eq_boundedStarWith] using hB⟩
 
 /- A supported, semantically correct predicate negation agrees with the
    relational negation semantics. -/
 theorem execute_pNot_correct
-    (a : Predicate) (σ q : CtxPkt) (A : Finset CtxPkt)
+    (a : Predicate schema) (σ q : schema.Packet) (A : Finset schema.Packet)
     (h : execute (.test a) σ = .supported A)
     (corr : ∀ r, Semantics (.test a) σ r ↔ r ∈ A) :
     Semantics (.test (.pNot a)) σ q ↔
@@ -726,8 +738,8 @@ theorem execute_pNot_correct
 /- Every predicate test is supported and its finite output set is exactly the
    relational test relation. -/
 theorem execute_test_correct
-    (a : Predicate) (σ : CtxPkt) :
-    ∃ A : Finset CtxPkt,
+    (a : Predicate schema) (σ : schema.Packet) :
+    ∃ A : Finset schema.Packet,
       execute (.test a) σ = .supported A ∧
       ∀ q, Semantics (.test a) σ q ↔ q ∈ A := by
   induction a generalizing σ with
@@ -744,11 +756,11 @@ theorem execute_test_correct
       by_cases h : σ fe.field = fe.value
       · refine ⟨{σ}, by simp [execute, evalPredicate, h], ?_⟩
         intro q
-        simpa [NetKAT.fieldTest, execute, evalPredicate, Semantics,
+        simpa [NetKAT.fieldTestFor, execute, evalPredicate, Semantics,
           Predicate.holds, Predicate.eval, h, eq_comm]
       · refine ⟨∅, by simp [execute, evalPredicate, h], ?_⟩
         intro q
-        simpa [NetKAT.fieldTest, execute, evalPredicate, Semantics,
+        simpa [NetKAT.fieldTestFor, execute, evalPredicate, Semantics,
           Predicate.holds, Predicate.eval, h]
   | pAnd a b iha ihb =>
       obtain ⟨A, hA, corrA⟩ := iha σ
@@ -776,8 +788,8 @@ theorem execute_test_correct
 
 /-- A supported union result exactly matches the denotational union semantics
     when both supported operand results do. -/
-theorem execute_union_correct (n₁ n₂ : NetKAT) (σ q : CtxPkt)
-    (outputs₁ outputs₂ : Finset CtxPkt)
+theorem execute_union_correct (n₁ n₂ : NetKAT schema) (σ q : schema.Packet)
+    (outputs₁ outputs₂ : Finset schema.Packet)
     (h₁ : execute n₁ σ = .supported outputs₁)
     (h₂ : execute n₂ σ = .supported outputs₂)
     (corr₁ : ∀ q, Semantics n₁ σ q ↔ q ∈ outputs₁)
@@ -794,13 +806,13 @@ theorem execute_union_correct (n₁ n₂ : NetKAT) (σ q : CtxPkt)
 /-- A supported `post` result is exactly one-step relational reachability when
     every input packet has a supported, semantically correct execution. -/
 theorem post_correct
-    (p : NetKAT) (A B : Finset CtxPkt)
+    (p : NetKAT schema) (A B : Finset schema.Packet)
     (hpost : post p A = .supported B)
     (hEval : ∀ σ, σ ∈ A → ∃ outputs,
       execute p σ = .supported outputs ∧
         ∀ τ, Semantics p σ τ ↔ τ ∈ outputs) :
     ∀ τ, τ ∈ B ↔ ∃ σ, σ ∈ A ∧ Semantics p σ τ := by
-  have hfold : ∀ packets : Multiset CtxPkt,
+  have hfold : ∀ packets : Multiset schema.Packet,
       (∀ σ, σ ∈ packets → ∃ outputs,
         execute p σ = .supported outputs ∧
           ∀ τ, Semantics p σ τ ↔ τ ∈ outputs) →
@@ -846,27 +858,27 @@ theorem post_correct
   exact hcorr τ
 
 /-- Relational reachability using at most `n` applications of `p`. -/
-def ReachableWithin (p : NetKAT) : Nat → CtxPkt → CtxPkt → Prop
+def ReachableWithin (p : NetKAT schema) : Nat → schema.Packet → schema.Packet → Prop
   | 0, σ, τ => τ = σ
   | n + 1, σ, τ =>
       ReachableWithin p n σ τ ∨
         ∃ ρ, ReachableWithin p n σ ρ ∧ Semantics p ρ τ
 
 /-- Zero iterations reach exactly the input packet. -/
-theorem reachableWithin_zero_iff (p : NetKAT) (σ τ : CtxPkt) :
+theorem reachableWithin_zero_iff (p : NetKAT schema) (σ τ : schema.Packet) :
     ReachableWithin p 0 σ τ ↔ τ = σ := by
   rfl
 
 /-- One more bounded iteration either keeps a packet already reachable, or
     takes one policy step from a packet reachable at the smaller bound. -/
-theorem reachableWithin_succ_iff (p : NetKAT) (n : Nat) (σ τ : CtxPkt) :
+theorem reachableWithin_succ_iff (p : NetKAT schema) (n : Nat) (σ τ : schema.Packet) :
     ReachableWithin p (n + 1) σ τ ↔
       ReachableWithin p n σ τ ∨
         ∃ ρ, ReachableWithin p n σ ρ ∧ Semantics p ρ τ := by
   rfl
 
 private theorem reachableWithin_weaken
-    (p : NetKAT) {n k : Nat} (h : n ≤ k) {σ τ : CtxPkt} :
+    (p : NetKAT schema) {n k : Nat} (h : n ≤ k) {σ τ : schema.Packet} :
     ReachableWithin p n σ τ → ReachableWithin p k σ τ := by
   intro hreach
   induction h with
@@ -874,7 +886,7 @@ private theorem reachableWithin_weaken
   | @step k h ih => exact Or.inl ih
 
 private theorem reachableWithin_prepend
-    (p : NetKAT) {n : Nat} {σ ρ τ : CtxPkt} :
+    (p : NetKAT schema) {n : Nat} {σ ρ τ : schema.Packet} :
     Semantics p σ ρ → ReachableWithin p n ρ τ →
       ReachableWithin p (n + 1) σ τ := by
   induction n generalizing σ ρ τ with
@@ -902,7 +914,7 @@ private theorem starClosure_append
   | @step a b d hab hclosure ih => exact StarClosure.step hab (ih hstep)
 
 private theorem starClosure_iff_reachableWithin
-    (p : NetKAT) (σ τ : CtxPkt) :
+    (p : NetKAT schema) (σ τ : schema.Packet) :
     StarClosure (Semantics p) σ τ ↔
       ∃ n : Nat, ReachableWithin p n σ τ := by
   constructor
@@ -927,7 +939,7 @@ private theorem starClosure_iff_reachableWithin
             exact starClosure_append (ih σ ρ hρ) hρτ
 
 theorem semantics_star_iff_reachableWithin
-    (p : NetKAT) (σ τ : CtxPkt) :
+    (p : NetKAT schema) (σ τ : schema.Packet) :
     Semantics (.star p) σ τ ↔
       ∃ n : Nat, ReachableWithin p n σ τ := by
   exact starClosure_iff_reachableWithin p σ τ
@@ -935,7 +947,7 @@ theorem semantics_star_iff_reachableWithin
  /-- Once one bounded reachability step adds no packets, the next step adds no
     packets either. -/
 theorem reachableWithin_stable_succ
-    (p : NetKAT) (n : Nat) (σ : CtxPkt)
+    (p : NetKAT schema) (n : Nat) (σ : schema.Packet)
     (hstable : ∀ τ, ReachableWithin p (n + 1) σ τ ↔
       ReachableWithin p n σ τ) :
     ∀ τ, ReachableWithin p (n + 2) σ τ ↔
@@ -954,7 +966,7 @@ theorem reachableWithin_stable_succ
     exact reachableWithin_weaken p (Nat.le_succ (n + 1)) hreach
 
 private theorem reachableWithin_stable_of_le
-    (p : NetKAT) (n k : Nat) (σ : CtxPkt)
+    (p : NetKAT schema) (n k : Nat) (σ : schema.Packet)
     (hstable : ∀ τ, ReachableWithin p (n + 1) σ τ ↔
       ReachableWithin p n σ τ) (h : n ≤ k) :
     ∀ τ, ReachableWithin p (k + 1) σ τ ↔
@@ -987,27 +999,27 @@ private theorem finiteGrowth_stabilizes {α : Type*} [Fintype α]
 
 /-- Bounded reachability stabilizes without constructing a packet finset. -/
 theorem reachableWithin_finite_stabilizes
-    (p : NetKAT) (σ : CtxPkt) :
-    ∃ n, n ≤ Fintype.card CtxPkt ∧
+    (p : NetKAT schema) (σ : schema.Packet) :
+    ∃ n, n ≤ Fintype.card schema.Packet ∧
       ∀ τ, ReachableWithin p (n + 1) σ τ ↔
         ReachableWithin p n σ τ := by
-  let reached (n : Nat) : Set CtxPkt := {τ | ReachableWithin p n σ τ}
+  let reached (n : Nat) : Set schema.Packet := {τ | ReachableWithin p n σ τ}
   obtain ⟨n, hn, hs⟩ := finiteGrowth_stabilizes reached ⟨σ, rfl⟩
     (fun n _ h => reachableWithin_weaken p (Nat.le_succ n) h)
   exact ⟨n, hn, fun τ => Set.ext_iff.mp hs τ⟩
 
 theorem reachableWithin_stable_at_card
-    (p : NetKAT) (σ : CtxPkt) :
+    (p : NetKAT schema) (σ : schema.Packet) :
     ∀ τ,
       ReachableWithin p
-        (Fintype.card CtxPkt + 1) σ τ ↔
+        (Fintype.card schema.Packet + 1) σ τ ↔
       ReachableWithin p
-        (Fintype.card CtxPkt) σ τ := by
+        (Fintype.card schema.Packet) σ τ := by
   obtain ⟨n, hn, hstable⟩ := reachableWithin_finite_stabilizes p σ
-  exact reachableWithin_stable_of_le p n (Fintype.card CtxPkt) σ hstable hn
+  exact reachableWithin_stable_of_le p n (Fintype.card schema.Packet) σ hstable hn
 
 private theorem reachableWithin_stable_back
-    (p : NetKAT) (n k : Nat) (σ : CtxPkt)
+    (p : NetKAT schema) (n k : Nat) (σ : schema.Packet)
     (hstable : ∀ τ, ReachableWithin p (n + 1) σ τ ↔
       ReachableWithin p n σ τ) (h : n ≤ k) :
     ∀ τ, ReachableWithin p k σ τ → ReachableWithin p n σ τ := by
@@ -1020,24 +1032,24 @@ private theorem reachableWithin_stable_back
 
 set_option maxRecDepth 100000 in
 theorem reachableWithin_iff_at_card
-    (p : NetKAT) (σ τ : CtxPkt) :
+    (p : NetKAT schema) (σ τ : schema.Packet) :
     (∃ n : Nat, ReachableWithin p n σ τ) ↔
-      ReachableWithin p (Fintype.card CtxPkt) σ τ := by
+      ReachableWithin p (Fintype.card schema.Packet) σ τ := by
   constructor
   · rintro ⟨n, hreach⟩
-    by_cases hle : n ≤ Fintype.card CtxPkt
+    by_cases hle : n ≤ Fintype.card schema.Packet
     · exact reachableWithin_weaken p hle hreach
-    · have hcard : Fintype.card CtxPkt ≤ n := Nat.le_of_lt (Nat.lt_of_not_ge hle)
+    · have hcard : Fintype.card schema.Packet ≤ n := Nat.le_of_lt (Nat.lt_of_not_ge hle)
       have hstable := reachableWithin_stable_at_card p σ
-      exact reachableWithin_stable_back p (Fintype.card CtxPkt) n σ hstable hcard τ hreach
+      exact reachableWithin_stable_back p (Fintype.card schema.Packet) n σ hstable hcard τ hreach
   · intro hreach
-    exact ⟨Fintype.card CtxPkt, hreach⟩
+    exact ⟨Fintype.card schema.Packet, hreach⟩
 
 /-- A supported bounded computation denotes exactly its relationally reachable
     packets, provided every packet reached at the bound is supported and
     semantically correct for one further policy evaluation. -/
 theorem boundedStar_correct
-    (p : NetKAT) (n : Nat) (σ : CtxPkt) (B : Finset CtxPkt)
+    (p : NetKAT schema) (n : Nat) (σ : schema.Packet) (B : Finset schema.Packet)
     (hbound : boundedStar p n σ = .supported B)
     (hEval : ∀ ρ, ReachableWithin p n σ ρ → ∃ outputs,
       execute p ρ = .supported outputs ∧
@@ -1082,19 +1094,19 @@ theorem boundedStar_correct
               simp only [Finset.mem_union, hIH, hpostCorrect]
 
 theorem execute_star_correct
-    (p : NetKAT) (σ : CtxPkt) (B : Finset CtxPkt)
+    (p : NetKAT schema) (σ : schema.Packet) (B : Finset schema.Packet)
     (hExec : execute (.star p) σ = .supported B)
     (hEval :
       ∀ ρ,
-        ReachableWithin p (Fintype.card CtxPkt) σ ρ →
+        ReachableWithin p (Fintype.card schema.Packet) σ ρ →
           ∃ outputs,
             execute p ρ = .supported outputs ∧
               ∀ τ, Semantics p ρ τ ↔ τ ∈ outputs) :
     ∀ τ, Semantics (.star p) σ τ ↔ τ ∈ B := by
-  have hbound : boundedStar p (Fintype.card CtxPkt) σ = .supported B := by
+  have hbound : boundedStar p (Fintype.card schema.Packet) σ = .supported B := by
     rw [← execute_star_eq_boundedStar p σ]
     exact hExec
-  have hreach := boundedStar_correct p (Fintype.card CtxPkt) σ B hbound hEval
+  have hreach := boundedStar_correct p (Fintype.card schema.Packet) σ B hbound hEval
   intro τ
   rw [semantics_star_iff_reachableWithin, reachableWithin_iff_at_card]
   exact (hreach τ).symm
@@ -1102,8 +1114,8 @@ theorem execute_star_correct
 /-- Every NetKAT policy evaluates to a supported finite set which is exactly its
     relational semantics, without any additional evaluator assumptions. -/
 theorem execute_correct
-    (p : NetKAT) (σ : CtxPkt) :
-    ∃ B : Finset CtxPkt,
+    (p : NetKAT schema) (σ : schema.Packet) :
+    ∃ B : Finset schema.Packet,
       execute p σ = .supported B ∧
       ∀ τ, Semantics p σ τ ↔ τ ∈ B := by
   induction p generalizing σ with
@@ -1130,7 +1142,7 @@ theorem execute_correct
         · simpa [execute_completeTest, h] using (execute_completeTest_correct α σ τ)
   | assign1 f v =>
       have h := execute_assign1 f v σ
-      refine ⟨{Packet.update σ f v}, h, ?_⟩
+      refine ⟨{schema.model.update f v σ}, h, ?_⟩
       intro τ
       simpa [h] using (execute_assign1_correct f v σ τ)
   | union p q ihp ihq =>
@@ -1173,8 +1185,8 @@ theorem execute_correct
         exact ihp ρ) τ
 
 /-- The executable finite output set equals the denotational output set. -/
-theorem eval_correct (p : NetKAT) (σ : CtxPkt) :
-    ∃ B : Finset CtxPkt, execute p σ = .supported B ∧ (B : Set CtxPkt) = eval p σ := by
+theorem eval_correct (p : NetKAT schema) (σ : schema.Packet) :
+    ∃ B : Finset schema.Packet, execute p σ = .supported B ∧ (B : Set schema.Packet) = eval p σ := by
   obtain ⟨B, hB, hSem⟩ := execute_correct p σ
   refine ⟨B, hB, Set.ext fun τ => ?_⟩
   exact (hSem τ).symm

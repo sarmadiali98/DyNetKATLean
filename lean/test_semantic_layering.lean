@@ -33,7 +33,7 @@ example (env : RecEnv) (d : DyNetKAT) :
     (historySemantics_singleton_iff_packetSemantics .id σ σ).mpr rfl
   have assigned := (historySemantics_of_nSeq_bisimilar bisim _ _).mp identity
   have updated : σ = Packet.update σ .port .v1 :=
-    (historySemantics_singleton_iff_packetSemantics (.assign1 .port .v1) σ σ).mp assigned
+    (historySemantics_singleton_iff_packetSemantics ((.assign1 .port .v1 : NetKAT)) σ σ).mp assigned
   have different : FieldValueEnum.v0 = .v1 := by
     simpa [σ, Packet.update] using congrFun updated FieldName.port
   cases different

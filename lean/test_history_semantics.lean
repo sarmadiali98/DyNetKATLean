@@ -79,7 +79,7 @@ example (f : FieldName) (v : FieldValueEnum) (h : History) :
 -- On the two-packet history: the head is updated, the second packet
 -- (the tail) is preserved verbatim.
 example :
-    HistorySemantics (.assign1 .tpSrc .v9) hTwo
+    HistorySemantics ((.assign1 .tpSrc .v9 : NetKAT)) hTwo
       ⟨Packet.update examplePacket .tpSrc .v9, [examplePacket9]⟩ := rfl
 
 example :
@@ -98,7 +98,7 @@ example (f : FieldName) (v : FieldValueEnum) (h h' : History)
 -- `(tpSrc ← v9) ; (tpSrc = v9)` maps the singleton history to the
 -- singleton history of the updated packet.
 example :
-    HistorySemantics (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9))
+    HistorySemantics (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9))
       hSingle (History.singleton (Packet.update examplePacket .tpSrc .v9)) := by
   refine ⟨History.singleton (Packet.update examplePacket .tpSrc .v9), ?_, ?_⟩
   · rfl
@@ -109,7 +109,7 @@ example :
 -- history, `(tpSrc ← v9) ; id` yields the two-packet history with the
 -- updated head and the unchanged second packet.
 example :
-    HistorySemantics (.seq (.assign1 .tpSrc .v9) .id) hTwo
+    HistorySemantics (.seq ((.assign1 .tpSrc .v9 : NetKAT)) .id) hTwo
       ⟨Packet.update examplePacket .tpSrc .v9, [examplePacket9]⟩ := by
   refine ⟨⟨Packet.update examplePacket .tpSrc .v9, [examplePacket9]⟩, ?_, ?_⟩
   · rfl
@@ -123,7 +123,7 @@ example : HistorySemantics (.star .id) hTwo hTwo := historySem_star_refl _ _
 
 -- One iteration of an assignment is also in the star.
 example :
-    HistorySemantics (.star (.assign1 .tpSrc .v9)) hTwo
+    HistorySemantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) hTwo
       ⟨Packet.update examplePacket .tpSrc .v9, [examplePacket9]⟩ :=
   historySem_star_step _ _ _ _ rfl (historySem_star_refl _ _)
 
@@ -188,7 +188,7 @@ example : hTwoTwice.tail = hTwo.tail :=
 -- The sequential-composition characterization: the intermediate history
 -- of `(tpSrc ← v9) ; id` on the two-packet history has the original tail.
 example :
-    ∃ k, HistorySemantics (.assign1 .tpSrc .v9) hTwo k ∧
+    ∃ k, HistorySemantics ((.assign1 .tpSrc .v9 : NetKAT)) hTwo k ∧
          HistorySemantics .id k hTwoUpdated ∧ k.tail = hTwo.tail :=
   historySemantics_seq_intermediate_tail (.assign1 .tpSrc .v9) .id hTwo
     hTwoUpdated ⟨hTwoUpdated, rfl, rfl⟩
@@ -289,9 +289,9 @@ example :
 -- 5. Assignment: the head packet is updated at both levels while the
 --    second packet (`examplePacket9`) is preserved verbatim.
 example :
-    HistorySemantics (.assign1 .tpSrc .v9) hTwo hTwoUpdated ↔
+    HistorySemantics ((.assign1 .tpSrc .v9 : NetKAT)) hTwo hTwoUpdated ↔
       hTwoUpdated.tail = hTwo.tail ∧
-      Semantics (.assign1 .tpSrc .v9) examplePacket
+      Semantics ((.assign1 .tpSrc .v9 : NetKAT)) examplePacket
         (Packet.update examplePacket .tpSrc .v9) :=
   historySemantics_iff_packetSemantics_starFree _ sfAssign examplePacket
     (Packet.update examplePacket .tpSrc .v9) [examplePacket9] [examplePacket9]
@@ -299,9 +299,9 @@ example :
 -- 6. Union: the assignment branch fires and `drop` produces nothing, at
 --    both levels, with the second packet unchanged.
 example :
-    HistorySemantics (.union (.assign1 .tpSrc .v9) .drop) hTwo hTwoUpdated ↔
+    HistorySemantics (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop) hTwo hTwoUpdated ↔
       hTwoUpdated.tail = hTwo.tail ∧
-      Semantics (.union (.assign1 .tpSrc .v9) .drop) examplePacket
+      Semantics (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop) examplePacket
         (Packet.update examplePacket .tpSrc .v9) :=
   historySemantics_iff_packetSemantics_starFree _ sfUnion examplePacket
     (Packet.update examplePacket .tpSrc .v9) [examplePacket9] [examplePacket9]
@@ -309,10 +309,10 @@ example :
 -- 7. Sequential composition: `(tpSrc ← v9) ; (tpSrc = v9)` updates the
 --    head and keeps the two-packet tail, at both levels.
 example :
-    HistorySemantics (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9))
+    HistorySemantics (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9))
         hTwo hTwoUpdated ↔
       hTwoUpdated.tail = hTwo.tail ∧
-      Semantics (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9))
+      Semantics (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9))
         examplePacket (Packet.update examplePacket .tpSrc .v9) :=
   historySemantics_iff_packetSemantics_starFree _ sfSeq examplePacket
     (Packet.update examplePacket .tpSrc .v9) [examplePacket9] [examplePacket9]
@@ -323,12 +323,12 @@ example :
 --    packet is unchanged at both levels.
 example :
     HistorySemantics
-      (.seq (.union (.assign1 .tpSrc .v9) .drop)
+      (.seq (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop)
             (.union (NetKAT.fieldTest .tpSrc .v9) (.assign1 .tpDst .v1)))
       hTwo hTwoUpdated ↔
       hTwoUpdated.tail = hTwo.tail ∧
       Semantics
-      (.seq (.union (.assign1 .tpSrc .v9) .drop)
+      (.seq (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop)
             (.union (NetKAT.fieldTest .tpSrc .v9) (.assign1 .tpDst .v1)))
       examplePacket (Packet.update examplePacket .tpSrc .v9) :=
   historySemantics_iff_packetSemantics_starFree _ sfNested examplePacket
@@ -337,7 +337,7 @@ example :
 -- Reverse direction of the correspondence: a packet-level derivation
 -- lifts to the history level with the unchanged two-packet tail.
 example :
-    HistorySemantics (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9))
+    HistorySemantics (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9))
       hTwo hTwoUpdated :=
   (historySemantics_iff_packetSemantics_starFree _ sfSeq examplePacket
     (Packet.update examplePacket .tpSrc .v9)
@@ -387,7 +387,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- The one-step history semantics of the sequential body
  -- `(tpSrc ← v9) ; (tpSrc = v9)` on the two-packet history, via H3A.
  def hSeqStep :
-     HistorySemantics (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9))
+     HistorySemantics (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9))
        hTwo hTwoUpdated :=
    (historySemantics_iff_packetSemantics_starFree _ sfSeq examplePacket
      (Packet.update examplePacket .tpSrc .v9)
@@ -406,13 +406,13 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  --    preserved verbatim.
  example :
      hTwo.tail = hTwo.tail ∧
-       Semantics (.star (.assign1 .tpSrc .v9)) examplePacket examplePacket :=
+       Semantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) examplePacket examplePacket :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfAssign)
      examplePacket examplePacket [examplePacket9] [examplePacket9]).mp
      (historySem_star_refl _ _)
 
  example :
-     HistorySemantics (.star (.assign1 .tpSrc .v9)) hTwo hTwo :=
+     HistorySemantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) hTwo hTwo :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfAssign)
      examplePacket examplePacket [examplePacket9] [examplePacket9]).mpr
      ⟨rfl, star_refl _ _⟩
@@ -421,7 +421,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  --    updated-head history at both levels; the second packet survives.
  example :
      hTwoUpdated.tail = hTwo.tail ∧
-       Semantics (.star (.assign1 .tpSrc .v9)) examplePacket
+       Semantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) examplePacket
          (Packet.update examplePacket .tpSrc .v9) :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfAssign)
      examplePacket (Packet.update examplePacket .tpSrc .v9)
@@ -429,7 +429,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
      (historySem_star_step _ _ _ _ rfl (historySem_star_refl _ _))
 
  example :
-     HistorySemantics (.star (.assign1 .tpSrc .v9)) hTwo hTwoUpdated :=
+     HistorySemantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) hTwo hTwoUpdated :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfAssign)
      examplePacket (Packet.update examplePacket .tpSrc .v9)
      [examplePacket9] [examplePacket9]).mpr
@@ -442,7 +442,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  example :
      hTwoTwice.tail = hTwo.tail ∧
        Semantics
-         (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8)))
+         (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpSrc .v8 : NetKAT))))
          examplePacket
          (Packet.update (Packet.update examplePacket .tpSrc .v9) .tpSrc .v8) :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfUnionAssigns)
@@ -454,7 +454,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
 
  example :
      HistorySemantics
-       (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8)))
+       (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpSrc .v8 : NetKAT))))
        hTwo hTwoTwice :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfUnionAssigns)
      examplePacket
@@ -469,7 +469,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  example :
      hTwoV8.tail = hTwo.tail ∧
        Semantics
-         (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8)))
+         (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpSrc .v8 : NetKAT))))
          examplePacket (Packet.update examplePacket .tpSrc .v8) :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfUnionAssigns)
      examplePacket (Packet.update examplePacket .tpSrc .v8)
@@ -478,7 +478,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
 
  example :
      HistorySemantics
-       (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8)))
+       (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpSrc .v8 : NetKAT))))
        hTwo hTwoV8 :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfUnionAssigns)
      examplePacket (Packet.update examplePacket .tpSrc .v8)
@@ -491,7 +491,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  example :
      hTwoUpdated.tail = hTwo.tail ∧
        Semantics
-         (.star (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)))
+         (.star (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9)))
          examplePacket (Packet.update examplePacket .tpSrc .v9) :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfSeq)
      examplePacket (Packet.update examplePacket .tpSrc .v9)
@@ -500,7 +500,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
 
  example :
      HistorySemantics
-       (.star (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)))
+       (.star (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9)))
        hTwo hTwoUpdated :=
    (historySemantics_star_iff_packetSemantics _ (starFreeStep _ sfSeq)
      examplePacket (Packet.update examplePacket .tpSrc .v9)
@@ -513,16 +513,16 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  --    H3A one-step hypothesis is discharged automatically; both
  --    directions on the two-packet history.
  example :
-     HistorySemantics (.star (.assign1 .tpSrc .v9)) hTwo hTwoUpdated ↔
+     HistorySemantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) hTwo hTwoUpdated ↔
        hTwoUpdated.tail = hTwo.tail ∧
-       Semantics (.star (.assign1 .tpSrc .v9)) examplePacket
+       Semantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) examplePacket
          (Packet.update examplePacket .tpSrc .v9) :=
    historySemantics_star_iff_packetSemantics_starFreeBody _ sfAssign
      examplePacket (Packet.update examplePacket .tpSrc .v9)
      [examplePacket9] [examplePacket9]
 
  example :
-     HistorySemantics (.star (.assign1 .tpSrc .v9)) hTwo hTwoUpdated :=
+     HistorySemantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) hTwo hTwoUpdated :=
    (historySemantics_star_iff_packetSemantics_starFreeBody _ sfAssign
      examplePacket (Packet.update examplePacket .tpSrc .v9)
      [examplePacket9] [examplePacket9]).mpr ⟨rfl, star_step _ _ _ rfl⟩
@@ -617,9 +617,9 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- 1e. Assignment: the head is updated and the second packet survives,
  --     at both levels, both directions.
  example :
-     HistorySemantics (.assign1 .tpSrc .v9) hTwo hTwoUpdated ↔
+     HistorySemantics ((.assign1 .tpSrc .v9 : NetKAT)) hTwo hTwoUpdated ↔
        hTwoUpdated.tail = hTwo.tail ∧
-       Semantics (.assign1 .tpSrc .v9) examplePacket
+       Semantics ((.assign1 .tpSrc .v9 : NetKAT)) examplePacket
          (Packet.update examplePacket .tpSrc .v9) :=
    historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9) [examplePacket9] [examplePacket9]
@@ -627,9 +627,9 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- 2. Union: the assignment branch fires and `drop` produces nothing,
  --    at both levels, both directions.
  example :
-     HistorySemantics (.union (.assign1 .tpSrc .v9) .drop) hTwo hTwoUpdated ↔
+     HistorySemantics (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop) hTwo hTwoUpdated ↔
        hTwoUpdated.tail = hTwo.tail ∧
-       Semantics (.union (.assign1 .tpSrc .v9) .drop) examplePacket
+       Semantics (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop) examplePacket
          (Packet.update examplePacket .tpSrc .v9) :=
    historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9) [examplePacket9] [examplePacket9]
@@ -637,10 +637,10 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- 3. Sequence: `(tpSrc ← v9) ; (tpSrc = v9)` updates the head and keeps
  --    the two-packet tail, at both levels, both directions.
  example :
-     HistorySemantics (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9))
+     HistorySemantics (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9))
          hTwo hTwoUpdated ↔
        hTwoUpdated.tail = hTwo.tail ∧
-       Semantics (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9))
+       Semantics (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9))
          examplePacket (Packet.update examplePacket .tpSrc .v9) :=
    historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9) [examplePacket9] [examplePacket9]
@@ -649,7 +649,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  --    derivation yields the packet-level star semantics.
  example :
      hTwoUpdated.tail = hTwo.tail ∧
-       Semantics (.star (.assign1 .tpSrc .v9)) examplePacket
+       Semantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) examplePacket
          (Packet.update examplePacket .tpSrc .v9) :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9)
@@ -659,7 +659,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- 4 (backward): the packet-level star derivation lifts to the history
  -- level with the two-packet tail intact.
  example :
-     HistorySemantics (.star (.assign1 .tpSrc .v9)) hTwo hTwoUpdated :=
+     HistorySemantics (.star ((.assign1 .tpSrc .v9 : NetKAT))) hTwo hTwoUpdated :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9)
      [examplePacket9] [examplePacket9]).mpr
@@ -670,7 +670,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  example :
      hTwoTwice.tail = hTwo.tail ∧
        Semantics
-         (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8)))
+         (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpSrc .v8 : NetKAT))))
          examplePacket
          (Packet.update (Packet.update examplePacket .tpSrc .v9) .tpSrc .v8) :=
    (historySemantics_iff_packetSemantics _ examplePacket
@@ -683,7 +683,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- level.
  example :
      HistorySemantics
-       (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8)))
+       (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpSrc .v8 : NetKAT))))
        hTwo hTwoTwice :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update (Packet.update examplePacket .tpSrc .v9) .tpSrc .v8)
@@ -696,7 +696,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  example :
      hTwoUpdated.tail = hTwo.tail ∧
        Semantics
-         (.star (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)))
+         (.star (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9)))
          examplePacket (Packet.update examplePacket .tpSrc .v9) :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9)
@@ -707,7 +707,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- history level.
  example :
      HistorySemantics
-       (.star (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)))
+       (.star (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9)))
        hTwo hTwoUpdated :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9)
@@ -720,9 +720,9 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  --    hand (contrast with the H3B section above).  Both directions at
  --    once through the theorem.
  example :
-     HistorySemantics (.star (.star (.assign1 .tpSrc .v9))) hTwo hTwoUpdated ↔
+     HistorySemantics (.star (.star ((.assign1 .tpSrc .v9 : NetKAT)))) hTwo hTwoUpdated ↔
        hTwoUpdated.tail = hTwo.tail ∧
-       Semantics (.star (.star (.assign1 .tpSrc .v9))) examplePacket
+       Semantics (.star (.star ((.assign1 .tpSrc .v9 : NetKAT)))) examplePacket
          (Packet.update examplePacket .tpSrc .v9) :=
    historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9) [examplePacket9] [examplePacket9]
@@ -731,7 +731,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- step maps to the packet level through the theorem.
  example :
      hTwoUpdated.tail = hTwo.tail ∧
-       Semantics (.star (.star (.assign1 .tpSrc .v9))) examplePacket
+       Semantics (.star (.star ((.assign1 .tpSrc .v9 : NetKAT)))) examplePacket
          (Packet.update examplePacket .tpSrc .v9) :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9)
@@ -745,7 +745,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- 7 (backward, explicit derivation): the nested packet-level closure
  -- lifts to the nested history-level star.
  example :
-     HistorySemantics (.star (.star (.assign1 .tpSrc .v9))) hTwo hTwoUpdated :=
+     HistorySemantics (.star (.star ((.assign1 .tpSrc .v9 : NetKAT)))) hTwo hTwoUpdated :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9)
      [examplePacket9] [examplePacket9]).mpr
@@ -759,8 +759,8 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  example :
      hTwoUpdated.tail = hTwo.tail ∧
        Semantics
-         (.star (.seq (.union (.assign1 .tpSrc .v9) .drop)
-                      (.star (.assign1 .tpDst .v1))))
+         (.star (.seq (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop)
+                      (.star ((.assign1 .tpDst .v1 : NetKAT)))))
          examplePacket (Packet.update examplePacket .tpSrc .v9) :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9)
@@ -775,8 +775,8 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  -- level.
  example :
      HistorySemantics
-       (.star (.seq (.union (.assign1 .tpSrc .v9) .drop)
-                    (.star (.assign1 .tpDst .v1))))
+       (.star (.seq (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop)
+                    (.star ((.assign1 .tpDst .v1 : NetKAT)))))
        hTwo hTwoUpdated :=
    (historySemantics_iff_packetSemantics _ examplePacket
      (Packet.update examplePacket .tpSrc .v9)
@@ -790,7 +790,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  --    second packet never moves.
  def nestedStarDeriv :
      HistorySemantics
-       (.star (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8))))
+       (.star (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpSrc .v8 : NetKAT)))))
        hTwo hTwoTwice :=
    historySem_star_step
      (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8)))
@@ -809,7 +809,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
  example :
      hTwoTwice.tail = hTwo.tail ∧
        Semantics
-         (.star (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpSrc .v8))))
+         (.star (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpSrc .v8 : NetKAT)))))
          examplePacket
          (Packet.update (Packet.update examplePacket .tpSrc .v9) .tpSrc .v8) :=
    (historySemantics_iff_packetSemantics _ examplePacket

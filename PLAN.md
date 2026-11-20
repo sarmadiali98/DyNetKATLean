@@ -113,6 +113,12 @@ statements and executing the original artifact baseline in Phase 9.
 
 ### Phase 1 — General NetKAT foundations
 
+The first schema stage supplies `PacketSchema`, dependent valuations,
+and the generic DyNetKATLean semantic foundation. The original
+`CtxPkt` API specializes this foundation to `ctxSchema`. The proof
+and test scope is recorded in the
+[packet-schema conformance entry](docs/PAPER_CONFORMANCE.md#finite-packet-schema-foundation).
+
 Parameterize the finite field schema and each field's value type. Preserve a
 fixed-domain instance for existing regressions. Prove complete tests and
 assignments, dup-free relational/history correspondence, exact star, and
@@ -176,9 +182,10 @@ derivability theorem use all source traces. See the
 The §V positive witness equation and the feasible head/tail source bridge
 are machine checked. Both [distributed-controller variants](docs/PAPER_CONFORMANCE.md#distributed-controllers-in-arxiv-v4)
 are machine checked. The [FatTree migration audit](docs/PAPER_CONFORMANCE.md#fattree-migration-in-arxiv-v4)
-records all three v4 checks. The full benchmark is blocked by the
-`CtxPkt` cardinality. Resume the full model after packet-schema support
-can distinguish the benchmark locations and packet fields.
+records all three v4 checks. The semantic foundation now represents
+1,344 distinct switch identities without changing `CtxPkt`. The full
+FatTree model, symbolic analysis over its schema, and the three
+case-study proofs remain open.
 
 ### Phase 6 — Extraction and normalization
 

@@ -580,7 +580,8 @@ def Internal.safetyCheckGraph (G : ProcessGraph) (R : ReconfigSet)
 
 /-- A packet flow through the selected graph configuration, from ingress
     through a head or tail contribution to egress. -/
-def flowVia (ingress egress : NetKAT) (config : CtxPkt → CtxPkt → Prop) : Prop :=
+def flowVia {schema : PacketSchema} (ingress egress : NetKAT schema)
+    (config : schema.Packet → schema.Packet → Prop) : Prop :=
   ∃ σ ρ κ τ, Semantics ingress σ ρ ∧ config ρ κ ∧ Semantics egress κ τ
 
 private theorem flowVia_semantics (ingress H egress : NetKAT) :

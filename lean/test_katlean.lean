@@ -60,8 +60,8 @@ open DyNetKAT.NetKAT
 
 -- A complete policy equation proved by the KATLean packet law.
 theorem policy_overwrite :
-    katInterp (.seq (.assign1 .port .v0) (.assign1 .port .v1)) =
-      katInterp (.assign1 .port .v1) :=
+    katInterp (.seq ((.assign1 .port .v0 : NetKAT)) ((.assign1 .port .v1 : NetKAT))) =
+      katInterp ((.assign1 .port .v1 : NetKAT)) :=
   ctxPacketModel.overwrite .port .v0 .v1
 
 example : ctxPacketModel.lookup .port (ctxPacketModel.update .port .v8 p) = .v8 :=
@@ -78,12 +78,12 @@ example (policy : DyNetKAT.NetKAT.NetKAT) (p q : CtxPkt) :
     (katInterp (.star (.star policy))).holds p q ↔ Semantics (.star (.star policy)) p q :=
   katInterp_correct _ _ _
 
-example (p : CtxPkt) : ∃ outputs, execute (.star (.assign1 .port .v1)) p = .supported outputs ∧
-    ∀ q, q ∈ outputs ↔ (katInterp (.star (.assign1 .port .v1))).holds p q :=
+example (p : CtxPkt) : ∃ outputs, execute (.star ((.assign1 .port .v1 : NetKAT))) p = .supported outputs ∧
+    ∀ q, q ∈ outputs ↔ (katInterp (.star ((.assign1 .port .v1 : NetKAT)))).holds p q :=
   execute_katInterp _ p
 
-example : katInterp (.seq (.assign1 .port .v0) (.assign1 .port .v1)) =
-    katInterp (.assign1 .port .v1) :=
+example : katInterp (.seq ((.assign1 .port .v0 : NetKAT)) ((.assign1 .port .v1 : NetKAT))) =
+    katInterp ((.assign1 .port .v1 : NetKAT)) :=
   (Derives.paModMod .port .v0 .v1).katSound
 
 example (policy : DyNetKAT.NetKAT.NetKAT) : katInterp policy = katInterp (normalize policy) :=

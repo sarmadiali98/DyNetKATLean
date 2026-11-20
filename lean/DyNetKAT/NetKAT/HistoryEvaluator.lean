@@ -120,7 +120,8 @@ theorem executeHistory_correct
       ∀ h', HistorySemantics p h h' ↔ h' ∈ B := by
   obtain ⟨σ, t⟩ := h
   obtain ⟨A, hA, corrA⟩ := execute_correct p σ
-  refine ⟨A.image fun τ => ⟨τ, t⟩, executeHistory_eq_image p ⟨σ, t⟩ A hA, ?_⟩
+  refine ⟨A.image fun τ => (⟨τ, t⟩ : History), executeHistory_eq_image p ⟨σ, t⟩ A hA, ?_⟩
+  letI : DecidableEq (History ctxSchema.Packet) := History.instDecidableEqHistory
   rintro ⟨τ', t'⟩
   rw [Finset.mem_image]
   constructor

@@ -79,18 +79,18 @@ theorem GraphPath.single {G : ProcessGraph} {p q : GProc} {a : Action}
   GraphPath.cons_iff.mpr ⟨q, step, GraphPath.nil_iff.mpr rfl⟩
 
 /-- Visible labels preceding the final packet in a head query. -/
-def PacketAction : Action → Prop
+def PacketAction {schema : PacketSchema} : Action schema → Prop
   | .packet .. => True
   | _ => False
 
-def SelectedReconfig (R : ReconfigSet) : Action → Prop
+def SelectedReconfig {schema : PacketSchema} (R : ReconfigSet schema) : Action schema → Prop
   | .rcfg x N => (x, N) ∈ R
   | _ => False
 
 /-- A nonempty segment through the selected region, ending at a selected
 reconfiguration. Intermediate packet steps and selected reconfigurations
 are allowed by the structural equations. -/
-inductive TailWord (R : ReconfigSet) : List Action → Prop
+inductive TailWord {schema : PacketSchema} (R : ReconfigSet schema) : List (Action schema) → Prop
   | last : (x, N) ∈ R → TailWord R [.rcfg x N]
   | packet : TailWord R w → TailWord R (.packet i o :: w)
   | rcfg : (x, N) ∈ R → TailWord R w → TailWord R (.rcfg x N :: w)
@@ -316,7 +316,7 @@ def graphTails (G : ProcessGraph) : List ReconfigSet → Option ProcessGraph
   | [] => some G
   | R :: rest => (graphTail G R).bind (fun Q => graphTails Q rest)
 
-def TailSegments : List ReconfigSet → List Action → Prop
+def TailSegments {schema : PacketSchema} : List (ReconfigSet schema) → List (Action schema) → Prop
   | [], w => w = []
   | R :: rest, w => ∃ u v, w = u ++ v ∧ TailWord R u ∧ TailSegments rest v
 
@@ -350,7 +350,8 @@ theorem graphTails_feasible_iff {G Q : ProcessGraph} {stages : List ReconfigSet}
 
 /-- The packet observation belongs to the last step, with its actual input
 and output. Earlier packets consume their own inputs. -/
-def QueryWord (stages : List ReconfigSet) (i o : CtxPkt) (word : List Action) : Prop :=
+def QueryWord {schema : PacketSchema} (stages : List (ReconfigSet schema))
+    (i o : schema.Packet) (word : List (Action schema)) : Prop :=
   ∃ pre head, TailSegments stages pre ∧ head.Forall PacketAction ∧
     word = pre ++ (head ++ [.packet i o])
 

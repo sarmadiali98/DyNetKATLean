@@ -9,7 +9,7 @@ open DyNetKAT.NetKAT
 
 private def base : CtxPkt := fun _ => .v0
 private def withPort (v : FieldValueEnum) : CtxPkt := Packet.update base .port v
-private def setPort (v : FieldValueEnum) := NetKAT.assign1 .port v
+private def setPort (v : FieldValueEnum) := NetKAT.assign1 (schema := ctxSchema) .port v
 private def port (v : FieldValueEnum) := NetKAT.fieldTest .port v
 
 private def path : NetKAT :=
@@ -133,8 +133,10 @@ run_cmd do
   let executable := dependencies env [``execute]
   unless executable.toArray.any (fun n => n.toString.endsWith ".postWith") do
     throwError "missing supplied-packet post operator"
-  if executable.contains ``DyNetKAT.NetKAT.instFintypeCtxPkt then
-    throwError "execute reduces the concrete packet Fintype"
+  -- The compiler-generated sizeOf instance mentions the syntax's default schema.
+  for forbidden in [``ctxPkt_card, ``DyNetKAT.NetKAT.instFintypeCtxPkt] do
+    if executable.contains forbidden then
+      throwError "generic execute depends on the concrete schema via {forbidden}"
   let graphProof := dependencies env [``exists_exactNormalization_iff]
   for required in [``netkatIsZero, ``compileSymbolic] do
     unless graphProof.contains required do throwError "missing graph proof dependency: {required}"

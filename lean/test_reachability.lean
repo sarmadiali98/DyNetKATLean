@@ -22,7 +22,7 @@ private def blockChecks : RestrictionChecks := fun _ _ => true
 
 private def enter := NetKAT.fieldTest .port .v0
 private def exit := NetKAT.fieldTest .port .v1
-private def packetFlow := NetKAT.assign1 .port .v1
+private def packetFlow := NetKAT.assign1 (schema := ctxSchema) .port .v1
 private def one := finite (.nSeq packetFlow .deadlock) trivial rfl
 private def two := finite (.nSeq .id one.term) trivial rfl
 

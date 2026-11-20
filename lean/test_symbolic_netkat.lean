@@ -11,8 +11,8 @@ local infixl:65 " ∔ " => NetKAT.union
 local infixl:70 " ⨟ " => NetKAT.seq
 
 private def port (a : FieldValueEnum) := NetKAT.fieldTest .port a
-private def write (a : FieldValueEnum) := NetKAT.assign1 .port a
-private def sw (a : FieldValueEnum) := NetKAT.assign1 .swId a
+private def write (a : FieldValueEnum) : NetKAT := NetKAT.assign1 .port a
+private def sw (a : FieldValueEnum) : NetKAT := NetKAT.assign1 .swId a
 private def protectedInput : Predicate :=
   .pAnd (.fieldEq .tpSrc .v8)
     (.pNot (.pOr (.fieldEq .port .v1) (.pAnd (.fieldEq .swId .v0) (.fieldEq .swId .v9))))

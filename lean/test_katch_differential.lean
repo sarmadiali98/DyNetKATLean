@@ -8,7 +8,7 @@ open DyNetKAT.NetKAT
 open DyNetKAT.NetKAT.KatchExport
 
 private def src := NetKAT.fieldTest .tpSrc .v8
-private def setPort := NetKAT.assign1 .port .v1
+private def setPort := NetKAT.assign1 (schema := ctxSchema) .port .v1
 private def path := NetKAT.union
   (.seq (.fieldTest .port .v0) (.assign1 .port .v8))
   (.seq (.fieldTest .port .v8) (.assign1 .port .v9))

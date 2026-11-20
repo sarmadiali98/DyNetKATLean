@@ -67,7 +67,7 @@ open Relation
     `Semantics`; it coincides with the existing packet evaluator
     `Predicate.eval` applied to the head packet
     (`satHistory_iff_eval` below). -/
-def satHistory : Predicate → History → Prop
+def satHistory {schema : PacketSchema} : Predicate schema → History schema.Packet → Prop
   | .pFalse,      _ => False
   | .pTrue,       _ => True
   | .pFieldEq fe, h => h.head fe.field = fe.value
@@ -77,7 +77,7 @@ def satHistory : Predicate → History → Prop
 
 /-- History-level predicate satisfaction coincides with the existing
     packet-level `Predicate.eval` applied to the current packet. -/
-theorem satHistory_iff_eval (Pr : Predicate) (h : History) :
+theorem satHistory_iff_eval {schema : PacketSchema} (Pr : Predicate schema) (h : History schema.Packet) :
     satHistory Pr h ↔ Predicate.eval Pr h.head = true := by
   induction Pr with
   | pFalse => simp [satHistory, Predicate.eval]
@@ -101,7 +101,7 @@ theorem satHistory_iff_eval (Pr : Predicate) (h : History) :
     | `.id`             | `h = h'`                                                | `⟦1⟧(h) = {h}`                 |
     | `.test Pr`        | `h = h' ∧ satHistory Pr h`                              | test clauses of Figure 3       |
     | `.completeTest α` | `h = h' ∧ holdsComplete α h.head`                       | Def. 4 (p. 8), complete tests  |
-    | `.assign1 f v`    | `h' = ⟨Packet.update h.head f v, h.tail⟩`               | `⟦f←n⟧(σ::h) = {σ[f:=n]::h}`   |
+    | `.assign1 f v`    | `h' = ⟨schema.model.update f v h.head, h.tail⟩`               | `⟦f←n⟧(σ::h) = {σ[f:=n]::h}`   |
     | `.union p q`      | `HistorySemantics p h h' ∨ HistorySemantics q h h'`     | `⟦p+q⟧(h) = ⟦p⟧(h) ∪ ⟦q⟧(h)`    |
     | `.seq p q`        | `∃ k, HistorySemantics p h k ∧ HistorySemantics q k h'` | `⟦p·q⟧(h) = (⟦p⟧ • ⟦q⟧)(h)`     |
     | `.star p`         | `ReflTransGen (HistorySemantics p) h h'`                | `⟦p*⟧(h) = ⋃_{i∈ℕ} Fⁱ(h)`      |
@@ -110,14 +110,15 @@ theorem satHistory_iff_eval (Pr : Predicate) (h : History) :
     transitive closure of the one-step history relation — which is exactly
     the paper's `⋃_{i∈ℕ} Fⁱ(h)`.  It is deliberately NOT the packet-level
     `StarClosure` of `NetKAT/Semantics.lean`. -/
-def HistorySemantics (N : NetKAT) : History → History → Prop
+def HistorySemantics {schema : PacketSchema} (N : NetKAT schema) :
+    History schema.Packet → History schema.Packet → Prop
   | h, h' =>
     match N with
     | .drop => False
     | .id => h = h'
     | .test Pr => h = h' ∧ satHistory Pr h
     | .completeTest α => h = h' ∧ holdsComplete α h.head
-    | .assign1 f v => h' = ⟨Packet.update h.head f v, h.tail⟩
+    | .assign1 f v => h' = ⟨schema.model.update f v h.head, h.tail⟩
     | .union p q => HistorySemantics p h h' ∨ HistorySemantics q h h'
     | .seq p q => ∃ k, HistorySemantics p h k ∧ HistorySemantics q k h'
     | .star p => ReflTransGen (HistorySemantics p) h h'
@@ -126,14 +127,14 @@ def HistorySemantics (N : NetKAT) : History → History → Prop
 
 /-- **Drop produces no history** — `⟦0⟧(h) = {}`. -/
 theorem historySem_drop (h h' : History) :
-    ¬ HistorySemantics .drop h h' := fun hc => hc
+    ¬ HistorySemantics (schema := ctxSchema) .drop h h' := fun hc => hc
 
 /-- **Identity preserves the entire history** — `⟦1⟧(h) = {h}`. -/
 theorem historySem_id (h h' : History) :
-    HistorySemantics .id h h' ↔ h = h' := by rfl
+    HistorySemantics (schema := ctxSchema) .id h h' ↔ h = h' := by rfl
 
 /-- Identity maps every history to itself. -/
-theorem historySem_id_self (h : History) : HistorySemantics .id h h := rfl
+theorem historySem_id_self (h : History) : HistorySemantics (schema := ctxSchema) .id h h := rfl
 
 /-- **Test clause** — a test preserves the history exactly when its
     predicate holds on the current packet. -/
@@ -152,32 +153,32 @@ theorem historySem_test_false (Pr : Predicate) (h h' : History)
 
 /-- The predicate `0` never holds, so the test `0` produces no history. -/
 theorem historySem_test_pFalse (h h' : History) :
-    ¬ HistorySemantics (.test .pFalse) h h' :=
+    ¬ HistorySemantics (schema := ctxSchema) (.test .pFalse) h h' :=
   historySem_test_false _ h h' (fun hf => hf.elim)
 
 /-- **Complete-test clause** (Definition 4, p. 8) — the history is
     preserved exactly when its current packet matches the complete
     valuation. -/
 theorem historySem_completeTest (α : CompleteTest) (h h' : History) :
-    HistorySemantics (.completeTest α) h h' ↔
+    HistorySemantics (schema := ctxSchema) (.completeTest α) h h' ↔
       (h = h' ∧ holdsComplete α h.head) := by rfl
 
 /-- A complete test preserves the history iff the head packet equals the
     valuation itself (`holdsComplete_iff_eq`). -/
 theorem historySem_completeTest_iff_head (α : CompleteTest) (h h' : History) :
-    HistorySemantics (.completeTest α) h h' ↔ (h = h' ∧ h.head = α) := by
+    HistorySemantics (schema := ctxSchema) (.completeTest α) h h' ↔ (h = h' ∧ h.head = α) := by
   rw [historySem_completeTest]
   exact and_congr_right fun _ => holdsComplete_iff_eq α h.head
 
 /-- **Assignment clause** — `⟦f←n⟧(σ::h) = {σ[f:=n]::h}`: the head packet
     is updated, the history tail is preserved. -/
 theorem historySem_assign1 (f : FieldName) (v : FieldValueEnum) (h h' : History) :
-    HistorySemantics (.assign1 f v) h h' ↔
+    HistorySemantics (schema := ctxSchema) (.assign1 f v) h h' ↔
       h' = ⟨Packet.update h.head f v, h.tail⟩ := by rfl
 
 /-- **Assignment preserves the original tail.** -/
 theorem historySem_assign1_tail (f : FieldName) (v : FieldValueEnum) (h h' : History)
-    (hc : HistorySemantics (.assign1 f v) h h') :
+    (hc : HistorySemantics (schema := ctxSchema) (.assign1 f v) h h') :
     h'.tail = h.tail := by
   rcases (historySem_assign1 f v h h').mp hc with heq
   subst heq
@@ -185,13 +186,13 @@ theorem historySem_assign1_tail (f : FieldName) (v : FieldValueEnum) (h h' : His
 
 /-- **Union corresponds to logical disjunction** —
     `⟦p+q⟧(h) = ⟦p⟧(h) ∪ ⟦q⟧(h)`. -/
-theorem historySem_union (p q : NetKAT) (h h' : History) :
+theorem historySem_union {schema : PacketSchema} (p q : NetKAT schema) (h h' : History schema.Packet) :
     HistorySemantics (.union p q) h h' ↔
       (HistorySemantics p h h' ∨ HistorySemantics q h h') := by rfl
 
 /-- **Sequence corresponds to existence of an intermediate history** —
     `⟦p·q⟧(h) = (⟦p⟧ • ⟦q⟧)(h)` (relational composition). -/
-theorem historySem_seq (p q : NetKAT) (h h' : History) :
+theorem historySem_seq {schema : PacketSchema} (p q : NetKAT schema) (h h' : History schema.Packet) :
     HistorySemantics (.seq p q) h h' ↔
       ∃ k, HistorySemantics p h k ∧ HistorySemantics q k h' := by rfl
 
@@ -335,20 +336,20 @@ theorem packetSem_test (Pr : Predicate) (σ τ : CtxPkt) :
 
 /-- Packet-level complete-test clause: `⟦α⟧ = {(σ,σ) | α holds on σ}`. -/
 theorem packetSem_completeTest (α : CompleteTest) (σ τ : CtxPkt) :
-    Semantics (.completeTest α) σ τ ↔ (holdsComplete α σ ∧ σ = τ) := by rfl
+    Semantics (schema := ctxSchema) (.completeTest α) σ τ ↔ (holdsComplete α σ ∧ σ = τ) := by rfl
 
 /-! ### Concrete-history equality helpers -/
 
 /-- An equality of concrete histories decomposes into head and tail
     equalities. -/
-theorem history_mk_eq {σ τ : CtxPkt} {h h' : List CtxPkt}
-    (hc : (⟨σ, h⟩ : History) = ⟨τ, h'⟩) : σ = τ ∧ h = h' := by
+theorem history_mk_eq {P : Type} {σ τ : P} {h h' : List P}
+    (hc : (⟨σ, h⟩ : History P) = ⟨τ, h'⟩) : σ = τ ∧ h = h' := by
   injection hc with eσ eh
   exact ⟨eσ, eh⟩
 
 /-- Concrete histories with equal heads and equal tails are equal. -/
-theorem eq_history_mk {σ τ : CtxPkt} {h h' : List CtxPkt}
-    (eσ : σ = τ) (eh : h = h') : (⟨σ, h⟩ : History) = ⟨τ, h'⟩ := by
+theorem eq_history_mk {P : Type} {σ τ : P} {h h' : List P}
+    (eσ : σ = τ) (eh : h = h') : (⟨σ, h⟩ : History P) = ⟨τ, h'⟩ := by
   rw [eσ, eh]
 
 /-! ### The star-free fragment -/
@@ -560,13 +561,13 @@ case is meaningful for an arbitrary endpoint.
   `Semantics p` step on the heads, and `starClosure_snoc` appends it to
   the packet-level closure of the sub-derivation (appended-at-the-end
   history steps vs. prepended `StarClosure.step`). -/
-private theorem historySemantics_star_fwd
-    (p : NetKAT)
+private theorem historySemantics_star_fwd {schema : PacketSchema}
+    (p : NetKAT schema)
     (hstep :
-      ∀ (σ τ : CtxPkt) (h h' : List CtxPkt),
+      ∀ (σ τ : schema.Packet) (h h' : List schema.Packet),
         HistorySemantics p ⟨σ, h⟩ ⟨τ, h'⟩ ↔
           h' = h ∧ Semantics p σ τ)
-    (σ : CtxPkt) (h : List CtxPkt) (x : History)
+    (σ : schema.Packet) (h : List schema.Packet) (x : History schema.Packet)
     (hr : ReflTransGen (HistorySemantics p) ⟨σ, h⟩ x) :
     x.tail = h ∧ StarClosure (Semantics p) σ x.head := by
   induction hr with
@@ -575,7 +576,7 @@ private theorem historySemantics_star_fwd
     obtain ⟨β, t⟩ := b
     obtain ⟨γ, u⟩ := c
     have hbt : t = h := ih.1
-    have hcu : u = t := historySemantics_preserves_tail p ⟨β, t⟩ ⟨γ, u⟩ hst
+    have hcu : u = t := ((hstep β γ t u).mp hst).1
     subst hbt
     subst hcu
     obtain ⟨-, hsem⟩ := (hstep β γ _ _).mp hst
@@ -596,13 +597,13 @@ tail assumption on intermediate histories is needed.
   with the original tail, and Mathlib's `ReflTransGen.head` PREPENDS the
   history-level step — matching the prepending orientation of
   `StarClosure.step`. -/
-private theorem packetSemantics_star_fwd
-    (p : NetKAT)
+private theorem packetSemantics_star_fwd {schema : PacketSchema}
+    (p : NetKAT schema)
     (hstep :
-      ∀ (σ τ : CtxPkt) (h h' : List CtxPkt),
+      ∀ (σ τ : schema.Packet) (h h' : List schema.Packet),
         HistorySemantics p ⟨σ, h⟩ ⟨τ, h'⟩ ↔
           h' = h ∧ Semantics p σ τ)
-    (h : List CtxPkt) (σ τ : CtxPkt)
+    (h : List schema.Packet) (σ τ : schema.Packet)
     (hsc : StarClosure (Semantics p) σ τ) :
     HistorySemantics (.star p) ⟨σ, h⟩ ⟨τ, h⟩ := by
   induction hsc with
@@ -632,13 +633,13 @@ history keeps the original packet list `h`: in the forward direction
 this follows from the one-step hypothesis plus H2 tail preservation
 along the derivation; in the reverse direction every intermediate
 history is reconstructed with the original tail by construction. -/
-theorem historySemantics_star_iff_packetSemantics
-    (p : NetKAT)
+theorem historySemantics_star_iff_packetSemantics {schema : PacketSchema}
+    (p : NetKAT schema)
     (hstep :
-      ∀ (σ τ : CtxPkt) (h h' : List CtxPkt),
+      ∀ (σ τ : schema.Packet) (h h' : List schema.Packet),
         HistorySemantics p ⟨σ, h⟩ ⟨τ, h'⟩ ↔
           h' = h ∧ Semantics p σ τ)
-    (σ τ : CtxPkt) (h h' : List CtxPkt) :
+    (σ τ : schema.Packet) (h h' : List schema.Packet) :
     HistorySemantics (.star p) ⟨σ, h⟩ ⟨τ, h'⟩ ↔
       h' = h ∧ Semantics (.star p) σ τ := by
   constructor
@@ -722,9 +723,9 @@ all eight constructors:
   The closure correspondence is reused, not reproved; the body `p` is
   arbitrary (it may itself contain stars), so nested stars such as
   `.star (.star q)` are covered. -/
-theorem historySemantics_iff_packetSemantics
-    (p : NetKAT) (σ τ : CtxPkt)
-    (h h' : List CtxPkt) :
+theorem historySemantics_iff_packetSemantics {schema : PacketSchema}
+    (p : NetKAT schema) (σ τ : schema.Packet)
+    (h h' : List schema.Packet) :
     HistorySemantics p ⟨σ, h⟩ ⟨τ, h'⟩ ↔
       h' = h ∧ Semantics p σ τ := by
   induction p generalizing σ τ h h' with
@@ -733,7 +734,7 @@ theorem historySemantics_iff_packetSemantics
   | id =>
     constructor
     · intro hc
-      have hc' : (⟨σ, h⟩ : History) = ⟨τ, h'⟩ := hc
+      have hc' : (⟨σ, h⟩ : History schema.Packet) = ⟨τ, h'⟩ := hc
       obtain ⟨eσ, eh⟩ := history_mk_eq hc'
       exact ⟨eh.symm, eσ⟩
     · intro hc
@@ -742,7 +743,7 @@ theorem historySemantics_iff_packetSemantics
   | test Pr =>
     constructor
     · intro hc
-      have hc' : (⟨σ, h⟩ : History) = ⟨τ, h'⟩ ∧ satHistory Pr ⟨σ, h⟩ := hc
+      have hc' : (⟨σ, h⟩ : History schema.Packet) = ⟨τ, h'⟩ ∧ satHistory Pr ⟨σ, h⟩ := hc
       obtain ⟨heq, hsat⟩ := hc'
       obtain ⟨eσ, eh⟩ := history_mk_eq heq
       have heval : Predicate.eval Pr σ = true :=
@@ -755,7 +756,7 @@ theorem historySemantics_iff_packetSemantics
   | completeTest α =>
     constructor
     · intro hc
-      have hc' : (⟨σ, h⟩ : History) = ⟨τ, h'⟩ ∧ holdsComplete α σ := hc
+      have hc' : (⟨σ, h⟩ : History schema.Packet) = ⟨τ, h'⟩ ∧ holdsComplete α σ := hc
       obtain ⟨heq, hholds⟩ := hc'
       obtain ⟨eσ, eh⟩ := history_mk_eq heq
       exact ⟨eh.symm, ⟨hholds, eσ⟩⟩
@@ -765,11 +766,11 @@ theorem historySemantics_iff_packetSemantics
   | assign1 f v =>
     constructor
     · intro hc
-      have hc' : (⟨τ, h'⟩ : History) = ⟨Packet.update σ f v, h⟩ := hc
+      have hc' : (⟨τ, h'⟩ : History schema.Packet) = ⟨schema.model.update f v σ, h⟩ := hc
       obtain ⟨eτ, eh⟩ := history_mk_eq hc'.symm
       exact ⟨eh.symm, eτ.symm⟩
     · intro hc
-      have eτ : τ = Packet.update σ f v := hc.2
+      have eτ : τ = schema.model.update f v σ := hc.2
       exact eq_history_mk eτ hc.1
   | union p q ihp ihq =>
     constructor
@@ -791,7 +792,7 @@ theorem historySemantics_iff_packetSemantics
     · -- Forward: the intermediate history keeps the original tail (H2).
       intro hc
       obtain ⟨k, hk1, hk2⟩ := (historySem_seq p q ⟨σ, h⟩ ⟨τ, h'⟩).mp hc
-      have hktail : k.tail = h := historySemantics_preserves_tail p ⟨σ, h⟩ k hk1
+      have hktail : k.tail = h := ((ihp σ k.head h k.tail).mp hk1).1
       obtain ⟨ρ, t⟩ := k
       have hkt' : t = h := hktail
       rw [hkt'] at hk1 hk2
@@ -819,8 +820,8 @@ theorem historySemantics_iff_packetSemantics
     `h'.tail = h.tail` (an equality of tail lists) to an equality of the
     entire packet list: the output history is exactly `⟨τ, h⟩` — same
     packet list, transformed head. -/
-theorem historySemantics_preserves_packetList
-    (p : NetKAT) (σ τ : CtxPkt) (h h' : List CtxPkt)
+theorem historySemantics_preserves_packetList {schema : PacketSchema}
+    (p : NetKAT schema) (σ τ : schema.Packet) (h h' : List schema.Packet)
     (hc : HistorySemantics p ⟨σ, h⟩ ⟨τ, h'⟩) :
     h' = h :=
   ((historySemantics_iff_packetSemantics p σ τ h h').mp hc).1

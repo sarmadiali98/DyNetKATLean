@@ -8,14 +8,7 @@ namespace DyNetKAT.NetKAT
 open scoped Computability
 
 /-- The current packet API is an instance of the generic field interface. -/
-def ctxPacketModel : KATLean.NetKAT.PacketModel FieldName (fun _ => FieldValueEnum) CtxPkt where
-  lookup f p := Packet.get p f
-  update f v p := Packet.update p f v
-  lookup_update := fun f v p => Packet.get_update_same p f v
-  lookup_update_other := fun f g v p h => Packet.get_update_diff p f g v h
-  update_lookup := fun f p => Packet.update_id p f
-  update_overwrite := fun f v w p => Packet.update_update_same p f v w
-  update_commute := fun f g v w p h => Packet.update_update_diff p f g h v w
+abbrev ctxPacketModel := ctxSchema.model
 
 theorem ctx_lookup (f : FieldName) (p : CtxPkt) :
     ctxPacketModel.lookup f p = Packet.get p f := rfl
@@ -24,26 +17,27 @@ theorem ctx_update (f : FieldName) (v : FieldValueEnum) (p : CtxPkt) :
     ctxPacketModel.update f v p = Packet.update p f v := rfl
 
 /-- Boolean predicates interpret into the Boolean algebra of packet sets. -/
-def predicateInterp : Predicate → Set CtxPkt
+def predicateInterp {schema : PacketSchema} : Predicate schema → Set schema.Packet
   | .pFalse => ⊥
   | .pTrue => ⊤
-  | .pFieldEq fe => {p | ctxPacketModel.lookup fe.field p = fe.value}
+  | .pFieldEq fe => {p | schema.model.lookup fe.field p = fe.value}
   | .pAnd p q => predicateInterp p ⊓ predicateInterp q
   | .pOr p q => predicateInterp p ⊔ predicateInterp q
   | .pNot p => (predicateInterp p)ᶜ
 
-theorem predicateInterp_correct (p : Predicate) (packet : CtxPkt) :
+theorem predicateInterp_correct {schema : PacketSchema} (p : Predicate schema)
+    (packet : schema.Packet) :
     packet ∈ predicateInterp p ↔ p.holds packet := by
   induction p <;> simp_all [predicateInterp, Predicate.holds, Predicate.eval,
-    ctxPacketModel, Packet.get]
+    schema.lookup_eq]
 
 /-- Compositional KA interpretation, with Boolean tests embedded by the KAT. -/
-def katInterp : NetKAT → KATLean.Rel CtxPkt
+def katInterp {schema : PacketSchema} : NetKAT schema → KATLean.Rel schema.Packet
   | .drop => 0
   | .id => 1
   | .test p => KATLean.Rel.tests.embed (predicateInterp p)
   | .completeTest alpha => KATLean.Rel.test {p | holdsComplete alpha p}
-  | .assign1 f v => ctxPacketModel.assign f v
+  | .assign1 f v => schema.model.assign f v
   | .union p q => katInterp p + katInterp q
   | .seq p q => katInterp p * katInterp q
   | .star p => (katInterp p)∗
@@ -52,7 +46,7 @@ theorem katInterp_test (p : Predicate) :
     katInterp (.test p) = KATLean.Rel.tests.embed (predicateInterp p) := rfl
 
 theorem katInterp_assign (f : FieldName) (v : FieldValueEnum) :
-    (katInterp (.assign1 f v)).holds p q ↔ q = Packet.update p f v := Iff.rfl
+    (katInterp (schema := ctxSchema) (.assign1 f v)).holds p q ↔ q = Packet.update p f v := Iff.rfl
 
 theorem katInterp_fieldTest (f : FieldName) (v : FieldValueEnum) :
     katInterp (NetKAT.fieldTest f v) = ctxPacketModel.filter f v := rfl
@@ -79,7 +73,7 @@ private theorem starClosure_iff_reflTransGen {P : Type} {r : P → P → Prop} {
 
 /-- All AST constructors, including arbitrary star, agree with the existing
 packet semantics. -/
-theorem katInterp_correct (policy : NetKAT) (p q : CtxPkt) :
+theorem katInterp_correct {schema : PacketSchema} (policy : NetKAT schema) (p q : schema.Packet) :
     (katInterp policy).holds p q ↔ Semantics policy p q := by
   induction policy generalizing p q with
   | drop | id | completeTest | assign1 => rfl

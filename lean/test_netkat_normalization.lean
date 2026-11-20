@@ -7,9 +7,9 @@ local instance : DecidableEq CompleteTest := (inferInstance : DecidableEq CtxPkt
 local instance : DecidableEq CompleteAssignmentValuation := (inferInstance : DecidableEq CtxPkt)
 
 private def base : CtxPkt := fun _ => .v0
-private def port1 := Packet.update base .port .v1
-private def port8 := Packet.update base .port .v8
-private def port9 := Packet.update base .port .v9
+private def port1 : CtxPkt := Packet.update base .port .v1
+private def port8 : CtxPkt := Packet.update base .port .v8
+private def port9 : CtxPkt := Packet.update base .port .v9
 
 private def enter := NetKAT.fieldTest .port .v0
 private def allow := NetKAT.seq enter (.assign1 .port .v1)

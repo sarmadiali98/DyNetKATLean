@@ -34,11 +34,13 @@ namespace DyNetKAT.NetKAT
     empty).  The empty history ⟨⟩ of the paper is deliberately not
     representable: every history has a head, so tests and assignments are
     total on `History`, removing the paper's clause partiality on ⟨⟩. -/
-structure History where
-  head : CtxPkt
-  tail : List CtxPkt
+structure History (P : Type := CtxPkt) where
+  head : P
+  tail : List P
 
 namespace History
+
+variable {P : Type}
 
 ------------------------------------------------------------------------
 -- Basic structural operations
@@ -46,45 +48,45 @@ namespace History
 
 /-- The singleton history `σ :: ⟨⟩` — the evaluation input of the SOS
     premise of rule `(cpolX;)` (Figure 8, p. 10). -/
-def singleton (σ : CtxPkt) : History := ⟨σ, []⟩
+def singleton (σ : P) : History P := ⟨σ, []⟩
 
-/-- The packet list of a history: `σ :: h ↦ σ :: h` as a `List CtxPkt`.
+/-- The packet list of a history: `σ :: h ↦ σ :: h` as a `List P`.
     Always nonempty. -/
-def toList (h : History) : List CtxPkt := h.head :: h.tail
+def toList (h : History P) : List P := h.head :: h.tail
 
 /-- Prepend a packet to a history: `σ :: (τ :: h)`.
 
     This is the history-building step of the paper's `dup` clause,
     `⟦dup⟧(σ::h) = {σ::(σ::h)}`. -/
-def prepend (σ : CtxPkt) (h : History) : History := ⟨σ, h.toList⟩
+def prepend (σ : P) (h : History P) : History P := ⟨σ, h.toList⟩
 
 ------------------------------------------------------------------------
 -- Basic structural properties
 ------------------------------------------------------------------------
 
 /-- Converting a singleton history to a list yields `[σ]`. -/
-theorem toList_singleton (σ : CtxPkt) : (singleton σ).toList = [σ] := rfl
+theorem toList_singleton (σ : P) : (singleton σ).toList = [σ] := rfl
 
 /-- Prepending a packet produces the expected list:
     `(prepend σ h).toList = σ :: h.toList`. -/
-theorem toList_prepend (σ : CtxPkt) (h : History) :
+theorem toList_prepend (σ : P) (h : History P) :
     (prepend σ h).toList = σ :: h.toList := rfl
 
 /-- Every converted history is nonempty. -/
-theorem toList_ne_nil (h : History) : h.toList ≠ [] := by
+theorem toList_ne_nil (h : History P) : h.toList ≠ [] := by
   cases h
   intro hcon
   exact absurd hcon (List.cons_ne_nil _ _)
 
 /-- The list representation is injective. -/
-theorem toList_injective : Function.Injective toList := by
+theorem toList_injective : Function.Injective (@toList P) := by
   rintro ⟨σ₁, t₁⟩ ⟨σ₂, t₂⟩ h
   have h' : σ₁ :: t₁ = σ₂ :: t₂ := h
   injection h' with e₁ e₂
   rw [e₁, e₂]
 
 /-- Singleton histories have empty tails. -/
-theorem singleton_tail (σ : CtxPkt) : (singleton σ).tail = [] := rfl
+theorem singleton_tail (σ : P) : (singleton σ).tail = [] := rfl
 
 ------------------------------------------------------------------------
 -- Decidable equality
@@ -95,15 +97,7 @@ theorem singleton_tail (σ : CtxPkt) : (singleton σ).tail = [] := rfl
     `Evaluator.lean` and `Decision.lean`).  Kept as a private definition
     so that no second global `DecidableEq CtxPkt` instance is registered
     (the existing global instance lives in `Decision.lean`). -/
-private def decidableEqCtxPkt : DecidableEq CtxPkt := by
-  intro σ τ
-  exact decidable_of_iff (∀ f ∈ NetKAT.fieldEnum, σ f = τ f) (by
-    constructor
-    · intro h
-      funext f
-      exact h f (NetKAT.fieldEnum_complete f)
-    · intro h f _
-      exact congrFun h f)
+private def decidableEqCtxPkt : DecidableEq CtxPkt := ctxSchema.packetEq
 
 /-- Decidable equality on histories, via the injective list encoding
     (`toList_injective`). -/

@@ -5,7 +5,7 @@ open DyNetKAT.NetKAT
 private def idRows : BackendRelation := fun p => {p}
 private def emptyRows : BackendRelation := fun _ => ∅
 private def ingress := NetKAT.fieldTest .port .v0
-private def output := NetKAT.assign1 .port .v1
+private def output := NetKAT.assign1 (schema := ctxSchema) .port .v1
 private def firewall := NetKAT.seq ingress output
 private def firewallRows : BackendRelation := fun p =>
   if p .port = .v0 then {Packet.update p .port .v1} else ∅
@@ -72,7 +72,7 @@ private def negative : NetKAT := .seq ingress (.seq (.star firewall) (.fieldTest
 #guard (decideWithEquationalCertificate positive common .id).method == .exactFallback
 
 -- Packet-policy equations leave communication payload syntax intact.
-example : DyNetKAT.DyNetKAT.Action.send "update" (.union .id .drop) ≠
+example : DyNetKAT.DyNetKAT.Action.send (schema := ctxSchema) "update" (.union .id .drop) ≠
     DyNetKAT.DyNetKAT.Action.send "update" .id := by
   intro h
   exact NetKAT.noConfusion (DyNetKAT.DyNetKAT.Action.send.inj h).2

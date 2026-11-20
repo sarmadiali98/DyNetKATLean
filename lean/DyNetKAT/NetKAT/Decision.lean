@@ -16,20 +16,19 @@ namespace DyNetKAT.NetKAT
     `Evaluator.lean` and `Executable.lean`, registered here as a global
     instance so that the checker and downstream executable checks can
     compare output sets). -/
-instance instDecEqCtxPkt : DecidableEq CtxPkt := by
-  intro σ τ
-  exact decidable_of_iff (∀ f ∈ NetKAT.fieldEnum, σ f = τ f) (by
-    constructor
-    · intro h
-      funext f
-      exact h f (NetKAT.fieldEnum_complete f)
-    · intro h f hf
-      exact congrFun h f)
+instance instDecEqCtxPkt : DecidableEq CtxPkt := ctxSchema.packetEq
 
 -- Complete tests reuse packet equality. Policy equality is syntactic.
 instance : DecidableEq CompleteTest := instDecEqCtxPkt
 
+section
+local instance {schema : PacketSchema} : DecidableEq schema.Field := schema.fieldEq
+local instance {schema : PacketSchema} (f : schema.Field) : DecidableEq (schema.Value f) :=
+  schema.valueEq f
+local instance {schema : PacketSchema} : DecidableEq schema.Packet := schema.packetEq
+
 deriving instance DecidableEq for NetKAT
+end
 
 ------------------------------------------------------------------------
 -- The equivalence checker
@@ -100,7 +99,7 @@ theorem netkatEquiv_correct (p q : NetKAT) :
 ------------------------------------------------------------------------
 
 /-- `Semantics .drop` is the empty relation: no packet pair is related. -/
-theorem sem_drop_false (σ τ : CtxPkt) : ¬ Semantics .drop σ τ := by
+theorem sem_drop_false (σ τ : CtxPkt) : ¬ Semantics (schema := ctxSchema) .drop σ τ := by
   simp [Semantics]
 
 /-- NetKAT zero checker: decides whether the policy `p` denotes the empty
@@ -151,10 +150,14 @@ theorem netkatEquiv_history_correct (p q : NetKAT) :
   rw [netkatEquiv_correct]
   constructor
   · rintro hpq ⟨σ, h⟩ ⟨τ, h'⟩
-    simp only [historySemantics_iff_packetSemantics, hpq σ τ]
+    rw [historySemantics_iff_packetSemantics p σ τ h h',
+      historySemantics_iff_packetSemantics q σ τ h h', hpq σ τ]
   · intro hpq σ τ
-    simpa only [historySemantics_iff_packetSemantics, true_and] using
-      hpq ⟨σ, []⟩ ⟨τ, []⟩
+    have histories := hpq ⟨σ, []⟩ ⟨τ, []⟩
+    rw [historySemantics_iff_packetSemantics p σ τ [] [],
+      historySemantics_iff_packetSemantics q σ τ [] []] at histories
+    exact ⟨fun hp => (histories.mp ⟨rfl, hp⟩).2,
+      fun hq => (histories.mpr ⟨rfl, hq⟩).2⟩
 
 theorem netkatIsZero_history_correct (p : NetKAT) :
     netkatIsZero p = true ↔ ∀ h h' : History, ¬ HistorySemantics p h h' := by
@@ -167,9 +170,9 @@ def completeTestExpr (α : CompleteTest) : NetKAT :=
   NetKAT.fieldEnum.foldr (fun f rest => .seq (NetKAT.fieldTest f (α f)) rest) .id
 
 theorem completeTestExpr_correct (α : CompleteTest) (σ τ : CtxPkt) :
-    Semantics (completeTestExpr α) σ τ ↔ Semantics (.completeTest α) σ τ := by
+    Semantics (completeTestExpr α) σ τ ↔ Semantics (schema := ctxSchema) (.completeTest α) σ τ := by
   have fields (fs : List FieldName) :
-      Semantics (fs.foldr (fun f rest => .seq (NetKAT.fieldTest f (α f)) rest) .id) σ τ ↔
+      Semantics (schema := ctxSchema) (fs.foldr (fun f rest => .seq (NetKAT.fieldTest f (α f)) rest) .id) σ τ ↔
         (∀ f ∈ fs, σ f = α f) ∧ σ = τ := by
     induction fs with
     | nil => simp [id_diag]

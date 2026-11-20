@@ -133,7 +133,7 @@ example (n : Nat) : ∃ p, PaperAdmissible true spawnEnv p ∧ Corr graph spawnE
 example : WellFormed spawnEnv (.var "X") ∧ ¬ Ground (.var "X") :=
   ⟨spawnWellFormed, by simp [Ground]⟩
 
-example : WellFormed spawnEnv (.var "X") ∧ ¬ TypedPaperGuarded (.var "X") :=
+example : WellFormed spawnEnv (.var "X") ∧ ¬ TypedPaperGuarded (.var "X" : DyNetKAT) :=
   ⟨spawnWellFormed, fun h => h "X" .here⟩
 
 private def spawnDependencies :=
@@ -201,7 +201,7 @@ example : ImageFiniteFrom spawnEnv (.var "X") := spawnWellFormed.imageFiniteFrom
 
 example : Bisimilar spawnEnv (.var "X")
     (.rcfgPrefix "a" .id (.parallel (.var "X") (.rcfgPrefix "b" .id .deadlock))) := by
-  let body := DyNetKAT.rcfgPrefix "a" .id (.parallel (.var "X") (.rcfgPrefix "b" .id .deadlock))
+  let body : DyNetKAT := DyNetKAT.rcfgPrefix "a" .id (.parallel (.var "X") (.rcfgPrefix "b" .id .deadlock))
   have lookup : spawnEnv.lookup "X" = some body := rfl
   have hw := WellFormed.body spawnEnv (.var "X") "X" body spawnWellFormed
     (.direct (by simp)) lookup

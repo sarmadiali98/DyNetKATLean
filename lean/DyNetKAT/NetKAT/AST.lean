@@ -34,29 +34,39 @@ open Finset
     - pAnd:   conjunction (Pr · Pr)
     - pOr:    disjunction (Pr + Pr)
     - pNot:   negation (¬Pr) -/
-inductive Predicate
-  | pFalse      : Predicate                    -- 0 (predicate false)
-  | pTrue       : Predicate                    -- 1 (predicate true)
-  | pFieldEq    : FieldEq → Predicate          -- f=v (atomic equality test)
-  | pAnd        : Predicate → Predicate → Predicate  -- Pr · Pr (conjunction)
-  | pOr         : Predicate → Predicate → Predicate  -- Pr + Pr (disjunction)
-  | pNot        : Predicate → Predicate         -- ¬Pr (negation)
-  deriving Repr, DecidableEq
+inductive Predicate (schema : PacketSchema := ctxSchema)
+  | pFalse      : Predicate schema  -- 0 (predicate false)
+  | pTrue       : Predicate schema  -- 1 (predicate true)
+  | pFieldEq    : FieldEq schema → Predicate schema  -- f=v (atomic equality test)
+  | pAnd        : Predicate schema → Predicate schema → Predicate schema  -- Pr · Pr (conjunction)
+  | pOr         : Predicate schema → Predicate schema → Predicate schema  -- Pr + Pr (disjunction)
+  | pNot        : Predicate schema → Predicate schema  -- ¬Pr (negation)
+  deriving DecidableEq
 
 namespace Predicate
 
+private def reprConcrete : Predicate → Std.Format
+  | .pFalse => "Predicate.pFalse"
+  | .pTrue => "Predicate.pTrue"
+  | .pFieldEq f => "(Predicate.pFieldEq " ++ repr f ++ ")"
+  | .pAnd a b => "(Predicate.pAnd " ++ reprConcrete a ++ " " ++ reprConcrete b ++ ")"
+  | .pOr a b => "(Predicate.pOr " ++ reprConcrete a ++ " " ++ reprConcrete b ++ ")"
+  | .pNot a => "(Predicate.pNot " ++ reprConcrete a ++ ")"
+
+instance : Repr Predicate := ⟨fun p _ => reprConcrete p⟩
+
 /-- Evaluate a predicate on a concrete packet. -/
-def eval (Pr : Predicate) (σ : CtxPkt) : Bool :=
+def eval {schema : PacketSchema} (Pr : Predicate schema) (σ : schema.Packet) : Bool :=
   match Pr with
   | .pFalse => false
   | .pTrue => true
-  | .pFieldEq fe => decide (σ fe.field = fe.value)
+  | .pFieldEq fe => letI := schema.valueEq fe.field; decide (σ fe.field = fe.value)
   | .pAnd p q => eval p σ && eval q σ
   | .pOr p q => eval p σ || eval q σ
   | .pNot p => !eval p σ
 
 /-- A predicate holds on a packet when eval returns true. -/
-def holds (Pr : Predicate) (σ : CtxPkt) : Prop := eval Pr σ = true
+def holds {schema : PacketSchema} (Pr : Predicate schema) (σ : schema.Packet) : Prop := eval Pr σ = true
 
 /-- Embedding of a single field=value test into Predicate. -/
 def fieldEq (f : FieldName) (v : FieldValueEnum) : Predicate :=
@@ -86,15 +96,15 @@ end Predicate
 
 /-- NetKAT^dup-free syntax — the dup-free fragment used by DyNetKAT.
     See paper p. 6, §I-B. -/
-inductive NetKAT
-  | drop             : NetKAT                               -- 0 (drop, empty relation)
-  | id               : NetKAT                               -- 1 (identity)
-  | test             : Predicate → NetKAT                    -- Pr (predicate test)
-  | completeTest     : CompleteTest → NetKAT                -- α (complete test)
-  | assign1          : FieldName → FieldValueEnum → NetKAT  -- f←v (primitive single-field assignment)
-  | union            : NetKAT → NetKAT → NetKAT             -- N + N
-  | seq              : NetKAT → NetKAT → NetKAT             -- N ; N
-  | star             : NetKAT → NetKAT                      -- N *
+inductive NetKAT (schema : PacketSchema := ctxSchema)
+  | drop             : NetKAT schema  -- 0 (drop, empty relation)
+  | id               : NetKAT schema  -- 1 (identity)
+  | test             : Predicate schema → NetKAT schema  -- Pr (predicate test)
+  | completeTest     : schema.Packet → NetKAT schema  -- α (complete test)
+  | assign1          : (f : schema.Field) → schema.Value f → NetKAT schema  -- f←v (primitive single-field assignment)
+  | union            : NetKAT schema → NetKAT schema → NetKAT schema  -- N + N
+  | seq              : NetKAT schema → NetKAT schema → NetKAT schema  -- N ; N
+  | star             : NetKAT schema → NetKAT schema  -- N *
 
 ------------------------------------------------------------------------
 -- Shorthand constructors
@@ -103,8 +113,12 @@ inductive NetKAT
 namespace NetKAT
 
 /-- Single-field test f=v. -/
-def fieldTest (f : FieldName) (v : FieldValueEnum) : NetKAT :=
+def fieldTestFor {schema : PacketSchema} (f : schema.Field) (v : schema.Value f) : NetKAT schema :=
   .test (.pFieldEq ⟨f, v⟩)
+
+/-- Compatibility shorthand with concrete field and value names. -/
+abbrev fieldTest (f : FieldName) (v : FieldValueEnum) : NetKAT :=
+  fieldTestFor f v
 
 /-- Embed a complete test (total valuation) into NetKAT. -/
 def completeTestEmbed (α : CompleteTest) : NetKAT :=
@@ -163,7 +177,7 @@ end NetKAT
 ------------------------------------------------------------------------
 
 /-- The size of a NetKAT term. -/
-def NetKAT.size : NetKAT → Nat
+def NetKAT.size {schema : PacketSchema} : NetKAT schema → Nat
   | .drop => 1
   | .id => 1
   | .test _ => 1

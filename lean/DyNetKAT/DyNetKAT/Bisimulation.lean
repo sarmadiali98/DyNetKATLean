@@ -4,29 +4,31 @@ namespace DyNetKAT.DyNetKAT
 
 open DyNetKAT.NetKAT
 
+variable {schema : PacketSchema}
+
 /-- A symmetric process relation that matches labeled transitions while
     preserving both packet histories. -/
-def IsBisimulation (env : RecEnv) (R : DyNetKAT → DyNetKAT → Prop) : Prop :=
+def IsBisimulation (env : RecEnv schema) (R : DyNetKAT schema → (DyNetKAT schema) → Prop) : Prop :=
   (∀ p q, R p q → R q p) ∧
   ∀ p q, R p q →
-    ∀ (pending handled : List CtxPkt) (action : Action)
-      (p' : DyNetKAT) (pending' handled' : List CtxPkt),
+    ∀ (pending handled : List schema.Packet) (action : Action schema)
+      (p' : DyNetKAT schema) (pending' handled' : List schema.Packet),
       Step env
-        (show Config from { proc := p, pending := pending, handled := handled })
+        (show Config schema from { proc := p, pending := pending, handled := handled })
         action
-        (show Config from { proc := p', pending := pending', handled := handled' }) →
+        (show Config schema from { proc := p', pending := pending', handled := handled' }) →
       ∃ q',
         Step env
-          (show Config from { proc := q, pending := pending, handled := handled })
+          (show Config schema from { proc := q, pending := pending, handled := handled })
           action
-          (show Config from { proc := q', pending := pending', handled := handled' }) ∧
+          (show Config schema from { proc := q', pending := pending', handled := handled' }) ∧
         R p' q'
 
 /-- Two processes are bisimilar when some bisimulation relates them. -/
-def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop :=
+def Bisimilar (env : RecEnv schema) (p q : DyNetKAT schema) : Prop :=
   ∃ R, IsBisimulation env R ∧ R p q
 
-theorem Bisimilar.refl (env : RecEnv) (p : DyNetKAT) : Bisimilar env p p := by
+theorem Bisimilar.refl (env : RecEnv schema) (p : DyNetKAT schema) : Bisimilar env p p := by
   refine ⟨fun p q => p = q, ?_, rfl⟩
   constructor
   · intro p q relation
@@ -35,16 +37,16 @@ theorem Bisimilar.refl (env : RecEnv) (p : DyNetKAT) : Bisimilar env p p := by
     subst q
     exact ⟨p', step, rfl⟩
 
-theorem Bisimilar.symm (env : RecEnv) {p q : DyNetKAT} (h : Bisimilar env p q) :
+theorem Bisimilar.symm (env : RecEnv schema) {p q : (DyNetKAT schema)} (h : Bisimilar env p q) :
     Bisimilar env q p := by
   rcases h with ⟨R, hR, hpq⟩
   exact ⟨R, hR, hR.1 p q hpq⟩
 
-theorem Bisimilar.trans (env : RecEnv) {p q r : DyNetKAT}
+theorem Bisimilar.trans (env : RecEnv schema) {p q r : (DyNetKAT schema)}
     (hpq : Bisimilar env p q) (hqr : Bisimilar env q r) : Bisimilar env p r := by
   rcases hpq with ⟨R, hR, hpq⟩
   rcases hqr with ⟨S, hS, hqr⟩
-  let T : DyNetKAT → DyNetKAT → Prop := fun x z =>
+  let T : DyNetKAT schema → (DyNetKAT schema) → Prop := fun x z =>
     (∃ y, R x y ∧ S y z) ∨ (∃ y, R z y ∧ S y x)
   refine ⟨T, ?_, Or.inl ⟨q, hpq, hqr⟩⟩
   constructor

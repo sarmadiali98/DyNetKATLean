@@ -58,28 +58,28 @@ inductive StarClosure {α : Type} (R : α → α → Prop) : α → α → Prop
 
 /-- Denotational semantics of NetKAT terms.
     ⟦N⟧(σ,τ) holds iff packet σ is transformed to τ by policy N -/
-def Semantics (N : NetKAT) : CtxPkt → CtxPkt → Prop
+def Semantics {schema : PacketSchema} (N : NetKAT schema) : schema.Packet → schema.Packet → Prop
   | σ, τ =>
     match N with
     | .drop => False
     | .id => σ = τ
     | .test Pr => Pr.holds σ ∧ σ = τ
     | .completeTest α => holdsComplete α σ ∧ σ = τ
-    | .assign1 f v => τ = Packet.update σ f v
+    | .assign1 f v => τ = schema.model.update f v σ
     | .union n₁ n₂ => Semantics n₁ σ τ ∨ Semantics n₂ σ τ
     | .seq n₁ n₂ => ∃ ρ, Semantics n₁ σ ρ ∧ Semantics n₂ ρ τ
     | .star n => StarClosure (Semantics n) σ τ
 
 /-- Notation: ⟦N⟧(σ) = set of output packets for input σ -/
-def eval (N : NetKAT) (σ : CtxPkt) : Set CtxPkt :=
-  { q : CtxPkt | Semantics N σ q }
+def eval {schema : PacketSchema} (N : NetKAT schema) (σ : schema.Packet) : Set schema.Packet :=
+  { q : schema.Packet | Semantics N σ q }
 
 ------------------------------------------------------------------------
 -- Basic semantic identities
 ------------------------------------------------------------------------
 
 /-- ⟦0⟧ = ∅ (empty relation) -/
-theorem drop_empty (σ : CtxPkt) : eval .drop σ = ∅ := by
+theorem drop_empty (σ : CtxPkt) : eval (schema := ctxSchema) .drop σ = ∅ := by
   ext q
   constructor
   · intro h
@@ -88,16 +88,16 @@ theorem drop_empty (σ : CtxPkt) : eval .drop σ = ∅ := by
     cases h
 
 /-- ⟦1⟧ = identity relation -/
-theorem id_diag (σ τ : CtxPkt) : Semantics .id σ τ ↔ σ = τ := by
+theorem id_diag (σ τ : CtxPkt) : Semantics (schema := ctxSchema) .id σ τ ↔ σ = τ := by
   rfl
 
 /-- ⟦N₁+N₂⟧ = ⟦N₁⟧ ∪ ⟦N₂⟧ -/
-theorem union_sem (n₁ n₂ : NetKAT) (σ τ : CtxPkt) :
+theorem union_sem {schema : PacketSchema} (n₁ n₂ : NetKAT schema) (σ τ : schema.Packet) :
     Semantics (n₁.union n₂) σ τ ↔ Semantics n₁ σ τ ∨ Semantics n₂ σ τ := by
   rfl
 
 /-- ⟦N₁;N₂⟧ = ⟦N₁⟧ ∘ ⟦N₂⟧ -/
-theorem seq_sem (n₁ n₂ : NetKAT) (σ τ : CtxPkt) :
+theorem seq_sem {schema : PacketSchema} (n₁ n₂ : NetKAT schema) (σ τ : schema.Packet) :
     Semantics (n₁.seq n₂) σ τ ↔ ∃ ρ, Semantics n₁ σ ρ ∧ Semantics n₂ ρ τ := by
   rfl
 
@@ -153,9 +153,10 @@ theorem star_step (n : NetKAT) (σ τ : CtxPkt) :
 /-- ⟦f=v⟧ = {(σ,σ) | σ(f) = v} — atomic test preserves packet iff field matches.
     The semantics of a predicate test is the identity relation restricted to
     packets satisfying the predicate. -/
-theorem fieldTest_sem (f : FieldName) (v : FieldValueEnum) (σ τ : CtxPkt) :
-    Semantics (NetKAT.fieldTest f v) σ τ ↔ σ f = v ∧ τ = σ := by
-  unfold NetKAT.fieldTest Semantics
+theorem fieldTestFor_sem {schema : PacketSchema} (f : schema.Field) (v : schema.Value f)
+    (σ τ : schema.Packet) :
+    Semantics (schema := schema) (NetKAT.fieldTestFor f v) σ τ ↔ σ f = v ∧ τ = σ := by
+  unfold NetKAT.fieldTestFor Semantics
   constructor
   · intro h
     cases h with
@@ -174,11 +175,15 @@ theorem fieldTest_sem (f : FieldName) (v : FieldValueEnum) (σ τ : CtxPkt) :
         rw [Bool.decide_iff]
         exact h1
       · rfl
+theorem fieldTest_sem (f : FieldName) (v : FieldValueEnum) (σ τ : CtxPkt) :
+    Semantics (NetKAT.fieldTest f v) σ τ ↔ σ f = v ∧ τ = σ :=
+  fieldTestFor_sem (schema := ctxSchema) f v σ τ
+
 
 /-- ⟦¬Pr⟧ = {(σ,σ) | Pr does not hold on σ} — negation test.
     Per Figure 3: ⟦¬a⟧(h) ≜ {h} \ ⟦a⟧(h).
     In single-packet form: {(σ,σ) | ¬(Pr holds on σ)}. -/
-theorem notTest_sem (Pr : Predicate) (σ τ : CtxPkt) :
+theorem notTest_sem {schema : PacketSchema} (Pr : Predicate schema) (σ τ : schema.Packet) :
     Semantics (NetKAT.test (.pNot Pr)) σ τ ↔ ¬Pr.holds σ ∧ τ = σ := by
   simp only [Semantics]
   constructor
@@ -199,7 +204,7 @@ theorem notTest_sem (Pr : Predicate) (σ τ : CtxPkt) :
       · rfl
 
 /-- ⟦Pr₁ ∨ Pr₂⟧ = {(σ,σ) | Pr₁ holds or Pr₂ holds} — disjunction test. -/
-theorem orTest_sem (Pr₁ Pr₂ : Predicate) (σ τ : CtxPkt) :
+theorem orTest_sem {schema : PacketSchema} (Pr₁ Pr₂ : Predicate schema) (σ τ : schema.Packet) :
     Semantics (NetKAT.test (.pOr Pr₁ Pr₂)) σ τ ↔
     (Pr₁.holds σ ∨ Pr₂.holds σ) ∧ τ = σ := by
   simp only [Semantics]
@@ -221,7 +226,7 @@ theorem orTest_sem (Pr₁ Pr₂ : Predicate) (σ τ : CtxPkt) :
       · rfl
 
 /-- ⟦Pr₁ ∧ Pr₂⟧ = {(σ,σ) | Pr₁ holds and Pr₂ holds} — conjunction test. -/
-theorem andTest_sem (Pr₁ Pr₂ : Predicate) (σ τ : CtxPkt) :
+theorem andTest_sem {schema : PacketSchema} (Pr₁ Pr₂ : Predicate schema) (σ τ : schema.Packet) :
     Semantics (NetKAT.test (.pAnd Pr₁ Pr₂)) σ τ ↔
     (Pr₁.holds σ ∧ Pr₂.holds σ) ∧ τ = σ := by
   simp only [Semantics]
@@ -261,7 +266,7 @@ theorem completeTest_sem (α : CompleteTest) (σ τ : CtxPkt) :
 /-- ⟦f←v⟧ maps σ to σ[f↦v] — primitive single-field assignment updates the field.
     Per paper: ⟦f←v⟧ = {(σ, σ[f↦v])}. -/
 theorem assign1_sem (f : FieldName) (v : FieldValueEnum) (σ τ : CtxPkt) :
-    Semantics (.assign1 f v) σ τ ↔
+    Semantics (schema := ctxSchema) (.assign1 f v) σ τ ↔
     τ = Packet.update σ f v := by
   rfl
 
@@ -312,7 +317,7 @@ theorem assign_list_sem
     (fs : List FieldName)
     (π : CompleteAssignmentValuation)
     (σ τ : CtxPkt) :
-    Semantics (fs.foldr (fun f acc => .seq (.assign1 f (π f)) acc) .id) σ τ ↔
+    Semantics (schema := ctxSchema) (fs.foldr (fun f acc => .seq (.assign1 f (π f)) acc) .id) σ τ ↔
     τ = fs.foldl (fun pkt f => Packet.update pkt f (π f)) σ := by
   induction fs generalizing σ with
   | nil =>
@@ -340,12 +345,12 @@ theorem assign_list_sem
 ------------------------------------------------------------------------
 
 /-- The identity relation is reflexive: every packet is related to itself. -/
-theorem id_reflexive : ∀ (σ : CtxPkt), Semantics .id σ σ := by
+theorem id_reflexive : ∀ (σ : CtxPkt), Semantics (schema := ctxSchema) .id σ σ := by
   intro σ
   rfl
 
 /-- Drop produces no output packets. -/
-theorem drop_no_output (σ : CtxPkt) : eval .drop σ = ∅ := by
+theorem drop_no_output (σ : CtxPkt) : eval (schema := ctxSchema) .drop σ = ∅ := by
   exact drop_empty σ
 
 ------------------------------------------------------------------------
@@ -372,11 +377,11 @@ theorem union_eval (n₁ n₂ : NetKAT) (σ : CtxPkt) :
     · right; exact h₂
 
 /-- ⟦0⟧ = ∅ as a set -/
-theorem drop_eval_empty (σ : CtxPkt) : eval .drop σ = ∅ :=
+theorem drop_eval_empty (σ : CtxPkt) : eval (schema := ctxSchema) .drop σ = ∅ :=
   drop_empty σ
 
 /-- ⟦1⟧ = {σ} (singleton identity) -/
-theorem id_eval_diag (σ : CtxPkt) : eval .id σ = {σ} := by
+theorem id_eval_diag (σ : CtxPkt) : eval (schema := ctxSchema) .id σ = {σ} := by
   ext q
   constructor
   · intro h

@@ -81,6 +81,8 @@ namespace DyNetKAT.DyNetKAT
 
 open DyNetKAT.NetKAT
 
+variable {schema : PacketSchema}
+
 ------------------------------------------------------------------------
 -- §0 Preliminaries
 ------------------------------------------------------------------------
@@ -91,7 +93,7 @@ open DyNetKAT.NetKAT
     packet labels `(σ, σ')` and reconfiguration labels `rcfg(x, z)` are
     always allowed.  This definition mirrors the `allowed` field of
     `Step.cpol_restrict` definitionally. -/
-def actionAllowed (L : Set CommunicationAction) (action : Action) : Prop :=
+def actionAllowed (L : Set (CommunicationAction schema)) (action : Action schema) : Prop :=
   match action with
   | .packet _ _ => True
   | .recv x r => CommunicationAction.recv x r ∉ L
@@ -133,14 +135,14 @@ theorem bisimilar_of_no_steps (env : RecEnv) (p q : DyNetKAT)
 ------------------------------------------------------------------------
 
 /-- Inversion for a step of `N ; D` (`cpol_seq_ok` is the only rule). -/
-theorem nSeq_step_inv (env : RecEnv) (N : NetKAT) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action)
-    (p' : DyNetKAT) (pending' handled' : List CtxPkt)
+theorem nSeq_step_inv (env : RecEnv schema) (N : NetKAT schema) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema)
+    (p' : DyNetKAT schema) (pending' handled' : List schema.Packet)
     (h : Step env
-      (show Config from { proc := .nSeq N p, pending := pending, handled := handled })
+      (show Config schema from { proc := .nSeq N p, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) :
-    ∃ σ σ' : CtxPkt,
+      (show Config schema from { proc := p', pending := pending', handled := handled' })) :
+    ∃ σ σ' : schema.Packet,
       action = Action.packet σ σ' ∧
       p' = p ∧
       HistorySemantics N (History.singleton σ) (History.singleton σ') ∧
@@ -185,21 +187,21 @@ theorem rcfgPrefix_step_inv (env : RecEnv) (x : Channel) (z : NetKAT) (p : DyNet
   | cpol_rcfg _ _ _ _ _ => exact ⟨rfl, rfl, rfl, rfl⟩
 
 /-- Inversion for a step of `D ⊕ Q`. -/
-theorem choice_step_inv (env : RecEnv) (p q : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action)
-    (p' : DyNetKAT) (pending' handled' : List CtxPkt)
+theorem choice_step_inv (env : RecEnv schema) (p q : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema)
+    (p' : DyNetKAT schema) (pending' handled' : List schema.Packet)
     (h : Step env
-      (show Config from { proc := .choice p q, pending := pending, handled := handled })
+      (show Config schema from { proc := .choice p q, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) :
+      (show Config schema from { proc := p', pending := pending', handled := handled' })) :
     (Step env
-      (show Config from { proc := p, pending := pending, handled := handled })
+      (show Config schema from { proc := p, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) ∨
+      (show Config schema from { proc := p', pending := pending', handled := handled' })) ∨
     (Step env
-      (show Config from { proc := q, pending := pending, handled := handled })
+      (show Config schema from { proc := q, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) := by
+      (show Config schema from { proc := p', pending := pending', handled := handled' })) := by
   cases h with
   | cpol_choice_l _ _ _ _ _ _ _ _ s => exact Or.inl s
   | cpol_choice_r _ _ _ _ _ _ _ _ s => exact Or.inr s
@@ -224,18 +226,18 @@ theorem restrict_step_inv (env : RecEnv) (L : Set CommunicationAction) (p : DyNe
 
 /-- Inversion for a step of `π_{n+1}(p)` (Eq. 3): the inner process performs
     the corresponding step and the budget decreases by one. -/
-theorem project_step_inv (env : RecEnv) (n : Nat) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action)
-    (p' : DyNetKAT) (pending' handled' : List CtxPkt)
+theorem project_step_inv (env : RecEnv schema) (n : Nat) (p : DyNetKAT schema)
+    (pending handled : List schema.Packet) (action : Action schema)
+    (p' : DyNetKAT schema) (pending' handled' : List schema.Packet)
     (h : Step env
-      (show Config from { proc := .project (n + 1) p, pending := pending, handled := handled })
+      (show Config schema from { proc := .project (n + 1) p, pending := pending, handled := handled })
       action
-      (show Config from { proc := p', pending := pending', handled := handled' })) :
+      (show Config schema from { proc := p', pending := pending', handled := handled' })) :
     ∃ p'', p' = .project n p'' ∧
       Step env
-        (show Config from { proc := p, pending := pending, handled := handled })
+        (show Config schema from { proc := p, pending := pending, handled := handled })
         action
-        (show Config from { proc := p'', pending := pending', handled := handled' }) := by
+        (show Config schema from { proc := p'', pending := pending', handled := handled' }) := by
   cases h with
   | cpol_project m q q2 _ _ _ _ _ inner => exact ⟨q2, rfl, inner⟩
 
@@ -568,10 +570,10 @@ theorem restrict_var_step (env : RecEnv) (L : Set CommunicationAction) (name : V
     concludes transitions for `π_{n+1}`, so `π0(p)` is inert for every `p`.
     This is the operational content of axiom (Π0) and the precise sense in
     which zero-depth projection differs from unrestricted execution. -/
-theorem project_zero_no_step (env : RecEnv) (p : DyNetKAT)
-    (pending handled : List CtxPkt) (action : Action) (dest : Config) :
+theorem project_zero_no_step (env : (RecEnv schema)) (p : (DyNetKAT schema))
+    (pending handled : List schema.Packet) (action : (Action schema)) (dest : (Config schema)) :
     ¬ Step env
-      (show Config from { proc := .project 0 p, pending := pending, handled := handled })
+      (show (Config schema) from { proc := .project 0 p, pending := pending, handled := handled })
       action dest := by
   intro hstep
   cases hstep

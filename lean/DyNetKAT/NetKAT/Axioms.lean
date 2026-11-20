@@ -71,6 +71,7 @@ theorem matchAll_katInterp (f : FieldName) :
   rw [values]
   simp [matchAll, katInterp, NetKAT.fieldTest, predicateInterp,
     KATLean.Rel.tests, KATLean.NetKAT.PacketModel.filter]
+  rfl
 
 /-- Rule-by-rule algebraic soundness in KATLean. This proof does not use
 Derives.sound. Mathlib's KA laws act on the KATLean relation instance. -/

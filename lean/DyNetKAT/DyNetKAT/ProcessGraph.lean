@@ -1520,13 +1520,6 @@ theorem infEnv_no_finite_support (S : Finset Var) :
 -- §7 Finite execution traces and the bounded/unbounded distinction
 ------------------------------------------------------------------------
 
-/-- Multi-step execution of the original SOS, labeled by the action list. -/
-inductive Steps (env : RecEnv) : Config → List Action → Config → Prop
-  | nil (c : Config) : Steps env c [] c
-  | cons (c c' c'' : Config) (a : Action) (acts : List Action)
-      (h1 : Step env c a c') (h2 : Steps env c' acts c'') :
-      Steps env c (a :: acts) c''
-
 /-- Multi-step execution of the graph semantics. -/
 inductive GSteps (G : ProcessGraph) : GConfig → List Action → GConfig → Prop
   | nil (c : GConfig) : GSteps G c [] c
@@ -1583,16 +1576,16 @@ theorem steps_to_gsteps (G : ProcessGraph) (env : RecEnv) (c c' : Config)
 /-- Bounded SOS executions lift to the paper's projection `π_n`: a trace of
     length `≤ n` from `p` is a trace of `π_n(p)` (with the remaining budget
     recorded at the endpoint). -/
-theorem steps_project_lift_aux (env : RecEnv) (c c' : Config) (acts : List Action)
+theorem steps_project_lift_aux {schema : PacketSchema} (env : (RecEnv schema)) (c c' : (Config schema)) (acts : List (Action schema))
     (hexec : Steps env c acts c') :
     ∀ (n : Nat), acts.length ≤ n →
-    ∃ (j : Nat) (p' : DyNetKAT),
+    ∃ (j : Nat) (p' : (DyNetKAT schema)),
       c'.proc = p' ∧ j + acts.length = n ∧
       Steps env
-        (show Config from
+        (show (Config schema) from
           { proc := .project n c.proc, pending := c.pending, handled := c.handled })
         acts
-        (show Config from
+        (show (Config schema) from
           { proc := .project j p', pending := c'.pending, handled := c'.handled }) := by
   induction hexec with
   | nil c => intro n _; exact ⟨n, c.proc, rfl, by simp, Steps.nil _⟩
@@ -1602,11 +1595,11 @@ theorem steps_project_lift_aux (env : RecEnv) (c c' : Config) (acts : List Actio
       obtain ⟨m, rfl, hm⟩ : ∃ m, n = m + 1 ∧ rest.length ≤ m :=
         ⟨n - 1, by omega, by omega⟩
       have hproj : Step env
-          (show Config from
+          (show (Config schema) from
             { proc := .project (m + 1) c.proc, pending := c.pending,
               handled := c.handled })
           a
-          (show Config from
+          (show (Config schema) from
             { proc := .project m c₁.proc, pending := c₁.pending,
               handled := c₁.handled }) :=
         Step.cpol_project m c.proc c₁.proc a c.pending c₁.pending c.handled
@@ -1618,17 +1611,17 @@ theorem steps_project_lift_aux (env : RecEnv) (c c' : Config) (acts : List Actio
 
 /-- The literal-form lift: a trace of length `≤ n` from `p` is a trace of
     `π_n(p)`. -/
-theorem steps_project_lift (env : RecEnv) (p : DyNetKAT) (pt hl : List CtxPkt)
-    (acts : List Action) (c' : Config)
+theorem steps_project_lift {schema : PacketSchema} (env : (RecEnv schema)) (p : (DyNetKAT schema)) (pt hl : List schema.Packet)
+    (acts : List (Action schema)) (c' : (Config schema))
     (hexec : Steps env
-      (show Config from { proc := p, pending := pt, handled := hl }) acts c')
+      (show (Config schema) from { proc := p, pending := pt, handled := hl }) acts c')
     (n : Nat) (hn : acts.length ≤ n) :
-    ∃ (j : Nat) (p' : DyNetKAT),
+    ∃ (j : Nat) (p' : (DyNetKAT schema)),
       c'.proc = p' ∧ j + acts.length = n ∧
       Steps env
-        (show Config from
+        (show (Config schema) from
           { proc := .project n p, pending := pt, handled := hl }) acts
-        (show Config from
+        (show (Config schema) from
           { proc := .project j p', pending := c'.pending, handled := c'.handled }) :=
   steps_project_lift_aux env { proc := p, pending := pt, handled := hl } c' acts
     hexec n hn
@@ -1636,19 +1629,19 @@ theorem steps_project_lift (env : RecEnv) (p : DyNetKAT) (pt hl : List CtxPkt)
 /-- Conversely, every trace of `π_n(p)` is a trace of `p`, and the
     endpoint keeps the remaining budget: this is the precise sense in
     which `π_n` observes exactly the first `n` steps. -/
-theorem steps_project_unwrap (env : RecEnv) :
-    ∀ (acts : List Action) (n : Nat) (p : DyNetKAT) (pt hl : List CtxPkt)
-      (q : DyNetKAT) (pt' hl' : List CtxPkt),
+theorem steps_project_unwrap {schema : PacketSchema} (env : (RecEnv schema)) :
+    ∀ (acts : List (Action schema)) (n : Nat) (p : (DyNetKAT schema)) (pt hl : List schema.Packet)
+      (q : (DyNetKAT schema)) (pt' hl' : List schema.Packet),
       Steps env
-        (show Config from
+        (show (Config schema) from
           { proc := .project n p, pending := pt, handled := hl }) acts
-        (show Config from
+        (show (Config schema) from
           { proc := q, pending := pt', handled := hl' }) →
-      ∃ (j : Nat) (p' : DyNetKAT),
+      ∃ (j : Nat) (p' : (DyNetKAT schema)),
         q = .project j p' ∧ j + acts.length = n ∧
         Steps env
-          (show Config from { proc := p, pending := pt, handled := hl }) acts
-          (show Config from
+          (show (Config schema) from { proc := p, pending := pt, handled := hl }) acts
+          (show (Config schema) from
             { proc := p', pending := pt', handled := hl' }) := by
   intro acts
   induction acts with
@@ -1664,7 +1657,7 @@ theorem steps_project_unwrap (env : RecEnv) :
         | zero => exact absurd h1 (project_zero_no_step env p pt hl a c₁)
         | succ k =>
             obtain ⟨q₁, pt₁, hl₁, hc₁⟩ : ∃ q₁ pt₁ hl₁,
-                c₁ = (show Config from
+                c₁ = (show (Config schema) from
                   { proc := q₁, pending := pt₁, handled := hl₁ }) :=
               ⟨c₁.proc, c₁.pending, c₁.handled, rfl⟩
             subst hc₁

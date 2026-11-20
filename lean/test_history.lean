@@ -50,7 +50,7 @@ example (σ : CtxPkt) (h : History) :
 example (h : History) : h.toList ≠ [] := History.toList_ne_nil h
 
 -- The list representation is injective.
-example : Function.Injective History.toList := History.toList_injective
+example : Function.Injective (@History.toList CtxPkt) := History.toList_injective
 
 ------------------------------------------------------------------------
 -- Executable checks (decidable equality computes)

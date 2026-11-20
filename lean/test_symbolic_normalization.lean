@@ -9,9 +9,9 @@ open DyNetKAT.NetKAT
 private def base : CtxPkt := fun _ => .v0
 private def port0 := NetKAT.fieldTest .port .v0
 private def port1 := NetKAT.fieldTest .port .v1
-private def setPort1 := NetKAT.assign1 .port .v1
-private def setPort8 := NetKAT.assign1 .port .v8
-private def setSwitch9 := NetKAT.assign1 .swId .v9
+private def setPort1 := NetKAT.assign1 (schema := ctxSchema) .port .v1
+private def setPort8 := NetKAT.assign1 (schema := ctxSchema) .port .v8
+private def setSwitch9 := NetKAT.assign1 (schema := ctxSchema) .swId .v9
 private def firewall := NetKAT.seq port0 setPort1
 private def path := NetKAT.union firewall (.seq port1 setPort8)
 private def sparse := NetKAT.seq (.completeTest base) setPort1

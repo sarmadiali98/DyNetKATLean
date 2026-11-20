@@ -87,6 +87,32 @@ for the SOS packet rule.
 See [KATLEAN.md](KATLEAN.md) for the axiom mapping and
 [NETKAT_AUDIT.md](NETKAT_AUDIT.md#dependency-audit) for import evidence.
 
+## Finite packet-schema foundation
+
+NetKATLean's `PacketSchema` packages finite dependent field domains
+and the existing KATLean `PacketModel` lookup and update laws over
+total valuations. `PacketSchema.ofFields` uses dependent point
+updates. `ctxSchema` retains the original four fields and four values
+per field, with the original `Packet.update` operation.
+The syntax types default to `ctxSchema`. Standalone expressions whose
+context supplies no schema can use a type annotation, such as
+`(.assign1 .port .v1 : NetKAT)`. Custom schemas use
+`NetKAT.fieldTestFor` and `RecEnv.emptyFor`.
+
+The same schema indexes the dup-free policy syntax and its packet
+and history semantics. The supplied-packet evaluator compares fields
+and visits only reachable output packets. Its star fuel is the product
+of the finite field cardinalities, and its iteration stops at a fixed
+point. KATLean's relational interpretation is generic. The native
+diagram frontend still compiles the fixed `CtxPkt` schema.
+
+DyNetKATLean uses that policy and packet boundary for process
+and label syntax, `Step` and `Steps`, guarded declarations, admission,
+and source traces. The generic history correspondence and
+Proposition 1 retain syntactic communication payload matching.
+The graph compiler, projection renderer, normalization and
+trace-safety checkers remain concrete at this stage.
+
 ## Future supported package boundaries
 
 The deferred target has Mathlib below KATLean, NetKATLean above KATLean,

@@ -12,12 +12,6 @@ def ImageFiniteAt (env : RecEnv) (p : DyNetKAT) : Prop :=
   ∀ (pt hl : List CtxPkt) (a : Action) (pt' hl' : List CtxPkt),
     {q : DyNetKAT | Step env ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩}.Finite
 
-/-- Process reachability for stateless bisimulation. Each edge may use
-its own packet lists, as the bisimulation tests every possible input. -/
-def ProcessStep (env : RecEnv) (p q : DyNetKAT) : Prop :=
-  ∃ (pt hl : List CtxPkt) (a : Action) (pt' hl' : List CtxPkt),
-    Step env ⟨p, pt, hl⟩ a ⟨q, pt', hl'⟩
-
 def ImageFiniteFrom (env : RecEnv) (p : DyNetKAT) : Prop :=
   ∀ q, Relation.ReflTransGen (ProcessStep env) p q → ImageFiniteAt env q
 

@@ -24,9 +24,9 @@ example : ∃ B : Finset CtxPkt,
 
 /- A concrete executable check for a primitive assignment. -/
 example :
-    execute (.assign1 .tpDst .v1) examplePacket =
+    execute ((.assign1 .tpDst .v1 : NetKAT)) examplePacket =
       .supported {Packet.update examplePacket .tpDst .v1} := by
-  exact execute_assign1 .tpDst .v1 examplePacket
+  exact execute_assign1 (schema := ctxSchema) .tpDst .v1 examplePacket
 
 end DyNetKAT.NetKAT
 
@@ -146,7 +146,7 @@ example :
       .supported (({Packet.update examplePacket .tpSrc .v9} : Finset CtxPkt).image
         fun τ => (⟨τ, []⟩ : History)) :=
     executeHistory_eq_image _ (History.singleton examplePacket) _
-      (execute_assign1 .tpSrc .v9 examplePacket)
+      (execute_assign1 (schema := ctxSchema) .tpSrc .v9 examplePacket)
   simp [packetTransitions, h1, Finset.image_singleton, Multiset.map_singleton]
 
 ------------------------------------------------------------------------
@@ -169,7 +169,7 @@ example : ∃ results : Multiset (Action × Config),
       ({ proc := .deadlock, pending := [],
          handled := [Packet.update examplePacket .tpSrc .v9] } : Config))
         ∈ results := by
-  obtain ⟨B, hB, corr⟩ := execute_correct (.union .id (.assign1 .tpSrc .v9))
+  obtain ⟨B, hB, corr⟩ := execute_correct (.union .id ((.assign1 .tpSrc .v9 : NetKAT)))
     examplePacket
   have h1 : executeHistory (.union .id (.assign1 .tpSrc .v9))
       (History.singleton examplePacket) =
@@ -187,14 +187,14 @@ example : ∃ results : Multiset (Action × Config),
     refine ⟨⟨examplePacket, []⟩, ?_, rfl⟩
     exact Finset.mem_coe.mpr (Finset.mem_image.mpr
       ⟨examplePacket, (corr examplePacket).mp
-        ((union_sem .id (.assign1 .tpSrc .v9) examplePacket examplePacket).mpr
+        ((union_sem .id ((.assign1 .tpSrc .v9 : NetKAT)) examplePacket examplePacket).mpr
           (Or.inl rfl)), rfl⟩)
   · apply Multiset.mem_map.mpr
     refine ⟨⟨Packet.update examplePacket .tpSrc .v9, []⟩, ?_, rfl⟩
     exact Finset.mem_coe.mpr (Finset.mem_image.mpr
       ⟨Packet.update examplePacket .tpSrc .v9,
         (corr (Packet.update examplePacket .tpSrc .v9)).mp
-          ((union_sem .id (.assign1 .tpSrc .v9) examplePacket _).mpr
+          ((union_sem .id ((.assign1 .tpSrc .v9 : NetKAT)) examplePacket _).mpr
             (Or.inr ((assign1_sem .tpSrc .v9 examplePacket _).mpr rfl))),
         rfl⟩)
 
@@ -210,11 +210,11 @@ example :
         ({ proc := testContinuation, pending := [examplePacket9],
            handled := [Packet.update examplePacket .tpSrc .v9, examplePacket] } : Config))
         : Action × Config)} := by
-  have hexec : execute (.seq (.assign1 .tpSrc .v9) .id) examplePacket =
+  have hexec : execute (.seq ((.assign1 .tpSrc .v9 : NetKAT)) .id) examplePacket =
       .supported {Packet.update examplePacket .tpSrc .v9} := by
-    rw [execute_seq_supported (.assign1 .tpSrc .v9) NetKAT.id examplePacket
+    rw [execute_seq_supported ((.assign1 .tpSrc .v9 : NetKAT)) NetKAT.id examplePacket
       {Packet.update examplePacket .tpSrc .v9}
-      (execute_assign1 .tpSrc .v9 examplePacket)]
+      (execute_assign1 (schema := ctxSchema) .tpSrc .v9 examplePacket)]
     exact evalSeq_single NetKAT.id (Packet.update examplePacket .tpSrc .v9) _
       (execute_id _)
   have h1 : executeHistory (.seq (.assign1 .tpSrc .v9) .id)
@@ -239,7 +239,7 @@ example : ∃ results : Multiset (Action × Config),
       ({ proc := .deadlock, pending := [],
          handled := [Packet.update examplePacket .tpSrc .v9] } : Config))
         ∈ results := by
-  obtain ⟨B, hB, corr⟩ := execute_correct (.star (.assign1 .tpSrc .v9)) examplePacket
+  obtain ⟨B, hB, corr⟩ := execute_correct (.star ((.assign1 .tpSrc .v9 : NetKAT))) examplePacket
   have h1 : executeHistory (.star (.assign1 .tpSrc .v9))
       (History.singleton examplePacket) =
       .supported (B.image fun τ => (⟨τ, []⟩ : History)) :=
@@ -280,7 +280,7 @@ example : ∃ results : Multiset (Action × Config),
          handled := [Packet.update examplePacket .tpSrc .v9] } : Config))
         ∈ results := by
   obtain ⟨B, hB, corr⟩ :=
-    execute_correct (.star (.star (.assign1 .tpSrc .v9))) examplePacket
+    execute_correct (.star (.star ((.assign1 .tpSrc .v9 : NetKAT)))) examplePacket
   have h1 : executeHistory (.star (.star (.assign1 .tpSrc .v9)))
       (History.singleton examplePacket) =
       .supported (B.image fun τ => (⟨τ, []⟩ : History)) :=

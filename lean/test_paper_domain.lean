@@ -98,7 +98,7 @@ example (source : PaperAdmissible true loopEnv compound) :
   compoundStep.preserves_paperAdmissible source
 
 -- The printed extended grammar requires an Eq. (1) packet continuation.
-example : ¬ PaperSyntax true (.nSeq .id (.project 0 .deadlock)) := by
+example : ¬ PaperSyntax true (.nSeq .id (.project 0 .deadlock) : DyNetKAT) := by
   simp [PaperSyntax]
 
 example (wf : WellFormed loopEnv compound) : WellFormed loopEnv result :=

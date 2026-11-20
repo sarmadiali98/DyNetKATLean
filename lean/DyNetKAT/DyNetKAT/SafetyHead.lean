@@ -259,7 +259,7 @@ inductive HeadSpec : DyNetKAT → CtxPkt → CtxPkt → Prop
 
 /-- ⟦0⟧ is the empty relation (local restatement of the NetKAT zero
     semantics; cf. `DyNetKAT.NetKAT.drop_empty`). -/
-theorem sem_drop_empty (σ τ : CtxPkt) : ¬ Semantics .drop σ τ :=
+theorem sem_drop_empty (σ τ : CtxPkt) : ¬ Semantics (schema := ctxSchema) .drop σ τ :=
   fun h => h
 
 /-- Spec clause for Eq. (30): the head-contribution relation of `N;D` is

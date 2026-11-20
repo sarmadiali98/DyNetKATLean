@@ -133,6 +133,17 @@ their downstream workflows, and the coordinated rename planned after
 paper and parity development. Use the current build and import instructions
 below for this checkout.
 
+## Finite packet schemas
+
+The semantic foundation accepts a `PacketSchema` with finite,
+field-dependent value domains. Use `PacketSchema.ofFields` for total
+valuations with point updates. A policy `NetKAT schema` supplies the
+packet operations for `DyNetKAT schema`. Its recursion environment
+determines the schema of `Program`, `Residual`, and `Program.Trace`.
+Omitting the schema on the original types selects `ctxSchema` and
+`CtxPkt`. The current symbolic diagram compiler and certified analysis
+pipeline still use that concrete instance.
+
 ## Building
 
 ```bash

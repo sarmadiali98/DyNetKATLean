@@ -541,6 +541,32 @@ The controller case studies cover the paper's source semantics and
 queries. The pinned DyNetiKAT v1.1 JSON benchmark files and benchmark
 timings are separate parity work.
 
+## Finite packet-schema foundation
+
+The first schema stage is machine checked. `PacketSchema` extends the
+existing KATLean lookup and update model with finite dependent value
+domains and total packet valuations. `ctxSchema` specializes this
+boundary to the existing `CtxPkt`. The same NetKATLean policy grammar,
+history semantics, and supplied-packet evaluator serve both the
+concrete schema and new schemas.
+
+| Paper item | Generic Lean scope |
+|---|---|
+| Definition 1 and Fig. 3 | `PacketSchema.Packet`, `History`, `Semantics`, `katInterp`, `HistorySemantics` and `historySemantics_iff_packetSemantics`. The existing history relation preserves the entire tail under dup-free policies, including nested stars. |
+| Eqs. (1) and (6), Fig. 8, Eqs. (2)–(5) | `DyNetKAT`, `Action`, `Config` and `Step` share a schema parameter. All original SOS constructors apply, including both synchronization and communication-merge orientations. `execute_packet_step` connects a computed output for one supplied packet to the packet-prefix rule. |
+| Definition 7 and source residuals | `RecEnv`, `TypedPaperGuarded`, `paperAdmissible_iff`, `Program` and `Residual` retain the grammar and guardedness conditions. `Step.preserves_paperAdmissible` is generic. |
+| Finite source traces and endpoints | `Steps`, `Program.Trace`, `Program.trace_iff_reaches_residual` and `EndpointReachable` apply to a schema and preserve pending and handled packet lists. The certified graph checkers still specialize to `CtxPkt`. |
+| Proposition 1 | `Program.historySemantics_iff_packetPrefix_bisimilar` is generic. Observable communication and reconfiguration payloads retain syntactic identity. |
+
+The large-schema regression gives the switch field type `Fin 1344`
+and gives the port and SSH fields independent domains. It proves
+injective switch representation, lookup and update behavior, policy
+semantics, recursive admission, and a two-step source trace. It also
+executes a starred policy from one supplied packet. This closes the
+foundational capacity prerequisite only. The general symbolic diagram
+frontend, analysis transfer theorems, and full FatTree benchmark
+remain open.
+
 ## FatTree migration in arXiv v4
 
 The benchmark in §V and Figs. 12–13 remains open. Figure 12 shows
@@ -581,7 +607,12 @@ FatTree checker later uses projection, the existing
 their stated premises. The source claims do not call for an AIP
 argument.
 
-### Packet-schema obstruction
+### Fixed-schema obstruction
+
+This obstruction applies to the `CtxPkt` specialization. The generic
+semantic foundation above provides a larger packet domain. The full
+case study still requires its own schema, verified encoding, and
+property proofs.
 
 `CtxPkt` has the four fields `tpSrc`, `tpDst`, `swId`, and `port`.
 Each field has four values, so the existing `ctxPkt_card` theorem

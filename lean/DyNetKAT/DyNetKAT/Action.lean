@@ -6,18 +6,18 @@ open DyNetKAT.NetKAT
 namespace DyNetKAT.DyNetKAT
 
 /-- Action labels from Figure 8 of the DyNetKAT paper. -/
-inductive Action : Type
-  | packet : CtxPkt → CtxPkt → Action
-  | recv : Channel → NetKAT → Action
-  | send : Channel → NetKAT → Action
-  | rcfg : Channel → NetKAT → Action
+inductive Action (schema : PacketSchema := ctxSchema) : Type
+  | packet : schema.Packet → schema.Packet → (Action schema)
+  | recv : Channel → (NetKAT schema) → (Action schema)
+  | send : Channel → (NetKAT schema) → (Action schema)
+  | rcfg : Channel → (NetKAT schema) → (Action schema)
 
-def Action.pendingFor (a : Action) (tail : List CtxPkt) : List CtxPkt :=
+def Action.pendingFor {schema : PacketSchema} (a : Action schema) (tail : List schema.Packet) : List schema.Packet :=
   match a with
   | .packet input _ => input :: tail
   | _ => tail
 
-def Action.handledAfter (a : Action) (handled : List CtxPkt) : List CtxPkt :=
+def Action.handledAfter {schema : PacketSchema} (a : Action schema) (handled : List schema.Packet) : List schema.Packet :=
   match a with
   | .packet _ output => output :: handled
   | _ => handled

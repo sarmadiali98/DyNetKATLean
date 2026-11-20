@@ -5,9 +5,13 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+open DyNetKAT.NetKAT
+
+variable {schema : PacketSchema}
+
 /-- A path to a process-variable occurrence. The Boolean records whether
 the path crosses an action-prefix continuation edge. -/
-inductive ProcessVarOccurrence : DyNetKAT → Var → Bool → Prop
+inductive ProcessVarOccurrence {schema : PacketSchema} : DyNetKAT schema → Var → Bool → Prop
   | here : ProcessVarOccurrence (.var x) x false
   | packet : ProcessVarOccurrence p x crossed → ProcessVarOccurrence (.nSeq z p) x true
   | recv : ProcessVarOccurrence p x crossed → ProcessVarOccurrence (.recv c z p) x true
@@ -26,10 +30,10 @@ inductive ProcessVarOccurrence : DyNetKAT → Var → Bool → Prop
 
 /-- Typed reading of Definition 7. Every path to a process variable crosses
 at least one action-prefix continuation edge. This is a syntactic property. -/
-def TypedPaperGuarded (p : DyNetKAT) : Prop :=
+def TypedPaperGuarded (p : DyNetKAT schema) : Prop :=
   ∀ x, ¬ ProcessVarOccurrence p x false
 
-theorem typedPaperGuarded_iff_guardedOccurrences (p : DyNetKAT) :
+theorem typedPaperGuarded_iff_guardedOccurrences (p : DyNetKAT schema) :
     TypedPaperGuarded p ↔ GuardedOccurrences p := by
   induction p <;> simp only [TypedPaperGuarded, GuardedOccurrences] at *
   case deadlock | nSeq | recv | send | rcfgPrefix =>
@@ -62,12 +66,12 @@ theorem typedPaperGuarded_iff_guardedOccurrences (p : DyNetKAT) :
       cases hx
       exact h x (by assumption)
 
-theorem RecEnv.lookup_unique {env : RecEnv} {x : Var} {p q : DyNetKAT}
+theorem RecEnv.lookup_unique {env : (RecEnv schema)} {x : Var} {p q : (DyNetKAT schema)}
     (hp : env.lookup x = some p) (hq : env.lookup x = some q) : p = q :=
   Option.some.inj (hp.symm.trans hq)
 
 /-- Closure makes the partial environment total on the reachable names. -/
-theorem ClosedDefined.existsUnique_lookup {env : RecEnv} {root : DyNetKAT}
+theorem ClosedDefined.existsUnique_lookup {env : (RecEnv schema)} {root : (DyNetKAT schema)}
     (h : ClosedDefined env root) {x : Var} (hx : ReachableVar env root x) :
     ∃! body, env.lookup x = some body := by
   have defined := h x hx
@@ -77,7 +81,7 @@ theorem ClosedDefined.existsUnique_lookup {env : RecEnv} {root : DyNetKAT}
     exact ⟨body, rfl, fun _ other => Option.some.inj other.symm⟩
 
 /-- Every reachable defining equation has a guarded body in the typed reading. -/
-theorem wellFormed_iff_closedDefined_and_typedPaperGuarded (env : RecEnv) (root : DyNetKAT) :
+theorem wellFormed_iff_closedDefined_and_typedPaperGuarded (env : RecEnv schema) (root : DyNetKAT schema) :
     WellFormed env root ↔ ClosedDefined env root ∧
       ∀ x body, ReachableVar env root x → env.lookup x = some body → TypedPaperGuarded body := by
   constructor

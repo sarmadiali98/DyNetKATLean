@@ -297,8 +297,8 @@ theorem starFreeComplete_iff_normalize :
 private def word (f : FieldName → NetKAT) (xs : List FieldName) : NetKAT :=
   xs.foldr (fun x acc => f x ⨟ acc) .id
 
-private def reads (σ : CtxPkt) (f : FieldName) := NetKAT.fieldTest f (σ f)
-private def writes (σ : CtxPkt) (f : FieldName) := NetKAT.assign1 f (σ f)
+private def reads (σ : CtxPkt) (f : FieldName) : NetKAT := NetKAT.fieldTest f (σ f)
+private def writes (σ : CtxPkt) (f : FieldName) : NetKAT := NetKAT.assign1 f (σ f)
 
 private theorem word_congr {f g : FieldName → NetKAT} {xs : List FieldName}
     (h : ∀ x ∈ xs, Derives (f x) (g x)) : Derives (word f xs) (word g xs) := by

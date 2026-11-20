@@ -8,25 +8,25 @@ set_option linter.dupNamespace false
 
 namespace DyNetKAT.DyNetKAT
 
+open DyNetKAT.NetKAT
+
 /-- Eq. (1) when `extended = false`, printed Eq. (6) when it is true. -/
-structure Program (extended : Bool) (env : RecEnv) where
-  term : DyNetKAT
+structure Program {schema : PacketSchema} (extended : Bool) (env : RecEnv schema) where
+  term : DyNetKAT schema
   admissible : PaperAdmissible extended env term
 
 namespace Program
 
-open DyNetKAT.NetKAT
-
-variable {extended : Bool} {env : RecEnv}
+variable {schema : PacketSchema} {extended : Bool} {env : (RecEnv schema)}
 
 /-- Prefix an admitted continuation of the base sort, with the same defining equations. -/
-def packetPrefix (d : Program extended env) (base : BaseSyntax d.term) (p : NetKAT) :
+def packetPrefix (d : Program extended env) (base : BaseSyntax d.term) (p : NetKAT schema) :
     Program extended env :=
   ⟨.nSeq p d.term, d.admissible.packetPrefix base p⟩
 
 /-- Proposition 1 with endpoints formed by the paper's packet-prefix rule. -/
 theorem historySemantics_iff_packetPrefix_bisimilar (d : Program extended env)
-    (base : BaseSyntax d.term) (p q : NetKAT) :
+    (base : BaseSyntax d.term) (p q : NetKAT schema) :
     (∀ input output, HistorySemantics p input output ↔ HistorySemantics q input output) ↔
       Bisimilar env (d.packetPrefix base p).term (d.packetPrefix base q).term :=
   Equations.historySemantics_iff_nSeq_bisimilar env p q d.term
@@ -34,7 +34,7 @@ theorem historySemantics_iff_packetPrefix_bisimilar (d : Program extended env)
 /-- A residual is indexed by its source program. Each edge is a paper SOS
 step with packet lists, in the stateless sense used by bisimilarity. -/
 structure Residual (program : Program extended env) where
-  term : DyNetKAT
+  term : DyNetKAT schema
   reachable : Relation.ReflTransGen (ProcessStep env) program.term term
 
 namespace Residual
@@ -44,7 +44,7 @@ variable {program : Program extended env}
 theorem admissible (state : program.Residual) : PaperAdmissible extended env state.term :=
   program.admissible.reachable state.reachable
 
-def advance (state : program.Residual) {d : Config} {a : Action} {pt hl : List DyNetKAT.NetKAT.CtxPkt}
+def advance (state : program.Residual) {d : (Config schema)} {a : (Action schema)} {pt hl : List schema.Packet}
     (step : Step env ⟨state.term, pt, hl⟩ a d) : program.Residual :=
   ⟨d.proc, state.reachable.tail ⟨pt, hl, a, d.pending, d.handled, step⟩⟩
 
@@ -58,17 +58,19 @@ def initial (program : Program extended env) : program.Residual :=
   ⟨program.term, .refl⟩
 
 /-- Concrete execution with consistent packet lists also supplies a residual. -/
-def afterTrace (program : Program extended env) {pt hl : List DyNetKAT.NetKAT.CtxPkt}
-    {d : Config} {acts : List Action} (trace : Steps env ⟨program.term, pt, hl⟩ acts d) :
+def afterTrace (program : Program extended env) {pt hl : List schema.Packet}
+    {d : (Config schema)} {acts : List (Action schema)} (trace : Steps env ⟨program.term, pt, hl⟩ acts d) :
     program.Residual := ⟨d.proc, toReach trace .refl⟩
 where
-  toReach {c d : Config} {acts : List Action} (trace : Steps env c acts d)
+  toReach {c d : (Config schema)} {acts : List (Action schema)} (trace : Steps env c acts d)
       (initial : Relation.ReflTransGen (ProcessStep env) program.term c.proc) :
       Relation.ReflTransGen (ProcessStep env) program.term d.proc := by
     induction trace with
     | nil => exact initial
     | cons c next _ a _ step _ ih =>
       exact ih (initial.tail ⟨c.pending, c.handled, a, next.pending, next.handled, step⟩)
+
+variable {env : RecEnv}
 
 theorem approximation (p q : Program extended env) :
     Bisimilar env p.term q.term ↔ ∀ n, Bisimilar env (.project n p.term) (.project n q.term) :=

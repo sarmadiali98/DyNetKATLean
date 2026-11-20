@@ -66,9 +66,9 @@ abbrev Var : Type := String
 /-- The action forms admitted in restriction sets ℒ (Eq. 6, p. 14):
     communications `x?N` and `x!N`, with `N ∈ NetKAT⁻ᵈᵘᵖ`. Packet and
     reconfiguration labels are intentionally not members of this type. -/
-inductive CommunicationAction : Type
-  | recv : Channel → NetKAT → CommunicationAction
-  | send : Channel → NetKAT → CommunicationAction
+inductive CommunicationAction (schema : PacketSchema := ctxSchema) : Type
+  | recv : Channel → NetKAT schema → CommunicationAction schema
+  | send : Channel → NetKAT schema → CommunicationAction schema
 
 ------------------------------------------------------------------------
 -- The DyNetKAT inductive (Eq. 1 base syntax plus rcfg prefix from Eq. 6)
@@ -97,19 +97,19 @@ inductive CommunicationAction : Type
 
     The `NetKAT` argument is the existing dup-free `NetKAT` type
     (`NetKAT/AST.lean`), per §II-C and Eq. (6): `N ∈ NetKAT⁻ᵈᵘᵖ`. -/
-inductive DyNetKAT : Type
-  | deadlock   : DyNetKAT                                   -- ⊥      (Eq. 1)
-  | nSeq       : NetKAT → DyNetKAT → DyNetKAT               -- N;D    (Eq. 1)
-  | recv       : Channel → NetKAT → DyNetKAT → DyNetKAT     -- x?N;D  (Eq. 1)
-  | send       : Channel → NetKAT → DyNetKAT → DyNetKAT     -- x!N;D  (Eq. 1)
-  | rcfgPrefix : Channel → NetKAT → DyNetKAT → DyNetKAT     -- rcfg_{x,N};D (Eq. 6)
-  | parallel   : DyNetKAT → DyNetKAT → DyNetKAT             -- D‖D    (Eq. 1)
-  | choice     : DyNetKAT → DyNetKAT → DyNetKAT             -- D⊕D    (Eq. 1)
-  | leftMerge  : DyNetKAT → DyNetKAT → DyNetKAT             -- D⌊⌊D   (Eq. 6)
-  | commMerge  : DyNetKAT → DyNetKAT → DyNetKAT             -- D|D    (Eq. 6)
-  | restrict   : Set CommunicationAction → DyNetKAT → DyNetKAT -- δ_ℒ(D) (Eq. 6)
-  | project    : Nat → DyNetKAT → DyNetKAT                  -- π_n(D) (Eq. 6)
-  | var        : Var → DyNetKAT                             -- X      (Eq. 1)
+inductive DyNetKAT (schema : PacketSchema := ctxSchema) : Type
+  | deadlock   : DyNetKAT schema  -- ⊥      (Eq. 1)
+  | nSeq       : NetKAT schema → DyNetKAT schema → DyNetKAT schema  -- N;D    (Eq. 1)
+  | recv       : Channel → NetKAT schema → DyNetKAT schema → DyNetKAT schema  -- x?N;D  (Eq. 1)
+  | send       : Channel → NetKAT schema → DyNetKAT schema → DyNetKAT schema  -- x!N;D  (Eq. 1)
+  | rcfgPrefix : Channel → NetKAT schema → DyNetKAT schema → DyNetKAT schema  -- rcfg_{x,N};D (Eq. 6)
+  | parallel   : DyNetKAT schema → DyNetKAT schema → DyNetKAT schema  -- D‖D    (Eq. 1)
+  | choice     : DyNetKAT schema → DyNetKAT schema → DyNetKAT schema  -- D⊕D    (Eq. 1)
+  | leftMerge  : DyNetKAT schema → DyNetKAT schema → DyNetKAT schema  -- D⌊⌊D   (Eq. 6)
+  | commMerge  : DyNetKAT schema → DyNetKAT schema → DyNetKAT schema  -- D|D    (Eq. 6)
+  | restrict   : Set (CommunicationAction schema) → DyNetKAT schema → DyNetKAT schema  -- δ_ℒ(D) (Eq. 6)
+  | project    : Nat → DyNetKAT schema → DyNetKAT schema  -- π_n(D) (Eq. 6)
+  | var        : Var → DyNetKAT schema  -- X      (Eq. 1)
 
 ------------------------------------------------------------------------
 -- Shorthand constructors
@@ -121,12 +121,12 @@ inductive DyNetKAT : Type
     from the context."  Eq. (1) itself only produces processes of the shape
     `N;D`, so a policy written without a trailing continuation denotes
     `N; ⊥`.  This shorthand makes that convention explicit. -/
-def policy (N : NetKAT) : DyNetKAT := .nSeq N .deadlock
+def policy {schema : PacketSchema} (N : NetKAT schema) : DyNetKAT schema := .nSeq N .deadlock
 
 /-- Non-deterministic choice over a finite domain `P` (§II-C syntactic
     sugar `⊕_{p∈P} p`): an iterated binary `⊕` with `⊥` as the neutral
     element.  The empty choice is `⊥`. -/
-def choiceOf : List DyNetKAT → DyNetKAT
+def choiceOf {schema : PacketSchema} : List (DyNetKAT schema) → DyNetKAT schema
   | [] => .deadlock
   | d :: ds => .choice d (choiceOf ds)
 

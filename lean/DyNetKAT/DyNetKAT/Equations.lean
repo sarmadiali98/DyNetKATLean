@@ -10,13 +10,13 @@ open DyNetKAT.NetKAT
 
 namespace Equations
 
-private theorem bisimilar_of_matches (env : RecEnv) (p q : DyNetKAT)
+private theorem bisimilar_of_matches {schema : PacketSchema} (env : RecEnv schema) (p q : DyNetKAT schema)
     (forward : ∀ pt hl a r pt' hl', Step env ⟨p, pt, hl⟩ a ⟨r, pt', hl'⟩ →
       ∃ s, Step env ⟨q, pt, hl⟩ a ⟨s, pt', hl'⟩ ∧ Bisimilar env r s)
     (backward : ∀ pt hl a s pt' hl', Step env ⟨q, pt, hl⟩ a ⟨s, pt', hl'⟩ →
       ∃ r, Step env ⟨p, pt, hl⟩ a ⟨r, pt', hl'⟩ ∧ Bisimilar env s r) :
     Bisimilar env p q := by
-  let R (x y : DyNetKAT) := (x = p ∧ y = q) ∨ (x = q ∧ y = p) ∨ Bisimilar env x y
+  let R (x y : DyNetKAT schema) := (x = p ∧ y = q) ∨ (x = q ∧ y = p) ∨ Bisimilar env x y
   refine ⟨R, ⟨?_, ?_⟩, Or.inl ⟨rfl, rfl⟩⟩
   · rintro x y (⟨rfl, rfl⟩ | ⟨rfl, rfl⟩ | h)
     · exact Or.inr (Or.inl ⟨rfl, rfl⟩)
@@ -30,7 +30,7 @@ private theorem bisimilar_of_matches (env : RecEnv) (p q : DyNetKAT)
     · obtain ⟨s, hs', h⟩ := hS.2 _ _ hxy pt hl a r pt' hl' hs
       exact ⟨s, hs', Or.inr (Or.inr ⟨S, hS, h⟩)⟩
 
-private theorem bisimilar_of_step_iff (env : RecEnv) (p q : DyNetKAT)
+private theorem bisimilar_of_step_iff {schema : PacketSchema} (env : RecEnv schema) (p q : DyNetKAT schema)
     (h : ∀ pt hl a r pt' hl', Step env ⟨p, pt, hl⟩ a ⟨r, pt', hl'⟩ ↔
       Step env ⟨q, pt, hl⟩ a ⟨r, pt', hl'⟩) : Bisimilar env p q :=
   bisimilar_of_matches env p q
@@ -68,7 +68,7 @@ theorem a1_sound (env : RecEnv) (z y : NetKAT) (p : DyNetKAT) :
     · exact .cpol_seq_ok _ _ _ _ _ _ (Or.inr (by assumption))
 
 /-- Equal NetKAT history relations give identical prefix steps into the shared continuation. -/
-theorem nSeq_bisimilar_of_historySemantics (env : RecEnv) {p q : NetKAT} (d : DyNetKAT)
+theorem nSeq_bisimilar_of_historySemantics {schema : PacketSchema} (env : RecEnv schema) {p q : NetKAT schema} (d : DyNetKAT schema)
     (h : ∀ input output, HistorySemantics p input output ↔ HistorySemantics q input output) :
     Bisimilar env (.nSeq p d) (.nSeq q d) := by
   apply bisimilar_of_step_iff
@@ -78,11 +78,11 @@ theorem nSeq_bisimilar_of_historySemantics (env : RecEnv) {p q : NetKAT} (d : Dy
   · exact .cpol_seq_ok _ _ _ _ _ _ ((h ..).mpr (by assumption))
 
 /-- Matching singleton packet observations determine the full dup-free history relation. -/
-theorem historySemantics_of_nSeq_bisimilar {env : RecEnv} {p q : NetKAT} {d : DyNetKAT}
+theorem historySemantics_of_nSeq_bisimilar {schema : PacketSchema} {env : RecEnv schema} {p q : NetKAT schema} {d : DyNetKAT schema}
     (h : Bisimilar env (.nSeq p d) (.nSeq q d)) :
     ∀ input output, HistorySemantics p input output ↔ HistorySemantics q input output := by
-  have transfer {x y : NetKAT} (bisim : Bisimilar env (.nSeq x d) (.nSeq y d))
-      (σ τ : CtxPkt) (obs : Semantics x σ τ) : Semantics y σ τ := by
+  have transfer {x y : NetKAT schema} (bisim : Bisimilar env (.nSeq x d) (.nSeq y d))
+      (σ τ : schema.Packet) (obs : Semantics x σ τ) : Semantics y σ τ := by
     obtain ⟨R, matching, related⟩ := bisim
     have step := Step.cpol_seq_ok (env := env) x d σ τ [] []
       ((historySemantics_singleton_iff_packetSemantics x σ τ).mpr obs)
@@ -95,8 +95,8 @@ theorem historySemantics_of_nSeq_bisimilar {env : RecEnv} {p q : NetKAT} {d : Dy
   rw [historySemantics_iff_packetSemantics, historySemantics_iff_packetSemantics]
   exact and_congr_right fun _ => ⟨transfer h σ τ, transfer (h.symm env) σ τ⟩
 
-/-- Semantic layering (arXiv v4 Proposition 1) for dup-free NetKAT over `CtxPkt`. -/
-theorem historySemantics_iff_nSeq_bisimilar (env : RecEnv) (p q : NetKAT) (d : DyNetKAT) :
+/-- Semantic layering (arXiv v4 Proposition 1) for dup-free NetKAT over a finite packet schema. -/
+theorem historySemantics_iff_nSeq_bisimilar {schema : PacketSchema} (env : RecEnv schema) (p q : NetKAT schema) (d : DyNetKAT schema) :
     (∀ input output, HistorySemantics p input output ↔ HistorySemantics q input output) ↔
       Bisimilar env (.nSeq p d) (.nSeq q d) :=
   ⟨nSeq_bisimilar_of_historySemantics env d, historySemantics_of_nSeq_bisimilar⟩

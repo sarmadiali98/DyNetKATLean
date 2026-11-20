@@ -116,11 +116,11 @@ theorem compile_test_correct (p : Predicate) :
     rfl)
 
 theorem compile_assign_correct (f : FieldName) (a : FieldValueEnum) :
-    symbolicSchema.Represents (compileSymbolic (.assign1 f a)) (katInterp (.assign1 f a)) :=
+    symbolicSchema.Represents (compileSymbolic (.assign1 f a)) (katInterp (schema := ctxSchema) (.assign1 f a)) :=
   symbolicSchema.assign_correct ctxPacketModel (fun _ _ => rfl) f a
 
 theorem compile_completeTest_correct (α : CompleteTest) :
-    symbolicSchema.Represents (compileSymbolic (.completeTest α)) (katInterp (.completeTest α)) :=
+    symbolicSchema.Represents (compileSymbolic (.completeTest α)) (katInterp (schema := ctxSchema) (.completeTest α)) :=
   symbolicSchema.filter_correct (fun v σ h => by
     rw [symbolicSchema.completeTest_correct h]
     exact ⟨fun e f => (congrFun e f).symm, fun e => funext (fun f => (e f).symm)⟩)

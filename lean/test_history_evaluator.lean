@@ -183,14 +183,14 @@ example : ∃ B : Finset History,
 
 example : executeHistory (.assign1 .tpSrc .v9) hTwo = .supported {hTwoUpdated} := by
   rw [executeHistory_eq_image _ hTwo {Packet.update hTwo.head .tpSrc .v9}
-        (execute_assign1 .tpSrc .v9 hTwo.head),
+        (execute_assign1 (schema := ctxSchema) .tpSrc .v9 hTwo.head),
     Finset.image_singleton]
   rfl
 
 example : ∃ B : Finset History,
     executeHistory (.assign1 .tpSrc .v9) hTwo = .supported B ∧
     hTwoUpdated ∈ B ∧
-    ∀ h', HistorySemantics (.assign1 .tpSrc .v9) hTwo h' ↔ h' ∈ B := by
+    ∀ h', HistorySemantics ((.assign1 .tpSrc .v9 : NetKAT)) hTwo h' ↔ h' ∈ B := by
   obtain ⟨B, hex, corr⟩ := executeHistory_correct _ hTwo
   exact ⟨B, hex, (corr hTwoUpdated).mp rfl, corr⟩
 
@@ -200,18 +200,18 @@ example : ∃ B : Finset History,
 
 example : executeHistory (.union (.assign1 .tpSrc .v9) .drop) hTwo =
     .supported {hTwoUpdated} := by
-  have hexec : execute (.union (.assign1 .tpSrc .v9) .drop) hTwo.head =
+  have hexec : execute (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop) hTwo.head =
       .supported {Packet.update hTwo.head .tpSrc .v9} := by
-    rw [execute_union_supported (.assign1 .tpSrc .v9) .drop hTwo.head
+    rw [execute_union_supported ((.assign1 .tpSrc .v9 : NetKAT)) .drop hTwo.head
       {Packet.update hTwo.head .tpSrc .v9} ∅
-      (execute_assign1 .tpSrc .v9 hTwo.head) (execute_drop hTwo.head)]
+      (execute_assign1 (schema := ctxSchema) .tpSrc .v9 hTwo.head) (execute_drop hTwo.head)]
     simp
   rw [executeHistory_eq_image _ hTwo _ hexec, Finset.image_singleton]
   rfl
 
 example : ∃ B : Finset History,
     executeHistory (.union (.assign1 .tpSrc .v9) .drop) hTwo = .supported B ∧
-    ∀ h', HistorySemantics (.union (.assign1 .tpSrc .v9) .drop) hTwo h' ↔ h' ∈ B :=
+    ∀ h', HistorySemantics (.union ((.assign1 .tpSrc .v9 : NetKAT)) .drop) hTwo h' ↔ h' ∈ B :=
   executeHistory_correct _ hTwo
 
 ------------------------------------------------------------------------
@@ -222,11 +222,11 @@ example : executeHistory
     (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)) hTwo =
     .supported {hTwoUpdated} := by
   have hexec : execute
-      (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)) hTwo.head =
+      (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9)) hTwo.head =
       .supported {Packet.update hTwo.head .tpSrc .v9} := by
-    rw [execute_seq_supported (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)
+    rw [execute_seq_supported ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9)
       hTwo.head {Packet.update hTwo.head .tpSrc .v9}
-      (execute_assign1 .tpSrc .v9 hTwo.head)]
+      (execute_assign1 (schema := ctxSchema) .tpSrc .v9 hTwo.head)]
     exact evalSeq_single _ _ _
       (execute_fieldTest_match .tpSrc .v9 (Packet.update hTwo.head .tpSrc .v9)
         (Packet.get_update_same _ _ _))
@@ -238,7 +238,7 @@ example : ∃ B : Finset History,
       (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)) hTwo =
       .supported B ∧
     ∀ h', HistorySemantics
-      (.seq (.assign1 .tpSrc .v9) (NetKAT.fieldTest .tpSrc .v9)) hTwo h' ↔ h' ∈ B :=
+      (.seq ((.assign1 .tpSrc .v9 : NetKAT)) (NetKAT.fieldTest .tpSrc .v9)) hTwo h' ↔ h' ∈ B :=
   executeHistory_correct _ hTwo
 
 ------------------------------------------------------------------------
@@ -265,7 +265,7 @@ example : ∃ B : Finset History,
 example : ∃ B : Finset History,
     executeHistory (.star (.star (.assign1 .tpSrc .v9))) hTwo = .supported B ∧
     hTwo ∈ B ∧ hTwoUpdated ∈ B ∧
-    ∀ h', HistorySemantics (.star (.star (.assign1 .tpSrc .v9))) hTwo h' ↔ h' ∈ B := by
+    ∀ h', HistorySemantics (.star (.star ((.assign1 .tpSrc .v9 : NetKAT)))) hTwo h' ↔ h' ∈ B := by
   obtain ⟨B, hex, corr⟩ := executeHistory_correct _ hTwo
   refine ⟨B, hex, (corr hTwo).mp (historySem_star_refl _ _),
     (corr hTwoUpdated).mp
@@ -328,7 +328,7 @@ example : ∃ B : Finset History,
 
 -- Two iterations of the union-of-assignments star reach `hTwoBoth`.
 example : HistorySemantics
-    (.star (.union (.assign1 .tpSrc .v9) (.assign1 .tpDst .v1))) hTwo hTwoBoth :=
+    (.star (.union ((.assign1 .tpSrc .v9 : NetKAT)) ((.assign1 .tpDst .v1 : NetKAT)))) hTwo hTwoBoth :=
   historySem_star_step _ _ _ _ (Or.inl rfl)
     (historySem_star_step _ _ _ _ (Or.inr rfl) (historySem_star_refl _ _))
 
@@ -352,7 +352,7 @@ example : hTwoBoth.tail = [examplePacket9] := rfl
 example : executeHistory (.assign1 .tpSrc .v9) hSingle =
     .supported {⟨Packet.update examplePacket .tpSrc .v9, []⟩} := by
   rw [executeHistory_eq_image _ hSingle {Packet.update hSingle.head .tpSrc .v9}
-    (execute_assign1 .tpSrc .v9 hSingle.head), Finset.image_singleton]
+    (execute_assign1 (schema := ctxSchema) .tpSrc .v9 hSingle.head), Finset.image_singleton]
   rfl
 
 ------------------------------------------------------------------------
@@ -368,7 +368,7 @@ example (p : NetKAT) (h : History) (B : Finset History)
 -- Concretely: the assignment's output history is the updated head
 -- packet paired with the original tail.
 example : ∃ τ : CtxPkt,
-    Semantics (.assign1 .tpSrc .v9) hTwo.head τ ∧ hTwoUpdated = ⟨τ, hTwo.tail⟩ := by
+    Semantics ((.assign1 .tpSrc .v9 : NetKAT)) hTwo.head τ ∧ hTwoUpdated = ⟨τ, hTwo.tail⟩ := by
   obtain ⟨B, hex, corr⟩ := executeHistory_correct (.assign1 .tpSrc .v9) hTwo
   have hmem : hTwoUpdated ∈ B := (corr hTwoUpdated).mp rfl
   exact (executeHistory_outputs_characterization _ hTwo _ hex hTwoUpdated).mp hmem
