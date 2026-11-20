@@ -3,6 +3,7 @@ version = "0.1.0"
 
 [[lean_lib]]
 name = "DyNetKAT"
+globs = ["DyNetKAT", "DyNetKAT.Frontend.+"]
 
 [[lean_exe]]
 name = "dynetkat"
