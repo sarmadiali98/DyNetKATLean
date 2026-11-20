@@ -2,8 +2,9 @@
 
 The final [arXiv v4 conformance audit](docs/PAPER_CONFORMANCE.md)
 closes mathematical formalization under the documented typed scope.
-The remaining project phase is DyNetiKAT v1.1 functional and empirical
-parity. Definition 17 nested negation remains a documented source ambiguity.
+The remaining project phase is [DyNetiKAT v1.1 functional and empirical
+parity](docs/DYNETIKAT_PARITY.md). Definition 17 nested negation remains a
+documented source ambiguity.
 
 ## Symbolic native KAT
 

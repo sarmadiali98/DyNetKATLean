@@ -1,0 +1,187 @@
+# DyNetiKAT v1.1 parity
+
+Audited against Lean baseline `92f90ef7e31a8ae1febb4e50347ddb753a6ca7f6`
+and [DyNetiKAT v1.1 at 1c6bd422377853378c7516a7875009fcfb5ba881](https://github.com/hcantunc/DyNetiKAT/tree/1c6bd422377853378c7516a7875009fcfb5ba881).
+The GitHub mirror reports an identical comparison between tag `v1.1`
+and the full commit. Pinned source files were fetched directly.
+This is a source audit. Live reference verdicts, literal generator diffs
+and comparable measurements remain to be collected. The
+[reference audit](DYNETIKAT_REFERENCE_AUDIT.md) preserves earlier source
+notes. This document supersedes its implementation-status columns.
+The [paper conformance inventory](PAPER_CONFORMANCE.md) remains the
+authority for mathematical scope.
+
+## Reference interface and status
+
+Pinned entry points
+[`dnk.py`](https://github.com/hcantunc/DyNetiKAT/blob/1c6bd422377853378c7516a7875009fcfb5ba881/dnk.py),
+[`dynetkat.py`](https://github.com/hcantunc/DyNetiKAT/blob/1c6bd422377853378c7516a7875009fcfb5ba881/src/python/dynetkat.py),
+[`preprocess.py`](https://github.com/hcantunc/DyNetiKAT/blob/1c6bd422377853378c7516a7875009fcfb5ba881/src/python/preprocess.py),
+[`dnk.maude`](https://github.com/hcantunc/DyNetiKAT/blob/1c6bd422377853378c7516a7875009fcfb5ba881/src/maude/dnk.maude),
+and the [fixture directory](https://github.com/hcantunc/DyNetiKAT/tree/1c6bd422377853378c7516a7875009fcfb5ba881/benchmarks).
+
+In the table, Lean module names below `DyNetKAT` refer to the library
+under `lean/DyNetKAT`. Tests are under `lean`.
+
+| Capability and pinned source | Current status | Lean evidence and remaining requirement |
+|---|---|---|
+| JSON file input from `dnk.py`. Top-level keys `module_name`, `program`, `recursive_variables`, `channels`, `in_packets`, `out_packets`, `properties`. No separate source-file or stdin program entry point. | Missing | Decode raw files directly, preserve packet-key association and validate JSON types, duplicate keys, missing keys and malformed tuples. |
+| NetKAT strings, delegated to the chosen backend after token substitutions in `src/python/netkat_parser.py`. Fixture dialect uses `zero`, `one`, equality, `~`, `<-`, `+`, `.`, postfix `*`, parentheses and nonnegative field literals. Fields include `sw`, `pt`, `src`, `dst`, `typ`. | Verified core exists but frontend/tooling is missing | `NetKAT/AST`, `NetKAT/Symbolic`, `NetKAT/NativeEquations` and `test_packet_schemas.lean`. Parse source grouping and precedence, elaborate tests and policies, and infer or accept a finite schema covering the whole job. Preserve values outside the mentioned literals wherever negation can observe them. |
+| Process strings in Maude `DNA`. Deadlock `bot`, quoted policy followed by `;`, send/receive `x ! "N"` and `x ? "N"`, `rcfg(x,"N")` prefixes, `o+`, `\|\|`, references and parentheses. The Maude module also declares `\|\|<`, `\|`, `delta{H}(D)`, and `pi{n}(D)`; these are mainly rewriting/query machinery. | Verified core exists but frontend/tooling is missing | `DyNetKAT/AST`, `PaperSyntax`, `Program` and `test_paper_domain.lean`. Respect prefix precedence 40, parallel/merges 42 and choice 43, and the Maude gather rules where the paper admits the result. Parse and validate source restriction sets and projections on the admitted extended grammar. |
+| Declarations via name-to-body JSON map and channel-name array. Preprocessing writes Recursive and Channel constants and `getRecPol` equations. No independent textual declaration syntax in the CLI. | Verified core exists but frontend/tooling is missing | `RecEnv`, `WellFormed`, `TypedGuardedness`, `ProcessGraph` and `test_typed_guardedness.lean`. Compute finite reachable name support, reject unresolved/duplicate declarations and unguarded bodies, and preserve exact communication identity through elaboration. |
+| Packet pairs via `in_packets[id]` and `out_packets[id]`. `properties[id]` holds four-element arrays `[kind, expression, expectationOrWaypoint, depth]`. Worker dispatch only visits keys present in `in_packets` with properties. | Verified core exists but frontend/tooling is missing | `SafetyCheck.reachabilityPolicy`, `Reachability`. Type ingress, egress and waypoint as tests, check associations, preserve zero-based tuple identity. |
+| Reachability `r` with `!0` or `=0`. For extracted `N`, compare `in · N · out` with zero. A property report checks that the comparison agrees with the requested polarity. | Semantically equivalent but exposed through a different interface | `Reachability.projectedReachability_correct`, `SafetyCheck.checkCondition34_correct`, `checkCondition35_correct`, `test_reachability.lean`. A general frontend must dispatch both polarities for every supported selector and preserve failure as a distinct result. |
+| `head(@Program)` and `head(tail(..., {rcfg(x,"N"), ...}))`, including nested tails. Python substitutes a restricted projection for `@Program` and rewrites braces for Maude's TermSet. Depth is a natural transition bound, including zero in the Maude rules. | Verified core exists but frontend/tooling is missing | `FiniteProjection`, `GraphHead`, `GraphTail`, `SequentialReachability.graphTails_feasible_iff`, `Reachability.projectedReachability_correct`, `test_graph_tail_run.lean` and `test_reachability.lean`. Parse selector trees, preserve order, group event sets per stage, and connect selected head policies to decision procedures. |
+| Reachability-style safety via `=0`. No dedicated safety-formula query type, no v1.1 unbounded-mode switch and no universal-path query. | Semantically equivalent but exposed through a different interface | Same bounded reachability decision. `TraceSafetyCheck.check_correct`, `Reachability.normalizedReachability_correct` and `AnalysisStrategy` are additional interfaces. Exact all-depth analysis has its own support/certificate hypotheses. |
+| Waypoint `w` with a waypoint test as third item. Uses the extracted head, including nested tails, and compares the endpoint relations below. | Partially implemented | `Examples/FatTree.Migration.final_waypoint_inclusion`, `final_waypoint`, `waypoint_verdict` and `test_fattree.lean` cover a generated family. Build generic typed selector-to-policy extraction and a checked waypoint consumer for star and non-star cases. |
+| Preprocessing scans recursive bodies for string NetKAT prefixes and communication pairs, runs zero comparisons, rewrites bodies and uses `comm` to construct the outer send/receive restriction. `-p` reuses supplied bodies and `comm`. Raw run writes `output/<module_name>_preprocessed.json` with `file_name`, `comm` and the modified source fields. It can emit unquoted `zero` in bodies. Each `comm` entry is a comma-delimited channel and quoted policy pair. The CLI derives `file_name` anew on reload. | Partially implemented | `GraphRestriction`, `GraphNormalization`, `FiniteProjection`, `NetKAT/Decision` and `test_graph_safety.lean`. Add input reuse and export with a checked interpretation. Treat imported rewritten bodies as input programs, and establish equality to a raw run from the raw input or independently checked evidence when claiming reuse equivalence. |
+| One executable script, no subcommands. `python3 dnk.py <maude> <netkat> <input.json>`. Options `-h/--help`, `-t/--threads` (Pool default if omitted), `-p/--preprocessed`, `-v/--netkat-version` (default `netkat-idd`, alternative `netkat-automata`), `-s/--time-stats`. | Missing | `lean/DyNetKAT/Main.lean` prints the project name. Provide documented native invocation and migration mapping. |
+| Worker pools handle independent prefix-zero checks and query instances. Queries are collected in dispatch order, keyed by packet ID and zero-based index. | Missing | Add deterministic batch reporting with serial/parallel equivalence and configurable workers. Shared preprocessing has to preserve independent query meaning. |
+| Console verdicts `Packet: <id> - property: #<index>: property satisfied.` or `property violated.`, with an intended per-query error message. Optional two-decimal seconds report for total wall, preprocessing wall and maximum per-query NetKAT duration. JSON output is the preprocessing artifact. There is no JSON result report in v1.1. | Missing | Provide stable verdict/error records and compatible human-readable identities/status. Structured JSON verdict output is a possible extension. |
+| Argument checks require at least three positional arguments and ignore extras. Explicit checks print diagnostics and call bare `sys.exit()` (status 0). OptionParser help returns 0 and option syntax errors return 2. Malformed JSON and uncaught exceptions can exit nonzero. Property violations alone have no failure exit. Worker failures can return bare `None` and break reporting. | Missing | Specify coherent exit and diagnostic contracts. Keep violated, unsupported, input error and resource failure distinguishable. A legacy formatter can reproduce successful output without reproducing crashes or success exit codes on input errors. |
+| External Maude and NetKAT adapters. IDD translates literals to comparison-specific binary width, calls `katbv equiv` with two files and reads an equivalence string. Automata writes one comparison file, passes its path and reads a bisimulation string. | Intentionally superseded | `NetKAT/NativeEquations`, `NetKAT/Decision`, `FiniteProjection`, `test_packet_dependencies.lean`. Native symbolic Lean decisions and the source SOS provide verdicts. Old executable paths, backend selection and comparison-specific encoding are migration details. |
+| Temporary Maude modules and adapter files, low-level commands independent of the CLI, dependency installer, paper PDF and full academic trace-formula language. | Not required because it was optional/internal in v1.1 | Temporary files and internal modules are implementation details. Paper trace formulas are outside the v1.1 CLI surface. `TraceSafety` and `TraceSafetyCheck` provide the current verified trace-safety interfaces. |
+| Distributed-controller and FatTree Python generators, published fixture workflow and timing scripts. | Partially implemented | `Examples/DistributedControllers`, `Examples/FatTree`, `test_distributed_controllers.lean`, `test_fattree.lean`. Direct artifact ingestion and reproducible comparison runs remain. |
+
+No end-to-end public v1.1 entry point has exact parity at this baseline.
+
+## Query meaning and compatibility discrepancies
+
+For both polarities, apply the requested fourth-item depth to the complete
+DyNetKAT trace, including prior packet steps and selected reconfigurations.
+NetKAT star within one packet action retains its own exact semantics.
+An empty list of stages means direct head extraction. Head unions packet
+policies before the first reconfiguration on each branch. Each tail retains
+continuations at matching reconfigurations and may continue scanning matching
+events. An event outside the current set cuts that scan. Repeated tails apply
+to the previous tail's result. A stage set is a set of allowed events, with
+no universal ordering or arbitrary regular-expression path language inside
+a stage. A zero/nonzero result at depth n says nothing by itself about larger
+depths. Reuse `projectedReachability_correct` for endpoint results. For
+waypointing, expose and prove the policy-level extraction bridge, so the
+full extracted relation remains available for composition. A Boolean
+reachability result alone cannot supply it.
+
+For starred `N = H*` (normally `H = p · t`), define
+`A = in · N · out` and
+`B = in · (¬out · H)* · w · (¬in · H)* · out`.
+For an unstarred expression, the reference prepends the two guards to
+separate copies of N and has
+`B = in · (¬out · N) · w · (¬in · N) · out`.
+The reference tests `A + B ≡ B`, which is `A ⊆ B`. An empty A satisfies
+inclusion. A bypass can coexist with a waypoint route for the same endpoint
+pair. Extractor branching can produce several policies, so audit the actual
+resulting head shape before treating a printed star as a top-level star.
+The reference searches for any `*`, splices at the first opening
+parenthesis, and strips parentheses in endpoint guards. Preserve the
+well-defined formulas structurally. Ambiguous shapes need a precise
+unsupported result or independently justified translation. In particular
+a waypoint predicate is inserted between the two guarded passes, with the
+guard placement preserved. See pinned `src/python/dynetkat.py`.
+
+Track discrepancies explicitly in the differential manifest.
+
+- In the reference, `DNA` and Maude rewriting accept auxiliary or unchecked
+  forms. The Lean loader constructs an admitted `Program`, respects packet
+  continuation sorts and guarded reachable definitions, and analyzes only
+  its SOS residuals. In particular, the artifact accepts delta sets that
+  block rcfg terms, while the paper restriction set contains send and
+  receive actions. Such a restriction needs a compatibility diagnostic.
+- The raw v1.1 encapsulation scan sees recursive bodies only. It can miss
+  direct root communication and its zero replacement can affect identically
+  spelled communication payloads. Keep payloads syntactic and perform zero
+  elimination only at packet prefixes with verified zero. Compare the
+  effective reference restriction with the verified block-all unilateral
+  communication route on each fixture. If literal restriction differs, use
+  a checked exact restriction where meaningful or record the discrepancy.
+- Preserve the lexical identity relevant to literal fixture matches across
+  declarations, communication and selector tokens. Test whitespace and
+  grouping collisions where quoted reference strings differ but the typed
+  payload ASTs agree. A compatibility layer must establish match
+  preservation or diagnose the discrepancy. Semantic NetKAT equality
+  cannot identify communication payloads.
+- Reference head/tail rewrites traverse sequential syntax after preprocessing.
+  A result caused by an infeasible prefix, stuck Maude reduction or
+  unchecked rewrite requires a discrepancy entry before comparing verdicts. Compare normalized
+  selector results with the feasible trace reading and record disagreements.
+- Accept valid singleton declaration maps and constant-only NetKAT policies.
+  The reference's dictionary-key indexing and IDD `max(digits)` failures
+  are accidental. The README also records an IDD union-associativity
+  failure and suggests trying the automata adapter. Reject malformed selectors and unsupported query shapes
+  explicitly and test both. Duplicates, unsafe file names, unknown channel
+  references and resource limits need deterministic diagnostics.
+- Preprocessed files can encode prior lossy rewrites. Validate them as
+  supplied and track their provenance. A successful load alone does not
+  certify that they preserve the semantics of an unavailable raw source.
+
+## Corpus and empirical scope
+
+| Pinned artifact or workflow | Original work | Lean model, theorem and executable evidence at baseline |
+|---|---|---|
+| `benchmarks/stateful_firewall.json` via `run_test.sh` | Three definitions, two directions, four depth-2 queries. Tests initial positive/negative and post-event positive. | `test_graph_safety.lean` models Host/Switch and proves initial isolation and post-reconfiguration trace, with certified query regressions. Direct ingestion, complete four-query comparison and CLI report remain. |
+| `benchmarks/distributed_controller_independent.json` and `distributed_controller_synchronized.json`, generated by `benchmarks/distributed_controller.py` | 18 definitions each. Four `=0` queries per file, two ingress/egress pairs, initial at depth 2 and after event set at depth 3. The comparison is especially important on the breach case, where a violated expectation is meaningful. | `Examples/DistributedControllers` gives source breach, isolation and intended forwarding. `independent_headTail_verdict` and `synchronized_headTail_verdict` and the matching regression check selected source cases. Their depths and query scopes are not a blanket assertion about every original tuple. Direct ingestion and tuple-by-tuple comparison remain. |
+| `benchmarks/fattree.py`, `benchmarks/util.py`, `run_fattree.sh` | 6, 8, 10, 12, 14 and 16 pods, with 99, 208, 375, 612, 931 and 1,344 nodes. Four files per size (`reachability_1`, `reachability_2`, `waypointing`, `all_properties`). Each combined file has four positive, four negative and one waypoint query. Depths reach 5 for four updates and a packet observation. Filenames follow `fattree_<pods>_pods_<group>.json`. | `Examples/FatTree` covers the generated family, all phases, all-feasible-trace SSH isolation and final endpoint inclusion. `test_fattree.lean` covers the six counts and representative executable checks. Running all 24 original generated inputs, literal generator comparisons and comparable reporting remain. |
+| Published performance and artifact timing flags | Paper used ten-run averages with preprocessing, individual properties and combined parallel run. Reported results include under 2 s after preprocessing for small networks, up to 5 and 11 min at 931 and 1,344 nodes, roughly 24% parallel overhead and roughly 87% NetKAT decision share after preprocessing. | No pinned differential/timing campaign at this baseline. Pin backend, generator and dependencies, archive outputs and machine configuration, and measure both implementations with repeated raw and reused-preprocessing runs. |
+
+For literal generator comparison, archive original bytes and checksums under
+pinned Python/NetworkX versions, compare topology, equality of packet
+encodings, route tie breaks, update order, and queries. Record byte differences
+separately from changes in structure or verdict. Reusing original generated
+JSON as the comparison corpus is sufficient for functional output comparison.
+Compare the declared semantics and every query across implementations even when both generators report the same topology size.
+For timing, report per-run total, preprocessing, projection/extraction and
+decision wall time, the reference's maximum per-query decision duration,
+peak memory, worker count, host and timeout/failure status. Report scaling,
+solver share and parallel overhead from the recorded runs. Exact timing
+equality and reproducing the paper's absolute runtime are outside correctness.
+
+## Ordered implementation checkpoints
+
+Names below are proposed paths for new files. Reuse verified modules and
+put tests through the public entry points as each becomes available.
+
+| Checkpoint | Type and predecessor | Objective, expected files, dependencies and tests |
+|---|---|---|
+| 1. Load admitted v1.1 programs | Frontend, audit | Add `lean/DyNetKAT/Frontend/{V11Json,NetKAT,Process,Elaborate}.lean`, `lean/test_v11_input.lean` and a validate invocation in `Main.lean`. Close raw JSON, term syntax, declaration, channel, packet pair, schema and restriction/projection intake. Reuse `PacketSchema`, `PaperSyntax`, `TypedGuardedness`, `Program`, `ProcessGraph`. Demonstrate admission and support on all raw fixture families and reject malformed JSON, collisions, undeclared names, ill-sorted continuations and unguarded definitions. Test payload identity and values beyond all source literals. |
+| 2. Run bounded reachability from original JSON | Frontend and semantic integration, 1 | Add `Frontend/{Selector,V11Reachability}.lean`, extend `Main.lean`, add `test_v11_reachability.lean`. Parse both polarities, arbitrary nesting in the supported head/tail fragment, event sets and depths. Use `FiniteProjection`, `Reachability`, `GraphHead` and `GraphTail` to prove extracted-policy and verdict correspondence on the selected domain. Run firewall and both controller fixtures, and FatTree reachability groups. Cover empty/unmatched stages, repeated selectors, cutoff and simultaneous handshakes. Preserve query IDs and return basic verdicts. |
+| 3. Run waypoint and reusable batch reports | Frontend, reporting and waypoint integration, 2 | Add `Frontend/{Waypoint,V11Report,V11Preprocess}.lean`, extend `Main.lean`, add `test_v11_waypoint.lean` and `test_v11_cli.lean`. Complete checked waypoint inclusion, preprocessing import/export, serial/parallel batch controls, timing display and diagnostic/exit contracts. Depend on the checkpoint 2 extracted-policy bridge, native zero/equivalence and checked preprocessing. Test starred and unstarred forms, compound guards, bypass sharing endpoints, vacuous inclusion, malformed shapes, verified reuse versus fresh computation, mixed errors and deterministic workers. |
+| 4. Pin fixture comparisons and reproduce the empirical workflow | Empirical and release verification, 3 | Add `scripts/verify_v11_parity.sh`, `scripts/benchmark_v11.sh` and a versioned corpus/manifest under `benchmarks/v11/`. Run both implementations on the three fixed fixtures and 24 generated inputs, record individual and combined verdicts, generator provenance and timing breakdowns. Establish functional sign-off from the differential ledger before interpreting timing. Record tool failures and independently checked semantic discrepancies. |
+
+## Acceptance and progress estimates
+
+**Functional parity** is complete when unmodified pinned raw JSON files
+and their valid preprocessed counterparts load directly, every supported
+tuple has a checked bounded verdict with stable identity, and the documented
+CLI covers batching, worker counts, preprocessing reuse, help, diagnostics
+and timing display. The comparison run must cover 12 queries across the
+three fixed inputs and 108 dispatches across the 24 FatTree files (54 in
+separate groups plus 54 in combined files). Compare by packet ID, index,
+query meaning and depth. Every case must either match the pinned tool or
+have an explicit discrepancy with a checked Lean interpretation and a
+regression. A crash, timeout or unclassified verdict difference cannot be
+counted as a matching success. Require raw/reused and serial/parallel
+agreement for the same admitted query, and negative regressions for invalid
+inputs. Success-line compatibility and native invocation/exit differences
+are documented separately. Maude, KATch and external NetKAT binaries are
+reference-run dependencies only.
+
+**Empirical parity** is complete when the recorded campaign includes all
+six scales and all four query groupings, archives original and regenerated
+artifacts with literal differences explained, and reports ten repetitions
+per configuration with declared hardware, dependencies, worker counts and
+reuse settings. Preserve raw measurements, reference and Lean outcomes,
+timeouts and memory. Report the individual/combined timings, preprocessing
+and decision shares, and scaling comparison. Timing differences do not
+invalidate a functional verdict.
+
+**Planning estimate.** Functional parity is about **40%** as implementation
+readiness, with zero complete public fixture workflows today. Score 10
+equally weighted capabilities at 0 for absent, 0.5 for a verified reusable
+core or partial counterpart and 1 for delivered parity. NetKAT text, process
+text, declaration admission, packet predicates, bounded reachability,
+selectors, waypoint and reusable preprocessing each score 0.5. JSON
+ingestion and batch CLI/reporting each score 0. For whole-project planning,
+weight the completed typed formalization at 65%, functional parity at 25%,
+and the outstanding empirical campaign at 10%. This gives about **75%**
+overall. These are readiness estimates with stated weights, not measured
+engineering time or a count of successful differential runs.

@@ -24,8 +24,9 @@
 The prototype performs analysis by invoking Maude and a NetKAT decision
 procedure. The [current roadmap](../PLAN.md) specifies the Lean trust
 boundary and the use of external tools for reference runs or checked
-certificates. See the [current feature parity matrix](#v11-feature-parity)
-for the re-audited revision and workflow.
+certificates. See the [v1.1 parity roadmap](DYNETIKAT_PARITY.md) for current status
+and completion criteria. The [earlier feature matrix](#v11-feature-parity)
+records the prior revision and workflow audit.
 
 ---
 
@@ -690,7 +691,8 @@ throughout its flight — an assumption from [16] (Reitblatt et al.).
 
 ## v1.1 feature parity
 
-This table is the current parity ledger. It uses the immutable
+This table preserves the earlier parity ledger. Its implementation status
+is superseded by the [v1.1 parity roadmap](DYNETIKAT_PARITY.md). It uses the immutable
 [University of Twente GitLab v1.1 checkout](https://gitlab.utwente.nl/fmt/dynetikat/-/tree/1c6bd422377853378c7516a7875009fcfb5ba881).
 The tag and default branch resolve to `1c6bd422377853378c7516a7875009fcfb5ba881`,
 with Git tree `b90170418efdee4842cd2acab6a03f68b9a82d6a`. The GitHub copy
