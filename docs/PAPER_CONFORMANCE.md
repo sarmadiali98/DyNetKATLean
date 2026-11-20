@@ -590,50 +590,52 @@ require a distinct property and proof.
 
 ## FatTree migration in arXiv v4
 
-The benchmark in §V and Figs. 12–13 remains open. Figure 12 shows
-core, aggregation, and top-of-rack (ToR) switches, with the ToRs
-grouped into pods. The workload uses shortest-path
-forwarding between all ToRs in six generated topologies. Section V
-reports the 931- and 1,344-switch instances. The selected ToRs
-`Ta` and `Tb` are in different pods, and their initial traffic passes
-through aggregation firewall `Ax`, which filters SSH traffic. The
-controller moves the firewall to aggregation switch `Ax'` by four
-updates to aggregation and core flow tables.
+[FatTree.lean](../lean/DyNetKAT/Examples/FatTree.lean) formalizes the
+three properties in §V for the generated family. The selected endpoints
+are in different pods. Initially their shortest route uses the old
+aggregation firewall. The final route uses a distinct source-side
+upper aggregation switch and core in its row.
 
-The paper describes the scenario and the three checks. It does not
-give the full benchmark topology tables, a concrete selection of the
-firewall switches, the packet field layout or numeric SSH predicate,
-the four ordered payloads and event labels, or a recursive declaration
-environment. The [pinned DyNetiKAT v1.1 source audit](DYNETIKAT_REFERENCE_AUDIT.md#v11-feature-parity)
-records generator-specific data separately. Its 16-pod instance has
-1,024 ToR endpoints, 256 aggregation nodes, and 64 core nodes. It
-records four ordered updates and query depths 2, 3, 4, and 5 for the
-corresponding nonempty update prefixes. Those depths describe the
-reference runs. Source isolation quantifies over all feasible traces.
+| v4 item | Status and evidence |
+|---|---|
+| §V and Fig. 12, topology and forwarding | **Theorem proved.** `Switch` separates ToRs, lower and upper aggregation switches, and cores. `nextHop_linked`, `shortest_routing`, and `distance_lower_bound` give legal minimum-hop destination routing before filtering. `topology_sem`, `table_sem`, and `Migration.hop_sem` connect the generated NetKAT terms to links and per-phase tables. |
+| Initial firewall and four updates | **Theorem proved.** `Migration.admission` checks guarded phase definitions and reference closure. `migration_step`, `migration_reachable`, and `reachable_phase` preserve the precise update labels and both packet lists. `update_synchronizes` exhibits the corresponding literal send/receive match. |
+| §V (i), Reachability-I | **Theorem proved.** `Migration.nonSSH_forwarding` and `nonSSH_trace` give forwarding before, during and after the updates. `graph_nonSSH` transfers these traces to the compiled graph. |
+| §V (ii), Reachability-II | **Theorem proved.** `Migration.ssh_isolation` excludes the configured SSH ingress from reaching the destination ToR in every feasible source trace, including arbitrary intervening packet observations. `certified_ssh_word` obtains finite query verdicts through `TraceSafety.check_correct`. |
+| §V (iii), Waypointing | **Theorem proved.** `Migration.final_waypoint_inclusion` includes the final ingress-to-egress relation in the relation passing through the new firewall with the printed endpoint guards. `final_waypoint` proves the corresponding NetKAT equation and `waypoint_verdict` certifies the symbolic decision. This is endpoint-relation inclusion. |
+| Benchmark sizes | **Executable regression.** The generated node counts are 99, 208, 375, 612, 931, and 1,344 for 6 through 16 pods in steps of two. `benchmark n` is a family with no fixed upper size limit. The regression checks representative links and updates, the firewall filter, a certified SSH query and theorem-backed reachability and waypoint verdicts. |
+| Fig. 13 timings and generated fixtures | **Still open.** Runtime measurements and literal comparison with all generator outputs are empirical parity work. |
 
-| v4 item | Intended Lean model or proof | Status |
-|---|---|---|
-| §V and Fig. 12, generated topology and shortest-path forwarding | Retain the graph's actual switch and link-endpoint identities in the packet location. Use symbolic NetKAT location tests, link assignments, and per-phase forwarding policies. Preserve the SSH distinction independently of location. | Open. The full benchmark requires its own schema to represent all locations. |
-| §V, initial firewall and four updates | Define the initial, three intermediate, and final configurations in one admitted `Program` using `RecEnv`. Establish reachable `Residual` values and the actual update labels, order, and packet effects from source SOS. Use a synchronization theorem if the concrete controller encoding uses handshakes. | Open. The paper's four updates alone do not specify the source controller syntax or literal SOS events. |
-| §V (i), Reachability-I | Use `staticReachability_iff` for forwarding in each phase and `EndpointReachable` with the head/tail source bridge after selected migration events. Prove feasible non-SSH forwarding from `Ta` to `Tb` at each phase, including the initial and final configurations. | Open. The general endpoint bridges are machine checked. |
-| §V (ii), Reachability-II | Exclude a feasible SSH observation from `Ta` to `Tb` across every reachable phase, including traces with arbitrary preceding packet observations. Apply the existing Eq. (27) or Eq. (28) bridge if the property is rendered as a forbidden trace family. | Open. The generic safety and equational bridges are machine checked. |
-| §V (iii), Waypointing | For the final phase, instantiate the printed NetKAT test `R + W ≡ W`. Here `R` is the ingress-to-egress relation and `W` is the relation factored through `Ax'` with the printed endpoint guards. The equality checks inclusion of endpoint pairs in `W`. A statement that excludes every individual bypass with the same endpoints needs a path-level argument. | Open. There is no FatTree waypoint theorem or regression. |
-| Fig. 13, experimental timings | Reproduce the benchmark instances, query groups, and measurement setup separately from proving the source properties. The figure reports measured checking and preprocessing times. | Open empirical work. |
+**Paper ambiguity.** V4 does not print the full topology tables,
+tie-breaking algorithm, packet layout, ordered payloads, or literal SOS
+labels. The [pinned generator](https://github.com/hcantunc/DyNetiKAT/blob/1c6bd422377853378c7516a7875009fcfb5ba881/benchmarks/fattree.py)
+fixes the topology dimensions and the update order. The latter installs the
+new firewall, updates its core, updates the destination-side upper
+aggregation, and finally updates the source-side lower aggregation.
 
-Eqs. (34)–(35) are the preceding stateful firewall example. Eq. (28)
-is introduced for the distributed controllers. Neither gives a
-FatTree-specific formula or names the four migration events. If a
-FatTree checker later uses projection, the existing
-`projectedReachability_correct` and `ProjectionDerivation` apply under
-their stated premises. The source claims do not call for an AIP
-argument.
+**Representation choices.** For `2m` pods, `Endpoint m` uses a pod, lower
+aggregation index, and local ToR index. The two aggregation sublayers follow
+the generator's links and give `4m²` aggregation switches. There are
+`2m³` ToRs and `m²` cores. A local port is named by its adjacent node,
+with an extra local-delivery value. The packet fields distinguish location,
+port, source, destination and SSH classification. Links update location and
+port and preserve source, destination, and SSH classification.
+
+The model chooses the first and last ToRs, two distinct upper rows,
+and a fixed core column. The forwarding rules implement an analytic
+shortest-path tie break. The relevant destination entries at the new core
+and destination-side upper aggregation are installed in their corresponding
+phases. The five guarded definitions represent the effective network states
+after synchronization, with phase-named channels and model-specific NetKAT
+table syntax. This leaves literal generator port numbering, tie choices
+and exported program text for comparison work. Eq. (28) is introduced for
+the distributed controllers, so the FatTree theorem states isolation
+directly over source traces without selecting a finite unfolding depth.
 
 ### Fixed-schema obstruction
 
 This historical obstruction applies to the `CtxPkt` specialization.
-The generic equational and certified analysis pipeline now accepts a
-FatTree schema with distinct locations. The case study still requires
-its own schema, verified encoding, and property proofs.
+The FatTree instance now uses a finite schema with distinct locations.
 
 `CtxPkt` has the four fields `tpSrc`, `tpDst`, `swId`, and `port`.
 Each field has four values, so the existing `ctxPkt_card` theorem
@@ -672,6 +674,4 @@ representative by searching. Packing coordinates as in the small
 controller example, moving location information into the control
 term, or quotienting to a single selected route would not supply
 the distinguishable intermediate packet locations demanded by the
-full workload. A smaller topology may fit, but it would leave the
-reported larger instances open. No FatTree program, source
-transition theorem, or executable migration regression has been added.
+full workload. The generic FatTree schema removes this obstruction.

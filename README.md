@@ -153,6 +153,11 @@ checked classifiers for active restrictions. All-depth analysis uses a
 checked finite reachable closure or another suitable checked model. Source trace safety and finite projection also
 apply to programs with infinitely many derivatives.
 
+The [FatTree case study](docs/PAPER_CONFORMANCE.md#fattree-migration-in-arxiv-v4)
+proves forwarding through the five migration phases, all-trace SSH isolation,
+and the final waypoint endpoint-inclusion equation. The topology regression
+covers all six reported sizes through 1,344 switches.
+
 ## Building
 
 ```bash

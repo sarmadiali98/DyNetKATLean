@@ -53,6 +53,7 @@ import DyNetKAT.DyNetKAT.HeadNormalForm
 import DyNetKAT.DyNetKAT.GroundCompleteness
 import DyNetKAT.DyNetKAT.DependencySCC
 import DyNetKAT.Examples.DistributedControllers
+import DyNetKAT.Examples.FatTree
 import DyNetKAT.Basic
 
 namespace DyNetKAT

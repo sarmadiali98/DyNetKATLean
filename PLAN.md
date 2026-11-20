@@ -191,8 +191,10 @@ records all three v4 checks. The semantic foundation now represents
 1,344 distinct switch identities without changing `CtxPkt`. Symbolic
 policy equivalence and algebraic NetKATLean normalization are now
 schema-generic. The DyNetKATLean equational and certified analysis
-transfer is schema-generic as well. The FatTree model and its three
-case-study proofs remain open.
+transfer is schema-generic as well. The FatTree model proves admission,
+the ordered four-update migration, non-SSH forwarding in all five
+phases, all-trace SSH isolation, and final waypoint endpoint inclusion.
+The original generator comparison and timing measurements remain open.
 
 ### Phase 6 — Extraction and normalization
 
