@@ -1,5 +1,10 @@
 # DyNetKAT-Lean roadmap
 
+The final [arXiv v4 conformance audit](docs/PAPER_CONFORMANCE.md)
+closes mathematical formalization under the documented typed scope.
+The remaining project phase is DyNetiKAT v1.1 functional and empirical
+parity. Definition 17 nested negation remains a documented source ambiguity.
+
 ## Symbolic native KAT
 
 `KATLean.Native` decides the pure KAT equational theory using reduced ordered
@@ -107,9 +112,8 @@ flowchart TD
 ### Phase 0 — Conformance audit
 
 Use the pinned editions, immutable tool revision, and working-tree evidence in
-the three ledgers. The source and coverage audit is recorded. The release gate
-also requires checking the open interpretation issues against the formal
-statements and executing the original artifact baseline in Phase 9.
+the three ledgers. The mathematical audit is recorded in the paper inventory. Executing the
+original artifact baseline belongs to the tool parity phase.
 
 ### Phase 1 — General NetKAT foundations
 
@@ -119,9 +123,8 @@ and the generic DyNetKATLean semantic foundation. The original
 and test scope is recorded in the
 [packet-schema conformance entry](docs/PAPER_CONFORMANCE.md#finite-packet-schema-foundation).
 The dependent-field compiler, executable equivalence, and algebraic
-Lemma 5 now support finite schemas. Generalizing the remaining
-DyNetKATLean equations and certified analysis path is part of the
-FatTree prerequisite.
+Lemma 5 support finite schemas. The DyNetKAT equations and certified
+analysis path are also schema-generic and support the FatTree case study.
 
 Parameterize the finite field schema and each field's value type. Preserve a
 fixed-domain instance for existing regressions. Prove complete tests and
@@ -327,7 +330,7 @@ and every existing NetKAT derivation preserves its interpretation.
 The derivation layer now uses KATLean directly for all 15 KA rules, six BA
 laws, four test embeddings and seven packet laws. Semantic soundness follows
 from that interpretation equality, and Lemma 5 and E_DNK consume this proof
-chain. The remaining foundation work concerns general-schema bridges.
+chain across arbitrary finite packet schemas.
 Full NetKAT history/dup coverage is an optional supporting extension.
 
 ### Recursive analysis and concrete certificates

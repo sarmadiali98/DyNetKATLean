@@ -1,5 +1,80 @@
 # DyNetKAT paper conformance inventory
 
+## Final mathematical inventory
+
+The substantive arXiv v4 mathematics is covered under the typed
+interpretation below. The index classifies the paper items and points to the
+detailed constructor, axiom, and case-study crosswalks. A definition and a
+correctness result about it are separate items. No item in this inventory
+is classified as a genuine remaining paper gap. Numbered proof steps are
+accounted for by the corresponding result, including Appendix A, whose
+intermediate proof displays are internal to Fig. 11 soundness.
+
+| Paper item | Classification | Evidence |
+|---|---|---|
+| Def. 1, Fig. 3, §§II-A/B | Machine-checked definition/encoding | Packet fields, lists, NetKAT syntax and history semantics. Fig. 3's `dup` is represented at the history layer. |
+| Fig. 4, laws applicable to dup-free policies | Machine-checked theorem | NetKAT axiom inventory below, with KATLean as the algebraic foundation. |
+| Full-history equational completeness and the dup-specific Fig. 4 axiom | Deliberately stronger extension beyond paper scope | The imported calculus used in DyNetKAT admits only dup-free policies. |
+| Eqs. (1), (6), Def. 2 and Fig. 8; Eqs. (2)–(5) | Machine-checked definition/encoding | Typed grammar, guarded declaration environment, bisimulation and SOS rules, including extended operators. |
+| Proposition 1 and Proof 1 | Machine-checked theorem | `Program.historySemantics_iff_packetPrefix_bisimilar`. |
+| Lemma 3 and Proof 2 | Machine-checked theorem | `paperLemma3`, in one declaration system. |
+| Defs. 4, 6, 7 | Machine-checked definition/encoding | Pair sums, head normal form and typed guarded occurrences. |
+| Lemma 5, Eqs. (7)–(8), Proof 3 | Machine-checked theorem | `exists_derives_pairSum`. |
+| Lemmas 8–9 and Proof 4 | Machine-checked theorem | `WellFormed.finite_targets_from`, `guarded_normalizes` and `Program.normalizes`. |
+| Fig. 11, equational system | Machine-checked definition/encoding | `DerivesNoAIP` and `Derives` encode the typed rule families, including AIP. |
+| Fig. 11 rule soundness, Appendix A Eqs. (36)–(129), Lemmas 10–11 and Eqs. (9)–(24), Proofs 5–6 | Machine-checked theorem | Typed rule soundness, including AIP. The Fig. 11 table maps individual rules and auxiliary proof cases. |
+| Theorem 1, Eq. (25), Proof 7 | Machine-checked theorem | Full soundness and variable-free ground completeness, including the two choice absorptions. |
+| Defs. 12–16 and Def. 17 surface syntax | Machine-checked definition/encoding | Trace alphabet, regular expressions, hnf, guarded translation, trace derivation and safety predicate. |
+| Defs. 13–17 semantic results, Eqs. (26)–(28) and the §V positive safety equation | Machine-checked theorem | Word-language preservation, exact translation, A16, trace equivalence, safety and all-length padding. Def. 17 here covers the cases with printed desugaring clauses. |
+| Def. 17 nested negation | Documented paper ambiguity | The grammar admits it and the desugaring omits it. No later theorem here requires a nested-negation clause. |
+| Def. 7 ill-sorted clause, repeated hnf summand, printed merge/tail metavariables and §IV-A controller endpoint wording | Documented paper ambiguity | The corresponding sections record the typed reading and the operational or mathematical evidence for each interpretation. |
+| Example 1, Figs. 1, 5 and 9 | Machine-checked definition/encoding | Admitted firewall and SOS scenario, including its packet and synchronization observations. |
+| Eqs. (29)–(33) | Machine-checked theorem | Head and tail specifications on the normalized sequential extraction domain. |
+| Eqs. (34)–(35) | Machine-checked theorem | `firewall_no_initial_external_flow` and `firewall_post_reconfiguration_trace` in `test_graph_safety.lean`, with the source-trace bridge under the stated extraction conditions. |
+| Example 2, Figs. 2, 6, 7 and 10, §IV-A instance of (27)–(28) | Machine-checked theorem | Independent breach, synchronized isolation, intended forwarding and corresponding equational verdicts. |
+| §V, Fig. 12, FatTree properties (i)–(iii) | Machine-checked theorem | Generated topology and four-update migration, forwarding in every phase, all-feasible-trace SSH isolation and final waypoint endpoint-relation inclusion. |
+| Concrete encodings, FatTree routing choices and payloads left unspecified in print | Faithful representation choice for paper-unspecified detail | Packet layouts, concrete names, generator dimensions and ordered updates are documented with each example. |
+| Guarded mutual recursion, firewall and controller checks; six FatTree scales | Executable regression supplementing a theorem | Concrete checks of the results above. |
+| Fig. 13, Maude scaling comparison and §V/VI tool features | Tooling/experimental matter outside mathematical paper completion | Timings, fixture reproduction and batching, as well as parser, JSON, CLI and selectors for v1.1. |
+| Generic schema infrastructure, certified source/graph transfer, executable exact projections, symbolic solvers, negative witnesses, finite quotients and cross-environment congruence | Deliberately stronger extension beyond paper scope | Generic and certified infrastructure supports the results above. Cross-environment congruence is a separate open extension. |
+
+### Scope of the completion claim
+
+All general paper theorems apply over arbitrary finite packet schemas.
+The normalization and ground-completeness constructions take a
+`DiagramLayout`; `PacketSchema.diagramLayouts` witnesses that layouts exist
+for any finite schema. The sizes 256, 931 and 1,344 describe a compatibility
+instance and benchmark topologies. They impose no numeric ceiling on the
+theory. The FatTree results apply to the specified generated family with
+the stated endpoint and route conditions.
+
+The semantic claims concern terms admitted by the actual DyNetKAT grammar
+and guarded declarations, and their SOS-reachable residuals. In particular,
+packet sequencing takes a base-sorted continuation. Raw AST theorem
+statements may be more general and do not extend the paper grammar.
+Send, receive and reconfiguration carry syntactically identified NetKAT
+payloads. Packet denotation equality supports packet-prefix rewriting only.
+Congruence preserves the payloads, channel names, restriction sets and
+projection depths used as operator parameters.
+
+Lemma 8 proves finite sets of immediate process targets of each reachable
+state under `WellFormed`, independent of a finite global derivative set.
+Lemma 9 uses guarded occurrences for its syntactic theorem and well-formed
+reachable declarations for its admitted entry theorem. Lemma 10 and
+`Derives.sound` prove soundness for every derivation in their typed
+relations, including recursive references and, for the latter, AIP. AIP
+takes all finite projections and local image finiteness at reachable
+endpoints, supplied by guardedness on the source domain. The reverse
+direction of Theorem 1 requires variable-free operands in one environment.
+
+Eq. (27) uses an admitted program and a supplied finite alphabet containing
+all observed events (`UsesAlphabet`). Eq. (28) characterizes occurrence
+avoidance over all feasible traces under the same premise, with no
+projection budget or finite global derivative closure. A bounded query
+checks a finite projection. An all-depth executable strategy based on
+finite derivative rows or a quotient additionally needs its own
+support, membership checks and successful certificate conditions.
+
 ## Sources and edition crosswalk
 
 The mathematical authority is [arXiv:2102.10035v4](https://arxiv.org/pdf/2102.10035v4),
@@ -181,12 +256,12 @@ standalone packet-prefix executable.
 |---|---|---|
 | §II-C, Fig. 8 | Named recursive equations, one definition per referenced name. Variables inherit a body's steps. | `RecEnv` enforces at most one body. `ClosedDefined.existsUnique_lookup` proves exactly one body for each reachable name. `cpol_var` inherits the looked-up body's transition. |
 | Def. 7 | Every variable occurrence must be guarded. Clause (i) places the occurrence in the continuation of a sequence with a variable-free or itself guarded prefix. Clause (ii) mentions `y?X;t`, `y!X;t` and `rcfg_{X,t}`. | `typedPaperGuarded_iff_guardedOccurrences` proves the typed occurrence-path interpretation. `wellFormed_iff_closedDefined_and_typedPaperGuarded` checks reachable **bodies**. See the typing audit below for the literal clause. |
-| Lemma 8 | Finite branching of guarded policies, including reachable derivatives. | `WellFormed.finite_targets_from` bounds immediate source targets uniformly over actions and packet lists at every reachable `CtxPkt` state, with arbitrary restriction sets and no finite-support hypothesis. The executable `finite_branching_supported` route remains available. |
+| Lemma 8 | Finite branching of guarded policies, including reachable derivatives. | `WellFormed.finite_targets_from` bounds immediate source targets uniformly over actions and packet lists at every reachable state over any finite schema, with arbitrary restriction sets and no finite-support hypothesis. The executable `finite_branching_supported` route remains available. |
 | Def. 2 | Symmetric relation on policies. Match every step from every initial list pair with the same action and final lists, and relate the derivatives. Bisimilarity is the largest such relation. | `IsBisimulation`, `Bisimilar`, refl/sym/trans under a shared environment. Graph `GBisimilar` uses a shared graph. `GraphBisimilarBetween` compares two closed graphs. `gbisimilar_iff_bisimilar` and `compileGraph_bisimilar_iff` give a shared-source-environment bridge under correspondence/support. Cross-environment closure and name independence remain open. |
-| Prop. 1 | Equal NetKAT denotations iff `p;d ∼ q;d` for each continuation d. | Machine checked by `Equations.historySemantics_iff_nSeq_bisimilar` for dup-free `CtxPkt` policies in any fixed `RecEnv`. `Program.historySemantics_iff_packetPrefix_bisimilar` gives the admitted version with the base continuation sort. |
+| Prop. 1 | Equal NetKAT denotations iff `p;d ∼ q;d` for each continuation d. | Machine checked by `Equations.historySemantics_iff_nSeq_bisimilar` for dup-free policies over any finite schema in any fixed `RecEnv`. `Program.historySemantics_iff_packetPrefix_bisimilar` gives the admitted version with the base continuation sort. |
 | Lemma 3 | Bisimilarity is a congruence for the process operands of Eq. (6). | `paperLemma3` packages the fixed-environment constructor lemmas over arbitrary finite packet schemas. See the scope below. |
 | Def. 6 | A finite choice of complete packet prefixes α·π or send, receive and rcfg prefixes, with arbitrary continuations and optional deadlock. | `HeadNormalForm` and `IsDNKNormalForm` represent this algebraic form. `HeadNormalForm.step_iff` recovers an exact head and continuation from a rendered SOS transition. |
-| Lemma 9 | E_DNK derives equality from a guarded policy to a Def. 6 normal form. | Proved for the typed `CtxPkt` domain by `guarded_normalizes` in `DerivesNoAIP`. `WellFormed.normalizes` extends the result to closed entry terms with exposed references, by the fixed-environment unfolding rule. Both retain arbitrary continuations. The packet-prefix case emits the exact atomic heads from accepting symbolic paths using Lemma 5. The syntactic hypothesis is equivalent to `TypedPaperGuarded`. |
+| Lemma 9 | E_DNK derives equality from a guarded policy to a Def. 6 normal form. | Proved over any finite schema with a `DiagramLayout` by `guarded_normalizes` in `DerivesNoAIP`. `WellFormed.normalizes` extends the result to closed entry terms with exposed references, by the fixed-environment unfolding rule. Both retain arbitrary continuations. The packet-prefix case emits the exact atomic heads from accepting symbolic paths using Lemma 5. The syntactic hypothesis is equivalent to `TypedPaperGuarded`. |
 | Lemma 10, Appendix A | Every derivation in E_DNK without AIP implies bisimilarity. Includes A0–A15 and δ/π equations. | `DerivesNoAIP.sound` proves soundness of the typed rules below in a fixed environment. |
 | Eq. (3), Fig. 11 Π rules and Lemma 9 | A positive projection takes one source step and projects the derivative one depth lower. The equations reduce zero and projected deadlock to deadlock, distribute over choice, and move successor projection under an atomic prefix. | `WellFormed.project_exists_ground` iterates the Lemma 9 head form and the Π rules to derive a ground term at each finite depth. `renderProjection_derives` identifies that ground term with the actual certified rendering by `ground_complete`. The executable renderer is a Lean integration of these paper results. |
 | Lemma 11, Eqs. (20)–(24) | Bisimilarity at every finite projection implies bisimilarity through descending sets of matching successors. | `Derives.aip` uses full derivation premises at every depth and reachable image finiteness at both endpoints. `Derives.sound` supplies premise soundness recursively and invokes `approximation_induction`. `Derives.aip_guarded` supplies image finiteness from `WellFormed`. |
@@ -460,7 +535,7 @@ ledger](PROOF_OBLIGATIONS.md#algebra-and-completeness).
 | Eq. (28) | For every natural n, absorb the network into the specification forbidding the designated packet action immediately after n alphabet events. | **Formalized.** `padded`, `mem_padded`, `padded_exists_coreFormula` and `padded_equational_iff` verify each formula. `eq28_iff_no_occurrence` proves the full family equivalent to absence of the action on every feasible source trace over the alphabet. At n = 0, `padded_zero` gives the unpadded literal. The two distributed-controller instances are recorded below. |
 | §V positive absorption | For `s = ⟨r⟩true`, derive `i ⊕ ⟦s⟧ ≡ i` in the trace theory. | `TraceSafety.positiveSpecification` renders the finite word witnesses. `positiveAbsorption_iff_traces` proves inclusion of **each** word in source traces. For a singleton word this says that word is feasible. `checkPositive_correct` uses exact symbolic moves with supported compilation and restriction classifiers. |
 | §V static endpoint query | Test `in · (p · t)* · out` for nonzero. | `staticReachability_iff` gives an existential endpoint flow through zero or more switch/topology rounds. The ingress and egress predicates test the endpoints. |
-| §V dynamic endpoint queries (34)–(35) | Initial isolation uses zero of the head policy. Post-event forwarding uses nonzero of the head of the selected tail. | `graphHead_source_iff` identifies feasible source-visible packet observations after preprocessing, including nested tails. `compiledSafety_source_correct` connects both verdicts to the source. `projectedReachability_correct` is bounded by the total source-word length, and `normalizedReachability_correct` is all-depth with exact finite derivative rows. Waypoint correspondence remains open. |
+| §V dynamic endpoint queries (34)–(35) | Initial isolation uses zero of the head policy. Post-event forwarding uses nonzero of the head of the selected tail. | `graphHead_source_iff` identifies feasible source-visible packet observations after preprocessing, including nested tails. `compiledSafety_source_correct` connects both verdicts to the source. `projectedReachability_correct` is bounded by the total source-word length, and `normalizedReachability_correct` is all-depth with exact finite derivative rows. The separate FatTree waypoint result is endpoint-relation inclusion. |
 
 `SourceTrace` and `Program.Trace` in `SourceTrace.lean` use the existing
 `Steps` relation with consecutive packet lists. One-sided sends and receives
@@ -547,12 +622,12 @@ the SOS, and synchronization matches communication payloads syntactically.
 | `GraphTail` | `graphTail_domain_iff`, `graphTail_bridge`, `graphTail_spec_iff_of_domain`, `graphTailSpec_toGProc_iff` for variable-free source comparison. Tail adds fresh labels for transformed references and retains the original labels needed by selected continuations. | Exact query domain `GraphTailDomain G R`; `GraphTailSupported` is a sufficient all-sets domain. `graphTail_path_iff` preserves the continuation endpoint. `graphTail_feasible_iff` and `graphTails_feasible_iff` recover exact selected-event segments before a nonempty suffix on enabled graphs. |
 | `GraphNormalization` | `exists_exactNormalization_iff` for finite restricted derivatives uses syntactic policy labels and symbolic zero checks. `exists_checkedNormalization_iff` adds admissibility, and `normalizeGraph_correct` establishes graph bisimilarity and extractor support. | Caller supplies a derivative table. Boolean validation also requires restriction-free derivative syntax and one checked reference order with supported one-step rows. The certificate path is separate from finite-depth rendering. |
 | `FiniteProjection` | `renderProjection_source` proves exact executable finite projection on guarded, finitely supported inputs over any finite schema with correct executable membership at restriction sites. `renderProjection_restricted` compares with an outer restriction of the projection. | `projectedReachability_correct` verifies the bounded consumer on guarded source programs with finite definition support. `renderProjection_derives` and `renderProjection_restricted_derives` prove algebraic equality without AIP. The `Program.Compiled` and `State` wrappers use admitted entries and reachable residuals as sources. |
-| `SafetyCheck` and compiled graph entry points | `safetyCheckGraph_correct` yields the two verdicts against `GraphHeadSpec` and `GraphTailSpec` on their domains. `compileNormalizeAndSafetyCheckGraph_correct` adds source/graph correspondence and restricted graph bisimilarity on successful compilation and normalization. | `compiledSafety_source_correct` connects the sequential API to source traces. `normalizedReachability_correct` bridges exact finite derivative certificates without a depth bound. Parser and waypoint correspondence remain open. |
+| `SafetyCheck` and compiled graph entry points | `safetyCheckGraph_correct` yields the two verdicts against `GraphHeadSpec` and `GraphTailSpec` on their domains. `compileNormalizeAndSafetyCheckGraph_correct` adds source/graph correspondence and restricted graph bisimilarity on successful compilation and normalization. | `compiledSafety_source_correct` connects the sequential API to source traces. `normalizedReachability_correct` bridges exact finite derivative certificates without a depth bound. General v1.1 query parsing and the tool-wide waypoint pipeline are parity obligations. |
 
 The local Fig. 5 firewall regression uses a hand-supplied certificate and
 the two Eq. (34)–(35) queries. Its source witnesses remain in the existing
 firewall and reachability regressions. The full v1.1 JSON fixtures and
-FatTree results are tracked in the [feature
+empirical comparisons are tracked in the [feature
 matrix](DYNETIKAT_REFERENCE_AUDIT.md#v11-feature-parity).
 
 ## Distributed controllers in arXiv v4
@@ -628,7 +703,7 @@ reachability. Its executable 1,344-switch solver check compiles drop.
 Executable compound-policy cases exercise test, assignment, composition,
 union, and star on a smaller dependent schema. The 1,344-switch schema also has theorem-backed head normalization,
 algebraic projection, positive absorption and certified safety and reachability
-verdicts. The FatTree case study remains open. The FatTree waypoint
+verdicts. The generated FatTree family is covered below. The FatTree waypoint
 claim concerns endpoint relation inclusion. All-trace traversal would
 require a distinct property and proof.
 
@@ -648,9 +723,9 @@ upper aggregation switch and core in its row.
 | §V (ii), Reachability-II | **Theorem proved.** `Migration.ssh_isolation` excludes the configured SSH ingress from reaching the destination ToR in every feasible source trace, including arbitrary intervening packet observations. `certified_ssh_word` obtains finite query verdicts through `TraceSafety.check_correct`. |
 | §V (iii), Waypointing | **Theorem proved.** `Migration.final_waypoint_inclusion` includes the final ingress-to-egress relation in the relation passing through the new firewall with the printed endpoint guards. `final_waypoint` proves the corresponding NetKAT equation and `waypoint_verdict` certifies the symbolic decision. This is endpoint-relation inclusion. |
 | Benchmark sizes | **Executable regression.** The generated node counts are 99, 208, 375, 612, 931, and 1,344 for 6 through 16 pods in steps of two. `benchmark n` is a family with no fixed upper size limit. The regression checks representative links and updates, the firewall filter, a certified SSH query and theorem-backed reachability and waypoint verdicts. |
-| Fig. 13 timings and generated fixtures | **Still open.** Runtime measurements and literal comparison with all generator outputs are empirical parity work. |
+| Fig. 13 timings and generated fixtures | **Tooling/experimental matter.** Runtime measurements and literal comparison with all generator outputs are empirical parity work. |
 
-**Paper ambiguity.** V4 does not print the full topology tables,
+**Paper-unspecified details.** V4 does not print the full topology tables,
 tie-breaking algorithm, packet layout, ordered payloads, or literal SOS
 labels. The [pinned generator](https://github.com/hcantunc/DyNetiKAT/blob/1c6bd422377853378c7516a7875009fcfb5ba881/benchmarks/fattree.py)
 fixes the topology dimensions and the update order. The latter installs the

@@ -1,5 +1,11 @@
 # DyNetKAT-Lean
 
+The mathematical formalization of [DyNetKAT arXiv v4](https://arxiv.org/abs/2102.10035v4)
+is complete under the [documented typed scope](docs/PAPER_CONFORMANCE.md),
+including the distributed-controller and FatTree case studies. The scope
+records the unresolved paper ambiguity in Definition 17 (nested negation).
+DyNetiKAT v1.1 tooling and empirical parity are a separate phase.
+
 ## Symbolic native KAT
 
 `KATLean.Native` decides the pure KAT equational theory using reduced ordered

@@ -100,7 +100,7 @@ completion.
 
 | Obligation | Required statement and dependencies |
 |---|---|
-| D1 Grammar and SOS | Generalize every constructor in Eqs. (1), (6), every rule in Fig. 8 and Eqs. (2)–(5), and their inversion lemmas. Prove packet effects, unchanged lists for communications, matching payload identity and absence of steps for deadlock and π₀. Establish atomic per-packet evaluation and the exact prefix enumerator bridge. |
+| D1 Grammar and SOS | The schema-generic constructors and source rules are recorded in the [SOS crosswalk](PAPER_CONFORMANCE.md#dynetkat-syntax-and-sos). `PaperAdmissible` applies the typed grammar and the declaration checks. `guardedMoves_toGraph_source_exact` supplies the executable bridge under finite support and correct restriction membership. |
 | D2 Definition 7 and recursive declarations | Typed conformance is proved in `TypedGuardedness.lean`. `ProcessVarOccurrence` records prefix crossings, and `typedPaperGuarded_iff_guardedOccurrences` proves the occurrence interpretation equivalent to the structural predicate. `ClosedDefined.existsUnique_lookup` and `wellFormed_iff_closedDefined_and_typedPaperGuarded` characterize the reachable named equations. `Step.preserves_wellFormed` supplies derivative preservation. A separate executable validator for finite declaration input remains open. |
 | D3 Lemma 8 | `WellFormed.finite_targets_from` proves local finite branching at every reachable source state, uniformly over labels and packet lists. `WellFormed.imageFiniteFrom` discharges AIP without finite support or executable restriction classifiers. The theorem is schema-generic. |
 | D4 Definition 2 and Prop. 1 | `Bisimilar` gives the largest stateless bisimulation. `Equations.historySemantics_iff_nSeq_bisimilar` proves both directions over any finite schema in a fixed recursion environment. Forward uses equality on singleton histories to match steps. Reverse inverts matching packet steps in both directions and lifts packet-pair equivalence to every history by tail preservation. `Program.historySemantics_iff_packetPrefix_bisimilar` gives the admitted statement for a shared base-sorted continuation, including guarded recursive continuations. The theorem is schema-generic. |
@@ -115,7 +115,7 @@ checks each SOS rule, reusing `Step.reachableVar_mono` and
 `Step.preserves_wellFormed`. `Steps.preserves_paperAdmissible` and
 `PaperAdmissible.reachable` cover the existing trace and stateless
 reachability relations. `GSteps.preserves_paperAdmissible` transfers
-closure through `Corr`. These results cover `CtxPkt` and precede the
+closure through `Corr`. These results apply over any finite schema and precede the
 finite-support, restriction-classifier and certificate obligations of
 executable analysis. See the [fixture audit](PAPER_CONFORMANCE.md#source-grammar-and-sos-residual-closure).
 
@@ -177,10 +177,10 @@ resolved guardedness criterion.
 
 ## Finite-depth projection
 
-Items 1–4 record the current `CtxPkt` construction. Item 5 records
-the remaining consumer and algebra obligations.
+Items 1–4 record the construction over arbitrary finite schemas. Item 5 records
+the consumer and algebra results and their hypotheses.
 
-1. **Finite exact one-step rows.** For `CtxPkt`, `guardedMoves` scans
+1. **Finite exact one-step rows.** `guardedMoves` scans
    the root structurally and computes the body row on demand at each
    active reference. The body pass disables lookup. Syntactic guardedness
    rules out a second active lookup, including inside a restriction.
@@ -287,7 +287,7 @@ claim, as witnessed by the spawning example.
 |---|---|
 | A1 Derivability | `DerivesNoAIP env` gives typed non-AIP derivations. `Derives env` embeds them and closes over full symmetry, transitivity, process contexts, and the infinitary AIP rule. Every AIP node carries reachable image finiteness at both endpoints. |
 | A2 Lemma 10 | `DerivesNoAIP.sound` proves strong stateless bisimilarity by derivation induction. `CommMismatch` encodes the Appendix A cases and excludes both handshake orientations. The [Fig. 11 table](PAPER_CONFORMANCE.md#figure-11-and-a16) records the rule mapping. |
-| A3 Def. 6 and Lemma 9 | Proved for the typed `CtxPkt` domain in `HeadNormalForm.lean`. `guarded_normalizes` proves `DerivesNoAIP` from each `GuardedOccurrences` term to a finite choice of complete packet or communication/reconfiguration prefixes with arbitrary continuations. `WellFormed.normalizes` also handles exposed entry references using their guarded bodies. Packet heads use N5 and A0/A1, parallel uses A8 and A9–A15, and restriction and projection use their atomic prefix equations. Arbitrary restriction sets use classical membership in the algebraic proof. No derivative certificate or classifier is needed. |
+| A3 Def. 6 and Lemma 9 | Proved over any finite schema with a `DiagramLayout` in `HeadNormalForm.lean`. `guarded_normalizes` proves `DerivesNoAIP` from each `GuardedOccurrences` term to a finite choice of complete packet or communication/reconfiguration prefixes with arbitrary continuations. `WellFormed.normalizes` also handles exposed entry references using their guarded bodies. Packet heads use N5 and A0/A1, parallel uses A8 and A9–A15, and restriction and projection use their atomic prefix equations. Arbitrary restriction sets use classical membership in the algebraic proof. No derivative certificate or classifier is needed. |
 | A4 Lemma 11 and AIP | `Derives.sound` supplies soundness of all projected premises by derivation induction and invokes `approximation_induction`. Matching at depth n+1 yields residuals at depth n, and projection truncation and a finite bound on candidate failure depths give a common residual. `Derives.aip_guarded` supplies the endpoint evidence from `WellFormed`. |
 | A5 Theorem 1 | Proved over arbitrary finite schemas for ground terms by `ground_derives_iff_bisimilar`. `Ground p` means `recursiveVars p = ∅`. `ground_complete` uses the strengthened Lemma 9 witness, exact head inversion, and both choice absorptions. Strong induction on the sum of process-prefix counts derives matched continuations in `DerivesNoAIP`. `derivability_sound` remains valid without the ground hypotheses. |
 | A6 Finite projection rendering | `renderProjection_zero_derives` applies Π₀. `WellFormed.project_exists_ground` uses `exists_headNormalForm_closed`, the Π equations and depth induction on the continuations. `renderProjection_derives` applies Theorem 1 on the ground witness and the recursion-free renderer, using `renderProjection_closed` and `renderProjection_bisimilar`. The restricted renderer uses restriction congruence, and the total and memoized variants use `renderProjectionTotal_eq_some` and `renderProjectionMemo_eq`. Finite rendering requires local move support and correct classifiers. It requires neither an AIP premise nor a finite global derivative or quotient certificate. |
@@ -319,7 +319,7 @@ Extending completeness to that domain would require a separate argument.
 | S1 Definitions 12–13 and 17 | `Formula` and `Regexp.mem_hnf` give the core word language. `PrintedRegexp.elaborate` accepts the explicitly defined Definition 17 fragment. `ExtendedRegexp.desugar_correct` and `Regexp.matches_repeatPositive` verify its language. `ExtendedRegexp.equational_iff_core` connects nonempty sums to ordinary formulas and Eq. (27). |
 | S2 Definition 14 | `translate_trace_iff` proves the translated admitted program realizes precisely the words over the supplied finite alphabet with no forbidden prefix. The proof checks the guarded Θ and the two word sums. Named suffixes preserve printed continuation sorting. |
 | S3 Definitions 15–16, Eqs. (26)–(27) | `SourceTrace` uses the feasible source SOS. `TraceDerives.sound` and `TraceDerives.complete` establish exact trace equivalence for closed guarded terms. `Formula.equational_iff` proves Eq. (27) for networks over the supplied alphabet. `Program.Compiled.trace_iff` and `TraceSafety.check_iff_equationalSafety` transfer the result to certified symbolic moves for supplied forbidden words. |
-| S4 Eq. (28) and §V | `eq28_iff_no_occurrence` characterizes the all-length safety family. `TraceSafety.positiveAbsorption_iff_traces` verifies the positive witness equation as source-trace inclusion and `checkPositive_correct` verifies every word of the finite expression. The controller instance remains open. |
+| S4 Eq. (28) and §V | `eq28_iff_no_occurrence` characterizes the all-length safety family. `TraceSafety.positiveAbsorption_iff_traces` verifies the positive witness equation as source-trace inclusion and `checkPositive_correct` verifies every word of the finite expression. The controller instances are `independent_eq28_fails` and `synchronized_eq28`. |
 | S5 Eqs. (29)–(33) | `GraphHeadSpec.iff_feasible` gives exact packet observations on enabled sequential graphs. `graphTail_path_iff` preserves original continuation endpoints. `graphTails_feasible_iff` composes selected segments before a nonempty suffix. `preprocessGraph_traceReady` proves that preprocessing drops the infeasible packet prefixes detected by symbolic zero. |
 | S6 Eqs. (34)–(35) | `compiledSafety_source_correct` lifts the existing verdicts to source isolation and post-event forwarding. `projectedReachability_correct` checks the entire source trace within the indicated projection, and `normalizedReachability_correct` uses exact rows without a depth restriction. The Figure 5 regression checks the synchronized forwarding witness. |
 | S7 Original tool queries | Parse the v1.1 property expression, preserve operator precedence and event identities, and prove that reachability, non-reachability and waypoint verdicts match the mathematical NetKAT expressions. Prove waypointing for the accepted network shape and distinguish endpoint-relation inclusion from an all-path claim. For the latter, use path-observing semantics or prove a suitable hypothesis such as unique paths. |

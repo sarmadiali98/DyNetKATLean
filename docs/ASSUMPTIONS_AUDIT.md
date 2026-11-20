@@ -62,7 +62,7 @@ inconclusive on some inputs.
 
 - **Already justified.** Finite packet domains, typed guarded source programs, ground scope for v4 Theorem 1, local image finiteness in AIP, and finite specifications with alphabet and visibility premises. The paper's finite packet-domain assumption supplies no universal size bound. The 931- and 1,344-switch figures describe benchmark instances.
 - **Temporary implementation restriction.** Finite name support and correct executable restriction classifiers gate graph compilation and exact finite projection. Simpler head/tail and restriction-elimination APIs have their own syntactic fragment premises. The arbitrary source SOS covers those constructs independently. Finite derivative closure or a finite certificate is justified for the corresponding all-depth algorithms only. There is no project-wide finite-state premise.
-- **Stage 2 disposition.** The schema now threads through the paper-facing equational, graph, reachability and trace-safety chain. FatTree encoding and proofs of the three audited endpoint claims remain case-study work.
+- **Final disposition.** The schema threads through the paper-facing equational, graph, reachability and trace-safety chain. The generated FatTree case study proves forwarding, all-feasible-trace SSH isolation and final waypoint endpoint-relation inclusion. See the [paper conformance inventory](PAPER_CONFORMANCE.md#final-mathematical-inventory).
 - **Correctness blocker.** No arbitrary numeric ceiling or budget-derived false semantic verdict was found in the audited paths. The termination and certificate premises above still apply to the corresponding executable analyses.
 
 `test_packet_schemas.lean` supplies `arbitrary_switch_identifiers`,
@@ -79,3 +79,14 @@ dependencies as well. It rejects the concrete packet cardinality lemma in
 the audited core and complete-pair expansion or execution in the symbolic
 decision. It also checks that projection derivation avoids closure discovery
 and that the word checker uses exact supplied-packet execution.
+
+The final representative axiom audit reported `propext` and `Quot.sound`
+for `paperLemma3`. It also reported `Classical.choice` for
+`exists_derives_pairSum`, `WellFormed.finite_targets_from`,
+`ground_derives_iff_bisimilar`, `Formula.equational_iff`, and
+`eq28_iff_no_occurrence`. The paper theorem chain is checked in Lean and
+has no dependency on KATch, Legacy, Python evidence, unchecked external
+candidates or experimental certificates. Finite cardinality and finite
+algebraic output are used where the statements call for them. The symbolic
+decision and normalization proofs avoid exhaustive enumeration of the
+concrete packet universe.
