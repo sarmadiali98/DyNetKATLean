@@ -174,8 +174,8 @@ given by the longest forbidden word. Its semantic specification and trace
 derivability theorem use all source traces. See the
 [v4 crosswalk](docs/PAPER_CONFORMANCE.md#safety-property-theory).
 The §V positive witness equation and the feasible head/tail source bridge
-are machine checked. The distributed-controller and FatTree case studies
-remain open.
+are machine checked. Both [distributed-controller variants](docs/PAPER_CONFORMANCE.md#distributed-controllers-in-arxiv-v4)
+are machine checked. The FatTree case study remains open.
 
 ### Phase 6 — Extraction and normalization
 
