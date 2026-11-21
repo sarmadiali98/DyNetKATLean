@@ -157,6 +157,104 @@ Checkpoint 3 adds waypoint evaluation, reusable preprocessing, batch
 reporting and stable CLI contracts. Reference execution remains needed
 for the parity acceptance gate.
 
+## Checkpoint 3 waypoint and batch execution
+
+From `lean/`, the native executable supports:
+
+```sh
+lake build dynetkat
+.lake/build/bin/dynetkat validate input.json
+.lake/build/bin/dynetkat query --json input.json packet_key 0
+.lake/build/bin/dynetkat batch --json path/to/pinned-corpus/*.json > reused.jsonl
+.lake/build/bin/dynetkat batch --json --fresh path/to/pinned-corpus/*.json > fresh.jsonl
+lake env lean --run test_v11_waypoint.lean reused.jsonl fresh.jsonl
+```
+
+The native batch commands above exit 1 for the pinned corpus because two
+fixture assertions disagree with the checked verdict. The serial dispatcher
+preserves file order and the loader's packet-key and query-tuple order.
+`query` takes the packet key and zero-based index within that key.
+Omitting `--json` selects the human-readable output. The earlier `reach`
+command remains available.
+
+JSONL has one object per query, with `input` and `result`. The result has
+`module`, `packet`, `index`, `kind`, `expression`, `depth`,
+`polarity`, `verdict`, `expectation_agrees` and `diagnostic`.
+The last four fields use JSON null when inapplicable or unavailable.
+Waypoint queries carry a predicate in the reference tuple and have no
+fixture Boolean assertion. A false waypoint verdict is a completed query.
+
+| Exit | Meaning |
+|---|---|
+| 0 | All requested queries returned checked verdicts and all supplied assertions agree |
+| 1 | At least one checked verdict disagrees with its fixture expectation |
+| 2 | Invalid invocation, missing query key/index, or input read/load failure |
+| 4 | At least one requested query produced a checked-analysis diagnostic |
+
+Across multiple files the highest exit code takes precedence. A failed
+query's diagnostic retains its identity and does not mutate the session.
+
+### Prepared session and waypoint evidence
+
+`Loaded` fixes the packet schema, admitted program and finite support.
+`Prepared job` holds the checked restriction classifiers and validity
+evidence indexed by that exact job. Batch validation and classifier
+preparation run once per input. Each query computes its own projection or
+checked-row traversal and selector result. The session stores no
+query-specific policy or verdict. The `--fresh` mode reconstructs
+preparation for each query on the same admitted input.
+
+`selectHead` returns a typed NetKAT policy and a proof characterizing each
+endpoint pair by a bounded source trace satisfying the unchanged
+`QueryWord` selector. The general path uses finite projection and the
+existing graph head/tail correspondence. At minimum selector depth,
+`tightHead` collects policies from the exact checked rows, preserving
+the literal nested reconfigurations. It avoids computing global zero
+tests on FatTree's large starred packet policies. Empty and identical
+union branches are consolidated with a relational proof. The retained
+star stays structurally intact. Waypoint construction applies the
+audited guards to the star body before rebuilding the two starred
+passes. Star-free policies receive the guards before the original
+policy on each pass. A mixed head containing a star below another
+operator returns an explicit shape diagnostic.
+
+Waypointing checks endpoint inclusion `A ⊆ B`, equivalently
+`A + B ≡ B`. For a FatTree ingress which pins every field except one,
+the checker uses the supplied-packet evaluator on that ingress fiber.
+It checks coverage of every value of the remaining field and compares
+the exact reachable outputs. Other cases use native symbolic
+equivalence directly. `checkWaypointInclusion_eq_symbolic` proves
+both branches return precisely the native equivalence decision.
+`checkWaypointInclusion_iff_derives` connects the result to the
+equation in the existing NetKAT derivation system. The interpretation
+permits bypass and waypoint routes that share the same endpoint pair.
+
+### Corpus results and remaining differential
+
+| Measure | Total |
+|---|---:|
+| Loaded and executed inputs | 27 |
+| Ordered query records | 120 |
+| Reachability nonempty / empty | 53 / 55 |
+| Waypoint true / false / non-verdict | 12 / 0 / 0 |
+| Total non-verdicts | 0 |
+| Reachability fixture agreements / disagreements | 106 / 2 |
+| Fresh and reused records identical | 120 |
+| Pinned reference verdicts compared | 0 |
+
+The independent-controller `H3_to_H2` and `H1_to_H4` post-update queries,
+both index 1 and depth 3, retain checked nonempty verdicts and explicit
+fixture-expectation disagreements. All twelve waypoints from the six
+FatTree sizes run over the loaded programs and selectors. The separate
+FatTree theorem supplies a cross-check of the property for the generated
+family.
+
+Checkpoint 4 must provision the pinned reference runtime, collect its
+verdicts, compare all supported queries by identity and classify any
+differences. Fixture assertions are not reference observations. Generator
+artifact reproduction and the controlled timing campaign also remain.
+Native serial execution is the baseline for any later parallel comparison.
+
 ## Reference interface and status
 
 Pinned entry points
@@ -290,7 +388,7 @@ put tests through the public entry points as each becomes available.
 |---|---|---|
 | 1. Load admitted v1.1 programs | Frontend, audit | Add `lean/DyNetKAT/Frontend/{V11Json,NetKAT,Process,Elaborate}.lean`, `lean/test_v11_input.lean` and a validate invocation in `Main.lean`. Close raw JSON, term syntax, declaration, channel, packet pair, schema and restriction/projection intake. Reuse `PacketSchema`, `PaperSyntax`, `TypedGuardedness`, `Program`, `ProcessGraph`. Demonstrate admission and support on all raw fixture families and reject malformed JSON, collisions, undeclared names, ill-sorted continuations and unguarded definitions. Test payload identity and values beyond all source literals. |
 | 2. Run bounded reachability from original JSON | Frontend and semantic integration, 1 | Add `Frontend/{Selector,V11Reachability}.lean`, extend `Main.lean`, add `test_v11_reachability.lean`. Parse both polarities, arbitrary nesting in the supported head/tail fragment, event sets and depths. Use `FiniteProjection`, `Reachability`, `GraphHead` and `GraphTail` to prove extracted-policy and verdict correspondence on the selected domain. Run firewall and both controller fixtures, and FatTree reachability groups. Cover empty/unmatched stages, repeated selectors, cutoff and simultaneous handshakes. Preserve query IDs and return basic verdicts. |
-| 3. Run waypoint and reusable batch reports | Frontend, reporting and waypoint integration, 2 | Add `Frontend/{Waypoint,V11Report,V11Preprocess}.lean`, extend `Main.lean`, add `test_v11_waypoint.lean` and `test_v11_cli.lean`. Complete checked waypoint inclusion, preprocessing import/export, serial/parallel batch controls, timing display and diagnostic/exit contracts. Depend on the checkpoint 2 extracted-policy bridge, native zero/equivalence and checked preprocessing. Test starred and unstarred forms, compound guards, bypass sharing endpoints, vacuous inclusion, malformed shapes, verified reuse versus fresh computation, mixed errors and deterministic workers. |
+| 3. Run waypoint and reusable batch reports | Frontend, reporting and waypoint integration, 2 | Use `Frontend/V11Waypoint`, `Frontend/V11Batch`, `test_v11_waypoint.lean` and the native runner. Complete checked endpoint inclusion, in-memory preparation reuse, serial reports and diagnostic/exit contracts. Validate starred and unstarred forms, repeated queries, mixed failures, JSONL and identical native fresh/reused records. |
 | 4. Pin fixture comparisons and reproduce the empirical workflow | Empirical and release verification, 3 | Add `scripts/verify_v11_parity.sh`, `scripts/benchmark_v11.sh` and a versioned corpus/manifest under `benchmarks/v11/`. Run both implementations on the three fixed fixtures and 24 generated inputs, record individual and combined verdicts, generator provenance and timing breakdowns. Establish functional sign-off from the differential ledger before interpreting timing. Record tool failures and independently checked semantic discrepancies. |
 
 ## Acceptance and progress estimates
@@ -322,7 +420,10 @@ invalidate a functional verdict.
 
 **Planning estimate.** Functional parity was about **40%** at the audit.
 After checkpoint 1 it was about **70%** as implementation readiness.
-The bounded reachability implementation raises that estimate to **80%**. Score 10
+The bounded reachability implementation raised that estimate to **80%**.
+Checkpoint 3 completes the scoped user-visible implementation (**100%**),
+with **100%** checked native corpus coverage and **0%** pinned-reference
+differential validation. Score 10
 equally weighted capabilities at 0 for absent, 0.5 for a verified reusable
 core or partial counterpart and 1 for delivered parity. NetKAT text, process
 text, declaration admission, packet predicates, bounded reachability,
@@ -332,6 +433,8 @@ weight the completed typed formalization at 65%, functional parity at 25%,
 and the outstanding empirical campaign at 10%. Checkpoint 1 raises the four intake core rows (NetKAT and process
 text, declaration admission and packet predicates) from 0.5 to 1 and
 raw JSON ingestion from 0 to 1. Bounded reachability and selectors both
-rise from 0.5 to 1 for implementation readiness. The same weights give
-about **85%** overall, with differential acceptance still pending. These are readiness estimates with stated weights, not measured
+rise from 0.5 to 1 for implementation readiness. Checkpoint 3 completes
+waypoint, in-memory preprocessing and serial batch reporting. The same
+weights give about **90%** overall implementation readiness, with
+differential and empirical acceptance still pending. These are readiness estimates with stated weights, not measured
 engineering time or a count of successful differential runs.

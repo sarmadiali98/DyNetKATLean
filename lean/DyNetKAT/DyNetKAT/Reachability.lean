@@ -52,7 +52,7 @@ theorem QueryWord.visible {schema : PacketSchema} {stages : List (ReconfigSet sc
     · obtain rfl := List.mem_singleton.mp final
       trivial
 
-private theorem corr_graphPath_iff {G : ProcessGraph schema} {env : RecEnv schema}
+theorem corr_graphPath_iff {G : ProcessGraph schema} {env : RecEnv schema}
     {q : DyNetKAT schema} {gp : GProc schema} (corr : Corr G env q gp) (w : List (Action schema)) :
     (∃ dst, GraphPath G gp w dst) ↔ SourceTrace env q w := by
   constructor
@@ -65,7 +65,7 @@ private theorem corr_graphPath_iff {G : ProcessGraph schema} {env : RecEnv schem
     obtain ⟨q', path', _⟩ := steps_to_gsteps G env _ _ _ path gp corr
     exact ⟨q', path'⟩
 
-private theorem GraphBisimilarBetween.path_iff {G Q : ProcessGraph schema} {p q : GProc schema}
+theorem GraphBisimilarBetween.path_iff {G Q : ProcessGraph schema} {p q : GProc schema}
     (h : GraphBisimilarBetween G Q p q) (w : List (Action schema)) :
     (∃ dst, GraphPath Q q w dst) ↔ ∃ dst, GraphPath G p w dst := by
   obtain ⟨R, root, fwd, back⟩ := h
@@ -225,7 +225,7 @@ theorem staticReachability_iff (ingress policy topology egress : NetKAT schema) 
   netkatIsZero_reachabilityPolicy_false_iff ..
 
 
-private theorem projectionSupportEmpty {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
+theorem projectionSupportEmpty {G : ProcessGraph schema} {bodyChecks : NodeId → RestrictionChecks schema}
     {n : Nat} {state : CheckedResidual schema} {q : DyNetKAT schema}
     (render : renderProjection G bodyChecks n state = some q) (env : RecEnv schema) :
     FiniteSupport env q ∅ :=

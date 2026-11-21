@@ -5,9 +5,10 @@ closes mathematical formalization under the documented typed scope.
 The remaining project phase is [DyNetiKAT v1.1 functional and empirical
 parity](docs/DYNETIKAT_PARITY.md). Definition 17 nested negation remains a
 documented source ambiguity. The v1.1 loader now validates original raw
-JSON and constructs admitted inputs. The bounded reachability runner now
-checks both polarities on the pinned corpus. Checkpoint 2 still needs executable reference comparisons.
-Checkpoint 3 covers waypoint queries and batch reporting.
+JSON and constructs admitted inputs. The serial batch runner returns
+checked bounded reachability and waypoint verdicts using a prepared
+session. Checkpoint 4 covers pinned-reference comparisons, generator
+reproduction, and the empirical campaign.
 
 ## Symbolic native KAT
 

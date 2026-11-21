@@ -250,4 +250,116 @@ def tightReachability {env : RecEnv s} {p : Program true env} (compiled : p.Comp
   ⟨ing.eval i.val && search support (compiled.initial rootChecks).checked valid i.val out rs,
     by rw [Bool.and_eq_true, search_correct support valid compiled.corr]; exact (tight_iff i.property).symm⟩
 
+private def packetPolicy : MoveLabel s → Option (NetKAT s)
+  | .visible (.packet n) => some n
+  | _ => none
+
+private theorem packetPolicy_correct (l : MoveLabel s) (i o : s.Packet) :
+    (∃ n, packetPolicy l = some n ∧ Semantics n i o) ↔
+      l.Realizes [i] [] (.packet i o) [] [o] := by
+  constructor
+  · rintro ⟨n, h, sem⟩
+    cases l with
+    | visible a =>
+      cases a with
+      | packet p =>
+        change some p = some n at h
+        cases h
+        exact .packet ((historySemantics_singleton_iff_packetSemantics ..).mpr sem)
+      | rcfg => contradiction
+    | recv | send => contradiction
+  · intro h
+    cases h with
+    | packet h => exact ⟨_, rfl, (historySemantics_singleton_iff_packetSemantics ..).mp h⟩
+
+private def policies {G : ProcessGraph s} {bodyChecks live}
+    (support : ProjectionSupport G bodyChecks live) (state : CheckedResidual s)
+    (valid : state.Valid live) : List (ReconfigSet s) → List (NetKAT s)
+  | [] => (TraceSafety.checkedRow support state valid).val.filterMap (packetPolicy ∘ Prod.fst)
+  | r :: rs =>
+    let row := TraceSafety.checkedRow support state valid
+    row.val.attach.flatMap fun m =>
+      if (eventOf r m.val.1).isSome then
+        policies support m.val.2 (row.property.2 _ m.property) rs
+      else []
+
+private theorem policies_correct {G : ProcessGraph s} {bodyChecks live}
+    (support : ProjectionSupport G bodyChecks live) {env : RecEnv s} {p : DyNetKAT s}
+    {state : CheckedResidual s} (valid : state.Valid live) (corr : Corr G env p state.proc)
+    (i o : s.Packet) (rs : List (ReconfigSet s)) :
+    (∃ n ∈ policies support state valid rs, Semantics n i o) ↔
+      ∃ pre, OnePerStage rs pre ∧ SourceTrace env p (pre ++ [.packet i o]) := by
+  induction rs generalizing p state with
+  | nil =>
+    let row := TraceSafety.checkedRow support state valid
+    change (∃ n ∈ row.val.filterMap _, Semantics n i o) ↔ _
+    simp only [OnePerStage, List.mem_filterMap, Function.comp_apply]
+    constructor
+    · rintro ⟨n, ⟨m, mem, hn⟩, sem⟩
+      obtain ⟨q, step, _⟩ := (row.property.1.source_steps corr [i] [] (.packet i o) [] [o]).1
+        m.1 m.2.proc (List.mem_map.mpr ⟨m,mem,rfl⟩) ((packetPolicy_correct ..).mp ⟨n,hn,sem⟩)
+      exact ⟨[],rfl,sourceTrace_cons_actionStep.mpr ⟨q,step,sourceTrace_nil ..⟩⟩
+    · rintro ⟨_,rfl,tr⟩
+      obtain ⟨q, step, _⟩ := sourceTrace_cons_actionStep.mp tr
+      obtain ⟨l, _, mem, realized, _⟩ :=
+        (row.property.1.source_steps corr [i] [] (.packet i o) [] [o]).2 q step
+      obtain ⟨m, hm, eq⟩ := List.mem_map.mp mem
+      have same : m.1 = l := congrArg Prod.fst eq
+      obtain ⟨n,hn,sem⟩ := (packetPolicy_correct ..).mpr (same.symm ▸ realized)
+      exact ⟨n,⟨m,hm,hn⟩,sem⟩
+  | cons r rs ih =>
+    let row := TraceSafety.checkedRow support state valid
+    unfold policies
+    simp only [List.mem_flatMap]
+    constructor
+    · rintro ⟨n, ⟨⟨m, mem⟩, _, belongs⟩, sem⟩
+      split at belongs
+      · rename_i selected
+        obtain ⟨a, he⟩ := Option.isSome_iff_exists.mp selected
+        obtain ⟨ha, realized⟩ := (eventOf_iff ..).mp he
+        obtain ⟨q, step, hc⟩ :=
+          (row.property.1.source_steps corr (a.pendingFor []) [] a [] (a.handledAfter [])).1
+            m.1 m.2.proc (List.mem_map.mpr ⟨m,mem,rfl⟩) realized
+        obtain ⟨pre,hpre,tr⟩ := (ih (row.property.2 m mem) hc).mp ⟨n,belongs,sem⟩
+        exact ⟨a::pre,⟨ha,hpre⟩,sourceTrace_cons_actionStep.mpr ⟨q,step,tr⟩⟩
+      · contradiction
+    · rintro ⟨pre,hpre,tr⟩
+      cases pre with
+      | nil => contradiction
+      | cons a pre =>
+        obtain ⟨ha,hpre⟩ := hpre
+        obtain ⟨q,step,rest⟩ := sourceTrace_cons_actionStep.mp tr
+        obtain ⟨l,target,mem,realized,hc⟩ :=
+          (row.property.1.source_steps corr (a.pendingFor []) [] a [] (a.handledAfter [])).2 q step
+        obtain ⟨m, hm, eq⟩ := List.mem_map.mp mem
+        cases m with
+        | mk label next =>
+          cases eq
+          obtain ⟨n,hn,sem⟩ := (ih (row.property.2 _ hm) hc).mpr ⟨pre,hpre,rest⟩
+          have selected := Option.isSome_iff_exists.mpr ⟨a,(eventOf_iff ..).mpr ⟨ha,realized⟩⟩
+          exact ⟨n, ⟨⟨(label,next),hm⟩,by simp,by simpa only [dif_pos selected, if_pos selected] using hn⟩,sem⟩
+
+/-- Packet policies contributing to the head at the minimum selector depth. -/
+def tightHead {env : RecEnv s} {p : Program true env} (compiled : p.Compiled)
+    (rootChecks : RestrictionChecks s) {bodyChecks live}
+    (support : ProjectionSupport compiled.graph bodyChecks live)
+    (valid : (compiled.initial rootChecks).checked.Valid live)
+    (rs : List (ReconfigSet s)) :
+    { ns : List (NetKAT s) // ∀ i o,
+      (∃ n ∈ ns, Semantics n i o) ↔
+        ∃ word, QueryWord rs i o word ∧ p.Trace word ∧ word.length ≤ rs.length + 1 } := by
+  refine ⟨policies support (compiled.initial rootChecks).checked valid rs, ?_⟩
+  intro i o
+  rw [policies_correct support valid compiled.corr]
+  constructor
+  · rintro ⟨pre,one,trace⟩
+    obtain ⟨seg,len⟩ := one_segments one
+    exact ⟨pre ++ [Action.packet i o], ⟨pre,[],seg,by simp,rfl⟩,trace,by simp [len]⟩
+  · rintro ⟨_,⟨pre,head,seg,_,rfl⟩,trace,budget⟩
+    have lower := segments_length seg
+    simp at budget
+    have empty : head = [] := List.length_eq_zero_iff.mp (by omega)
+    subst head
+    exact ⟨pre,segments_tight seg (by omega),by simpa using trace⟩
+
 end DyNetKAT.DyNetKAT

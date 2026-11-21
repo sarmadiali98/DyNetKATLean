@@ -6,6 +6,24 @@ including the distributed-controller and FatTree case studies. The scope
 records the unresolved paper ambiguity in Definition 17 (nested negation).
 DyNetiKAT v1.1 tooling and empirical parity are a separate phase.
 
+## Run v1.1 queries
+
+From `lean/`:
+
+```sh
+lake build dynetkat
+.lake/build/bin/dynetkat validate input.json
+.lake/build/bin/dynetkat query input.json packet_key 0
+.lake/build/bin/dynetkat batch --json input.json
+```
+
+Batch runs produce ordered checked reachability and waypoint verdicts.
+JSON output is one record per query. Exit 1 indicates a fixture assertion
+disagreement, exit 2 an input or invocation error, and exit 4 an analysis
+diagnostic. A false waypoint verdict is a successful analysis. The
+[parity ledger](docs/DYNETIKAT_PARITY.md#checkpoint-3-waypoint-and-batch-execution)
+has the schema, scope and reference-validation status.
+
 ## Symbolic native KAT
 
 `KATLean.Native` decides the pure KAT equational theory using reduced ordered

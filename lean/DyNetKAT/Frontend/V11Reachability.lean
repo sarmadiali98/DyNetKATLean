@@ -68,10 +68,15 @@ theorem BoundedVerdict.empty {job : Loaded} {q : BoundedQuery job.domains.schema
     (v : BoundedVerdict job q) (h : v.nonempty = false) : ¬ q.reachable job :=
   fun reach => Bool.false_ne_true (h.symm.trans (v.correct.mpr reach))
 
-/-- The current adapter certifies the restriction-free input fragment. The
-core still filters unilateral communication after constructing full rows. -/
-def checkBounded (job : Loaded) (q : BoundedQuery job.domains.schema) :
-    Except String (BoundedVerdict job q) := do
+structure Prepared (job : Loaded) where
+  rootChecks : RestrictionChecks job.domains.schema
+  bodyChecks : NodeId → RestrictionChecks job.domains.schema
+  live : NodeId → Prop
+  support : ProjectionSupport job.support.graph bodyChecks live
+  valid : (job.support.initial rootChecks).checked.Valid live
+
+/-- Check reusable classifiers once for the exact admitted loaded program. -/
+def prepare (job : Loaded) : Except String (Prepared job) := do
   let some root := checkRestrictions (toGProc job.program.term) checks |
     throw "explicit root restriction needs a certified classifier"
   let some bodies := checkDefinitions job.definitions |
@@ -83,16 +88,24 @@ def checkBounded (job : Loaded) (q : BoundedQuery job.domains.schema) :
       obtain ⟨left, right, eq, _⟩ := List.lookup_eq_some_iff.mp found
       exact bodies.property (x, b) (by rw [eq]; simp))
   have valid := toGProc_projectionValid (env := fun name => job.definitions.lookup name) root.property
+  return ⟨checks, fun _ => checks, _, support, valid⟩
+
+def checkPrepared (job : Loaded) (prepared : Prepared job) (q : BoundedQuery job.domains.schema) :
+    Except String (BoundedVerdict job q) := do
   if depth : q.depth = q.stages.length + 1 then
     if let some i := pinnedIngress q.ingress then
-      let v := tightReachability job.support checks support valid q.stages q.ingress q.egress i
+      let v := tightReachability job.support prepared.rootChecks prepared.support prepared.valid q.stages q.ingress q.egress i
       return ⟨v.val, by unfold BoundedQuery.reachable; rw [depth]; exact v.property⟩
-  match h : projectedReachability job.support checks (fun _ => checks) q.depth q.stages
+  match h : projectedReachability job.support prepared.rootChecks prepared.bodyChecks q.depth q.stages
       (.test q.ingress) (.test q.egress) with
   | none => throw "bounded projection or selector did not produce a verdict"
   | some result =>
-      have exactResult := projectedReachability_correct job.support checks support valid
+      have exactResult := projectedReachability_correct job.support prepared.rootChecks prepared.support prepared.valid
         q.depth q.stages (.test q.ingress) (.test q.egress)
       return ⟨result, by rw [h] at exactResult; simpa only [Option.some.injEq] using exactResult⟩
+
+def checkBounded (job : Loaded) (q : BoundedQuery job.domains.schema) :
+    Except String (BoundedVerdict job q) := do
+  checkPrepared job (← prepare job) q
 
 end DyNetKAT.Frontend.V11
