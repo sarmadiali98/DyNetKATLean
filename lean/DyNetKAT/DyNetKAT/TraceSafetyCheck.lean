@@ -52,7 +52,7 @@ private theorem matchesLetter_iff (l : MoveLabel schema) (letter : Letter schema
               · intro step; cases step; exact ⟨rfl, rfl⟩
       | recv | send => exact ⟨Bool.noConfusion, fun h => by cases h⟩
 
-private def checkedRow {G : ProcessGraph schema} {bodyChecks live}
+def checkedRow {G : ProcessGraph schema} {bodyChecks live}
     (support : ProjectionSupport G bodyChecks live) (state : CheckedResidual schema)
     (valid : state.Valid live) :
     { row : List (CheckedMove schema) // MovesExact G state.proc (row.map CheckedMove.erase) ∧

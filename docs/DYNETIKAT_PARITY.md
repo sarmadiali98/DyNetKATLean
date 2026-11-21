@@ -78,6 +78,85 @@ and query handling. Checkpoint 2 must apply exact finite projection and
 checked head/tail extraction to this package, then dispatch `!0` and
 `=0` with the declared depth.
 
+## Checkpoint 2 bounded reachability
+
+From `lean/`, run:
+
+```sh
+lake build DyNetKAT
+lake env lean --run DyNetKAT/Main.lean reach path/to/input.json
+lake env lean --run test_v11_reachability.lean path/to/pinned-corpus/*.json
+```
+
+The native `dynetkat reach` command accepts the same arguments. It visits
+reachability queries in the loader's packet-key and tuple order. It reports
+`nonempty` separately from `satisfied`. The latter compares the Boolean
+to the requested polarity, true for `!0` and false for `=0`. Both refer
+only to the original depth. Non-verdicts carry diagnostics and make the
+command exit unsuccessfully. A violated property is a verdict. The runner
+skips waypoint entries.
+
+`BoundedQuery.elaborate` maps a head to no stages and each nested tail to
+one finite set of literal typed reconfigurations in inner-to-outer order.
+The loader checks channel names and parses payload structure. A tail event
+set accepts rcfg actions. Packet actions arise from the head policy, and
+send/receive prefixes participate in exact row construction and matching.
+Standalone sends and receives do not belong to selected visible words.
+The general adapter applies `projectedReachability_correct`, whose
+head/tail interpretation uses `graphTails_head_iff` and
+`graphTails_feasible_iff`. Packet-list effects follow the existing
+`SourceTrace` correspondence. The bound includes every packet step and
+selected synchronization. Reference lookup is administrative. The
+current adapter rejects explicit source restrictions with a classifier
+diagnostic. The corpus needs no explicit source restriction.
+
+For a query whose ingress pins one packet and whose depth is the number
+of tail layers plus one, `tightReachability` proves that every selected
+word has exactly one reconfiguration per tail and one final packet step.
+It traverses the existing exact checked rows and applies the supplied-packet
+NetKAT evaluator only to candidate final movements. This avoids building a
+global relation for each FatTree starred policy. The fast path and general
+path return the same proposition, `EndpointReachable` at the supplied
+bound. Successful results carry its equivalence to the nonempty Boolean.
+True recovers existential source-trace evidence in Lean and false proves
+bounded emptiness. Execution exposes no concrete witness serializer.
+
+| Corpus accounting | Count |
+|---|---:|
+| Parsed entries | 120 |
+| Waypoint entries | 12 |
+| Bounded reachability entries | 108 |
+| Positive polarity | 51 |
+| Zero polarity | 57 |
+| Checked Lean verdicts | 108 |
+| Lean non-verdicts | 0 |
+| Satisfied fixture expectations | 106 |
+| Violated fixture expectations | 2 |
+| Reference outputs available for differential comparison | 0 |
+| Reference outputs unavailable | 108 |
+
+The two violated expectations are the independent controller's
+`H3_to_H2` and `H1_to_H4` post-update isolation queries at index 1,
+depth 3. Their relations are nonempty, consistent with the independent
+controller breach. The expectation field requests an assertion and is
+not a captured reference result. The pinned tool's Maude and NetKAT
+executables were unavailable on this host, so these outcomes are not
+classified as differential mismatches. There were no actual reference
+query runs. Recorded reference output and differential verdict matching
+remain open. The regression compares against the checked model outcomes,
+including both breaches.
+
+Domain extension is a regression check. All 108 outcomes were unchanged
+in the native corpus harness. The harness reruns inputs
+with two additional values per inferred field, preserving field names
+and every original literal. It compares bound, query order, polarity
+outcome and nonemptiness. This does not establish general invariance under
+arbitrary domain extensions or agreement with the reference width choice.
+
+Checkpoint 3 adds waypoint evaluation, reusable preprocessing, batch
+reporting and stable CLI contracts. Reference execution remains needed
+for the parity acceptance gate.
+
 ## Reference interface and status
 
 Pinned entry points
@@ -242,8 +321,8 @@ and decision shares, and scaling comparison. Timing differences do not
 invalidate a functional verdict.
 
 **Planning estimate.** Functional parity was about **40%** at the audit.
-After checkpoint 1 it is about **70%** as implementation readiness.
-Original inputs now load, with end-to-end verdict workflows still pending. Score 10
+After checkpoint 1 it was about **70%** as implementation readiness.
+The bounded reachability implementation raises that estimate to **80%**. Score 10
 equally weighted capabilities at 0 for absent, 0.5 for a verified reusable
 core or partial counterpart and 1 for delivered parity. NetKAT text, process
 text, declaration admission, packet predicates, bounded reachability,
@@ -252,6 +331,7 @@ ingestion and batch CLI/reporting each score 0. For whole-project planning,
 weight the completed typed formalization at 65%, functional parity at 25%,
 and the outstanding empirical campaign at 10%. Checkpoint 1 raises the four intake core rows (NetKAT and process
 text, declaration admission and packet predicates) from 0.5 to 1 and
-raw JSON ingestion from 0 to 1. The same weights give about **83%**
-overall. These are readiness estimates with stated weights, not measured
+raw JSON ingestion from 0 to 1. Bounded reachability and selectors both
+rise from 0.5 to 1 for implementation readiness. The same weights give
+about **85%** overall, with differential acceptance still pending. These are readiness estimates with stated weights, not measured
 engineering time or a count of successful differential runs.
