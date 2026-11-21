@@ -7,8 +7,9 @@ parity](docs/DYNETIKAT_PARITY.md). Definition 17 nested negation remains a
 documented source ambiguity. The v1.1 loader now validates original raw
 JSON and constructs admitted inputs. The serial batch runner returns
 checked bounded reachability and waypoint verdicts using a prepared
-session. Checkpoint 4 covers pinned-reference comparisons, generator
-reproduction, and the empirical campaign.
+session. Checkpoint 4 records [generator and native campaign
+evidence](docs/DYNETIKAT_V11_CAMPAIGN.md). The historical executable
+dependencies and reference-side validation remain pending.
 
 ## Symbolic native KAT
 

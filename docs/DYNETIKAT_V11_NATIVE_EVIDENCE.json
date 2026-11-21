@@ -1,0 +1,483 @@
+{
+  "baseline": "96663e191c6755e04318df7251bd3c4353d9d7c6",
+  "environment": {
+    "lean_sha256": "717a6b4f939849bc4b148af0907dc3067ad85be688dd03c55f098534ee405b0c",
+    "machine": "arm64",
+    "networkx": "3.6.1",
+    "pinned_reference": "1c6bd422377853378c7516a7875009fcfb5ba881",
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "python": "3.11.15 (main, Mar  3 2026, 00:52:57) [Clang 21.0.0 (clang-2100.0.123.102)]",
+    "reference_available": false,
+    "workers": 1
+  },
+  "fresh_reused": {
+    "identical": 120,
+    "total": 120
+  },
+  "generator_sha256": {
+    "fattree_10_pods_all_properties.json": "6e4ec9e2fc409ef2a488c25f41dcc2db7fb0b8f471d57a9e37506227459d4143",
+    "fattree_10_pods_reachability_1.json": "2cac18dd0e9268d146d18bf79a51f8d1fbd4bb03b95651024c4339cec0a1c8a6",
+    "fattree_10_pods_reachability_2.json": "6ec8fb9ae6cc02e4b16b4489681d36d76214602e4176dc99f635f72c670ae16f",
+    "fattree_10_pods_waypointing.json": "8b5e4dfdd0dcdb8c877771b11a0683996dbb5274fa3aaa62d6673ecec4309055",
+    "fattree_12_pods_all_properties.json": "e6dcae327bb0465e2917ae49a8158f7bc37c3df341458750538df08893480219",
+    "fattree_12_pods_reachability_1.json": "a2f7d6665062c56cbdf5c354d1aca86c2fc261057d37df4a342e2be78a8d3017",
+    "fattree_12_pods_reachability_2.json": "2164341593cac7e98cafc0977377e7901aaf2aa74f8b9103be079709a7f15302",
+    "fattree_12_pods_waypointing.json": "8b81861536d1f065542d515443bdfb322d4b38a78aa61c429c7882f629eb6e00",
+    "fattree_14_pods_all_properties.json": "3633d3f5ac8f5a4502dd9af5ec34d6a1f92801a41310ced7df716b0770065722",
+    "fattree_14_pods_reachability_1.json": "0986334d4e89dd9be89c7560cbbee3c3965fb40de3acd5f7cea49732e1d7d2b6",
+    "fattree_14_pods_reachability_2.json": "112b01d4812e649229a960100fbe32655a1cd250d263afae627438163bf86deb",
+    "fattree_14_pods_waypointing.json": "3d66dcd103d809c18138c3ec69ccaf6f804ac110b44501f37f9e7f130f25c8ad",
+    "fattree_16_pods_all_properties.json": "929cf42c6f0e6cebf9445e54d8082e142921693c81adc69f0707df4cfc57a7d8",
+    "fattree_16_pods_reachability_1.json": "d0022bd29b8dc03c01e38f289a8c2207000541410b32e79652a2f38d60b95361",
+    "fattree_16_pods_reachability_2.json": "3949a5265dfb5ca43fe9995fb2d21b80f581d9b03989df9c7603c3cbd9f04a0a",
+    "fattree_16_pods_waypointing.json": "f6370b354790d50ad73e52c4aa99184db73e91ce0e7dcd1e8e3c1a2c6cf83645",
+    "fattree_6_pods_all_properties.json": "ceba82e263fd51196c9b4e40103621680484a580c7d10621ae8ebbf6ed7f00ee",
+    "fattree_6_pods_reachability_1.json": "ef2c05350271b32f0f3be729b4e8ba5b795991107cda01161821be9a95c27ed3",
+    "fattree_6_pods_reachability_2.json": "2f48a5d008158bdbd93987569fddccc655880ead775fea254928f862f7c62cb8",
+    "fattree_6_pods_waypointing.json": "56ac4db317bb9686d1b5407c9b1e8e86665a793bffcc17f36c730d7889021e6d",
+    "fattree_8_pods_all_properties.json": "60be40f5e4367d85cee0f4e1e1de0f0d216bae317b919c6b53e3c6c5143d3ed4",
+    "fattree_8_pods_reachability_1.json": "57e627a89117b90c2e3f2f4210fdf559affae95723a9716bebcd06f65826bcdc",
+    "fattree_8_pods_reachability_2.json": "9bc5500d772eade94281d34cb76a5ff4adafca7c090898b6f92dcc501e638267",
+    "fattree_8_pods_waypointing.json": "22172a8c37027c56f379834cc2543767b515a3f8fd8f6b8a4bd80dfdd54ed6f9"
+  },
+  "host_build": "26B131",
+  "input_sha256": {
+    "distributed_controller_independent.json": "bddf46c004fa5924d868677d9f22dd38503fa2744a01aa2688204c411972349c",
+    "distributed_controller_synchronized.json": "8962b7efb85a36ad823a233428a255e99d0bccff1320308bca8f0d6854cd8b38",
+    "fattree_10_pods_all_properties.json": "6e4ec9e2fc409ef2a488c25f41dcc2db7fb0b8f471d57a9e37506227459d4143",
+    "fattree_10_pods_reachability_1.json": "2cac18dd0e9268d146d18bf79a51f8d1fbd4bb03b95651024c4339cec0a1c8a6",
+    "fattree_10_pods_reachability_2.json": "6ec8fb9ae6cc02e4b16b4489681d36d76214602e4176dc99f635f72c670ae16f",
+    "fattree_10_pods_waypointing.json": "8b5e4dfdd0dcdb8c877771b11a0683996dbb5274fa3aaa62d6673ecec4309055",
+    "fattree_12_pods_all_properties.json": "e6dcae327bb0465e2917ae49a8158f7bc37c3df341458750538df08893480219",
+    "fattree_12_pods_reachability_1.json": "a2f7d6665062c56cbdf5c354d1aca86c2fc261057d37df4a342e2be78a8d3017",
+    "fattree_12_pods_reachability_2.json": "2164341593cac7e98cafc0977377e7901aaf2aa74f8b9103be079709a7f15302",
+    "fattree_12_pods_waypointing.json": "8b81861536d1f065542d515443bdfb322d4b38a78aa61c429c7882f629eb6e00",
+    "fattree_14_pods_all_properties.json": "3633d3f5ac8f5a4502dd9af5ec34d6a1f92801a41310ced7df716b0770065722",
+    "fattree_14_pods_reachability_1.json": "0986334d4e89dd9be89c7560cbbee3c3965fb40de3acd5f7cea49732e1d7d2b6",
+    "fattree_14_pods_reachability_2.json": "112b01d4812e649229a960100fbe32655a1cd250d263afae627438163bf86deb",
+    "fattree_14_pods_waypointing.json": "3d66dcd103d809c18138c3ec69ccaf6f804ac110b44501f37f9e7f130f25c8ad",
+    "fattree_16_pods_all_properties.json": "929cf42c6f0e6cebf9445e54d8082e142921693c81adc69f0707df4cfc57a7d8",
+    "fattree_16_pods_reachability_1.json": "d0022bd29b8dc03c01e38f289a8c2207000541410b32e79652a2f38d60b95361",
+    "fattree_16_pods_reachability_2.json": "3949a5265dfb5ca43fe9995fb2d21b80f581d9b03989df9c7603c3cbd9f04a0a",
+    "fattree_16_pods_waypointing.json": "f6370b354790d50ad73e52c4aa99184db73e91ce0e7dcd1e8e3c1a2c6cf83645",
+    "fattree_6_pods_all_properties.json": "ceba82e263fd51196c9b4e40103621680484a580c7d10621ae8ebbf6ed7f00ee",
+    "fattree_6_pods_reachability_1.json": "ef2c05350271b32f0f3be729b4e8ba5b795991107cda01161821be9a95c27ed3",
+    "fattree_6_pods_reachability_2.json": "2f48a5d008158bdbd93987569fddccc655880ead775fea254928f862f7c62cb8",
+    "fattree_6_pods_waypointing.json": "56ac4db317bb9686d1b5407c9b1e8e86665a793bffcc17f36c730d7889021e6d",
+    "fattree_8_pods_all_properties.json": "60be40f5e4367d85cee0f4e1e1de0f0d216bae317b919c6b53e3c6c5143d3ed4",
+    "fattree_8_pods_reachability_1.json": "57e627a89117b90c2e3f2f4210fdf559affae95723a9716bebcd06f65826bcdc",
+    "fattree_8_pods_reachability_2.json": "9bc5500d772eade94281d34cb76a5ff4adafca7c090898b6f92dcc501e638267",
+    "fattree_8_pods_waypointing.json": "22172a8c37027c56f379834cc2543767b515a3f8fd8f6b8a4bd80dfdd54ed6f9",
+    "stateful_firewall.json": "958f3cf6625249f460d3eb6d537ef675ef10b388003143f89914489ec40b0e9f"
+  },
+  "native": {
+    "nonverdict": 0,
+    "reachability_false": 55,
+    "reachability_true": 53,
+    "total": 120,
+    "waypoint_false": 0,
+    "waypoint_true": 12
+  },
+  "raw_sha256": {
+    "logs/lean-fresh.jsonl": "a983b5cd724c51d64d9c1a47767287116a7f13e01367798786172b5eda3049cf",
+    "logs/lean-reused.jsonl": "a983b5cd724c51d64d9c1a47767287116a7f13e01367798786172b5eda3049cf",
+    "timings.jsonl": "5f95c0a95499fe58aa24de32150b95700d2cdd2be55ade6cc06f257a44bb6693"
+  },
+  "reference": {
+    "observed": 0,
+    "runtime": "unavailable",
+    "uncomparable": 120
+  },
+  "timing": {
+    "configurations": [
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 0.151208,
+        "mode": "lean-fresh",
+        "pods": 6,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 0.096512,
+        "mode": "lean-fresh",
+        "pods": 6,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 0.092641,
+        "mode": "lean-fresh",
+        "pods": 6,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 0.094978,
+        "mode": "lean-fresh",
+        "pods": 6,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 0.174876,
+        "mode": "lean-fresh",
+        "pods": 8,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 0.182821,
+        "mode": "lean-fresh",
+        "pods": 8,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 0.158107,
+        "mode": "lean-fresh",
+        "pods": 8,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 0.17054,
+        "mode": "lean-fresh",
+        "pods": 8,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 0.320676,
+        "mode": "lean-fresh",
+        "pods": 10,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 0.29702,
+        "mode": "lean-fresh",
+        "pods": 10,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 0.290771,
+        "mode": "lean-fresh",
+        "pods": 10,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 0.323849,
+        "mode": "lean-fresh",
+        "pods": 10,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 0.654776,
+        "mode": "lean-fresh",
+        "pods": 12,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 0.689459,
+        "mode": "lean-fresh",
+        "pods": 12,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 0.568456,
+        "mode": "lean-fresh",
+        "pods": 12,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 0.612728,
+        "mode": "lean-fresh",
+        "pods": 12,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 1.150755,
+        "mode": "lean-fresh",
+        "pods": 14,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 1.0643,
+        "mode": "lean-fresh",
+        "pods": 14,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 1.079967,
+        "mode": "lean-fresh",
+        "pods": 14,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 1.304956,
+        "mode": "lean-fresh",
+        "pods": 14,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 1.456169,
+        "mode": "lean-fresh",
+        "pods": 16,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 1.488394,
+        "mode": "lean-fresh",
+        "pods": 16,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 1.353063,
+        "mode": "lean-fresh",
+        "pods": 16,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 1.357697,
+        "mode": "lean-fresh",
+        "pods": 16,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 0.125915,
+        "mode": "lean-reused",
+        "pods": 6,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 0.113352,
+        "mode": "lean-reused",
+        "pods": 6,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 0.09006,
+        "mode": "lean-reused",
+        "pods": 6,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 0.092153,
+        "mode": "lean-reused",
+        "pods": 6,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 0.180329,
+        "mode": "lean-reused",
+        "pods": 8,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 0.197239,
+        "mode": "lean-reused",
+        "pods": 8,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 0.15676,
+        "mode": "lean-reused",
+        "pods": 8,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 0.169692,
+        "mode": "lean-reused",
+        "pods": 8,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 0.321607,
+        "mode": "lean-reused",
+        "pods": 10,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 0.294949,
+        "mode": "lean-reused",
+        "pods": 10,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 0.290196,
+        "mode": "lean-reused",
+        "pods": 10,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 0.310827,
+        "mode": "lean-reused",
+        "pods": 10,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 0.617924,
+        "mode": "lean-reused",
+        "pods": 12,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 0.583592,
+        "mode": "lean-reused",
+        "pods": 12,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 0.511565,
+        "mode": "lean-reused",
+        "pods": 12,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 0.57763,
+        "mode": "lean-reused",
+        "pods": 12,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 1.116346,
+        "mode": "lean-reused",
+        "pods": 14,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 1.096143,
+        "mode": "lean-reused",
+        "pods": 14,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 1.083778,
+        "mode": "lean-reused",
+        "pods": 14,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 1.24982,
+        "mode": "lean-reused",
+        "pods": 14,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "all_properties",
+        "median_wall_seconds": 1.498471,
+        "mode": "lean-reused",
+        "pods": 16,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_1",
+        "median_wall_seconds": 1.523924,
+        "mode": "lean-reused",
+        "pods": 16,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "reachability_2",
+        "median_wall_seconds": 1.4151,
+        "mode": "lean-reused",
+        "pods": 16,
+        "runs": 10,
+        "success": 10
+      },
+      {
+        "group": "waypointing",
+        "median_wall_seconds": 1.340399,
+        "mode": "lean-reused",
+        "pods": 16,
+        "runs": 10,
+        "success": 10
+      }
+    ],
+    "nonverdict": 0,
+    "peak_memory": null,
+    "runs": 480,
+    "success": 480
+  }
+}
