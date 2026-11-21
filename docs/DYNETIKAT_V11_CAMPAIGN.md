@@ -24,6 +24,105 @@ toolchain used to build it, and the version of Maude alongside the binary
 hashes. The orchestrator records the binary hashes, Python package
 versions and full commands in the results directory.
 
+### Historical backend recovery
+
+Recovery on baseline `ff0d22ef9ccc8fd5ca7888ffb81f6053bad9d747`
+confirmed that the reference tag `v1.1` is identical to the pinned SHA
+and located the legacy IDD code in
+[`netkat-lang/old-netkat`](https://github.com/netkat-lang/old-netkat).
+The pinned [test script](https://github.com/hcantunc/DyNetiKAT/blob/1c6bd422377853378c7516a7875009fcfb5ba881/run_test.sh)
+invokes `_build/install/default/bin/katbv`. The installer update
+`1fbe0208b4cefef9c351a6966bc63e548274932f` retained an unpinned clone.
+The initial README names the same URL and executable. The paper names
+the decision procedure without a build revision. The pinned tree has no
+`.gitmodules`, `.github/workflows`, `.travis.yml` or Dockerfile at those
+paths. The release asset listing could not be inspected. The issue search
+for Maude, katbv and artifacts returned no hits.
+
+The retained legacy master history identifies
+[`5822459fbfae0f0e9e0622843ebe30208f8bf189`](https://github.com/netkat-lang/old-netkat/commit/5822459fbfae0f0e9e0622843ebe30208f8bf189)
+(2020-10-19) as the latest visible legacy commit before the initial
+DyNetiKAT publication (2021-05-21), installer update (2021-09-17) and
+pinned revision (2021-10-09). Its package metadata still names the
+original clone URL. Its source exposes `katbv equiv FILE1 FILE2` and
+prints the `expressions equivalent:` line expected by the pinned
+wrapper. This is the leading reconstruction candidate. The
+[legacy comparison](https://github.com/netkat-lang/old-netkat/compare/0.1...5822459fbfae0f0e9e0622843ebe30208f8bf189)
+puts it two commits after the 0.1 tag
+`3347316917aadeb86d3e771fe2d2f7e3f4da7619`, with
+`0c19199ffb90f7efa647df1d0fd82cea44ad4233` in between. This is a
+three-revision comparison set bounded by the compatible release and
+the date-constrained legacy tip. The intervening changes touch compiler
+or semantics files, so source-level CLI compatibility alone cannot
+establish verdict agreement. No artifact ties a revision to the
+original execution. The current repository at the old clone URL has
+different history and its date-matched 2021 snapshot builds Nerode
+tools. The optional automata backend is a separate implementation.
+
+The opam source archive supplied these verified bytes:
+
+| Source | SHA-256 |
+| --- | --- |
+| [NetKAT 0.1](https://opam.ocaml.org/packages/netkat/netkat.0.1/) | `0f8f1be04daadd1bbff4eeebf709247b17024678943b1ede9ef44c6e76591882` |
+| [mparser 1.2.3](https://opam.ocaml.org/packages/mparser/mparser.1.2.3/) | `dd08c884ea6e7d60a84613433ea20e7e198a8f90edad5064e4c0bc1ebc2b9669` |
+
+The legacy CI matrix used Linux and OCaml 4.07.1 and 4.08.1, and
+pinned `idds` from Git without a revision. The release's opam metadata
+requires OCaml >= 4.07, dune >= 1.10, Jane Street packages from v0.12
+through v0.13, and mparser >= 1.2.3 and < 1.3.
+Opam's current mparser 1.2.3 recipe requires OCaml < 5.0. Local
+opam is 2.5.2; the installed OCaml switches are 5.2.0 and 5.4.1.
+The ordinary-switch dry run hit a write-denied lock, and the local
+cache lacks the period compiler and dependencies. OCaml 4.08.1 is
+an evidence-backed starting point on a Linux x86-64 guest, with a
+period opam package index and the legacy checkout's `make` target
+after dependency installation. The
+[2021-09-17 opam index snapshot](https://github.com/ocaml/opam-repository/tree/3ee0d8336d6616a07c1bd28128e70f56cce623e7)
+contains OCaml 4.08.1, mparser 1.2.3, idds 0.2 and NetKAT 0.1.
+Its NetKAT recipe names the original GitHub release URL and specifies
+the same checksum as the recovered opam archive. This ties the old
+repository's release family to the installer URL. The original opam
+version and resolved transitive dependency set remain unknown.
+
+The official [Maude3.1 tag](https://github.com/maude-lang/Maude/tree/Maude3.1)
+resolves to
+`797a2f1ddd63d3b3718c51e74e655981e5cd721c`. Debian bullseye also publishes
+[Maude 3.1-2](https://packages.debian.org/en/bullseye/maude) for Linux
+amd64 and arm64. The Debian CDN timed out, but the
+[WSU Debian mirror](https://mirrors.vcea.wsu.edu/debian/pool/main/m/maude/maude_3.1-2_arm64.deb)
+supplied the arm64 package. Its measured SHA-256 is
+`42d9e4d8bb7e4a823629c649c03f8ee66f9efd0cfad4d728c9ea432116a8de9f`.
+The package identifies itself as Maude 3.1-2. Its extracted ELF requires
+the Linux loader and shared libraries. macOS returned an executable
+format error (exit 126). This verifies the package format and metadata.
+The Maude process itself did not start. The Maude source archive,
+attempted GitHub release asset URLs, exact legacy backend source archive
+and OCaml 4.08.1 source downloads timed out at CONNECT or TLS.
+No usable Linux runtime was found locally. macOS can execute
+x86-64 Mach-O through Rosetta, which does not provide a Linux guest.
+
+The concrete acquisition route is a Linux x86-64 guest or host with
+archive access. Use the official installer-linked Maude 3.1 Linux
+bundle or record the Debian 3.1-2 package as a reconstruction, and
+resolve the period OCaml stack for the exact legacy candidate. Record
+download and binary hashes, version output and the complete dependency
+set, then follow the pinned test command below from an exported
+reference working tree. These commands have not executed on a recovered
+runtime.
+
+```sh
+printf 'quit .\n' | /path/to/maude.linux64
+python3 dnk.py /path/to/maude.linux64 /path/to/katbv \
+  benchmarks/stateful_firewall.json -t 1 -v netkat-idd -s
+```
+
+For exact historical provenance, an original backend checkout,
+original executable with provenance, or original build log and lock
+is still needed. A timestamp-constrained build can supply explicitly
+labelled reconstructed results after runtime checks. No fixed-fixture
+query executed, both controller cases remain unavailable, and
+preprocessed and worker-count behavior remains untested.
+
 ## Reproduction
 
 Use Python 3.11.15 and NetworkX 3.6.1 for the generator. The archive
