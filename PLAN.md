@@ -8,8 +8,9 @@ documented source ambiguity. The v1.1 loader now validates original raw
 JSON and constructs admitted inputs. The serial batch runner returns
 checked bounded reachability and waypoint verdicts using a prepared
 session. Checkpoint 4 records [generator and native campaign
-evidence](docs/DYNETIKAT_V11_CAMPAIGN.md). The historical executable
-dependencies and reference-side validation remain pending.
+evidence](docs/DYNETIKAT_V11_CAMPAIGN.md). The reconstructed reference
+runtime agreed with Lean on all 120 pinned query dispatches. The
+historical timing campaign remains pending.
 
 ## Symbolic native KAT
 

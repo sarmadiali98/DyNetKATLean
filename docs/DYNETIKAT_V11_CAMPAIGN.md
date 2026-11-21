@@ -3,7 +3,7 @@
 Baseline `96663e191c6755e04318df7251bd3c4353d9d7c6`. Reference revision
 `1c6bd422377853378c7516a7875009fcfb5ba881`.
 
-## Reference runtime
+## Initial macOS runtime investigation
 
 The pinned Python and Maude source modules were recovered by exact revision
 and kept unchanged. The Python CLI displays its help under Python 3.11.15,
@@ -123,6 +123,37 @@ labelled reconstructed results after runtime checks. No fixed-fixture
 query executed, both controller cases remain unavailable, and
 preprocessed and worker-count behavior remains untested.
 
+## Reconstructed Ubuntu runtime
+
+The Ubuntu x86-64 run used pinned DyNetiKAT
+`1c6bd422377853378c7516a7875009fcfb5ba881`, Maude 3.1 (Debian
+`3.1-2`), and `katbv` built from
+`netkat-lang/old-netkat@5822459fbfae0f0e9e0622843ebe30208f8bf189`.
+This backend is the strongest reconstructed candidate. Its exact use in
+the historical installation has not been established.
+
+The compiler was OCaml 4.08.1 with opam 2.3.0 and `mparser` 1.2.3.
+The compiler build used GNU C17, `-fcommon`, and a fixed alternate
+signal-stack allocation for modern glibc. Jane Street Core v0.14.1
+needed a Linux `gettid` stub compatibility patch. The pinned source
+trees for DyNetiKAT and NetKAT were unchanged. The reference ran with
+Python 3.14.7 and NumPy 2.5.5. The external launcher used multiprocessing
+`fork` because the shell sandbox denied the `forkserver` socket bind.
+
+The three fixed fixtures returned all 12 verdicts. Fresh preprocessing
+and loading the generated JSON with `-p` agreed at one and two workers.
+Running from another working directory also agreed when the launcher
+added the script directory to Python's import path. Controller
+preprocessed JSON differed only in the ordering of the serialized
+`comm` set. No verdict changed.
+
+The independent controller's `H3_to_H2` and `H1_to_H4` queries at index
+1 and depth 3 both violated the fixture's `=0` assertion. The checked
+Lean result is nonempty in both cases. These are fixture expectation
+defects for the compared bounded queries. The other ten fixed fixture
+assertions were satisfied, and all twelve reference verdicts matched
+Lean.
+
 ## Reproduction
 
 Use Python 3.11.15 and NetworkX 3.6.1 for the generator. The archive
@@ -193,44 +224,47 @@ local native campaign shares the host with repository verification.
 Its timings do not support a controlled comparison with historical
 hardware, a speedup claim or published timing reproduction.
 
-## Observed results
+## Semantic differential results
 
-The native batch returned 120 checked verdicts from 27 inputs. Reachability
-returned 53 nonempty and 55 empty bounded results. All 12 waypoint
-endpoint-inclusion queries returned true. Fresh and reused execution
-agreed for all 120 reports. The two independent-controller assertions
-remain fixture-expectation disagreements. Both queries have index 1,
-depth 3 and a checked nonempty result, with packet keys `H3_to_H2`
-and `H1_to_H4`. Their reference outcomes are unknown.
+The [reference evidence](DYNETIKAT_V11_REFERENCE_EVIDENCE.json) records
+runtime provenance, query identities, input hashes, observed reference
+reports, checked Lean verdicts, and individual execution attempts. All
+27 input hashes match the native campaign, including all 24 regenerated
+FatTree JSON files. The comparison uses query polarity to interpret the
+reference's satisfied and violated reports. Fixture assertions are
+recorded separately from the resulting Boolean verdicts.
 
-| Query subset | Total | Observed reference | Comparable | Lean non-verdict |
+| Query subset | Total | Reference observed | Matches | Mismatches |
 | --- | ---: | ---: | ---: | ---: |
-| All | 120 | 0 | 0 | 0 |
-| Reachability | 108 | 0 | 0 | 0 |
-| `!0` | 51 | 0 | 0 | 0 |
-| `=0` | 57 | 0 | 0 | 0 |
-| Head alone | 6 | 0 | 0 | 0 |
-| Single tail | 30 | 0 | 0 | 0 |
-| Nested tail | 72 | 0 | 0 | 0 |
-| Waypoint | 12 | 0 | 0 | 0 |
+| All | 120 | 120 | 120 | 0 |
+| Reachability | 108 | 108 | 108 | 0 |
+| `!0` | 51 | 51 | 51 | 0 |
+| `=0` | 57 | 57 | 57 | 0 |
+| Head alone | 6 | 6 | 6 | 0 |
+| Single tail | 30 | 30 | 30 | 0 |
+| Nested tail | 72 | 72 | 72 | 0 |
+| Waypoint | 12 | 12 | 12 | 0 |
 
-Matches and semantic mismatches are both zero because the comparison has
-zero paired verdicts. All 120 cases are uncomparable due to one reference
-runtime setup blocker. No historical query reached execution. Re-running
-the pinned generator produced 24 byte-identical archived inputs, zero
-formatting or order differences, zero content differences and zero failures.
+There were zero final reference failures, Lean non-verdicts, and
+uncomparable cases. The two fixed-fixture expectation defects did not
+produce Lean/reference discrepancies.
 
-Functional parity sign-off remains open until the historical runtime returns
-query observations and the differential resolves every case. Empirical parity
-remains open until the reference timing matrix runs on the comparison host.
+The initial one-worker fresh runs of all eight 14- and 16-pod inputs
+hit the five-minute per-input limit. These attempts are recorded as
+timeouts. The 14-pod reachability-1 attempt had written a usable
+preprocessed artifact before it timed out. An extended two-worker
+fresh run produced the 16-pod combined verdicts and its preprocessed
+artifact. At each of these two scales the four raw inputs differed only
+in their property maps. For retries in `-p` mode, the run reused the
+reference-generated preprocessing and supplied the original ordered
+property map for the requested query group. Each group was dispatched
+through v1.1. The final corpus contains an actual reference report for
+every query, including the separate and combined dispatches.
 
-The ledger also lists direct loading of historical preprocessed JSON and
-serial/parallel agreement as acceptance checks. This work exercised the
-raw fixture interface and native in-memory preparation. It did not validate
-historical serialized preprocessing or worker-count parity. The live
-runner's reference timing mode is serial. Published parallel overhead and
-decision-share comparisons still need measured reference results and
-appropriate instrumentation.
+This completes the scoped semantic differential. The fixed-fixture
+mode checks do not establish general native loading of historical
+preprocessed JSON or native worker-count parity. The historical timing
+matrix remains pending.
 
 ## Native timing results
 

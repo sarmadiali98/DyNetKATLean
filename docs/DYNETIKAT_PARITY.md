@@ -394,9 +394,12 @@ put tests through the public entry points as each becomes available.
 ## Checkpoint 4 validation evidence
 
 See the [campaign record](DYNETIKAT_V11_CAMPAIGN.md) for the reproduction
-command, generator comparison, native measurements and reference-runtime
-blocker. Reference verdicts remain unavailable. The two independent
-controller assertion disagreements remain fixture observations.
+command, generator comparison, native measurements and reconstructed
+runtime. All 120 reference dispatches matched the checked Lean
+verdicts. Both independent-controller isolation assertions disagree
+with the reference verdict as well as the Lean verdict. Fixed-fixture
+reference runs agreed across fresh and reused preprocessing and one
+and two workers.
 
 ## Acceptance and progress estimates
 
@@ -429,8 +432,9 @@ invalidate a functional verdict.
 After checkpoint 1 it was about **70%** as implementation readiness.
 The bounded reachability implementation raised that estimate to **80%**.
 Checkpoint 3 completes the scoped user-visible implementation (**100%**),
-with **100%** checked native corpus coverage and **0%** pinned-reference
-differential validation. Score 10
+with **100%** checked native corpus coverage. Checkpoint 4 now has
+**100%** reference differential coverage and agreement for the pinned
+corpus using the reconstructed backend. Score 10
 equally weighted capabilities at 0 for absent, 0.5 for a verified reusable
 core or partial counterpart and 1 for delivered parity. NetKAT text, process
 text, declaration admission, packet predicates, bounded reachability,
@@ -443,5 +447,6 @@ raw JSON ingestion from 0 to 1. Bounded reachability and selectors both
 rise from 0.5 to 1 for implementation readiness. Checkpoint 3 completes
 waypoint, in-memory preprocessing and serial batch reporting. The same
 weights give about **90%** overall implementation readiness, with
-differential and empirical acceptance still pending. These are readiness estimates with stated weights, not measured
+the scoped semantic differential complete and empirical acceptance
+still pending. These are readiness estimates with stated weights, not measured
 engineering time or a count of successful differential runs.
