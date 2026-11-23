@@ -1,4 +1,4 @@
-# H0 — History-Based Semantics Migration Plan (DyNetKAT-Lean)
+# H0 - History-Based Semantics Migration Plan (DyNetKAT-Lean)
 
 Status: design/audit only; no Lean source modified. References verified against the
 working tree on 2026-11-06 (branch `master`, HEAD `e96d71a`).
@@ -27,8 +27,8 @@ defines `⟦-⟧ : N → (H → P(H))` over packet histories:
 - Definition 1 (p. 5): histories are (possibly empty) packet lists `σ::l`, `⟨⟩` empty.
   Tests, assignments, `dup` are clause-defined **only on nonempty** `σ::h`; `⟦1⟧`,
   `⟦¬a⟧` for all `h`. **[F]**
-- Figure 8, rule `(cpolX;)` (p. 10): premise `σ' ∈ ⟦p⟧(σ::⟨⟩)` — **singleton-history
-  evaluation** — yields `(p; q, σ::H, H') →(σ,σ') (q, H, σ'::H')`. The pending queue
+- Figure 8, rule `(cpolX;)` (p. 10): premise `σ' ∈ ⟦p⟧(σ::⟨⟩)` - **singleton-history
+  evaluation** - yields `(p; q, σ::H, H') →(σ,σ') (q, H, σ'::H')`. The pending queue
   `σ::H` is *not* the evaluation input. **[F]**
 - §II-C, Eq. 1 (p. 6): DyNetKAT is defined on `NetKAT⁻ᵈᵘᵖ`; analyses are reachability
   over dup-free `in · (p·t)* · out ≢ 0`. **[F]**
@@ -42,7 +42,7 @@ packet-to-packet relation `Semantics : NetKAT → CtxPkt → CtxPkt → Prop` (`
 `seq → ∃ρ`, `star → StarClosure (Semantics n) σ τ`; generic `StarClosure` at
 `Semantics.lean:51`). The header comment (`Semantics.lean:20-25`) documents the
 deviation and *claims* dup-free equivalence, and `docs/DESIGN_ALARMS.md:155-163` flags
-it — but **no equivalence is formalized anywhere in the repo**. Per the architectural
+it - but **no equivalence is formalized anywhere in the repo**. Per the architectural
 decision, history semantics becomes authoritative and the correspondence must be proved.
 
 ## 2. Recommended canonical History type **[D]**
@@ -66,7 +66,7 @@ in namespace `DyNetKAT.NetKAT` (new module, e.g. `NetKAT/History.lean`).
   `DecidableEq CtxPkt` constructions (`Evaluator.lean:11`, `Decision.lean:47`,
   `Executable.lean:7`); register one instance in the new module.
 - **Tests/assignments well-defined:** every history has a `head`, so `σ(f)=n` and
-  `σ[f:=n]` are total on `History` — removing the paper's clause partiality on `⟨⟩`.
+  `σ[f:=n]` are total on `History` - removing the paper's clause partiality on `⟨⟩`.
   No dup-free clause produces an empty history from a singleton start, so the
   empty-history behavior is never needed.
 - **Cardinality:** `History` is **countably infinite** (`CtxPkt` finite via
@@ -94,7 +94,7 @@ already dup-free, so there is no `dup` clause):
 | `.id` | `h = h'` | `⟦1⟧(h) = {h}` |
 | `.test Pr` | `h = h' ∧ Predicate.eval Pr (head h) = true` | `⟦f=n⟧(σ::h)`, `⟦¬a⟧(h)={h}\⟦a⟧(h)`; predicate `+`/`·` are policy-level union/composition of `{h}`/`{}`-valued tests, collapsing to `eval` (`AST.lean:49`) |
 | `.completeTest α` | `h = h' ∧ holdsComplete α (head h)` | complete test = conjunction of all field tests (Def. 4, p. 8); `holdsComplete_iff_eq` (`Packet.lean:218`) |
-| `.assign1 f v` | `h' = ⟨Packet.update (head h) f v, tail h⟩` | `⟦f←n⟧(σ::h) = {σ[f:=n]::h}` — **tail preserved** |
+| `.assign1 f v` | `h' = ⟨Packet.update (head h) f v, tail h⟩` | `⟦f←n⟧(σ::h) = {σ[f:=n]::h}` - **tail preserved** |
 | `.union p q` | `HistorySemantics p h h' ∨ HistorySemantics q h h'` | union clause |
 | `.seq p q` | `∃ k, HistorySemantics p h k ∧ HistorySemantics q k h'` | `⟦p·q⟧(h) = (⟦p⟧•⟦q⟧)(h)` |
 | `.star p` | `StarClosure (HistorySemantics p) h h'` | `⟦p*⟧(h) = ⋃_i Fⁱ(h)` |
@@ -146,14 +146,14 @@ Validity analysis:
 
 | Declaration | Location | Depends on | Migration |
 |---|---|---|---|
-| `Semantics`, `StarClosure`, algebra laws (`union_sem`, `seq_sem`, `fieldTest_sem`, `assign_list_sem`, `completeAssignExpr_sem`, …) | `NetKAT/Semantics.lean:51,61-71,90-655` | — | **Keep.** Packet layer, justified by lifting. |
+| `Semantics`, `StarClosure`, algebra laws (`union_sem`, `seq_sem`, `fieldTest_sem`, `assign_list_sem`, `completeAssignExpr_sem`, …) | `NetKAT/Semantics.lean:51,61-71,90-655` | - | **Keep.** Packet layer, justified by lifting. |
 | `execute`, `boundedStar`, `execute_correct`, `post_correct`, `boundedStar_correct`, `execute_star_correct`, `ReachableWithin`, `semantics_star_iff_reachableWithin` | `NetKAT/Evaluator.lean:171,233,1078,749,1013,1058,802,882` | `Semantics` | **Keep** (backend); history wrapper added on top (§6). |
 | `netkatEquiv`, `netkatEquiv_correct`, `netkatIsZero`, `netkatIsZero_correct`, `netkatIsZero_iff_empty_execute` | `NetKAT/Decision.lean:77,124,151,157,176` | `execute_correct` | **Keep**; history-level meaning via lifting. |
 | `NormalForm`, `ofSummand_sem`, `interpret_sem`, `testNF_sem`, `assignNF_sem`, `unionNF_sem`, `seqNF_sem` | `NetKAT/NormalForm.lean:60,138,263,478,626,686,883` | `Semantics` | **Keep**; history restatements via lifting. |
 | `Step.cpol_seq_ok` premise `Semantics p sigma sigma'` | `DyNetKAT/Semantics.lean:14-24` (premise `:18`) | `Semantics` | **Must change** to singleton-history premise (§7). |
 | `execute_supported_iff_semantics`, `execute_packet_step` | `DyNetKAT/NetKATBridge.lean:10,24` | `execute_correct`, `cpol_seq_ok` | One-line premise translation each. |
 | `packetTransitions`, `packetTransitions_sound`, `packetTransitions_complete` | `DyNetKAT/Executable.lean:25,57,90` | bridge, `execute_correct` | Sound unchanged; complete adds lifting `→` before `execute_supported_iff_semantics`. |
-| `IsBisimulation`, `Bisimilar`, congruence lemmas (incl. `Bisimilar.nSeq_left`) | `DyNetKAT/Bisimulation.lean:9,26,441` | `Step` only | **Proof text unchanged** — `nSeq_left` forwards `evaluates` opaquely; statements unaffected. |
+| `IsBisimulation`, `Bisimilar`, congruence lemmas (incl. `Bisimilar.nSeq_left`) | `DyNetKAT/Bisimulation.lean:9,26,441` | `Step` only | **Proof text unchanged** - `nSeq_left` forwards `evaluates` opaquely; statements unaffected. |
 | `head`, `HeadSpec`, `head_spec` | `DyNetKAT/SafetyHead.lean:74,250,323` (`HeadSpec` uses `Semantics` at `:252`) | `Semantics` | **Keep packet-level**; history-level corollary via lifting later. |
 | `recursiveVars`, `GuardedOccurrences`, `WellFormed` | `DyNetKAT/Definedness.lean` | syntax only | **Unaffected.** |
 | Integration tests | `lean/test_evaluator_integration.lean`, `lean/test_decision.lean`, `lean/test_safety_head.lean` | `execute_correct`, `Semantics` | **Unaffected** while the packet layer is preserved. |
@@ -174,10 +174,10 @@ changes.
   `⟨σ, t⟩` under dup-free `p` are exactly `⟨ρ, t⟩` with `ρ` packet-reachable from `σ`
   (lifting + `semantics_star_iff_reachableWithin`). The existing bound
   `Fintype.card CtxPkt` (`Evaluator.lean:185,233`) stays sufficient: reachable-history
-  cardinality ≤ `Fintype.card CtxPkt`. Assumption: dup-free policy — guaranteed by the
+  cardinality ≤ `Fintype.card CtxPkt`. Assumption: dup-free policy - guaranteed by the
   AST. Packet-level stabilization (`reachableWithin_finite_stabilizes`,
   `Evaluator.lean:922`) is reused; no history enumeration is ever needed.
-- **`supported` vs `unsupported`:** preserved — `unsupported` propagates unchanged; a
+- **`supported` vs `unsupported`:** preserved - `unsupported` propagates unchanged; a
   supported empty packet set maps to a supported empty history set, mirroring
   `combineEvalResult` (`Evaluator.lean:40`).
 - `netkatEquiv`/`netkatIsZero` stay packet-level; equivalence on all packets ⟺
@@ -199,13 +199,13 @@ re-anchored to the authoritative semantics.
 **Proof-preserving sequence:**
 
 1. `execute_packet_step` (`NetKATBridge.lean:24`): after `apply Step.cpol_seq_ok`, close
-   the goal with the `←` direction of lifting applied to the existing `Semantics` fact —
+   the goal with the `←` direction of lifting applied to the existing `Semantics` fact -
    one added rewrite.
 2. `packetTransitions_sound` (`Executable.lean:57`): calls `execute_packet_step`; body
    unchanged.
 3. `packetTransitions_complete` (`Executable.lean:90`): convert the new `evaluates` to
    `Semantics p sigma sigma'` via lifting `→` **before**
-   `execute_supported_iff_semantics` — one added rewrite.
+   `execute_supported_iff_semantics` - one added rewrite.
 4. `Bisimilar.nSeq_left` and all congruence proofs (`Bisimulation.lean:441-470` et al.):
    forward `evaluates` opaquely; **no proof edits**; `IsBisimulation`/`Bisimilar` never
    mention `Semantics`.
@@ -218,7 +218,7 @@ a one-liner rather than a re-proof.
 ## 8. Safe dedicated-branch strategy
 
 Findings (read-only) **[F]:** current branch `master`; only `master`/`origin/master`
-exist (no migration branches); one tracked modification `M lean/DyNetKAT.lean` — purely
+exist (no migration branches); one tracked modification `M lean/DyNetKAT.lean` - purely
 additive imports for the untracked new modules (`Evaluator`, `Decision`, `Definedness`,
 `NetKATBridge`, `Executable`, `SafetyHead`); untracked: `DyNetKAT.pdf`, ten `docs/*.md`
 audits, those Lean modules, ~22 `lean/test_*.lean` files; `git diff --check` clean; no
@@ -226,7 +226,7 @@ stashes.
 
 Recommendation **[D]** (executed in a later task, not H0):
 
-1. Create the branch **without switching**: `git branch history-semantics` — records the
+1. Create the branch **without switching**: `git branch history-semantics` - records the
    base without touching the worktree.
 2. When implementation starts: `git switch history-semantics`. Untracked files are
    unaffected; the uncommitted `lean/DyNetKAT.lean` import change travels with the
@@ -234,25 +234,25 @@ Recommendation **[D]** (executed in a later task, not H0):
 3. Never run `reset --hard`, `checkout .`, `clean`, or `stash`: the untracked audit docs
    and test files are unrecoverable work.
 4. Before H1 edits `lean/DyNetKAT.lean` again (adding `History`/`HistorySemantics`
-   imports), inspect the pending import diff and append to it — do not overwrite.
+   imports), inspect the pending import diff and append to it - do not overwrite.
 5. Commit granularity for H1 (when authorized): (a) pending import block as-is; (b)
    History type + HistorySemantics + lifting; (c) SOS premise change + bridge/executable
    one-liners. `lake build` green before each next step.
 
 ## 9. Proposed order of implementation **[D]**
 
-1. **H1a — foundations (no existing-file changes):** `NetKAT/History.lean` with
+1. **H1a - foundations (no existing-file changes):** `NetKAT/History.lean` with
    `History`, `DecidableEq`, singleton lemmas; `NetKAT/HistorySemantics.lean` with the
    eight clauses (reusing generic `StarClosure`) and the `⋃ Fⁱ` equivalence lemma.
-2. **H1b — lifting:** `historySemantics_lift` by induction on `p`, including the star
+2. **H1b - lifting:** `historySemantics_lift` by induction on `p`, including the star
    auxiliary lemmas and the singleton corollary.
-3. **H1c — SOS re-anchoring:** change the `cpol_seq_ok` premise; fix
+3. **H1c - SOS re-anchoring:** change the `cpol_seq_ok` premise; fix
    `execute_packet_step` and `packetTransitions_complete` (one rewrite each);
    `packetTransitions_sound` and bisimulation untouched.
-4. **H1d — history-level evaluator wrapper:** `executeHistory` + correctness theorem
+4. **H1d - history-level evaluator wrapper:** `executeHistory` + correctness theorem
    over the unchanged packet backend; history-level `netkatIsZero` corollary for
    reachability verdicts `in · (p·t)* · out ≢ 0` from `⟨in, []⟩`.
-5. **H2 — safety pipeline:** history-level restatements of `head_spec` consumers and
+5. **H2 - safety pipeline:** history-level restatements of `head_spec` consumers and
    the reachability check, all derived from lifting.
 
 Each step keeps `lake build` green and changes exactly one existing theorem statement
@@ -269,7 +269,7 @@ Each step keeps `lake build` green and changes exactly one existing theorem stat
    adaptation.
 3. **Predicate-clause collapse:** the single `test` clause relies on paper-level
    predicate composition/negation of `{h}`/`{}`-valued tests coinciding with
-   `Predicate.eval` — a small lemma per predicate constructor. A maximally literal
+   `Predicate.eval` - a small lemma per predicate constructor. A maximally literal
    alternative is per-predicate-clause history semantics (same theorems, more clauses).
 4. **Empty-history convention:** the paper leaves `⟦f=n⟧(⟨⟩)`, `⟦f←n⟧(⟨⟩)`,
    `⟦dup⟧(⟨⟩)` unspecified. The nonempty `History` sidesteps this, but re-adding `dup`

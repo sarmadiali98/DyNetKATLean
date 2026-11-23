@@ -394,7 +394,7 @@ theorem checkCondition35_tailHeadSpec (ingress egress : NetKAT schema) (R : Reco
     The three outcomes are deliberately distinct:
     - `preprocessFailure`: preprocessing failed, so no condition of the
       pipeline was evaluated;
-    - `headFailure`: preprocessing succeeded but `head(Init)` failed —
+    - `headFailure`: preprocessing succeeded but `head(Init)` failed -
       the condition is not evaluable, and this is NOT the verdict
       "condition holds";
     - `isZero b`: the condition was successfully evaluated; it holds
@@ -410,10 +410,10 @@ inductive Cond34Result where
 
     The four outcomes are deliberately distinct:
     - `preprocessFailure`: preprocessing failed;
-    - `tailFailure`: preprocessing succeeded but `tail(Init, R)` failed —
+    - `tailFailure`: preprocessing succeeded but `tail(Init, R)` failed -
       NOT the verdict "condition holds";
     - `tailHeadFailure`: `tail(Init, R)` succeeded but `head` of the
-      extracted process failed — NOT the verdict "condition holds";
+      extracted process failed - NOT the verdict "condition holds";
     - `nonzero b`: the condition was successfully evaluated; it holds
       exactly when `b = true`. -/
 inductive Cond35Result where
@@ -424,8 +424,8 @@ inductive Cond35Result where
   deriving DecidableEq, BEq, Repr
 
 /-- The formal checking result.  Conditions (34) and (35) are different
-    properties — initial isolation versus post-reconfiguration
-    reachability — and are preserved as separate results, exactly as the
+    properties - initial isolation versus post-reconfiguration
+    reachability - and are preserved as separate results, exactly as the
     original tool reports each property separately.  Extraction failures
     are kept distinguishable from each other and from a successfully
     checked policy whose semantics is empty. -/
@@ -434,9 +434,9 @@ structure SafetyCheckResult where
   postReconfigurationCondition : Cond35Result
   deriving DecidableEq, BEq, Repr
 
-/-- The paper's combined claim — "the packets at port ext can arrive at
+/-- The paper's combined claim - "the packets at port ext can arrive at
     port int only after a proper reconfiguration on the channel
-    secConReq" — as a derived conjunction of the two separately reported
+    secConReq" - as a derived conjunction of the two separately reported
     conditions.  This is a convenience accessor, not a replacement for
     the structured result: any extraction failure yields `false`, and
     the individual outcomes remain available in `SafetyCheckResult`. -/
@@ -455,14 +455,14 @@ theorem bothHold_true_iff (r : SafetyCheckResult) :
 
     Stage 1: preprocessing (S4B `preprocess` = restriction δ by the
     process's own communication actions).  Failure yields
-    `preprocessFailure` on both conditions — never a zero verdict.
+    `preprocessFailure` on both conditions - never a zero verdict.
 
     Stage 2a: `head(q)` extraction for condition (34).  Failure yields
-    `headFailure` — never a zero verdict.
+    `headFailure` - never a zero verdict.
 
     Stage 2b: `tail(R, q)` extraction followed by `head` of the extracted
     process for condition (35).  Failures at the two stages are
-    distinguished (`tailFailure` vs `tailHeadFailure`) — never zero
+    distinguished (`tailFailure` vs `tailHeadFailure`) - never zero
     verdicts.
 
     Stage 3: the verified zero checker `netkatIsZero` decides both

@@ -6,7 +6,7 @@ This plan follows the three modularization audits. [KATLean](KATLEAN_MODULARIZAT
 
 The package root is `packages/KATLean/`, physically separate from the integration workspace under `lean/` and ready to serve as the root of a future repository. All 26 generic sources in the inventory and the four KATLean tests moved there without changes to their content. Its manifest pins Mathlib to `c44e0c8ee63ca166450922a373c7409c5d26b00b` and locks its transitive Git dependencies. The integration manifest resolves KATLean through `../packages/KATLean`. NetKATLean resolves the same package through `../KATLean`.
 
-The four NetKAT packet adapters now live under `packages/NetKATLean/NetKATLean/PacketAdapter/`. Their imports use `NetKATLean.PacketAdapter.{Packet,Guard,Symbolic,Closure}`; declaration namespaces remain `KATLean.NetKAT.*`. The remaining `DyNetKAT.NetKAT.*` core modules stay in place until NetKATLean extraction.
+The four NetKAT packet adapters now live under `packages/NetKATLean/NetKATLean/PacketAdapter/`. Their imports use `NetKATLean.PacketAdapter.{Packet,Guard,Symbolic,Closure}`; declaration namespaces remain `KATLean.NetKAT.*`. The former `DyNetKAT.NetKAT.*` core modules now use the `NetKATLean.Core.*` prefix.
 
 From the package root, run `lake build` and `./verify.sh smoke`, `./verify.sh test-all`, `./verify.sh verify`, and `./verify.sh consumer-test`. The consumer creates a fresh Lake project with a path dependency on this package and checks the resolved search paths before building examples with both public imports. The integration script `scripts/verify-katlean.sh` delegates to the package-owned verifier. Python is used only to construct and check the consumer fixture.
 
@@ -47,7 +47,7 @@ The package uses Lean 4.19.0 and declares only `../NetKATLean`. Its lock inherit
 
 The package verification modes are `build`, `smoke`, `test-all`, `verify`, and `consumer-test` on `./verify.sh`. The package owns 28 relocated tests and one new paper-entry audit. The integration suite retains 15 tests. The clean network-backed gate passed on Ubuntu using fresh sibling package copies without Lake caches under `$HOME/.cache/dynetkat-tmp`. The run used `MATHLIB_NO_CACHE_ON_UPDATE=1 lake -v --keep-toolchain update`, verified the direct NetKATLean and inherited KATLean paths, and matched every Git checkout to its lockfile revision, including Mathlib at `c44e0c8ee63ca166450922a373c7409c5d26b00b`. The pinned build, package verification, and isolated Lake consumer passed. The terminal reported `DYNETKATLEAN CLEAN NETWORK REPRODUCIBILITY: PASS`.
 
-After this extraction is verified, committed, and pushed, rename the GitHub repository and the local checkout folder as a separate milestone. Update `origin`, hard-coded paths, documentation and clone instructions, and any affected package references. Run the complete verification suite after the rename, before Docker, CI, or release hardening.
+The GitHub repository and local checkout are now named `DyNetKATLean`. Verification passed after the rename and again with all four Docker targets in hosted CI.
 
 ## Prototype protocol
 
@@ -59,7 +59,7 @@ The prototype uses an external copy of the nine pinned Git dependency checkouts 
 
 Preserve the three public umbrella imports and existing declaration namespaces. Drop the leading workspace directory `lean/` on extraction. Apply the following prototype module moves to the NetKAT core and rewrite imports of the moved modules.
 
-| Current module | Prototype and proposed extracted module |
+| Former module | Extracted module |
 | --- | --- |
 | `KATLean.NetKAT.{Packet,Guard,Symbolic,Closure}` | `NetKATLean.PacketAdapter.{Packet,Guard,Symbolic,Closure}` |
 | Every core `DyNetKAT.NetKAT.X` in the inventory | `NetKATLean.Core.X` |
@@ -76,7 +76,7 @@ With Lean 4.19, the resolver selects the first search-path entry that contains t
 
 The Lake library stanzas should enumerate the owned modules, as the prototype does, to keep source ownership explicit. The first DyNetKATLean test set is `test_dynetkatlean_import.lean`, `test_paper_domain.lean`, `test_typed_guardedness.lean`, `test_guarded_moves.lean`, `test_finite_projection.lean`, `test_equations.lean`, `test_equations_aip.lean`, `test_ground_completeness.lean`, `test_finite_abstraction.lean` and `test_trace_safety.lean`. Keep the controller and FatTree tests with their explicit examples, and the three v1.1 tests with the frontend. Port their legacy umbrella imports to `DyNetKATLean` in the extracted test tree. Review other `test_*.lean` imports before moving those tests. Keep mixed derivation and packet-schema cases as integration coverage. Move the NetKAT-local interpretation test `test_katlean.lean` with NetKAT tests when its integration assertions are confirmed by the extracted runner. Keep Legacy differential and external backend tests with their optional modules.
 
-## Bottom-up migration
+## Historical bottom-up migration
 
 1. **KATLean.** Move the generic inventory and four owned tests. Keep both public imports and the exact Mathlib pin. Before wiring the combined workspace to the external KATLean revision, move the four packet adapters to `NetKATLean/PacketAdapter/` inside the combined workspace and update their imports. This preparatory relocation prevents top-level prefix shadowing as soon as KATLean leaves the workspace. Do not provide `KATLean.NetKAT.*` shims from generic KATLean. Remove the duplicate local KATLean target. Run KATLean build and tests, the fresh consumer, and the combined verification.
 2. **NetKATLean.** Move the NetKAT core inventory, already relocated adapters, and four focused tests into the new repository. Place the 17 former `DyNetKAT.NetKAT.*` core files under `NetKATLean/Core/`. Rewrite their imports in the core, dynamic layer, frontend, examples, optional tools, and tests. Preserve declaration namespaces and the NetKAT-local KATLean compatibility facade. Pin KATLean and Mathlib and remove the combined workspace's duplicate NetKATLean target. Run the independently resolved build, focused tests and NetKAT consumer, then rebuild dynamic and optional integration tests. Leave Legacy and backend extras under explicit integration imports. Existing users of former fine-grained core module imports must migrate to the new paths or public umbrella.
@@ -100,7 +100,7 @@ All three standalone builds and all three Lake consumer builds passed with the m
 
 ## Exact source inventory
 
-Paths below show the current repository layout. The NetKAT core moves still follow the module mapping above.
+Paths below show the current repository layout.
 
 ### KATLean
 

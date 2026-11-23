@@ -528,7 +528,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
      [examplePacket9] [examplePacket9]).mpr ⟨rfl, star_step _ _ _ rfl⟩
 
  -- 7. Explicit verification that the history tail remains unchanged:
- --    the forward direction of the general theorem yields `h' = h` —
+ --    the forward direction of the general theorem yields `h' = h` -
  --    the WHOLE packet list is preserved, second packet included.
  example (p : NetKAT)
      (hstep : ∀ (σ τ : CtxPkt) (h h' : List CtxPkt),
@@ -568,7 +568,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
 
  -- 1. The five primitive constructors.
 
- -- 1a. `drop`: no output history at either level (forward direction —
+ -- 1a. `drop`: no output history at either level (forward direction -
  --     the backward direction is vacuous since `⟦0⟧ = ∅`).
  example (τ : CtxPkt) (h' : List CtxPkt) :
      ¬ HistorySemantics .drop ⟨examplePacket, [examplePacket9]⟩ ⟨τ, h'⟩ :=
@@ -716,7 +716,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
        ⟨Packet.update examplePacket .tpSrc .v9, rfl, ⟨rfl, rfl⟩⟩⟩
 
  -- 7. Nested star `star (star p)`: the correspondence is now
- --    UNCONDITIONAL — no one-step hypothesis needs to be discharged by
+ --    UNCONDITIONAL - no one-step hypothesis needs to be discharged by
  --    hand (contrast with the H3B section above).  Both directions at
  --    once through the theorem.
  example :
@@ -804,7 +804,7 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
 
  -- 9 (explicit whole-tail check): the forward direction of the theorem
  -- yields the WHOLE packet list equality `hTwoTwice.tail = hTwo.tail`
- -- — the entire original history tail `[examplePacket9]` remains
+ -- - the entire original history tail `[examplePacket9]` remains
  -- unchanged after the nontrivial nested-star derivation.
  example :
      hTwoTwice.tail = hTwo.tail ∧
@@ -817,8 +817,8 @@ example (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt)
      [examplePacket9] [examplePacket9]).mp nestedStarDeriv
 
  -- 10. The H3C corollary (`historySemantics_preserves_packetList`):
- --     every history-level derivation — nested stars included, no
- --     hypotheses — preserves the entire packet list.  Generic form and
+ --     every history-level derivation - nested stars included, no
+ --     hypotheses - preserves the entire packet list.  Generic form and
  --     the concrete nested-star derivation above.
  example (p : NetKAT) (σ τ : CtxPkt) (h h' : List CtxPkt)
      (hc : HistorySemantics p ⟨σ, h⟩ ⟨τ, h'⟩) :

@@ -55,7 +55,7 @@ def headFails (d : DyNetKAT) : Bool :=
 -- 4. Reconfiguration prefix: head(rcfg_{x,N};D) = 0  (Eq. 32).
 #eval headEquiv (.rcfgPrefix "ctrl" NetKAT.id .deadlock) .drop         -- true
 
--- 5. Unsupported expressions fail explicitly — never a silent zero:
+-- 5. Unsupported expressions fail explicitly - never a silent zero:
 -- recv/send are communication prefixes, NOT deadlock (⊥).
 #eval headFails (.recv "ctrl" NetKAT.id .deadlock)                     -- true
 #eval headFails (.send "ctrl" NetKAT.id .deadlock)                     -- true

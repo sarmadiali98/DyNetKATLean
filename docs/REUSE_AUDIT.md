@@ -1,8 +1,8 @@
-# REUSE_AUDIT.md — Existing Repository Reuse Audit
+# REUSE_AUDIT.md - Existing Repository Reuse Audit
 
 **Audit target:** `/Users/ali/Desktop/DyNetKAT` (the journal-extension repository).
 
-**Status:** READ ONLY — no files modified.
+**Status:** READ ONLY - no files modified.
 
 **Verdict:** The existing repository implements a **log-based journal extension**
 of DyNetKAT, not the original calculus.  Its components deviate from the paper
@@ -23,10 +23,10 @@ inductive Policy where | drop | id | test | assign | opaque | union | seq | star
 ```
 
 **Matches the paper?** No.
-- `dup` is included — but the DyNetKAT paper uses **NetKAT⁻ᵈᵘᵖ** (dup-free).
-- `switchEq` uses `Nat` for switchId — the paper's packets are functions
+- `dup` is included - but the DyNetKAT paper uses **NetKAT⁻ᵈᵘᵖ** (dup-free).
+- `switchEq` uses `Nat` for switchId - the paper's packets are functions
   over arbitrary fields.
-- `opaque` with `Nat` token — no paper analog.
+- `opaque` with `Nat` token - no paper analog.
 - No `CompleteTest` / `CompleteAssignment` distinction.
 - No finite-domain / Fintype infrastructure.
 
@@ -42,7 +42,7 @@ inductive Process where | deadlock | policy | recv | send | choice | seq
 ```
 
 **Matches the paper?** Partial structure, but significant deviations.
-- `recurse (index : Nat) (body : Process)` and `var (index : Nat)` — the paper
+- `recurse (index : Nat) (body : Process)` and `var (index : Nat)` - the paper
   uses named recursive variables `X` with `X ≜ d`.  This indexed approach
   differs.
 - Missing: `rcfg(x,r)` as a distinct constant (the repo has `recv`/`send`
@@ -51,7 +51,7 @@ inductive Process where | deadlock | policy | recv | send | choice | seq
 - Missing: `δ_ℒ(−)` (restriction) and `π_n(−)` (projection).
 - `parallel` corresponds to `‖` but the paper also has `| |` (comm-merge).
 
-**Reusability verdict:** NOT reusable — missing critical operators and
+**Reusability verdict:** NOT reusable - missing critical operators and
 uses a different recursion encoding.
 
 ### C. `lean/DyNetKAT/Semantics/Basic.lean`
@@ -66,17 +66,17 @@ uses a different recursion encoding.
 
 **Matches the paper?** No.
 - **Deviation 1:** `Configuration` includes a `flowTable : List (Nat × Policy)`
-  field.  The paper's configuration is `(d, H, H′)` — **no flow table**.  As
+  field.  The paper's configuration is `(d, H, H′)` - **no flow table**.  As
   documented in the existing `RESEARCH_NOTES.md` (p. 17-22): "The repository's
   new explicit `flowTable` is thus an analysis abstraction, not a source-faithful
   state representation; a relation to the paper's recursive process semantics
   remains unproved."
 - **Deviation 2:** `Label` uses concrete `(input, output)` packet pairs and
-  `flowUpdate sourcePort policy` — the paper's labels are
+  `flowUpdate sourcePort policy` - the paper's labels are
   `(σ,σ′) | x?r | x!r | rcfg(x,r)`.
 - **Deviation 3:** `evalPolicy` is an **executable** evaluator with bounded
   fuel, not a mathematical denotation `⟦N⟧ ⊆ Packet × Packet`.
-- **Deviation 4:** The drop case label is `.drop input` — needs paper
+- **Deviation 4:** The drop case label is `.drop input` - needs paper
   verification.
 
 **Reusability verdict:** NOT reusable.  The semantic model is fundamentally
@@ -96,9 +96,9 @@ different.
 - The `head`/`tail` operators (Eqs. 29-33) match the paper §V.
 - But: `UnsafeTrace` lacks `*`, `true`, and negation sugars from Def 17.
 - `actionMatches` uses concrete packet matching, not abstract `α·π`.
-- `violates` checks specifically for `.reconfig 0 .unit` — hardcoded, not
+- `violates` checks specifically for `.reconfig 0 .unit` - hardcoded, not
   general.
-- `uns` is bounded by `trace.length + 1` fuel — a **bounded approximation**,
+- `uns` is bounded by `trace.length + 1` fuel - a **bounded approximation**,
   not the full semantic map.
 
 **Reusability verdict:** NOT reusable for formal verification.  The
@@ -122,7 +122,7 @@ information.  Consider whether to use the same version or a newer one.
 - All implement the journal-specific log-analysis pipeline.
 
 **Reusability verdict:** NOT reusable.  These implement log parsing,
-causality graphs, and bounded schedule enumeration — none of which exist
+causality graphs, and bounded schedule enumeration - none of which exist
 in the original DyNetKAT paper.
 
 ### G. `docs/RESEARCH_NOTES.md`

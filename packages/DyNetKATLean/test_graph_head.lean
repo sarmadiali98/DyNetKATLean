@@ -1,7 +1,7 @@
 import DyNetKATLean
 
 ------------------------------------------------------------------------
--- Focused tests for S6B Parts 3A and 3B — semantic soundness
+-- Focused tests for S6B Parts 3A and 3B - semantic soundness
 -- (`graphHead_sound`) and semantic completeness (`graphHead_complete`)
 -- of graph-native head extraction, plus the combined specification
 -- equivalence (`graphHead_spec_iff`),
@@ -18,18 +18,18 @@ import DyNetKATLean
 -- and their verified extraction results) and derives concrete
 -- consequences:
 --
---   1. Self-recursive process `X ≜ N;X` — positive spec instance for a
+--   1. Self-recursive process `X ≜ N;X` - positive spec instance for a
 --      concrete packet pair, witnessed by the expected prefix policy,
 --      plus a direct exercise of the node-level soundness helper.
---   2. Mutual recursion `X ≜ N;Y`, `Y ≜ M;X` — positive spec instance;
+--   2. Mutual recursion `X ≜ N;Y`, `Y ≜ M;X` - positive spec instance;
 --      both nodes of the cycle contribute, each visited exactly once.
---   3. Unguarded cycle `X ≜ Y`, `Y ≜ X` — the specification is EMPTY
+--   3. Unguarded cycle `X ≜ Y`, `Y ≜ X` - the specification is EMPTY
 --      (the cyclic references contribute no packet pairs), so
 --      soundness is tight: the extracted policy `0 + (0 + 0)` also has
 --      empty semantics (`exUnguarded_semantic`).
---   4. Unreachable recursive definition — the specification is empty
+--   4. Unreachable recursive definition - the specification is empty
 --      and the unreachable definition contributes nothing.
---   5. `rcfgPrefix` boundary — the specification of the root is
+--   5. `rcfgPrefix` boundary - the specification of the root is
 --      exactly the semantics of the prefix before the boundary;
 --      nothing beyond the boundary contributes.
 --
@@ -49,7 +49,7 @@ open DyNetKAT.NetKAT
 abbrev σ₀ : CtxPkt := examplePacket
 
 ------------------------------------------------------------------------
--- Fixture 1 — the self-recursive process `X ≜ N;X` (N := 1)
+-- Fixture 1 - the self-recursive process `X ≜ N;X` (N := 1)
 ------------------------------------------------------------------------
 
 abbrev gSelf : ProcessGraph := exSelfLoopGraph NetKAT.id
@@ -102,7 +102,7 @@ theorem test1_node_sound (σ τ : CtxPkt)
     test1_node_collect σ τ hsem
 
 ------------------------------------------------------------------------
--- Fixture 2 — mutually recursive processes `X ≜ N;Y`, `Y ≜ M;X`
+-- Fixture 2 - mutually recursive processes `X ≜ N;Y`, `Y ≜ M;X`
 -- (N := M := 1)
 ------------------------------------------------------------------------
 
@@ -163,7 +163,7 @@ theorem test2_expected_prefixY : HeadPrefixOf gMut gMut.root NetKAT.id := by
   exact HeadPrefixOf.here _ _
 
 ------------------------------------------------------------------------
--- Fixture 3 — the unguarded cycle `X ≜ Y`, `Y ≜ X`
+-- Fixture 3 - the unguarded cycle `X ≜ Y`, `Y ≜ X`
 ------------------------------------------------------------------------
 
 abbrev gUng : ProcessGraph := exUnguardedGraph
@@ -229,7 +229,7 @@ theorem test3_spec_empty (σ τ : CtxPkt) :
   exact (hinv _ _ _ h).1 gUng_root
 
 ------------------------------------------------------------------------
--- Fixture 4 — an unreachable recursive definition
+-- Fixture 4 - an unreachable recursive definition
 -- (`X ≜ ⊥` reachable, `Z ≜ P;Z` unreachable)
 ------------------------------------------------------------------------
 
@@ -262,7 +262,7 @@ theorem test4_spec_empty (σ τ : CtxPkt) :
   exact graphHeadSpec_deadlock_false gUnreach σ τ
 
 ------------------------------------------------------------------------
--- Fixture 5 — an `rcfgPrefix` boundary
+-- Fixture 5 - an `rcfgPrefix` boundary
 -- (`root = 1; rcfg_{ctrl,1}; ref X`, node `X` unsupported)
 ------------------------------------------------------------------------
 
@@ -307,7 +307,7 @@ theorem test5_spec_iff (σ τ : CtxPkt) :
     exact Or.inl ((id_diag σ τ).mpr hEq)
 
 ------------------------------------------------------------------------
--- S6B Part 3B — semantic completeness tests
+-- S6B Part 3B - semantic completeness tests
 --
 -- Every fixture applies the ACTUAL completeness theorem
 --
@@ -321,23 +321,23 @@ theorem test5_spec_iff (σ τ : CtxPkt) :
 --
 -- to the concrete fixtures:
 --
---   1. Self-recursive `X ≜ 1;X` — the spec instance built from the
+--   1. Self-recursive `X ≜ 1;X` - the spec instance built from the
 --      expected prefix `1` is matched by the extracted policy's
 --      semantics (round trip through the equivalence).
---   2. Mutual recursion `X ≜ 1;Y`, `Y ≜ 1;X` — both cycle nodes'
+--   2. Mutual recursion `X ≜ 1;Y`, `Y ≜ 1;X` - both cycle nodes'
 --      contributions are captured, each visited exactly once.
---   3. Unguarded cycle `X ≜ Y`, `Y ≜ X` — supported empty head: the
+--   3. Unguarded cycle `X ≜ Y`, `Y ≜ X` - supported empty head: the
 --      specification is empty AND the extracted policy's semantics is
 --      empty, so the equivalence holds with both sides empty.
---   4. Unreachable recursive definition — outside the head region, so
+--   4. Unreachable recursive definition - outside the head region, so
 --      the shape condition never needs it; the equivalence holds with
 --      both sides empty.
---   5. `rcfgPrefix` boundary — the spec of the root coincides exactly
+--   5. `rcfgPrefix` boundary - the spec of the root coincides exactly
 --      with the semantics of the extracted policy `1 + 0`.
---   6. Supported empty head at the root itself (`root = ⊥`, Eq. 29) —
+--   6. Supported empty head at the root itself (`root = ⊥`, Eq. 29) -
 --      extraction yields `some 0` (distinct from `none`), the spec is
 --      empty, and the equivalence holds.
---   7. Unsupported reachable constructor (`X ≜ (1;⊥) ⊕ x?1;⊥`) — the
+--   7. Unsupported reachable constructor (`X ≜ (1;⊥) ⊕ x?1;⊥`) - the
 --      extraction fails EXPLICITLY (`none`), supportedness fails, yet
 --      the specification is nonempty: this is the witness that the
 --      supportedness hypothesis of the packaged completeness and of the
@@ -408,7 +408,7 @@ theorem test1_roundtrip :
   (test1_iff σ₀ σ₀).mp test1_concrete
 
 /-- The mutually recursive fixture is supported: its head-subterm closure
-    is `{ref X, ref Y, 1; ref Y, 1; ref X}` — all supported shapes. -/
+    is `{ref X, ref Y, 1; ref Y, 1; ref X}` - all supported shapes. -/
 theorem gMut_memX : varNode "X" ∈ gMut.nodes := by
   simp [gMut, exMutualGraph, varNode]
 
@@ -471,7 +471,7 @@ theorem test2_complete (σ τ : CtxPkt)
 
 /-- **Test 2 (both cycle nodes contribute)**: the spec instance built
     from node `Y`'s prefix witness `1` (reached through `X ≜ 1;Y` and
-    `Y ≜ 1;X`) is matched by the extracted policy's semantics — the
+    `Y ≜ 1;X`) is matched by the extracted policy's semantics - the
     completeness direction through the two-node cycle. -/
 theorem test2_completeY (σ : CtxPkt) :
     Semantics (NetKAT.union (NetKAT.union .drop (NetKAT.union .id .drop))
@@ -491,7 +491,7 @@ theorem test2_roundtrip :
   (test2_iff σ₀ σ₀).mp test2_concrete
 
 /-- The unguarded cycle is supported: its head-subterm closure is
-    `{ref X, ref Y}` — both references point at live nodes. -/
+    `{ref X, ref Y}` - both references point at live nodes. -/
 theorem gUng_memX : varNode "X" ∈ gUng.nodes := by
   simp [gUng, exUnguardedGraph, varNode]
 
@@ -530,7 +530,7 @@ theorem gUng_supported : GraphHeadSupported gUng :=
 
 /-- **Test 3 (completeness instance)**: the completeness theorem applies
     to the unguarded cycle; the spec is empty (test3_spec_empty), so the
-    hypothesis is never satisfiable — completeness adds nothing
+    hypothesis is never satisfiable - completeness adds nothing
     spurious. -/
 theorem test3_complete (σ τ : CtxPkt)
     (hspec : GraphHeadSpec gUng gUng.root σ τ) :
@@ -545,7 +545,7 @@ theorem test3_iff (σ τ : CtxPkt) :
 
 /-- **Test 3 (both sides empty)**: the extracted policy `0 + (0 + 0)` has
     empty semantics, so the right side of the equivalence is empty as
-    well — the supported empty-head result is exact on both sides. -/
+    well - the supported empty-head result is exact on both sides. -/
 theorem test3_rhs_empty (σ τ : CtxPkt) :
     ¬ (∃ H : NetKAT, graphHead gUng = some H ∧ Semantics H σ τ) := by
   rintro ⟨H, hH, hsem⟩
@@ -561,7 +561,7 @@ theorem test3_both_empty (σ τ : CtxPkt) :
   ⟨test3_spec_empty σ τ, test3_rhs_empty σ τ⟩
 
 /-- The unreachable-definition fixture is supported: its head-subterm
-    closure is `{ref X, ⊥}` — the unreachable node `Z` is never in the
+    closure is `{ref X, ⊥}` - the unreachable node `Z` is never in the
     head region, so the shape condition never needs its label. -/
 theorem gUnreach_memX : varNode "X" ∈ gUnreach.nodes := by
   simp [gUnreach, exUnreachableGraph, varNode]
@@ -643,7 +643,7 @@ theorem test4_both_empty (σ τ : CtxPkt) :
   ⟨test4_spec_empty σ τ, test4_rhs_empty σ τ⟩
 
 /-- The reconfiguration-boundary fixture is supported: its head-subterm
-    closure is `{1; rcfg…, rcfg…}` — the reference behind the boundary
+    closure is `{1; rcfg…, rcfg…}` - the reference behind the boundary
     and its unsupported label are OUTSIDE the head region. -/
 theorem gRcfg_shapeOk (dst : GProc) (h : HeadSub gRcfg gRcfg.root dst) :
     HeadShapeOk gRcfg dst := by
@@ -689,7 +689,7 @@ theorem test5_roundtrip :
   (test5_iff σ₀ σ₀).mp test5_concrete
 
 /-- **Test 5 (boundary tightness)**: the spec of the root coincides
-    exactly with the semantics of the extracted policy — completeness
+    exactly with the semantics of the extracted policy - completeness
     adds nothing beyond the reconfiguration boundary. -/
 theorem test5_boundary_tight (σ τ : CtxPkt) :
     GraphHeadSpec gRcfg gRcfg.root σ τ ↔
@@ -698,7 +698,7 @@ theorem test5_boundary_tight (σ τ : CtxPkt) :
   exact ((exRcfg_semantic NetKAT.id σ τ).trans (id_diag σ τ)).symm
 
 ------------------------------------------------------------------------
--- Test 6 — supported empty head at the root itself (`root = ⊥`, Eq. 29)
+-- Test 6 - supported empty head at the root itself (`root = ⊥`, Eq. 29)
 ------------------------------------------------------------------------
 
 /-- The deadlock-rooted graph: a well-formed graph whose root contributes
@@ -714,7 +714,7 @@ def exDeadlockGraph : ProcessGraph where
     intro i _hi k hk
     exact absurd hk (Finset.not_mem_empty k)
 
-/-- The extraction yields `some 0` — a valid empty head, distinct from
+/-- The extraction yields `some 0` - a valid empty head, distinct from
     the failure `none`. -/
 theorem exDeadlock_extracted : graphHead exDeadlockGraph = some .drop := by
   simp [graphHead, graphHeadUnion, unionOverList, unionStep, headCollect,
@@ -745,7 +745,7 @@ theorem test6_iff (σ τ : CtxPkt) :
   graphHead_spec_iff exDeadlockGraph exDeadlock_supported σ τ
 
 /-- **Test 6 (both sides empty)**: `some 0` has empty semantics, so the
-    right side of the equivalence is empty as well — the extraction
+    right side of the equivalence is empty as well - the extraction
     result is distinguished from `none` yet contributes nothing. -/
 theorem test6_rhs_empty (σ τ : CtxPkt) :
     ¬ (∃ H : NetKAT, graphHead exDeadlockGraph = some H ∧ Semantics H σ τ) := by
@@ -761,12 +761,12 @@ theorem test6_both_empty (σ τ : CtxPkt) :
   ⟨graphHeadSpec_deadlock_false exDeadlockGraph σ τ, test6_rhs_empty σ τ⟩
 
 ------------------------------------------------------------------------
--- Test 7 — unsupported reachable constructor: explicit failure, and the
+-- Test 7 - unsupported reachable constructor: explicit failure, and the
 -- necessity of the supportedness hypothesis
 ------------------------------------------------------------------------
 
 /-- The label of the unsupported-constructor fixture: node `X` is defined
-    as `(1;⊥) ⊕ (x?1;⊥)` — the `recv` branch is unsupported. -/
+    as `(1;⊥) ⊕ (x?1;⊥)` - the `recv` branch is unsupported. -/
 def exUnsupportedLabel (x : Channel) (i : NodeId) : GProc :=
   match i with
   | Sum.inl "X" => .choice (.nSeq .id .deadlock) (.recv x .id .deadlock)
@@ -792,7 +792,7 @@ theorem exUnsupported_labelX (x : Channel) :
       .choice (.nSeq NetKAT.id .deadlock) (.recv x NetKAT.id .deadlock) := by
   simp [exUnsupportedGraph, exUnsupportedLabel, varNode]
 
-/-- **Test 7 (explicit failure)**: the extraction fails EXPLICITLY —
+/-- **Test 7 (explicit failure)**: the extraction fails EXPLICITLY -
     `none`, never a silent conversion to `0`. -/
 theorem exUnsupported_none (x : Channel) :
     graphHead (exUnsupportedGraph x) = none := by
@@ -800,7 +800,7 @@ theorem exUnsupported_none (x : Channel) :
     headRun, headRefsList, exUnsupportedGraph, exUnsupportedLabel, varNode]
 
 /-- **Test 7 (the specification is nonetheless nonempty)**: the supported
-    branch `1;⊥` contributes the diagonal, so `GraphHeadSpec` holds —
+    branch `1;⊥` contributes the diagonal, so `GraphHeadSpec` holds -
     completeness CANNOT be packaged without supportedness. -/
 theorem exUnsupported_spec (x : Channel) (σ : CtxPkt) :
     GraphHeadSpec (exUnsupportedGraph x) (exUnsupportedGraph x).root σ σ := by
@@ -826,7 +826,7 @@ theorem exUnsupported_not_supported (x : Channel) :
 /-- **Test 7 (no extraction result exists)**: with `graphHead = none`
     there is no `H` at all, so the packaged completeness statement
     `∃ H, graphHead G = some H ∧ Semantics H σ τ` is FALSE while the
-    specification is TRUE — the supportedness hypothesis is necessary. -/
+    specification is TRUE - the supportedness hypothesis is necessary. -/
 theorem exUnsupported_no_extraction (x : Channel) (σ τ : CtxPkt) :
     ¬ (∃ H : NetKAT, graphHead (exUnsupportedGraph x) = some H ∧
         Semantics H σ τ) := by

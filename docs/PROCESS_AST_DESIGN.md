@@ -1,11 +1,11 @@
-# Process AST Design — DyNetKAT (Eq. 1, paper p. 8 §II-C "DyNetKAT Syntax")
+# Process AST Design - DyNetKAT (Eq. 1, paper p. 8 §II-C "DyNetKAT Syntax")
 
 **Task:** Design ONLY `Config.lean` using Figure 8 of the DyNetKAT paper.
 Specify `Config`, packet histories `H/H′`, their ordering, and dependencies.
 Correct Eq. (1) section citation. Documentation only; no code, commits, or push. STOP.
 **Paper source:** *DyNetKAT: An Algebra of Dynamic Networks*
 arXiv:2102.10035v4 (22 May 2021), FoSSaCS 2022.
-**Scope:** Eq. (1) only — the *base* DyNetKAT syntax. Documentation only; no code.
+**Scope:** Eq. (1) only - the *base* DyNetKAT syntax. Documentation only; no code.
 **Date:** 2026-10-18
 
 ---
@@ -16,7 +16,7 @@ The authoritative source is **Eq. (1)** of the paper (printed p. 8, §II-C "DyNe
 Syntax"), which defines the base DyNetKAT process syntax *on top of* the dup-free
 NetKAT fragment. All constructors, channel types, recursion variables, and the `rcfg`
 argument types below are justified by reference to Eq. (1), §II-C, §II-B (Fig. 8),
-and — where Eq. (1) is silent — §III-A (Eq. 6) / Fig. 11.
+and - where Eq. (1) is silent - §III-A (Eq. 6) / Fig. 11.
 
 Eq. (1) as printed (p. 8):
 
@@ -54,7 +54,7 @@ packages/DyNetKATLean/DyNetKATLean/Core/
 ├── AST.lean         -- Eq. (1) inductive: ⊥, N;D, x?N;D, x!N;D, ‖, ⊕, X
 ├── Config.lean      -- configurations (d, H, H′); see §7
 ├── Action.lean      -- labels γ (incl. rcfg(x,r)); see §5
-├── Semantics.lean   -- labeled SOS Step (Fig. 8) — NOT designed here
+├── Semantics.lean   -- labeled SOS Step (Fig. 8) - NOT designed here
 └── Operators.lean   -- extended syntax: δ, π_n, rcfg const, ⌊⌊, | | (Eq. 6)
 ```
 
@@ -123,7 +123,7 @@ inductive DyNetKAT
 **`choice` (`D⊕D`):**
 - §II-C: "Non-deterministic choice … denoted by D ⊕ D."
 - "For a non-deterministic choice over a finite domain P, we use the syntactic
-  sugar `⊕_{p∈P} P₀`" — a finite-domain iteration sugar, not an extra
+  sugar `⊕_{p∈P} P₀`" - a finite-domain iteration sugar, not an extra
   constructor. `⊕` itself is binary; finite sums are built by iteration.
 
 **`var` (`X`):**
@@ -131,7 +131,7 @@ inductive DyNetKAT
   variables … each recursive variable should have a unique defining equation
   X ≜ d."
 - The constructor takes a *name* (`Var`). The defining equation `X ≜ d` is
-  **not** stored inside the constructor — that would make the type non-inductive
+  **not** stored inside the constructor - that would make the type non-inductive
   (a graph, not a tree). Instead, recursive definitions live in a separate
   `RecEnv` (binding `Var → DyNetKAT`), applied when unfolding (see §4 and the
   `cpolX` rule, Fig. 8).
@@ -142,16 +142,16 @@ inductive DyNetKAT
 
 ### Paper requirement
 - §II-C: "`x` ranges over channel names."
-- §II-B (Fig. 8): labels include `x!q`, `x?q`, `rcfg(x, q)` — channels carry
+- §II-B (Fig. 8): labels include `x!q`, `x?q`, `rcfg(x, q)` - channels carry
   communication actions.
 - §III ("In practice … `ℒ` be the set of forbidden actions ranging over
-  elements of shape `x?N` and `x!N`") — channels index forbidden actions for
+  elements of shape `x?N` and `x!N`") - channels index forbidden actions for
   δ restriction.
 - §IV ("a DyNetKAT term encoding all possible behaviours over `𝒜`: …
-  `rcfg(x,p) ∈ 𝒜`") — channels index actions in the safety alphabet.
+  `rcfg(x,p) ∈ 𝒜`") - channels index actions in the safety alphabet.
 
 ### Cardinality
-- §II-C: "`x` ranges over channel names" with no finite bound — channels are a
+- §II-C: "`x` ranges over channel names" with no finite bound - channels are a
   **countably infinite** set. (Concrete programs use finitely many, but the
   *type* must be infinite to admit fresh channel names in compositions.)
 - `UNIFIED_ARCHITECTURE_REQUIREMENTS.md` (line 306) records: "Channel type:
@@ -162,7 +162,7 @@ inductive DyNetKAT
 
 - `String` has a countably infinite supply (all finite strings over a finite
   alphabet), matching §II-C.
-- No `[Fintype Channel]` instance (and must not — the paper does not bound
+- No `[Fintype Channel]` instance (and must not - the paper does not bound
   channels).
 - `String` already has `DecidableEq` in Lean 4 core, so channel equality is
   decidable (needed by the restriction `δℒ` and action-labelling machinery in
@@ -182,7 +182,7 @@ schema (see §6 of `UNIFIED_ARCHITECTURE_REQUIREMENTS.md`).
   policies, where each recursive variable should have a **unique defining
   equation X ≜ d**."
 - §III-A, Definition 7 (Guardedness): recursion restricted to *guarded*
-  recursion — "a policy should be applied before changing state to a new
+  recursion - "a policy should be applied before changing state to a new
   recursive definition."
 - Guardedness (p. 13): an occurrence of `X` is guarded iff (i) it is under a
   `;`, or (ii) it is the argument of `x?X;D` / `x!X;D` / `rcfg(X,t)`
@@ -196,7 +196,7 @@ schema (see §6 of `UNIFIED_ARCHITECTURE_REQUIREMENTS.md`).
   *are* the variable names (e.g. "Switch", "Host", etc. in Fig. 5/6).
   Named variables are far more ergonomic than `Nat` indices and avoid an
   ad-hoc de Bruijn encoding.
-- Lean `String` is countably infinite — sufficient for "a (countably infinite)
+- Lean `String` is countably infinite - sufficient for "a (countably infinite)
   set of recursive variables."
 - `DecidableEq String` is available.
 
@@ -207,7 +207,7 @@ schema (see §6 of `UNIFIED_ARCHITECTURE_REQUIREMENTS.md`).
   (`Var → Option DyNetKAT` or `Var → DyNetKAT` with a total function
   guaranteeing a definition for every referenced variable).
 - Guardedness (Definition 7) is a separate predicate `IsGuarded` over
-  environments — **not** part of the AST design. It is enforced before
+  environments - **not** part of the AST design. It is enforced before
   recursion is unfolded (via the `cpolX` rule, Fig. 8). **Do not invent**
   guardedness checking inside the inductive type.
 
@@ -215,7 +215,7 @@ schema (see §6 of `UNIFIED_ARCHITECTURE_REQUIREMENTS.md`).
 - `Nat` is simpler categorically but loses the JSON parity and is less
   ergonomic. The reference tool's JSON uses symbolic names. **Flag:** if
   future work needs a de Bruijn-style encoding for mechanized substitution,
-  that is a separate refactor — not assumed here.
+  that is a separate refactor - not assumed here.
 
 ---
 
@@ -226,13 +226,13 @@ Eq. (1) contains **no** `rcfg` constructor. But:
 
 1. **Action labels (Fig. 8, p. 9–10):** The label grammar is
    `γ ::= (σ,σ′) | x!q | x?q | rcfg(x, q)`. So `rcfg` appears as an *action*.
-2. **Extended syntax (Eq. 6, p. 14):** `rcfg_{x,N};D` — a *term* constructor
+2. **Extended syntax (Eq. 6, p. 14):** `rcfg_{x,N};D` - a *term* constructor
    of `D_e`.
 3. **Axiom constant (Eq. 4 / A12–A15, p. 13–14):** `rcfg_{x,z}` is a *constant*
    used inside axioms; the semantic rule (4) is
    `(rcfg_{x,z};p, H₀, H₁) ->_{rcfg(x,z)} (p, H₀, H₁)`.
 
-### Resolution (do not invent — resolved only by paper evidence)
+### Resolution (do not invent - resolved only by paper evidence)
 - **Base AST (`AST.lean`, Eq. 1 scope):** `DyNetKAT` has **no** `rcfg`
   constructor. OK (Eq. 1 has none.)
 - **`rcfg(x, q)` as an action label:** belongs in `Action.lean` (Fig. 8 label
@@ -247,7 +247,7 @@ across `x?N`, `x!N`, and `rcfg(x,q)`).
 
 **Paper evidence (resolved, not invented):**
 - §II-C (p. 8): "`x?N` and `x!N` … `N ∈ NetKAT⁻ᵈᵘᵖ`." Explicitly dup-free.
-- §II-B (Fig. 8, p. 9): the label grammar `γ ::= … | rcfg(x, q)` uses `q` —
+- §II-B (Fig. 8, p. 9): the label grammar `γ ::= … | rcfg(x, q)` uses `q` -
   the same symbol family as the `x?q`, `x!q` labels, which §II-C pins to
   `NetKAT⁻ᵈᵘᵖ`.
 - Axioms A12–A15 (p. 13): `z, y ∈ NetKAT⁻ᵈᵘᵖ`; `(x?z;p)|(x!z;q) ≡ rcfg_{x,z};(p||q)`.
@@ -261,7 +261,7 @@ NetKAT" type is introduced for these arguments.
 **Flag for later (`Operators.lean`):** The extended `rcfg_{x,N};D` constant
    (Eq. 6) also takes `N ∈ NetKAT⁻ᵈᵘᵖ`. This must be consistent. No decision is
 made here about whether the extended `rcfg_{x,N}` constant's argument should
-be the same `NetKAT` type — it will be, by the same §II-C evidence — but
+be the same `NetKAT` type - it will be, by the same §II-C evidence - but
 that decision is recorded under `Operators.lean` design, not here.
 
 
@@ -275,7 +275,7 @@ each. There is **no** `rcfg` constructor in the base `DyNetKAT` AST
 (Eq. 1); `rcfg` enters the design only as an `Action` label (this section)
 and later as an extended-syntax constant in `Operators.lean` (§8).
 
-### Action label `rcfg(x, q)` — Fig. 8 (p. 9)
+### Action label `rcfg(x, q)` - Fig. 8 (p. 9)
 
 The label grammar in Fig. 8 is:
 
@@ -322,7 +322,7 @@ inductive Action
 | `x` | `Channel` (= `String`) | §II-C ("x ranges over channel names") |
 | `q` | `NetKAT` (dup-free) | §II-C ("N ∈ NetKAT⁻ᵈᵘᵖ") + Fig. 8 label grammar (same `q` in x?q/x!q) |
 
-### `rcfg` as a *term constant* — Eq. (6), (4), A12–A15
+### `rcfg` as a *term constant* - Eq. (6), (4), A12–A15
 
 `rcfg_{x,z}` is a *constant* (not a process constructor in Eq. 1). It appears:
 - in Eq. (6) as `rcfg_{x,N};D_e`,
@@ -336,12 +336,12 @@ This is **out of scope for `AST.lean`** (Eq. 1 only). It is deferred to
 
 ---
 
-## 7. `Config.lean` — configurations `(d, H, H′)` per Figure 8
+## 7. `Config.lean` - configurations `(d, H, H′)` per Figure 8
 
 **Task scope:** Design ONLY `Config.lean` (the configuration structure). This
 covers the `Config` type, the packet history lists `H` (pending) and `H′` (handled),
 their cons-list ordering, and dependencies. Figure 8 operational semantics
-(the `Step` relation) is **not** designed here — only the state carrier that the
+(the `Step` relation) is **not** designed here - only the state carrier that the
 rules operate over.
 
 ### 7.1 Paper source
@@ -359,23 +359,23 @@ rules operate over.
 
 ```lean
 structure Config where
-  proc    : DyNetKAT        -- d    — current process term  (§II-B, p. 9)
-  pending : List CtxPkt     -- H    — pending packet list   (§II-B, p. 9)
-  handled : List CtxPkt     -- H′   — handled packet list   (§II-B, p. 9)
+  proc    : DyNetKAT        -- d    - current process term  (§II-B, p. 9)
+  pending : List CtxPkt     -- H    - pending packet list   (§II-B, p. 9)
+  handled : List CtxPkt     -- H′   - handled packet list   (§II-B, p. 9)
 ```
 
 **Design decisions:**
 
-1. **`proc : DyNetKAT`** — the single DyNetKAT process term governing all packets
+1. **`proc : DyNetKAT`** - the single DyNetKAT process term governing all packets
    in both lists. Per-packet consistency (§II-B/§II-C, p. 8–9) means exactly one
    `d` drives every packet through its flight. No `flowTable` field (that is a
    journal-extension artifact, rejected in `DESIGN_ALARMS.md:A1`).
 
-2. **`pending : List CtxPkt`** — the pending packet list `H`. The **head** of the
+2. **`pending : List CtxPkt`** - the pending packet list `H`. The **head** of the
    list is the packet currently being processed. This matches Fig. 8's cons
    notation `σ :: H` where `σ` (the head) is the in-flight packet.
 
-3. **`handled : List CtxPkt`** — the handled (output) packet list `H′`. The
+3. **`handled : List CtxPkt`** - the handled (output) packet list `H′`. The
    **head** of the list is the most recently handled packet. This matches
    Fig. 8 rules that cons outputs onto `H′` (e.g., `σ′ :: H′`).
 
@@ -386,21 +386,21 @@ structure Config where
    basis); `CtxPkt` is the alias used for consistency. *(Flag: parameterization
    is a future refactor; see §10 below.)*
 
-### 7.3 Ordering of `H` and `H′` — derived from Figure 8 rules
+### 7.3 Ordering of `H` and `H′` - derived from Figure 8 rules
 
-The ordering (head = newest/current) is **not arbitrary** — it is forced by the
+The ordering (head = newest/current) is **not arbitrary** - it is forced by the
 Figure 8 transition rules:
 
 | Rule | H manipulation | H′ manipulation |
 |---|---|---|
-| `(cpol_;✓)` — packet flows through N | `σ :: H` → `H` (head consumed) | `H′` → `σ′ :: H′` (output consed to head) |
-| `(cpol_;✗)` — packet dropped | `σ :: H` → `H` (head consumed) | `H′` unchanged (no output produced) |
-| `(cpol_⊕)` — choice step | `H → H′′` propagated as-is | `H′ → H‴` propagated as-is |
-| `(cpol_‖)` — parallel step | `H → H′′` propagated as-is | `H′ → H‴` propagated as-is |
-| `(cpol_recv)` — receive | `H` unchanged | `H′` unchanged (no packet I/O) |
-| `(cpol_send)` — send | `H` unchanged | `H′` unchanged (no packet I/O) |
-| `(cpol_sync)` — synchronization | `H → H′′`, `H′ → H‴` propagated as-is | `H → H′′`, `H′ → H‴` propagated as-is |
-| `(cpolX)` — recursion unfolding | Propagated as-is | Propagated as-is |
+| `(cpol_;✓)` - packet flows through N | `σ :: H` → `H` (head consumed) | `H′` → `σ′ :: H′` (output consed to head) |
+| `(cpol_;✗)` - packet dropped | `σ :: H` → `H` (head consumed) | `H′` unchanged (no output produced) |
+| `(cpol_⊕)` - choice step | `H → H′′` propagated as-is | `H′ → H‴` propagated as-is |
+| `(cpol_‖)` - parallel step | `H → H′′` propagated as-is | `H′ → H‴` propagated as-is |
+| `(cpol_recv)` - receive | `H` unchanged | `H′` unchanged (no packet I/O) |
+| `(cpol_send)` - send | `H` unchanged | `H′` unchanged (no packet I/O) |
+| `(cpol_sync)` - synchronization | `H → H′′`, `H′ → H‴` propagated as-is | `H → H′′`, `H′ → H‴` propagated as-is |
+| `(cpolX)` - recursion unfolding | Propagated as-is | Propagated as-is |
 
 **Key observations:**
 
@@ -436,7 +436,7 @@ Figure 8 transition rules:
 
 **Note on `DyNetKAT` dependency:** `Config.lean` depends on the `DyNetKAT` type
 defined in `AST.lean` (the `proc` field). This is the only forward dependency
-within the `DyNetKAT/` subdirectory — `Config.lean` imports `AST.lean` (for the
+within the `DyNetKAT/` subdirectory - `Config.lean` imports `AST.lean` (for the
 `DyNetKAT` type) and `NetKAT/Packet.lean` (for `CtxPkt`).
 
 ### 7.5 Module structure
@@ -457,7 +457,7 @@ plus any basic lemmas about the structure (e.g., projection lemmas for `proc`,
 
 ### 7.6 Ambiguities flagged (do not invent)
 
-1. **List vs. multiset for H/H′:** Resolved — cons notation `σ :: H` in all
+1. **List vs. multiset for H/H′:** Resolved - cons notation `σ :: H` in all
    Fig. 8 rules confirms ordered lists. `List CtxPkt` with head = current/newest.
 
 2. **Empty lists:** When `H` is empty (`[]`), no packet is available for the
@@ -473,13 +473,13 @@ plus any basic lemmas about the structure (e.g., projection lemmas for `proc`,
 ### 7.7 Design decisions summary
 
 1. `structure Config` with fields `proc : DyNetKAT`, `pending : List CtxPkt`,
-   `handled : List CtxPkt` — faithful to the paper's `(d, H, H′)` triple (p. 9).
+   `handled : List CtxPkt` - faithful to the paper's `(d, H, H′)` triple (p. 9).
 2. `pending` head = current packet to process; `handled` head = most recent output.
-3. Both lists are ordered cons-lists (`List`), not multisets or sets — confirmed
+3. Both lists are ordered cons-lists (`List`), not multisets or sets - confirmed
    by `::` notation throughout Fig. 8.
-4. No `flowTable` field — per-packet consistency uses a single `d` per config
+4. No `flowTable` field - per-packet consistency uses a single `d` per config
    (§II-B/§II-C design rationale, not a mutable table).
-5. `CtxPkt` is the packet type — consistent with all existing NetKAT modules.
+5. `CtxPkt` is the packet type - consistent with all existing NetKAT modules.
 
 ---
 
@@ -506,7 +506,7 @@ misread as a missing constructor:
 `δ_ℒ` restricts on actions of shape `x?N`, `x!N` only (§III: "ℒ … ranging
 over elements of shape `x?N` and `x!N`"). `π_n` is defined on `ℕ` with the
 recursive equations (Π0)–(Π⊕). These are **axioms + Step rules**, not base
-syntax, so they need no `DyNetKAT` constructor — they can be defined as
+syntax, so they need no `DyNetKAT` constructor - they can be defined as
 functions/relations over the Eq. (1) type. **Do not invent** extra base
 constructors for them in `AST.lean`.
 
@@ -591,7 +591,7 @@ depends on the *type* `NetKAT`, not its internal constructors.
 
 ---
 
-## 13. Next steps (deferred — implementation tasks, not this task)
+## 13. Next steps (deferred - implementation tasks, not this task)
 
 1. Create `packages/DyNetKATLean/DyNetKATLean/Core/` directory and the five-module split:
    `AST.lean`, `Config.lean`, `Action.lean`, `Semantics.lean`, `Operators.lean`.
@@ -604,7 +604,7 @@ depends on the *type* `NetKAT`, not its internal constructors.
 
 ---
 
-## 14. `Action.lean` — action labels (Figure 8)
+## 14. `Action.lean` - action labels (Figure 8)
 
 **Task scope:** Design ONLY `Action.lean` - the labeled transition labels `gamma`
 from Figure 8 (printed p. 9-10, section II-B). This specifies the `Action`

@@ -46,7 +46,7 @@ variable {P : Type}
 -- Basic structural operations
 ------------------------------------------------------------------------
 
-/-- The singleton history `σ :: ⟨⟩` — the evaluation input of the SOS
+/-- The singleton history `σ :: ⟨⟩` - the evaluation input of the SOS
     premise of rule `(cpolX;)` (Figure 8, p. 10). -/
 def singleton (σ : P) : History P := ⟨σ, []⟩
 

@@ -1,34 +1,34 @@
 ------------------------------------------------------------------------
--- S6A — Finite recursive process graphs and operational correspondence
+-- S6A - Finite recursive process graphs and operational correspondence
 --
 -- Paper grounding (DyNetKAT paper, arXiv:2102.10035v4):
---   * Eq. (1), p. 8 — DyNetKAT syntax with recursive variables `X`, each
+--   * Eq. (1), p. 8 - DyNetKAT syntax with recursive variables `X`, each
 --     with a unique defining equation `X ≜ d` (§II-C).
---   * Fig. 8, rule `(cpolX)` — a recursive variable defined as `X ≜ p`
+--   * Fig. 8, rule `(cpolX)` - a recursive variable defined as `X ≜ p`
 --     behaves according to `p`; rendered in Lean as `Step.cpol_var`
 --     (`Semantics.lean`), which requires `env.lookup name = some body`.
---   * Definition 7 (p. 13) — guardedness of variable occurrences.
+--   * Definition 7 (p. 13) - guardedness of variable occurrences.
 --   * The paper itself contains NO graph representation; the finite
 --     cyclic-graph representation below follows the authors' guidance:
 --     ordinary process constructs stay in the term structure, recursive
 --     variables become edges (`GProc.ref`) into a finite node set, and
---     recursive definitions produce cycles — without infinite unfolding.
+--     recursive definitions produce cycles - without infinite unfolding.
 --
 -- What this module establishes:
---   1. `GProc` — the DyNetKAT AST with recursive variables replaced by
---      node references, and `ProcessGraph` — a finite node set with a
+--   1. `GProc` - the DyNetKAT AST with recursive variables replaced by
+--      node references, and `ProcessGraph` - a finite node set with a
 --      labeling whose references are all live (`closed`, `root_closed`).
---   2. `GStep` — the graph-level Figure 8 semantics over configurations
+--   2. `GStep` - the graph-level Figure 8 semantics over configurations
 --      carrying the full packet state (pending and handled histories);
 --      recursive-variable lookup is edge traversal (`GStep.var`), never
 --      a syntactic copy of the definition.
---   3. `Corr` — the process/graph correspondence, defined as membership
+--   3. `Corr` - the process/graph correspondence, defined as membership
 --      in a correspondence-closed relation (greatest-fixpoint style, so
 --      that cyclic definitions are handled without unfolding).
 --   4. Soundness and completeness of the graph semantics w.r.t. the
 --      environment-indexed SOS (`gstep_to_step`, `step_to_gstep`) and
 --      the combined iff (`graph_step_iff`).
---   5. `toGraph` — constructive graph construction from a `RecEnv` under
+--   5. `toGraph` - constructive graph construction from a `RecEnv` under
 --      an explicit finite-support assumption (`FiniteSupport`); the
 --      construction uses no choice principles.  A concrete environment
 --      with infinitely many reachable definitions (`infEnv`) is proved
@@ -162,7 +162,7 @@ structure GConfig (schema : PacketSchema := ctxSchema) where
 /-- The graph-level small-step relation, mirroring `Step env` constructor
     by constructor with the process component taken from `GProc`.
     The `(cpolX)` rule becomes edge traversal: a step of `.ref i` is a
-    step of the node label `G.label i` — the definition is followed, not
+    step of the node label `G.label i` - the definition is followed, not
     copied into the syntax. -/
 inductive GStep {schema : PacketSchema} (G : ProcessGraph schema) : GConfig schema → Action schema → GConfig schema → Prop
   | seq_ok (N : NetKAT schema) (cont : GProc schema) (σ σ' : schema.Packet) (pt hl : List schema.Packet)
@@ -385,7 +385,7 @@ theorem GStep.closed {G : ProcessGraph schema} {src dst : GConfig schema} {a : A
 -- a correspondence hypothesis on its concrete side.  The var case is
 -- deliberately unrolled through the node label, which makes cyclic
 -- definitions (e.g. `X ≜ id;X`) correspondences with *finite* closed
--- witnesses — no unfolding, no induction on the chain.
+-- witnesses - no unfolding, no induction on the chain.
 ------------------------------------------------------------------------
 
 /-- The closure condition, destructing on the process shape: for every
@@ -1181,7 +1181,7 @@ theorem graph_step_iff (G : ProcessGraph schema) (env : RecEnv schema) (p : DyNe
 -- direct variables of the root and closed under the bodies of its
 -- members.  Under this hypothesis every reachable variable is defined
 -- (`reachableVars_subset_of_finiteSupport`) and the construction below
--- is total and constructive — no choice principles are used.
+-- is total and constructive - no choice principles are used.
 ------------------------------------------------------------------------
 
 /-- Finite-support witness: a finite set `S` of variables containing the
@@ -1456,7 +1456,7 @@ theorem compileGraph_corr {env : RecEnv schema} {root : DyNetKAT schema} {S : Fi
 -- §6.1 Infinite reachable support prevents label-preserving compilation
 --
 -- The environment `infEnv` defines *every* variable `x` as `id; (x ++ "0")`,
--- so the variables reachable from `X` are `X`, `X0`, `X00`, … — infinitely
+-- so the variables reachable from `X` are `X`, `X0`, `X00`, … - infinitely
 -- many distinct definitions.  No finite support set exists for it, hence
 -- no finite graph can be constructed by `toGraph` from it.
 ------------------------------------------------------------------------
@@ -1749,7 +1749,7 @@ theorem gsteps_reachable_within {G : ProcessGraph schema} {gc gc' : GConfig sche
 ------------------------------------------------------------------------
 
 /-- A symmetric relation over graph processes that matches every graph
-    transition while preserving both packet histories — the exact
+    transition while preserving both packet histories - the exact
     counterpart of `IsBisimulation env`, with `GStep` in place of
     `Step env` and no environment anywhere. -/
 def IsGBisimulation (G : ProcessGraph schema) (R : GProc schema → GProc schema → Prop) : Prop :=

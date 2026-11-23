@@ -284,7 +284,7 @@ def holdsComplete {F : Type} {V : F → Type} (alpha sigma : (f : F) → V f) : 
     Since α and σ are both total functions `FieldName → FieldValueEnum`,
     `holdsComplete α σ` means `∀ f, α f = σ f`, which by function
     extensionality is exactly `α = σ`. This establishes that a complete
-    test matches exactly one packet — its own representing valuation.
+    test matches exactly one packet - its own representing valuation.
 
     This is the foundation for the normalization construction (Lemma 5):
     it guarantees that the complete-test component of a normal-form summand
@@ -337,7 +337,7 @@ instance : Fintype CompleteAssignmentValuation :=
 
     Per Definition 4 (p. 8), a complete assignment π = f₁←v₁ ··· fₙ←vₙ
     overwrites *every* field of the input packet: the result σπ equals π
-    itself — it is a total valuation that ignores the original packet.
+    itself - it is a total valuation that ignores the original packet.
     Hence the output depends only on π, not on σ. -/
 def applyValuation (pi : CompleteAssignmentValuation) (_sigma : CtxPkt) : CtxPkt :=
   pi

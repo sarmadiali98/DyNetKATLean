@@ -22,7 +22,7 @@
 --
 -- The relation is an INDEPENDENT specification: it is defined directly
 -- from the paper's Figure 3 clauses and is not a wrapper of the
--- packet-level `Semantics` of `NetKAT/Semantics.lean` — that module was
+-- packet-level `Semantics` of `NetKAT/Semantics.lean` - that module was
 -- deliberately NOT imported at H1B time.  For the H3A correspondence
 -- (packet/history equivalence on the star-free fragment) the packet-level
 -- module IS imported below; the relation itself remains an independent
@@ -90,7 +90,7 @@ theorem satHistory_iff_eval {schema : PacketSchema} (Pr : Predicate schema) (h :
 /-! ## The history semantics relation -/
 
 /-- History-based NetKAT denotational semantics (paper Figure 3, p. 5),
-    as a relation `HistorySemantics N h h'` — "policy `N` maps the input
+    as a relation `HistorySemantics N h h'` - "policy `N` maps the input
     history `h` to the output history `h'`", i.e. `h' ∈ ⟦N⟧(h)`.
 
     Clauses for the eight constructors of the dup-free NetKAT AST:
@@ -106,8 +106,8 @@ theorem satHistory_iff_eval {schema : PacketSchema} (Pr : Predicate schema) (h :
     | `.seq p q`        | `∃ k, HistorySemantics p h k ∧ HistorySemantics q k h'` | `⟦p·q⟧(h) = (⟦p⟧ • ⟦q⟧)(h)`     |
     | `.star p`         | `ReflTransGen (HistorySemantics p) h h'`                | `⟦p*⟧(h) = ⋃_{i∈ℕ} Fⁱ(h)`      |
 
-    Kleene star uses Mathlib's `Relation.ReflTransGen` — the reflexive-
-    transitive closure of the one-step history relation — which is exactly
+    Kleene star uses Mathlib's `Relation.ReflTransGen` - the reflexive-
+    transitive closure of the one-step history relation - which is exactly
     the paper's `⋃_{i∈ℕ} Fⁱ(h)`.  It is deliberately NOT the packet-level
     `StarClosure` of `NetKAT/Semantics.lean`. -/
 def HistorySemantics {schema : PacketSchema} (N : NetKAT schema) :
@@ -125,18 +125,18 @@ def HistorySemantics {schema : PacketSchema} (N : NetKAT schema) :
 
 /-! ## Basic semantic equations -/
 
-/-- **Drop produces no history** — `⟦0⟧(h) = {}`. -/
+/-- **Drop produces no history** - `⟦0⟧(h) = {}`. -/
 theorem historySem_drop (h h' : History) :
     ¬ HistorySemantics (schema := ctxSchema) .drop h h' := fun hc => hc
 
-/-- **Identity preserves the entire history** — `⟦1⟧(h) = {h}`. -/
+/-- **Identity preserves the entire history** - `⟦1⟧(h) = {h}`. -/
 theorem historySem_id (h h' : History) :
     HistorySemantics (schema := ctxSchema) .id h h' ↔ h = h' := by rfl
 
 /-- Identity maps every history to itself. -/
 theorem historySem_id_self (h : History) : HistorySemantics (schema := ctxSchema) .id h h := rfl
 
-/-- **Test clause** — a test preserves the history exactly when its
+/-- **Test clause** - a test preserves the history exactly when its
     predicate holds on the current packet. -/
 theorem historySem_test (Pr : Predicate) (h h' : History) :
     HistorySemantics (.test Pr) h h' ↔ (h = h' ∧ satHistory Pr h) := by rfl
@@ -156,7 +156,7 @@ theorem historySem_test_pFalse (h h' : History) :
     ¬ HistorySemantics (schema := ctxSchema) (.test .pFalse) h h' :=
   historySem_test_false _ h h' (fun hf => hf.elim)
 
-/-- **Complete-test clause** (Definition 4, p. 8) — the history is
+/-- **Complete-test clause** (Definition 4, p. 8) - the history is
     preserved exactly when its current packet matches the complete
     valuation. -/
 theorem historySem_completeTest (α : CompleteTest) (h h' : History) :
@@ -170,7 +170,7 @@ theorem historySem_completeTest_iff_head (α : CompleteTest) (h h' : History) :
   rw [historySem_completeTest]
   exact and_congr_right fun _ => holdsComplete_iff_eq α h.head
 
-/-- **Assignment clause** — `⟦f←n⟧(σ::h) = {σ[f:=n]::h}`: the head packet
+/-- **Assignment clause** - `⟦f←n⟧(σ::h) = {σ[f:=n]::h}`: the head packet
     is updated, the history tail is preserved. -/
 theorem historySem_assign1 (f : FieldName) (v : FieldValueEnum) (h h' : History) :
     HistorySemantics (schema := ctxSchema) (.assign1 f v) h h' ↔
@@ -184,25 +184,25 @@ theorem historySem_assign1_tail (f : FieldName) (v : FieldValueEnum) (h h' : His
   subst heq
   rfl
 
-/-- **Union corresponds to logical disjunction** —
+/-- **Union corresponds to logical disjunction** -
     `⟦p+q⟧(h) = ⟦p⟧(h) ∪ ⟦q⟧(h)`. -/
 theorem historySem_union {schema : PacketSchema} (p q : NetKAT schema) (h h' : History schema.Packet) :
     HistorySemantics (.union p q) h h' ↔
       (HistorySemantics p h h' ∨ HistorySemantics q h h') := by rfl
 
-/-- **Sequence corresponds to existence of an intermediate history** —
+/-- **Sequence corresponds to existence of an intermediate history** -
     `⟦p·q⟧(h) = (⟦p⟧ • ⟦q⟧)(h)` (relational composition). -/
 theorem historySem_seq {schema : PacketSchema} (p q : NetKAT schema) (h h' : History schema.Packet) :
     HistorySemantics (.seq p q) h h' ↔
       ∃ k, HistorySemantics p h k ∧ HistorySemantics q k h' := by rfl
 
-/-- **Star is the reflexive-transitive closure** —
+/-- **Star is the reflexive-transitive closure** -
     `⟦p*⟧(h) = ⋃_{i∈ℕ} Fⁱ(h)`. -/
 theorem historySem_star (p : NetKAT) (h h' : History) :
     HistorySemantics (.star p) h h' ↔
       ReflTransGen (HistorySemantics p) h h' := by rfl
 
-/-- **Star includes zero iterations** — `F⁰(h) = {h}`, so `h ∈ ⟦p*⟧(h)`. -/
+/-- **Star includes zero iterations** - `F⁰(h) = {h}`, so `h ∈ ⟦p*⟧(h)`. -/
 theorem historySem_star_refl (p : NetKAT) (h : History) :
     HistorySemantics (.star p) h h := ReflTransGen.refl
 
@@ -227,7 +227,7 @@ NetKAT AST, covering all eight constructors. -/
 
 /-- **Kleene-star closure preserves the tail.**
 
-    Induction over the actual `ReflTransGen` derivation — every finite
+    Induction over the actual `ReflTransGen` derivation - every finite
     closure derivation is covered, not a fixed number of iterations.
 
     Mathlib v4.19.0 orientation (checked against
@@ -250,7 +250,7 @@ private theorem reflTransGen_tail_preserved (p : NetKAT)
   | refl => rfl
   | tail _ hst ih => exact (hstep _ _ hst).trans ih
 
-/-- **Tail preservation for all dup-free NetKAT policies** — the central
+/-- **Tail preservation for all dup-free NetKAT policies** - the central
     H2 invariant: if `HistorySemantics p h h'` then `h'` has exactly the
     tail of `h`.
 
@@ -261,7 +261,7 @@ private theorem reflTransGen_tail_preserved (p : NetKAT)
     - `.id`             : `h = h'`, so the tails coincide.
     - `.test Pr`        : `h = h'` (test clauses never modify the history).
     - `.completeTest α` : `h = h'` likewise.
-    - `.assign1 f v`    : `⟦f←n⟧(σ::h) = {σ[f:=n]::h}` — the tail is
+    - `.assign1 f v`    : `⟦f←n⟧(σ::h) = {σ[f:=n]::h}` - the tail is
       preserved verbatim (`historySem_assign1_tail`).
     - `.union p q`      : whichever branch fires preserves the tail (IHs).
     - `.seq p q`        : the intermediate history `k` has the original
@@ -401,7 +401,7 @@ inductive HistoryStarFree : NetKAT → Prop
       induction hypotheses apply with the *original* tail; the packet-level
       intermediate witness is `k.head`.  Backward: given the packet-level
       intermediate `ρ`, the intermediate history is constructed as
-      `⟨ρ, h⟩` — with the original tail — and both induction hypotheses
+      `⟨ρ, h⟩` - with the original tail - and both induction hypotheses
       apply directly. -/
 theorem historySemantics_iff_packetSemantics_starFree
     (p : NetKAT) (hp : HistoryStarFree p) (σ τ : CtxPkt) (h h' : List CtxPkt) :
@@ -587,7 +587,7 @@ private theorem historySemantics_star_fwd {schema : PacketSchema}
 Induction over the actual `StarClosure` derivation of the packet-level
 star.  Both endpoints of `StarClosure` are indices, so the start packet
 is generalized; the motive reconstructs every history as `⟨s, h⟩` with
-the ORIGINAL tail `h` — the reconstruction is by construction (the
+the ORIGINAL tail `h` - the reconstruction is by construction (the
 induction builds the histories from the packet states), so no unproven
 tail assumption on intermediate histories is needed.
 
@@ -595,7 +595,7 @@ tail assumption on intermediate histories is needed.
 - `step` (one more step prepended at the front): the reverse implication
   of `hstep` lifts `Semantics p a b` to `HistorySemantics p ⟨a, h⟩ ⟨b, h⟩`
   with the original tail, and Mathlib's `ReflTransGen.head` PREPENDS the
-  history-level step — matching the prepending orientation of
+  history-level step - matching the prepending orientation of
   `StarClosure.step`. -/
 private theorem packetSemantics_star_fwd {schema : PacketSchema}
     (p : NetKAT schema)
@@ -613,8 +613,8 @@ private theorem packetSemantics_star_fwd {schema : PacketSchema}
 
 /-- **H3B: the general Kleene-star packet/history correspondence.**
 
-For an arbitrary NetKAT policy `p` — star-free or not, nested stars
-included — the history semantics of `.star p` corresponds to the
+For an arbitrary NetKAT policy `p` - star-free or not, nested stars
+included - the history semantics of `.star p` corresponds to the
 packet-level semantics of `.star p` precisely when the ONE-STEP
 semantics of `p` corresponds:
 
@@ -672,23 +672,23 @@ theorem historySemantics_star_iff_packetSemantics_starFreeBody
 
 /-! ## H3C: full packet/history correspondence (all dup-free NetKAT policies)
 
-The two semantics coincide on the *entire* dup-free NetKAT fragment — all
-eight constructors, arbitrarily nested Kleene stars included — with no side
+The two semantics coincide on the *entire* dup-free NetKAT fragment - all
+eight constructors, arbitrarily nested Kleene stars included - with no side
 conditions at all: no star-freeness, no termination, no iteration bounds,
 no finite-history-domain or definedness/recursive-environment assumptions.
 
 The proof is structural induction on the NetKAT AST.  The primitive, union
 and sequence cases reuse the established H3A proof structure and its helper
 lemmas; the star case reuses the H3B closure correspondence
-(`historySemantics_star_iff_packetSemantics`) directly — its one-step
+(`historySemantics_star_iff_packetSemantics`) directly - its one-step
 hypothesis is exactly the structural induction hypothesis of the star
 body, so no closure argument is repeated and nested stars are covered. -/
 
 /-- **Full packet/history correspondence (H3C).**
 
-For every dup-free NetKAT policy `p` — unconditionally, with no
+For every dup-free NetKAT policy `p` - unconditionally, with no
 star-freeness, termination, iteration-bound, finite-history-domain, or
-definedness assumptions — the history-based semantics and the packet-based
+definedness assumptions - the history-based semantics and the packet-based
 semantics agree:
 
     HistorySemantics p ⟨σ, h⟩ ⟨τ, h'⟩ ↔ h' = h ∧ Semantics p σ τ
@@ -714,7 +714,7 @@ all eight constructors:
   `k = ⟨k.head, h⟩` and both induction hypotheses apply with the *original*
   tail; the packet-level intermediate witness is `k.head`.  Backward: given
   the packet-level intermediate `ρ`, the intermediate history is
-  constructed as `⟨ρ, h⟩` — with the original tail — and both induction
+  constructed as `⟨ρ, h⟩` - with the original tail - and both induction
   hypotheses apply directly.
 - `.star p`         : the structural induction hypothesis has exactly the
   one-step shape required by H3B,
@@ -818,7 +818,7 @@ theorem historySemantics_iff_packetSemantics {schema : PacketSchema}
     leaves the packet list `h` unchanged: `h' = h`.  In the canonical
     nonempty representation this strengthens the H2 tail equality
     `h'.tail = h.tail` (an equality of tail lists) to an equality of the
-    entire packet list: the output history is exactly `⟨τ, h⟩` — same
+    entire packet list: the output history is exactly `⟨τ, h⟩` - same
     packet list, transformed head. -/
 theorem historySemantics_preserves_packetList {schema : PacketSchema}
     (p : NetKAT schema) (σ τ : schema.Packet) (h h' : List schema.Packet)

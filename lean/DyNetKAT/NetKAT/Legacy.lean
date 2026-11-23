@@ -106,8 +106,8 @@ open scoped Classical
   packet α.
 
   Construction:
-  1. Start with `Finset.univ : Finset CompleteTest` — all complete tests.
-  2. Filter by `fun α => Pr.eval α = true` — keep only tests where Pr holds.
+  1. Start with `Finset.univ : Finset CompleteTest` - all complete tests.
+  2. Filter by `fun α => Pr.eval α = true` - keep only tests where Pr holds.
      This is the same relation as `Pr.holds α` (defined `Predicate.holds` in
      `AST.lean:59` as `eval Pr σ = true`), expressed using `Bool` equality so
      that `DecidablePred` is available for `Finset.filter`.
@@ -246,7 +246,7 @@ theorem testNF_sem (Pr : Predicate) (σ τ : CtxPkt) :
         constructor
         · exact Finset.mem_univ σ
         · exact hpr
-      · -- (σ,σ) = (σ,σ) — definitionally, after the embedding
+      · -- (σ,σ) = (σ,σ) - definitionally, after the embedding
         rfl
     · -- holdsComplete σ σ ∧ τ = σ
       constructor
@@ -299,7 +299,7 @@ theorem testNF_sem (Pr : Predicate) (σ τ : CtxPkt) :
   second component is `Packet.update α f v` instead of `α`.
   Injectivity (first component): `α₁ = α₂` implies
     `(α₁, Packet.update α₁ f v) = (α₂, Packet.update α₂ f v)`,
-  proven by `congr_arg (·.1)` — identical to the pattern already used by
+  proven by `congr_arg (·.1)` - identical to the pattern already used by
   `idNF` and `testNF`.
 
   Uses `Packet.update` exactly as in the `.assign1` semantics clause
@@ -460,7 +460,7 @@ This is relational composition on the normal-form representation:
 **Construction:** The set of result pairs is obtained as the image of the
 product `a ×ˢ b` under the filter-and-extract map. Specifically:
 
-1. Form the Cartesian product `a × b` (as `Finset` pairs) — all combinations of
+1. Form the Cartesian product `a × b` (as `Finset` pairs) - all combinations of
    summands from `a` and `b`.
 2. Filter to retain only pairs `((α, π), (β, ρ))` where `π = β` (the
    intermediate valuation matches).
@@ -493,16 +493,16 @@ Mathematically:
 
   (α, ρ) ∈ seqNF(A, B)  ↔  ∃ π, (α, π) ∈ A ∧ (π, ρ) ∈ B
 
-This is pure finite-set membership — it follows from `Finset.mem_image`,
+This is pure finite-set membership - it follows from `Finset.mem_image`,
 `Finset.mem_filter`, and `Finset.mem_product` without any recourse to NetKAT
 semantics.
 
 **Proof dependencies:**
-- `NormalForm.seqNF` (definition) — the definition being characterized
-- `Finset.mem_image` — converts membership in `image` to existential witness
-- `Finset.mem_filter` — splits filter membership into predicate + base set membership
-- `Finset.mem_product` — splits membership in `Finset.product a b` into `a ∧ b`
-- `Prod.mk.inj` — destructures pair equality `(a, b) = (c, d)`
+- `NormalForm.seqNF` (definition) - the definition being characterized
+- `Finset.mem_image` - converts membership in `image` to existential witness
+- `Finset.mem_filter` - splits filter membership into predicate + base set membership
+- `Finset.mem_product` - splits membership in `Finset.product a b` into `a ∧ b`
+- `Prod.mk.inj` - destructures pair equality `(a, b) = (c, d)`
 
 **Restrictions honored:**
 - This theorem characterizes the existing `seqNF` definition without changing it.

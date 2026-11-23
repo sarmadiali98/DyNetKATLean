@@ -1,18 +1,18 @@
-# S6C Part 1 — Graph-Native Tail Extraction: Paper-to-Lean Audit
+# S6C Part 1 - Graph-Native Tail Extraction: Paper-to-Lean Audit
 
-Status: **audit only — no implementation** (per the S6C Part 1 mandate).
+Status: **audit only - no implementation** (per the S6C Part 1 mandate).
 Branch: `history-semantics`, HEAD `bc5712a2d3113624afe878c8f14cf1fbe7f43d68`
 ("Checkpoint: Complete graph-head soundness and completeness (S6B Part 3)").
 
 Provenance legend used throughout:
 
-* **[PAPER]** — read directly from `DyNetKAT.pdf` (arXiv:2102.10035v4). Page
+* **[PAPER]** - read directly from `DyNetKAT.pdf` (arXiv:2102.10035v4). Page
   numbers are PDF pages of that file.
-* **[LEAN]** — already implemented and proved in the repository at the
+* **[LEAN]** - already implemented and proved in the repository at the
   checkpoint above. File and theorem names are quoted verbatim.
-* **[PROPOSED]** — design produced by this audit; not yet implemented, not
+* **[PROPOSED]** - design produced by this audit; not yet implemented, not
   yet proved.
-* **[OPEN]** — mathematically unresolved; must be settled before or during
+* **[OPEN]** - mathematically unresolved; must be settled before or during
   implementation.
 
 ---
@@ -77,18 +77,18 @@ Reading (29)–(33) as a recursive definition on normal-form terms, and
 writing "R-visible path" for a path that crosses only packet prefixes
 (`N;`), choice branches (`⊕`), and **matching** reconfiguration prefixes:
 
-* (30): packet prefixes are transparent — tail looks past them.
-* (31): choice distributes — multiple reachable synchronization points
+* (30): packet prefixes are transparent - tail looks past them.
+* (31): choice distributes - multiple reachable synchronization points
   **all contribute**, by union (`⊕`).
 * (32) with `(x,N) ∈ R`: the continuation `D` after the matched event is
   contributed **wholesale**, and *in addition* `tail(D, R)` contributes the
   continuations of further matching events inside `D`.
-* (33) with `(x,N) ∉ R`: the result is `⊥` **without inspecting `D`** — a
+* (33) with `(x,N) ∉ R`: the result is `⊥` **without inspecting `D`** - a
   non-matching reconfiguration is a **barrier**: branches passing through
   it contribute nothing, not even deeper matching events.
 
 The resulting exact characterization (derived from the equations, not
-stated verbatim in the paper — flagged as interpretation):
+stated verbatim in the paper - flagged as interpretation):
 
 > `tail(D, R)` is the `⊕`-sum of the continuations `D'` of all
 > reconfiguration prefixes `rcfg_{x,N}; D'` with `(x,N) ∈ R` that are
@@ -154,7 +154,7 @@ definitions enter is precisely the gap S6C must close (§5).
   for guarded policies. The paper then "assume[s] that DyNetKAT policies
   are guarded" (PDF p. 11).
 * The paper's use of recursion in examples is through defining equations
-  (`X ≜ D`) interpreted by the SOS `(cpolX;)` rule (Fig. 8) — the same
+  (`X ≜ D`) interpreted by the SOS `(cpolX;)` rule (Fig. 8) - the same
   discipline the Lean `RecEnv`/`Step.cpol_var` and the S6A graph `ref`
   edges implement [LEAN].
 
@@ -184,7 +184,7 @@ in · head(tail(Init, R)) · out ≢ 0                           (35)
 
 Note what (35) needs from `tail`: the post-`secConReq` configuration must
 contain `(port=ext)·(port←int)` (from `Switch'`) and must **not** be
-polluted by the closed state reached through `secConEnd` — which is exactly
+polluted by the closed state reached through `secConEnd` - which is exactly
 what the (33) barrier guarantees.
 
 ### 1.8 Direct answers to the Part-1 questions
@@ -193,7 +193,7 @@ what the (33) barrier guarantees.
   continuations after all R-visible matching reconfiguration events
   (§1.3). [PAPER + interpretation]
 * **What does "synchronize on a reconfiguration channel" mean?** An
-  `rcfg(x,N)` step is derivable in the SOS (Fig. 8) — in the restricted
+  `rcfg(x,N)` step is derivable in the SOS (Fig. 8) - in the restricted
   normal form, a `rcfg_{x,N}; D'` summand with `(x,N) ∈ R`. [PAPER]
 * **How is `R` represented?** A set of events `rcfg_{X,N}`; in Lean,
   `ReconfigSet := Finset (Channel × NetKAT)` [LEAN, TailExtraction.lean
@@ -240,7 +240,7 @@ def tail (R : ReconfigSet) : DyNetKAT → Option DyNetKAT
 * Unsupported constructors fail explicitly with `none`; failure
   propagates through (30)/(31) and through the `(x,N) ∈ R` instance of
   (32). The `(x,N) ∉ R` instance of (33) succeeds **without inspecting
-  `D`** — faithful to the paper.
+  `D`** - faithful to the paper.
 * Recursion: structural on the AST; `.var` is rejected, so recursive
   definitions are entirely outside its domain.
 
@@ -260,10 +260,10 @@ def tail (R : ReconfigSet) : DyNetKAT → Option DyNetKAT
 
 ### 2.3 Specification and correctness theorems
 
-* `TailSpec R D Q` — inductive, equation-shaped, deterministic
+* `TailSpec R D Q` - inductive, equation-shaped, deterministic
   (`tailSpec_deterministic`); `tail_spec_iff : tail R D = some Q ↔
   TailSpec R D Q`.
-* `TailSuffix R D S` — process-level reading of the paper's intuition
+* `TailSuffix R D S` - process-level reading of the paper's intuition
   ("`S` is one of the policies inside `D` after the events in `R`",
   unblocked branches only). Step-level soundness and completeness:
   `tail_step_suffix` (every transition of the extracted process is a
@@ -293,7 +293,7 @@ def tail (R : ReconfigSet) : DyNetKAT → Option DyNetKAT
 ### 2.4 Pipeline integration [LEAN]
 
 * `restrictElim_tailSupported`: S4B's `restrictElim` output is
-  `CommFree ∧ TailSupported` — the (32) recursion is exactly why the
+  `CommFree ∧ TailSupported` - the (32) recursion is exactly why the
   stronger fragment matters.
 * `preprocess_tail_supported`, `preprocess_head_tail_some`,
   `preprocess_tail_head_spec`: the full S4B → S5A → S4A pipeline succeeds
@@ -307,7 +307,7 @@ def tail (R : ReconfigSet) : DyNetKAT → Option DyNetKAT
 
 1. `.var` → `none`: recursive processes are outside the domain
    (`TailSupported.varFree`). The safety checker therefore cannot run on
-   the recursive firewall specification — the very example the paper
+   the recursive firewall specification - the very example the paper
    targets.
 2. No cycle handling of any kind; no fixpoint semantics.
 3. The output is an AST term; there is no finite representation of the
@@ -353,8 +353,8 @@ lift (29)–(33) with one new clause for references:
 | `.choice a b` | (31) | `T(a) ⊕ T(b)` |
 | `.rcfgPrefix x N cont`, `(x,N) ∈ R` | (32) | `cont ⊕ T(cont)` |
 | `.rcfgPrefix x N cont`, `(x,N) ∉ R` | (33) | `⊥` (continuation uninspected) |
-| `.ref i` | — (new) | `T(G.label i)` |
-| `.recv/.send/.parallel/.leftMerge/.commMerge/.restrict/.project` | — | **failure** (explicit `none`) at R-visible positions |
+| `.ref i` | - (new) | `T(G.label i)` |
+| `.recv/.send/.parallel/.leftMerge/.commMerge/.restrict/.project` | - | **failure** (explicit `none`) at R-visible positions |
 
 The `.ref` clause is forced by the graph semantics: a reference *is* its
 label (`GStep.var`), so `T(.ref i)` must behave like `T(G.label i)`.
@@ -366,7 +366,7 @@ Three properties matter:
 
 1. **Refs are transparent in the semantics** but must **not** be unfolded
    by the extractor (constraint 2). The extracted term therefore keeps
-   refs — but, crucially, in **two roles** (§5.11):
+   refs - but, crucially, in **two roles** (§5.11):
    * verbatim continuations contributed by (32) keep **original** refs,
      which must continue to resolve to the **original** labels;
    * the recursive contribution `T(ref i)` is represented by a **fresh**
@@ -374,9 +374,9 @@ Three properties matter:
 2. **Unsupported constructors behind refs**: a node whose label fails the
    local tail collection makes the whole extraction fail **iff the node
    is tail-reachable** (R-visible). Unreachable definitions neither
-   contribute nor cause failure — mirroring `exUnreachable_*` in S6B.
+   contribute nor cause failure - mirroring `exUnreachable_*` in S6B.
 3. **Unguarded ref cycles** (`X ≜ Y`, `Y ≜ X`): the extraction terminates
-   and yields a semantically empty process — the graph analogue of
+   and yields a semantically empty process - the graph analogue of
    `exUnguarded_*`. No special-casing needed (§5, scenario 7).
 
 ---
@@ -391,43 +391,43 @@ Throughout, `T` denotes the graph-level tail equations of §3.2 and
 R-visible paths (through `nSeq` continuations, choice branches, *matching*
 rcfg continuations, and `ref` edges).
 
-### Scenario 1 — self-recursion without events: `X ≜ N;X`
+### Scenario 1 - self-recursion without events: `X ≜ N;X`
 
-`tailNodes = {X}`. `T(label X) = T(ref X) = T(label X)` — a trivial
+`tailNodes = {X}`. `T(label X) = T(ref X) = T(label X)` - a trivial
 fixpoint with no base case; the spec relation (§6) has **no finite
 derivation**, i.e. the least fixpoint is the empty relation. The extracted
-process is a pure ref-cycle, which affords no transitions — semantically
+process is a pure ref-cycle, which affords no transitions - semantically
 empty, matching `⊥`. Extraction **succeeds** with an empty result; it must
 not fail and must not diverge.
 
-### Scenario 2 — mutual recursion without events: `X ≜ N;Y`, `Y ≜ M;X`
+### Scenario 2 - mutual recursion without events: `X ≜ N;Y`, `Y ≜ M;X`
 
 Same shape: the worklist visits `X` and `Y` once each; the extracted
 process is a fresh ref-cycle; the spec is uninhabited (empty tail).
 Correct answer: there are no reconfiguration events at all.
 
-### Scenario 3 — synchronization inside a recursive definition:
+### Scenario 3 - synchronization inside a recursive definition:
 `X ≜ rcfg_a; X ⊕ N;X`, `R = {a}`
 
-`T(label X) = (X ⊕ T(X)) ⊕ T(X)` — the fixpoint equation `T = X ⊕ T`,
+`T(label X) = (X ⊕ T(X)) ⊕ T(X)` - the fixpoint equation `T = X ⊕ T`,
 whose **least** solution is `T ≡ X` (`⊕` is idempotent). The extracted
 policy `head(T)` must be `N`. Check of the proposed spec (§6): the
 `AllRSpec` derivation terminates through the `nSeq_of_sem` leaf
 (`Sem N`) inside the `rcfg_a` branch, so `GraphTailSpec` **is** inhabited
-with exactly the `N`-contribution — the finite-derivation (least-fixpoint)
+with exactly the `N`-contribution - the finite-derivation (least-fixpoint)
 reading and the equation-level least fixpoint agree. The worklist visits
 `X` once; the extracted term contains both the verbatim `ref X` (inside
 the (32) continuation) and the fresh `ref f_X`.
 
-### Scenario 4 — synchronization before a recursive reference:
+### Scenario 4 - synchronization before a recursive reference:
 `X ≜ rcfg_a; X`, `R = {a}`
 
 `T = X ⊕ T`, least solution `T ≡ X`; `head(T) = head(X) = 0` (the rcfg is
 a head boundary). The spec is uninhabited (the `AllRSpec` recursion has no
-`nSeq_of_sem` leaf) — empty post-reconfiguration configuration, correct:
+`nSeq_of_sem` leaf) - empty post-reconfiguration configuration, correct:
 after `a` the process can only do another `a`.
 
-### Scenario 5 — multiple synchronization points on a cycle:
+### Scenario 5 - multiple synchronization points on a cycle:
 `X ≜ rcfg_a; N; rcfg_b; X`, `R = {a,b}`
 
 Equations: `T = (N; rcfg_b; X) ⊕ X ⊕ T`, least solution
@@ -435,23 +435,23 @@ Equations: `T = (N; rcfg_b; X) ⊕ X ⊕ T`, least solution
 `choice (N; rcfg_b; ref X) (choice (ref X) (ref f_X))`; the worklist
 visits `X` once; `graphHead` of the constructed graph yields exactly `N`
 (verified by hand-tracing the S6B machinery). Both cycle synchronization
-points contribute through one visit — union semantics for free.
+points contribute through one visit - union semantics for free.
 
-### Scenario 6 — unreachable recursive definitions
+### Scenario 6 - unreachable recursive definitions
 
 Nodes not in `tailNodes` are never visited; their local tails are never
 computed and may fail without consequence. Mirrors `exUnreachable_*` of
 S6B. Design rule: fresh tail-nodes are created **only for visited nodes**.
 
-### Scenario 7 — unguarded reference cycles: `X ≜ Y`, `Y ≜ X`
+### Scenario 7 - unguarded reference cycles: `X ≜ Y`, `Y ≜ X`
 
-`tailNodes = {X, Y}`; `T(label X) = ref f_Y`, `T(label Y) = ref f_X` — a
+`tailNodes = {X, Y}`; `T(label X) = ref f_Y`, `T(label Y) = ref f_X` - a
 fresh pure-ref cycle. No transitions, empty spec, extraction **succeeds**
 with an empty result. Termination is by the worklist measure, not by the
-term structure — this scenario is exactly why a structural recursion on
+term structure - this scenario is exactly why a structural recursion on
 `GProc` (following refs) is impossible.
 
-### Scenario 8 — unsupported constructors inside reachable and unreachable branches
+### Scenario 8 - unsupported constructors inside reachable and unreachable branches
 
 * At an R-visible position of `G.root` or of a `tailNodes` label → local
   collection fails → `graphTail` fails explicitly (`none`).
@@ -465,20 +465,20 @@ term structure — this scenario is exactly why a structural recursion on
 
 ### 5.9 What the algorithm requires
 
-* **A visited-set worklist** — yes: the traversal region is cyclic and
+* **A visited-set worklist** - yes: the traversal region is cyclic and
   R-dependent; termination must come from the node set, not the term
   structure (scenarios 1, 5, 7).
-* **A fixpoint computation** — the *result* is a fixpoint
+* **A fixpoint computation** - the *result* is a fixpoint
   (`T = cont ⊕ T`), but it is **represented**, not iterated: fresh
   tail-nodes turn the fixpoint into a cyclic finite graph (§7). No
   numerical/Kleene iteration is needed.
-* **A different traversal algorithm than head** — yes, in three ways
+* **A different traversal algorithm than head** - yes, in three ways
   (§5.10).
-* **A finite result representation** — yes: a `ProcessGraph` extending
+* **A finite result representation** - yes: a `ProcessGraph` extending
   `G` (§7.4).
-* **A termination measure** — the S6B lexicographic measure
+* **A termination measure** - the S6B lexicographic measure
   `((G.nodes \ visited).card, pending.length)` re-usable verbatim.
-* **Least-fixpoint specification** — yes: the inductive spec of §6 has
+* **Least-fixpoint specification** - yes: the inductive spec of §6 has
   only finite derivations, which is exactly the least fixpoint; this is
   the same discipline as `GraphHeadSpec` ("recursive cycles are
   represented by finite derivations").
@@ -513,11 +513,11 @@ A cheaper-looking alternative is to reuse the *original* nodes with
 **modified labels** (`label' i = T(label i)` for tail-reachable `i`) and
 let `T(ref i) = ref i`. Counterexample: `X ≜ rcfg_a; N; ref X ⊕
 rcfg_c; M; ref X`, `R = {a}`. The true tail (least fixpoint of the
-equations) is `N; X` — after the packet step `N` the process behaves like
+equations) is `N; X` - after the packet step `N` the process behaves like
 the **original** `X` (it can still do `c ↦ M`; note `M` is *not* part of
 the tail itself, but the continuation `N; X` legitimately contains the
 original behaviour). Under label modification, `ref X` resolves to the
-*tail* of `X`, whose `c`-branch has been cut by (33) — the extracted
+*tail* of `X`, whose `c`-branch has been cut by (33) - the extracted
 process loses the `c ↦ M` behaviour that the verbatim continuation
 `N; ref X` must retain. The two roles of `ref X` (original behaviour
 inside the verbatim continuation; tail behaviour at the recursion point)
@@ -564,7 +564,7 @@ Properties and readings:
 * **Least fixpoint.** Both relations are inductive: membership = finite
   derivation = least fixpoint of the clause set. Scenario 3 shows the
   least fixpoint is nonempty exactly when a packet policy is reachable
-  after an unblocked event — the `nSeq_of_sem` leaf is what cuts every
+  after an unblocked event - the `nSeq_of_sem` leaf is what cuts every
   cycle. Scenario 1/2/4/7 show uninhabitedness where the tail is empty.
   This is precisely the discipline of `GraphHeadSpec` [LEAN].
 * **Union semantics.** Multiple synchronization points = multiple
@@ -580,7 +580,7 @@ Properties and readings:
 * **Deadlock/unsupported shapes.** No clauses ⇒ the relations are
   uninhabited there, so the spec never silently rewards unsupported
   constructs (constraint 4/5).
-* **The spec never mentions the extractor** — same independence
+* **The spec never mentions the extractor** - same independence
   discipline as `GraphHeadSpec`/`TailHeadSpec`.
 
 The candidate signature in the task,
@@ -612,7 +612,7 @@ Reasons:
    head-of-tail inside the extraction and re-prove head-style
    soundness/completeness for a combined R-dependent traversal, instead
    of **reusing `graphHead_sound`/`graphHead_complete`/`graphHead_spec_iff`
-   verbatim** — those theorems are stated for *arbitrary* well-formed
+   verbatim** - those theorems are stated for *arbitrary* well-formed
    `ProcessGraph`s and apply unchanged to the constructed graph.
 3. The two-stage shape keeps the audit trail aligned with the paper
    (`tail` then `head`) and with the existing AST pipeline.
@@ -671,19 +671,19 @@ duplicates).
 Two structural facts to prove and use everywhere:
 
 * **Image shape:** a successful `tailCollectR` never produces an
-  `.nSeq` node — the image is contained in `{.deadlock} ∪ choice-nodes ∪
+  `.nSeq` node - the image is contained in `{.deadlock} ∪ choice-nodes ∪
   {`.ref (fresh i)`}`. (Needed by the bridge, §9.2.)
 * **Ref preimage:** `tailCollectR gp = .ref (fresh j)` iff `gp` is an
   `nSeq`-spine ending in `.ref j`.
 
 **Assembly.** `graphTail G R`:
 
-1. `tailRun G R (tailRefsR R G.root) ∅ []` — fail `none` if it fails
+1. `tailRun G R (tailRefsR R G.root) ∅ []` - fail `none` if it fails
    (impossible for well-formed `G`, kept for robustness, as in head).
 2. Compute `T₀ := tailCollectR G R fresh G.root` and `Tⱼ := tailCollectR
    G R fresh (G.label j)` for every visited `j`; fail `none` if any is
    `none`. (This is where unsupported constructors at R-visible positions
-   are rejected — the graph analogue of `TailDomain R`.)
+   are rejected - the graph analogue of `TailDomain R`.)
 3. Return `tailGraphOf G R L T₀`: `nodes := G.nodes ∪ {fresh j | j ∈ L}`,
    `root := T₀`, `label :=` original labels on `G.nodes`, `Tⱼ` on fresh
    nodes; `root_closed`/`closed` proved from `G.root_closed`, `G.closed`,
@@ -693,7 +693,7 @@ Two structural facts to prove and use everywhere:
 
 `fresh` must be injective on the visited list `L` and disjoint from
 `G.nodes` (a collision would clobber an original label and corrupt every
-verbatim continuation — §5.11). Constructive proposal:
+verbatim continuation - §5.11). Constructive proposal:
 
 ```
 maxAux := fold over G.nodes of (match node with .inr k => k | .inl _ => 0)
@@ -712,15 +712,15 @@ equally acceptable alternative.
 `G' = tailGraphOf G R L T₀` satisfies:
 
 * `nodes G' = G.nodes ∪ image fresh L`, `root G' = T₀`;
-* original labels unchanged — verbatim continuations inside `T₀`/`Tⱼ`
+* original labels unchanged - verbatim continuations inside `T₀`/`Tⱼ`
   keep their original refs and therefore their original behaviour;
-* fresh labels are the local tails — the fixpoint `T = cont ⊕ T` is
+* fresh labels are the local tails - the fixpoint `T = cont ⊕ T` is
   represented by the cycle `f_j ↦ Tⱼ` (scenario 3: `Tⱼ` contains both the
   verbatim continuation and `ref f_j`);
 * closure (`root_closed`, `closed`): original refs come from
   `G.root_closed`/`G.closed`; fresh refs in `T₀` are exactly
   `tailRefsR R G.root` and fresh refs in `Tⱼ` are exactly
-  `tailRefsR R (G.label j)` — all visited by the worklist invariant.
+  `tailRefsR R (G.label j)` - all visited by the worklist invariant.
 
 ---
 
@@ -730,10 +730,10 @@ Three layers, all within the established discipline (no `partial`, no
 `unsafe`, no fuel, no `Classical.choice`):
 
 1. `tailRefsR` and `tailCollectR`: **structural** recursion on `GProc`.
-   Refs are replaced (`fresh i`), never followed — this is what makes
+   Refs are replaced (`fresh i`), never followed - this is what makes
    structural recursion possible on a graph with cycles.
 2. `tailRun`: well-founded recursion on the lexicographic measure
-   `((G.nodes \ visited).card, pending.length)` — the identical
+   `((G.nodes \ visited).card, pending.length)` - the identical
    `termination_by`/`decreasing_by` skeleton as `headRun` [LEAN,
    GraphHead.lean:631–653]. Fresh nodes are inserted into `visited`
    before their labels are expanded, so each node is expanded at most
@@ -741,7 +741,7 @@ Three layers, all within the established discipline (no `partial`, no
    visit, the second on each skip.
 3. `graphTail`: a finite composition of the above (no recursion).
 
-The subtle termination point — the *result* is a fixpoint — is resolved
+The subtle termination point - the *result* is a fixpoint - is resolved
 representationally (§5.9): cycles live in the constructed graph, not in
 the computation.
 
@@ -773,14 +773,14 @@ def GraphTailSupported (G : ProcessGraph) : Prop :=
 
 `GraphTailSupported G` implies `graphTail G R` succeeds **for every `R`**
 (the exact per-`R` domain is strictly weaker because (33) does not
-inspect continuations behind non-matching events — scenario 8).
+inspect continuations behind non-matching events - scenario 8).
 
 Two packaged facts mirroring S5A/S6B:
 
 * `graphTail_supported_some : GraphTailSupported G → ∃ G', graphTail G R = some G'`
   (for every `R`).
 * `graphTail_head_some : graphTail G R = some G' → ∃ H, graphHead G' = some H`
-  — the graph analogue of `tail_head_some`. Argument: every head-visible
+  - the graph analogue of `tail_head_some`. Argument: every head-visible
   position of the constructed graph sits at an R-visible position of the
   original (refs transparent, verbatim continuations), so the success of
   `tailCollectR` on the root and on all visited labels implies success of
@@ -804,7 +804,7 @@ theorem graphTail_bridge_sound
     GraphTailSpec G R gp σ τ
 ```
 by induction on `D`. Enabling lemmas: image-shape (kills the two
-`nSeq` cases of `GraphHeadSpec` — the extracted image contains no
+`nSeq` cases of `GraphHeadSpec` - the extracted image contains no
 `.nSeq`), ref-preimage inversion, the decomposition below, and the
 agreement lemma below.
 
@@ -830,14 +830,14 @@ theorem graphTail_bridge_complete (…):
 
 **Supporting lemmas** (each a straightforward induction, but all new):
 
-1. `allR_split` — derivation-level decomposition
+1. `allR_split` - derivation-level decomposition
    `GraphAllRSpec G R gp σ τ → GraphHeadSpec G gp σ τ ⊕ GraphTailSpec G gp σ τ`
    (split at the first `rcfgPrefix_of`; its `GraphAllRSpec` sub-derivation
    is reused verbatim inside `GraphTailSpec.rcfgPrefix_of`). Together with
    the two inclusion lemmas `head_in_allR`, `tail_in_allR` this yields the
    propositional graph analogue of `allR_head_spec`:
    `GraphAllRSpec G R gp σ τ ↔ GraphHeadSpec G gp σ τ ∨ GraphTailSpec G R gp σ τ`.
-2. `graphHeadSpec_agree` — for `gp` with `refs gp ⊆ G.nodes`,
+2. `graphHeadSpec_agree` - for `gp` with `refs gp ⊆ G.nodes`,
    `GraphHeadSpec G' gp σ τ ↔ GraphHeadSpec G gp σ τ` (labels agree on
    `G.nodes`; induction on the derivation).
 3. `tailCollectR_image_shape`, `tailCollectR_ref_inv` (§7.2).
@@ -870,7 +870,7 @@ theorem graphTail_spec_iff (G : ProcessGraph) (R : ReconfigSet)
 
 Answers to the specific design questions:
 
-* **Does soundness require successful extraction only?** Yes — both
+* **Does soundness require successful extraction only?** Yes - both
   bridges are stated under the success hypothesis `graphTail G R = some
   G'` (plus well-formedness of `G`, which supplies closure). This mirrors
   `graphHead_sound`/`graphHead_complete`, which need no supportedness
@@ -881,7 +881,7 @@ Answers to the specific design questions:
 * **Minimal supportedness condition:** the R-dependent
   `GraphTailDomain` is exact; the R-independent `GraphTailSupported` is
   the recommended API-level condition (one check, all `R`).
-* **Can graph closure discharge assumptions automatically?** Yes — the
+* **Can graph closure discharge assumptions automatically?** Yes - the
   node-closure conjunct is derivable from `root_closed`/`closed` exactly
   as `graphHead_supported_some_root` does for head.
 * **Can the AST-level `tail` correctness be reused?** The *statements*
@@ -923,7 +923,7 @@ p, R, in, out
   `graphTail_spec_iff` (for (35)) into the relational statements:
   verdict (34) true ⟺ no `(ρ,κ)` with `in σρ ∧ GraphHeadSpec G G.root ρκ
   ∧ out κτ`; verdict (35) true ⟺ some `(ρ,κ)` with `in σρ ∧
-  GraphTailSpec G R G.root ρκ ∧ out κτ` — the recursive-process versions
+  GraphTailSpec G R G.root ρκ ∧ out κτ` - the recursive-process versions
   of `safetyCheck_pipeline_semantic`.
 * **Open integration point [OPEN]:** the paper's δ-precondition (§1.5).
   The AST-level `preprocess` fails on recursive variables
@@ -943,36 +943,36 @@ p, R, in, out
 Each stage compiles and commits independently; no stage introduces
 `sorry`/`axiom`/`partial`/`unsafe`.
 
-* **S6C-1 — Graph tail specification (pure relations).** New module
+* **S6C-1 - Graph tail specification (pure relations).** New module
   `GraphTail.lean` (or `GraphTailSpec.lean`): `GraphAllRSpec`,
   `GraphTailSpec`, clause iff-lemmas, uninhabitedness lemmas
   (deadlock/unsupported shapes), the ref transfer lemma from the AST
   specs on ref-free terms, and `allR_split` + `head_in_allR` +
   `tail_in_allR` (decomposition). No extraction yet. Validation: the
   firewall-shaped fixtures of §5 evaluated by hand against the specs.
-* **S6C-2 — R-dependent traversal infrastructure.** `tailRefsR`
+* **S6C-2 - R-dependent traversal infrastructure.** `tailRefsR`
   (+ `mem_tailRefsR_iff`, subset-of-`gprocRefs`), `TailPathTo`/
   `RefReach`-style node reachability (R-dependent), `tailRun` with the
   `headRun` termination skeleton, and `tailRun_spec` (the invariant
   mirror of `headRun_spec`). Validation: worklist fixtures for scenarios
   1/5/6/7.
-* **S6C-3 — Local tail collection.** `tailCollectR`, defining equations,
+* **S6C-3 - Local tail collection.** `tailCollectR`, defining equations,
   failure propagation, image-shape and ref-preimage inversion lemmas,
   fresh-node allocation (`fresh_inj`, `fresh_notMem_nodes`).
-* **S6C-4 — Assembly and well-formedness.** `tailGraphOf`, `graphTail`,
+* **S6C-4 - Assembly and well-formedness.** `tailGraphOf`, `graphTail`,
   closure proofs (`root_closed`, `closed` from the worklist invariant),
   `graphTail_supported_some`, `GraphTailDomain`/`GraphTailSupported`,
   `graphTail_head_some`.
-* **S6C-5 — Bridges and main theorems.** `graphHeadSpec_agree`,
+* **S6C-5 - Bridges and main theorems.** `graphHeadSpec_agree`,
   `graphAllR_headSpec_split` (Q₂), `graphTail_bridge_sound`,
   `graphTail_bridge_complete` (Q₁), then `graphTail_sound`,
   `graphTail_complete`, `graphTail_spec_iff`.
-* **S6C-6 — Fixtures.** The eight scenarios of §5 as executable `#eval`/
+* **S6C-6 - Fixtures.** The eight scenarios of §5 as executable `#eval`/
   theorem fixtures (self-loop, mutual, sync-inside-recursion, sync-before-
   ref, multi-sync cycle, unreachable definition, unguarded cycle,
   unsupported-behind-barrier vs unsupported-reachable), mirroring the
   S6B example section, plus a firewall-shaped recursive fixture.
-* **(S6D, out of scope here)** — checker integration and the δ story.
+* **(S6D, out of scope here)** - checker integration and the δ story.
 
 Estimated proof-weight distribution: S6C-1 and S6C-5 carry the new
 mathematics; S6C-2/3/4 are disciplined ports of existing S6B machinery.
@@ -985,7 +985,7 @@ mathematics; S6C-2/3/4 are disciplined ports of existing S6B machinery.
    least fixpoint *by construction* (finite derivations). What is *not*
    yet pinned is a direct relational-semantics statement tying
    `GraphTailSpec` to the SOS (`GStep`) traces of the post-reconfiguration
-   configurations — the graph analogue of S5A's step-level
+   configurations - the graph analogue of S5A's step-level
    `tail_step_suffix`/`suffix_step_tail` pair. Recommended as an optional
    S6C-5 addendum: define `GraphTailSuffix G R gp S` ("`S` is the
    continuation of an unblocked R-visible matching event of `gp`") and
@@ -996,12 +996,12 @@ mathematics; S6C-2/3/4 are disciplined ports of existing S6B machinery.
    the ground truth and are implemented faithfully; the *safety
    interpretation* of the barrier (under-approximation of
    "configurations reachable after some R-sequence" in the full LTS) is
-   flagged in §1.3 but needs no resolution for S6C — the checker must
+   flagged in §1.3 but needs no resolution for S6C - the checker must
    match the paper's tool, not an idealized semantics. Recorded so the
    distinction is never blurred in later stages.
-3. **δ-integration for recursive graphs** (§10) — deferred to S6D by
+3. **δ-integration for recursive graphs** (§10) - deferred to S6D by
    design; the side-condition route is recommended meanwhile.
-4. **Fresh-node allocation details** — the concrete `maxAux + indexOf`
+4. **Fresh-node allocation details** - the concrete `maxAux + indexOf`
    scheme is proposed but any injective disjoint encoding is acceptable;
    only the two lemmas (`fresh_inj`, `fresh_notMem_nodes`) are load-
    bearing.
@@ -1013,7 +1013,7 @@ mathematics; S6C-2/3/4 are disciplined ports of existing S6B machinery.
 * Repository state at audit start: branch `history-semantics`, HEAD
   `bc5712a2d3113624afe878c8f14cf1fbe7f43d68`, working tree containing only
   the pre-existing untracked scratch files (`lean/test_*.lean`,
-  `DyNetKAT.pdf`) — all preserved untouched.
+  `DyNetKAT.pdf`) - all preserved untouched.
 * This audit added exactly one file: `docs/S6C_TAIL_EXTRACTION_AUDIT.md`.
   No Lean source, no existing report, and no configuration file was
   modified; no commit, push, branch switch, reset, stash, or clean was
@@ -1025,7 +1025,7 @@ mathematics; S6C-2/3/4 are disciplined ports of existing S6B machinery.
 
 ## 14. Source index
 
-* Paper: `DyNetKAT.pdf` — §V (PDF p. 16): Eqs. (29)–(33), (34), (35),
+* Paper: `DyNetKAT.pdf` - §V (PDF p. 16): Eqs. (29)–(33), (34), (35),
   restriction precondition, `R = {rcfg_{secConReq,1}}`; Fig. 5 (p. 6)
   firewall encoding; Fig. 8 (p. 8) SOS; Def. 6/7, Lemma 8/9 (p. 11)
   normal forms/guardedness/normalization; Def. 14/16 (p. 14–15) safety

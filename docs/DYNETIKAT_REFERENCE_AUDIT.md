@@ -14,10 +14,10 @@
 
 | Aspect | Finding |
 |---|---|
-| Tool name | DyNetiKAT (note the internal "i" — `DyNetiKAT`, not `DyNetKAT`) |
+| Tool name | DyNetiKAT (note the internal "i" - `DyNetiKAT`, not `DyNetKAT`) |
 | License | MIT (University of Konstanz, 2021) |
 | Implementation language | Python 3 (glue/orchestration) + Maude (rewriting backend) |
-| NetKAT backend | External: `netkat-idd` (`katbv`) or `netkat-automata` — **not bundled in this repo** |
+| NetKAT backend | External: `netkat-idd` (`katbv`) or `netkat-automata` - **not bundled in this repo** |
 | Paper bundled | `paper.pdf` (conference-style manuscript bundled by the tool) |
 | Architecture | Two-stage pipeline: (1) preprocessing/equational rewriting via Maude, (2) property checking via NetKAT decision procedure |
 
@@ -105,7 +105,7 @@ Options (optional):
 2. Maude >= 3.0
 3. NetKAT tool (`netkat-idd` via opam, or `netkat-automata`)
 
-**Note:** The NetKAT tool is cloned from `https://github.com/netkat-lang/netkat/` — it is
+**Note:** The NetKAT tool is cloned from `https://github.com/netkat-lang/netkat/` - it is
 **not** bundled in the DyNetiKAT repository. It is an external dependency.
 
 ---
@@ -144,9 +144,9 @@ Each property is a 4-element list:
 | `unfoldings` | int | any positive integer (e.g., 2, 3, 5, 100) | README:80 | Max unfoldings for `pi_n` projection |
 
 **Confirmed from examples:**
-- Reachability: `["r", "head(@Program)", "!0", 100]` — checks if egress is reachable from ingress
+- Reachability: `["r", "head(@Program)", "!0", 100]` - checks if egress is reachable from ingress
 - Reachability (after sync events): `["r", "(head(tail(@Program, {rcfg(...)})))", "!0", 100]`
-- Waypointing: `["w", "(head({}))", "sw = 1", 100]` — checks if packets pass through waypoint `sw = 1`
+- Waypointing: `["w", "(head({}))", "sw = 1", 100]` - checks if packets pass through waypoint `sw = 1`
 
 ---
 
@@ -271,7 +271,7 @@ The `decide(data)` method implements the following pipeline:
 
 **Confirmed (`dnk.py:144`, `dynetkat.py:20-27`, `dnk.maude:35, 72-79`):**
 - Computes the set `H` of all communication actions `x ! Z` and `x ? Z` from the program
-- Wraps the program as `delta_H(pi_n(program))` — restriction eliminates the communication terms (sets them to `bot`), leaving only NetKAT policies for the final decision check
+- Wraps the program as `delta_H(pi_n(program))` - restriction eliminates the communication terms (sets them to `bot`), leaving only NetKAT policies for the final decision check
 - Maude equations `[D-receive]`, `[D-send]`, `[D-rcfg]`, `[D-bot-receive]`, `[D-bot-send]`, `[D-bot-rcfg]`, `[D-plus]` implement the restriction semantics
 
 ### 6.2 Projection operator (pi_n)
@@ -282,7 +282,7 @@ The `decide(data)` method implements the following pipeline:
 - Applied before restriction: `delta_H(pi_n(program))`
 - User-specified `n` controls the bounded unfolding depth
 
-### 6.3 head() operator — current configuration extraction
+### 6.3 head() operator - current configuration extraction
 
 **Confirmed (`dnk.maude:130-131, 141-143`):**
 ```
@@ -295,7 +295,7 @@ head(rcfg(X, Z) ; D) = zero
 - It sums all leading NetKAT policies, ignoring communication steps (which produce `zero`)
 - Used in reachability/waypointing property formulas as `head(@Program)`
 
-### 6.4 tail() operator — post-synchronization policy extraction
+### 6.4 tail() operator - post-synchronization policy extraction
 
 **Confirmed (`dnk.maude:132, 145-149`):**
 ```
@@ -334,7 +334,7 @@ The verification flow is:
 
 ### 7.2 On-demand unfolding
 
-**Confirmed (`dnk.maude:109-122` — `RECURSIVE-DNA` module):**
+**Confirmed (`dnk.maude:109-122` - `RECURSIVE-DNA` module):**
 ```
 --- unfolding the recursive variables at once is very inefficient.
 --- we perform the unfolding on the fly when it is necessary
@@ -395,8 +395,8 @@ ceq unfold(P) = getRecPol(P) if (P :: Recursive) .
 - **Channels:** `["secConReq", "secConEnd"]`
 - **Packets:** `int_to_ext` and `ext_to_int` ingress/egress pairs
 - **Properties (2 unfoldings):**
-  1. `(r, head(@Program), "!0", 2)` — reachability: can `int_to_ext` reach egress?
-  2. `(r, (head(tail(@Program, {rcfg(secConReq, "one")})))", "!0", 2)` — reachability after secConReq
+  1. `(r, head(@Program), "!0", 2)` - reachability: can `int_to_ext` reach egress?
+  2. `(r, (head(tail(@Program, {rcfg(secConReq, "one")})))", "!0", 2)` - reachability after secConReq
 
 ### 9.2 Distributed Controller
 
@@ -474,10 +474,10 @@ In the tool, this is checked by comparing two NetKAT terms (one with and one wit
 ### 11.1 NetKAT axioms (ENK)
 
 **Confirmed (`dnk.maude:46-48`):**
-- `zero ; P = bot` — zero sequential composition (drop followed by anything deadlocks)
-- `(N + Z) ; R = N ; R o+ Z ; R` (A1) — distributes choice over sequencing
-- `P + P = P` (A3) — idempotence
-- `P + bot = P` (A4) — identity for choice
+- `zero ; P = bot` - zero sequential composition (drop followed by anything deadlocks)
+- `(N + Z) ; R = N ; R o+ Z ; R` (A1) - distributes choice over sequencing
+- `P + P = P` (A3) - idempotence
+- `P + bot = P` (A4) - identity for choice
 
 ### 11.2 DyNetKAT axioms (EDNK, A0-A15 + AIP)
 
@@ -605,7 +605,7 @@ aggregation switch `Ax`, then migrated to `Ax0`. Controller performs 4 updates.
 > "we work with packet fields ranging over finite domains"
 
 The tool relies on this for the finiteness of the NetKAT normal-form decomposition
-(Lemma 4, paper p. 678). This is a fundamental assumption — the analysis does not
+(Lemma 4, paper p. 678). This is a fundamental assumption - the analysis does not
 support infinite field value domains.
 
 ### 13.3 Bounded unfolding
@@ -634,7 +634,7 @@ support infinite field value domains.
 > per-packet consistency."
 
 The analysis assumes each data-plane packet sees exactly one set of flow tables
-throughout its flight — an assumption from [16] (Reitblatt et al.).
+throughout its flight - an assumption from [16] (Reitblatt et al.).
 
 ---
 
@@ -649,18 +649,18 @@ throughout its flight — an assumption from [16] (Reitblatt et al.).
 ### Documented claims not independently verified
 
 - **Performance numbers** (Section 12): Taken from paper Figure 8 text; the tool was not executed during this audit
-- **AIP soundness** (paper Lemma 9, p. 735): The AIP axiom is cited in the paper but is not implemented as a Maude equation — it is a meta-level reasoning principle
+- **AIP soundness** (paper Lemma 9, p. 735): The AIP axiom is cited in the paper but is not implemented as a Maude equation - it is a meta-level reasoning principle
 
 ### Features described in the paper but not in the tool
 
 - **Full bisimulation** (Definition 2, paper p. 471): The tool does not implement bisimulation checking directly; it reduces to NetKAT equivalence checking via the axiomatization
-- **Safety analysis framework** (Section 4, paper p. 776-900): The `head`/`tail` operators implement the core extraction mechanism, but the full safety property semantics map (Definition 11, paper p. 818) and `hregexp` syntax are not implemented as user-facing constructs — they are encoded via NetKAT equivalences
-- **Extended DyNetKAT syntax** (paper Eq. 2, p. 638): The `T` (left-merge) and `|` (communication-merge) operators exist in the Maude axioms but are not user-facing syntax — they are internal to the axiomatization
+- **Safety analysis framework** (Section 4, paper p. 776-900): The `head`/`tail` operators implement the core extraction mechanism, but the full safety property semantics map (Definition 11, paper p. 818) and `hregexp` syntax are not implemented as user-facing constructs - they are encoded via NetKAT equivalences
+- **Extended DyNetKAT syntax** (paper Eq. 2, p. 638): The `T` (left-merge) and `|` (communication-merge) operators exist in the Maude axioms but are not user-facing syntax - they are internal to the axiomatization
 
 ### Unknown or unsupported capabilities
 
 - **Arbitrary topologies:** The tool supports FatTree via the `fattree.py` generator. Other topology generators (e.g., arbitrary networkx graphs) are not bundled
-- **Incremental verification:** No support for incremental property checking as configurations evolve — each property check is independent
+- **Incremental verification:** No support for incremental property checking as configurations evolve - each property check is independent
 
 ---
 

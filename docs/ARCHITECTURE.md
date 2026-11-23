@@ -1,4 +1,4 @@
-# Architecture — DyNetKAT Lean Formalization
+# Architecture - DyNetKAT Lean Formalization
 
 ## Symbolic native KAT
 
@@ -71,8 +71,9 @@ interpretation connected to the current AST, evaluator and Derives.
 | Import surface | Scope |
 |---|---|
 | `KATLean` | Algebra and packet model, with Mathlib dependencies |
-| `DyNetKAT.NetKAT.KATLean` | Current NetKAT AST/evaluator/Derives bridge |
-| `DyNetKAT` | Core formalization and admitted-program analysis |
+| `NetKATLean.Core.KATLean` | NetKAT AST/evaluator/Derives bridge |
+| `DyNetKATLean` | Core formalization and admitted-program analysis |
+| `DyNetKAT` | Integration compatibility library and examples |
 | `DyNetKAT.NetKAT.Legacy` | Exhaustive concrete equivalence, normalization and partition proofs for regression and compatibility |
 | `DyNetKAT.Experimental` | Core plus optional KATch comparison and candidate-checking modules |
 
@@ -267,7 +268,7 @@ variable [Fintype FieldType] [∀ f : FieldType, Fintype (Value f)]
 ```
 
 **Rationale:** The paper says "we consider network packets with values in
-finite domains" — parameterization respects this without fixing specifics.
+finite domains" - parameterization respects this without fixing specifics.
 
 ### 8. Executable vs. proof
 
@@ -280,14 +281,14 @@ from any executable decision procedures.  The denotational semantics
 ## Semantic layering
 
 The architecture mirrors the paper's structure:
-1. **NetKAT** — finite packet domains, denotational semantics, E_NK.
-2. **DyNetKAT syntax** — builds on NetKAT⁻ᵈᵘᵖ.
-3. **Operational semantics** — SOS over (d, H, H′).
-4. **Extensions** — δ, π, rcfg, ⌊⌊, | |.
-5. **Bisimilarity** — coinductive, congruence.
-6. **Axioms** — A0–A15, AIP, A16.
-7. **Soundness & completeness** — Theorem 1.
-8. **Safety** — Definitions 12–17.
+1. **NetKAT** - finite packet domains, denotational semantics, E_NK.
+2. **DyNetKAT syntax** - builds on NetKAT⁻ᵈᵘᵖ.
+3. **Operational semantics** - SOS over (d, H, H′).
+4. **Extensions** - δ, π, rcfg, ⌊⌊, | |.
+5. **Bisimilarity** - coinductive, congruence.
+6. **Axioms** - A0–A15, AIP, A16.
+7. **Soundness & completeness** - Theorem 1.
+8. **Safety** - Definitions 12–17.
 
 `SourceTrace.lean` exposes the source `Steps` relation at the admitted
 program boundary. Action words preserve packet observations and

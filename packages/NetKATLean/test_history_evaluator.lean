@@ -378,8 +378,8 @@ example : ∃ τ : CtxPkt,
 --
 -- Kleene-star policies are NOT exercised by `#eval`: their bounded
 -- iteration (256 steps over the concrete packet space) overflows the
--- Lean interpreter stack, so — exactly like the existing
--- `test_evaluator_integration.lean` — stars are covered exclusively
+-- Lean interpreter stack, so - exactly like the existing
+-- `test_evaluator_integration.lean` - stars are covered exclusively
 -- through the correctness-theorem proofs above.
 ------------------------------------------------------------------------
 

@@ -1,10 +1,14 @@
-# Unified Architecture Requirements — DyNetKATLean
+# Unified Architecture Requirements - DyNetKATLean
 
-**Task:** P3A — Planning task (documentation only)
+**Task:** P3A - Planning task (documentation only)
 **Date:** 2026-10-16
 **Purpose:** Define the architectural requirements and boundaries needed to support BOTH a faithful Lean 4 formalization of the DyNetKAT calculus (including machine-checked proofs) AND a usable verification tool reproducing every confirmed capability of the reference DyNetiKAT implementation.
 
 ---
+
+This document preserves the architecture planning baseline from October 2026.
+For the realized package layout and release commands, see the
+[extraction inventory](PACKAGE_EXTRACTION_PLAN.md) and [README](../README.md).
 
 ## 0. Paper-First Research Policy
 
@@ -43,7 +47,7 @@ not a mathematical authority:
 ### 0.3 Journal extension exclusion
 
 The **journal extension** of DyNetKAT (log-based extraction, bounded schedules,
-SDNRacer-specific causality analysis — see `docs/REUSE_AUDIT.md`) is a **separate
+SDNRacer-specific causality analysis - see `docs/REUSE_AUDIT.md`) is a **separate
 project**. It is **not** consulted for mathematical definitions in this formalization.
 This is stated in `AGENTS.md` (§"Source of truth"):
 > "The journal version (`DyNetKAT_Journal.pdf`) is NOT consulted for the calculus
@@ -64,7 +68,7 @@ Every mathematical definition, axiom, and proof in this repository must be:
 - **Traceable** from the Lean source to the paper via the conformance map.
 
 Definitions or results that are **not** found in the paper must be explicitly
-identified as **new results** — clearly distinguished from paper-derived material,
+identified as **new results** - clearly distinguished from paper-derived material,
 with a stated justification and a Research / Design Alarm entry
 (`docs/DESIGN_ALARMS.md`).
 
@@ -72,7 +76,7 @@ with a stated justification and a Research / Design Alarm entry
 
 Any evidence that conflicts with a modeling or proof decision must raise a
 **Research / Design Alarm** in `docs/DESIGN_ALARMS.md` and `HANDOFF.md`. Alarms
-must be resolved — or explicitly accepted with justification — before the
+must be resolved - or explicitly accepted with justification - before the
 conflicting work proceeds. Existing alarms (A1–A7) are preserved and must not be
 silently overridden.
 
@@ -122,13 +126,13 @@ performance, and performance is not sacrificed for incomplete formalization.
 This policy is reinforced by the following existing documents (preserved, not
 duplicated):
 
-- `AGENTS.md` — §"Source of truth" and §"Non-negotiable principles" establish
+- `AGENTS.md` - §"Source of truth" and §"Non-negotiable principles" establish
   the paper as authoritative and the journal extension as out of scope.
-- `docs/PAPER_CONFORMANCE.md` — §0 scopes the paper only; the journal extension
+- `docs/PAPER_CONFORMANCE.md` - §0 scopes the paper only; the journal extension
   is explicitly excluded (line 8–9).
-- `docs/DESIGN_ALARMS.md` — records all conflicts with modeling decisions;
+- `docs/DESIGN_ALARMS.md` - records all conflicts with modeling decisions;
   Alarm A7 documents the complete-assignment correction.
-- `docs/REUSE_AUDIT.md` — confirms no components are directly reusable from the
+- `docs/REUSE_AUDIT.md` - confirms no components are directly reusable from the
   existing journal-extension repository.
 
 ---
@@ -138,7 +142,7 @@ duplicated):
 This document specifies the architectural layers, interfaces, and constraints needed to build a single unified system that:
 
 1. **Faithfully formalizes** the DyNetKAT calculus (arXiv:2102.10035v4 / FoSSaCS 2022) in Lean 4 with machine-checked proofs for all 31 theorems in `docs/PROOF_OBLIGATIONS.md`.
-2. **Reproduces** the verifiable capabilities of the reference DyNetiKAT tool (`docs/DYNETIKAT_REFERENCE_AUDIT.md`) — JSON input parsing, CLI invocation, projection/restriction/head/tail pipeline, reachability & waypointing property checking — without depending on Maude, KATch, or external NetKAT solvers.
+2. **Reproduces** the verifiable capabilities of the reference DyNetiKAT tool (`docs/DYNETIKAT_REFERENCE_AUDIT.md`) - JSON input parsing, CLI invocation, projection/restriction/head/tail pipeline, reachability & waypointing property checking - without depending on Maude, KATch, or external NetKAT solvers.
 
 The architecture separates **semantic/computational concerns** across layers: mathematical definitions live in `Prop` (untrusted for computation but trusted for proof); executable algorithms produce results that are validated by Lean-checked correctness theorems. Noncomputable definitions are confined to the mathematical semantics layer; executable algorithms must either avoid classical choice or use explicit computable finite enumerations.
 
@@ -187,10 +191,10 @@ These definitions are the **trusted kernel**. They must be faithful to the paper
 
 ### Existing modules to reuse
 
-- `packages/NetKATLean/NetKATLean/Core/Packet.lean` — packet model, `FieldName`/`FieldValueEnum`, `CompleteTest`, `CompleteAssignmentValuation`, `Fintype` instances (including `Fintype CtxPkt` from Task 2S).
-- `packages/NetKATLean/NetKATLean/Core/AST.lean` — `Predicate` type, `NetKAT` inductive, `fieldEnum`, `completeAssignExpr`.
-- `packages/NetKATLean/NetKATLean/Core/Semantics.lean` — `Semantics`, `StarClosure`, all proven semantic identities and algebra theorems.
-- `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` — `NormalForm` type, `interpret`, `ofSummand`, `interpret_sem`, `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem`, `mem_seqNF_iff`.
+- `packages/NetKATLean/NetKATLean/Core/Packet.lean` - packet model, `FieldName`/`FieldValueEnum`, `CompleteTest`, `CompleteAssignmentValuation`, `Fintype` instances (including `Fintype CtxPkt` from Task 2S).
+- `packages/NetKATLean/NetKATLean/Core/AST.lean` - `Predicate` type, `NetKAT` inductive, `fieldEnum`, `completeAssignExpr`.
+- `packages/NetKATLean/NetKATLean/Core/Semantics.lean` - `Semantics`, `StarClosure`, all proven semantic identities and algebra theorems.
+- `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` - `NormalForm` type, `interpret`, `ofSummand`, `interpret_sem`, `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem`, `mem_seqNF_iff`.
 
 ### Missing components
 
@@ -202,8 +206,8 @@ These definitions are the **trusted kernel**. They must be faithful to the paper
 ### Correctness theorems connecting to semantics
 
 - All theorems in `Semantics.lean` and `NormalForm.lean` connect definitions to the denotational semantics `⟦N⟧`.
-- `interpret_sem` (Task 3C-2): `⟦interpret(nf)⟧(σ,τ) ↔ ∃ (α,π) ∈ nf, holdsComplete α σ ∧ τ = π` — this is the key bridge between normal forms and semantics.
-- `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem` — each proves that a normal-form construction matches its NetKAT semantic counterpart.
+- `interpret_sem` (Task 3C-2): `⟦interpret(nf)⟧(σ,τ) ↔ ∃ (α,π) ∈ nf, holdsComplete α σ ∧ τ = π` - this is the key bridge between normal forms and semantics.
+- `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem` - each proves that a normal-form construction matches its NetKAT semantic counterpart.
 
 ---
 
@@ -228,16 +232,16 @@ Establishes the equational theory `E_DNK` and proves the fundamental theorems:
 
 ### Expected outputs
 
-- `AxEq : DyNetKAT → DyNetKAT → Prop` — single-step axiom application.
-- `EDNK (p q : DyNetKAT) : Prop` — reflexive, symmetric, transitive, substitution-closed closure of `AxEq`.
+- `AxEq : DyNetKAT → DyNetKAT → Prop` - single-step axiom application.
+- `EDNK (p q : DyNetKAT) : Prop` - reflexive, symmetric, transitive, substitution-closed closure of `AxEq`.
 - All 31 theorems from `docs/PROOF_OBLIGATIONS.md`.
 
 ### Existing modules to reuse
 
-- `Semantics.lean` — semantic theorems (soundness is proved against these).
-- `NormalForm.lean` — NormalForm type and interpretation (for normalization proofs).
-- `AST.lean` — `NetKAT` syntax, predicate algebra lemmas in `Predicate` namespace.
-- `Packet.lean` — packet algebra theorems (`Packet.ext`, update lemmas).
+- `Semantics.lean` - semantic theorems (soundness is proved against these).
+- `NormalForm.lean` - NormalForm type and interpretation (for normalization proofs).
+- `AST.lean` - `NetKAT` syntax, predicate algebra lemmas in `Predicate` namespace.
+- `Packet.lean` - packet algebra theorems (`Packet.ext`, update lemmas).
 
 ### Missing components
 
@@ -276,16 +280,16 @@ Implements the NetKAT decision procedure that drives the verification pipeline. 
 
 ### Existing modules to reuse
 
-- `NormalForm.lean` — the `NormalForm` type and `interpret` function define *what* a normal form is.
-- `Packet.lean` — `fieldEnum`, `fieldEnum_complete`, `fieldEnum_nodup` enable computable enumeration of fields.
-- `Semantics.lean` — `completeAssignExpr`, `completeTestEmbed` build NetKAT terms from normal-form components.
+- `NormalForm.lean` - the `NormalForm` type and `interpret` function define *what* a normal form is.
+- `Packet.lean` - `fieldEnum`, `fieldEnum_complete`, `fieldEnum_nodup` enable computable enumeration of fields.
+- `Semantics.lean` - `completeAssignExpr`, `completeTestEmbed` build NetKAT terms from normal-form components.
 
 ### Missing components
 
-- **Normalization function `G`**: `NormalForm.lean` documents what a normal form is and proves semantic correspondence for *individual* constructions (`idNF`, `testNF`, `assign1NF`, `unionNF`, `seqNF`), but `G` itself — the function mapping an arbitrary `NetKAT` term to its normal form — is not implemented.
+- **Normalization function `G`**: `NormalForm.lean` documents what a normal form is and proves semantic correspondence for *individual* constructions (`idNF`, `testNF`, `assign1NF`, `unionNF`, `seqNF`), but `G` itself - the function mapping an arbitrary `NetKAT` term to its normal form - is not implemented.
 - **Correctness of `G`** (Lemma 5): `E_NK ⊢ p ≡ interpret(G(p))`.
 - **Equivalence decision**: No algorithm decides `⟦p⟧ = ⟦q⟧` by normalizing both sides.
-- **Computable enumeration**: `NormalForm.lean` uses `noncomputable` on `summandsToList` (via `Finset.toList`), `interpret` (depends on `summandsToList`), `testNF` (via `Finset.filter`), `unionNF` (via `Finset.union` requiring `DecidableEq`), `assign1NF` (marked for consistency), and `seqNF` (via `Finset.product`/`filter`/`image`). However, `idNF` and `ofSummand` are **computable** — `idNF` uses `Finset.univ.map` with an explicit embedding (which does not require `DecidableEq` on the codomain), and `ofSummand` uses only pattern matching. The executable algorithm must either:
+- **Computable enumeration**: `NormalForm.lean` uses `noncomputable` on `summandsToList` (via `Finset.toList`), `interpret` (depends on `summandsToList`), `testNF` (via `Finset.filter`), `unionNF` (via `Finset.union` requiring `DecidableEq`), `assign1NF` (marked for consistency), and `seqNF` (via `Finset.product`/`filter`/`image`). However, `idNF` and `ofSummand` are **computable** - `idNF` uses `Finset.univ.map` with an explicit embedding (which does not require `DecidableEq` on the codomain), and `ofSummand` uses only pattern matching. The executable algorithm must either:
   - Use `fieldEnum` (computable list of all fields) to enumerate `CompleteTest`/`CompleteAssignmentValuation` values computably, or
   - Establish a `Computable`/`Decidable` path for the finite types so `Finset` operations can execute.
 
@@ -323,21 +327,21 @@ Defines DyNetKAT process syntax (Fig. 5), multi-packet configurations, and the l
 
 ### Existing modules to reuse
 
-- `packages/NetKATLean/NetKATLean/Core/Packet.lean` — `CtxPkt`, `Packet.update`, `Fintype` instances.
-- `packages/NetKATLean/NetKATLean/Core/AST.lean` — `NetKAT`, `Predicate`, `fieldEnum`, `completeAssignExpr` (NetKAT⁻ᵈᵘᵖ is a sub-syntax of DyNetKAT).
-- `packages/NetKATLean/NetKATLean/Core/Semantics.lean` — `Semantics` used by the `cpol_;✓` rule.
+- `packages/NetKATLean/NetKATLean/Core/Packet.lean` - `CtxPkt`, `Packet.update`, `Fintype` instances.
+- `packages/NetKATLean/NetKATLean/Core/AST.lean` - `NetKAT`, `Predicate`, `fieldEnum`, `completeAssignExpr` (NetKAT⁻ᵈᵘᵖ is a sub-syntax of DyNetKAT).
+- `packages/NetKATLean/NetKATLean/Core/Semantics.lean` - `Semantics` used by the `cpol_;✓` rule.
 
 ### Missing components
 
 - **No DyNetKAT directory exists**: No `packages/DyNetKATLean/DyNetKATLean/Core/` directory exists (per FEATURE_GAP_ANALYSIS.md Section 4). The proposed structure in `ARCHITECTURE.md` (lines 19–24) is aspirational, not implemented.
-- **Extended operators**: δ, π, rcfg, ⌊⌊, | | — none defined.
-- **Bisimulation**: Coinductive Definition 2, Lemma 3 (congruence), Proposition 1 (semantic layering) — all missing.
+- **Extended operators**: δ, π, rcfg, ⌊⌊, | | - none defined.
+- **Bisimulation**: Coinductive Definition 2, Lemma 3 (congruence), Proposition 1 (semantic layering) - all missing.
 
 ### Correctness theorems connecting to semantics
 
 - **T2.2**: Operational semantics well-defined (inductive definition of `Step`).
-- **T2.3** (Per-packet consistency): Design invariant — each packet processed by exactly one process term.
-- **T4.3** (Semantic layering): `⟦p⟧ = ⟦q⟧ ↔ (p;d) ∼ (q;d)` — connects NetKAT denotational semantics to DyNetKAT bisimilarity.
+- **T2.3** (Per-packet consistency): Design invariant - each packet processed by exactly one process term.
+- **T4.3** (Semantic layering): `⟦p⟧ = ⟦q⟧ ↔ (p;d) ∼ (q;d)` - connects NetKAT denotational semantics to DyNetKAT bisimilarity.
 
 ---
 
@@ -384,7 +388,7 @@ Implements the analysis pipeline that DyNetiKAT reproduces: projection → restr
 
 - **T3.1**: Restriction `δ_ℒ(−)` is sound: preserves bisimilarity.
 - **T3.2**: Projection `π_n(−)` is well-defined; `π_n(p)` captures exactly the first `n` transitions.
-- **AIP soundness** (T5.2): `p = q` if `∀ n: π_n(p) = π_n(q)` — this is the theorem that justifies bounded unfolding as an analysis technique.
+- **AIP soundness** (T5.2): `p = q` if `∀ n: π_n(p) = π_n(q)` - this is the theorem that justifies bounded unfolding as an analysis technique.
 
 ### Interface to Layer 2 (derivability)
 
@@ -421,7 +425,7 @@ Provides parsing of the DyNetiKAT JSON input format and CLI arguments, so that t
 ### Existing modules to reuse
 
 - **None directly**: The current `DyNetKAT.lean` imports only NetKAT modules. No JSON parser or CLI option parser exists.
-- `DyNetKAT/Main.lean` — stub entry point, no parsing.
+- `DyNetKAT/Main.lean` - stub entry point, no parsing.
 
 ### Missing components
 
@@ -505,7 +509,7 @@ Provides the command-line interface and output formatting that matches the DyNet
 
 ### Note on dependency removal
 
-The reference CLI requires `<path_to_maude>` and `<path_to_netkat_tool>` as positional arguments. Our tool does **not** need these — we replace both external solvers with internal Lean algorithms. The CLI signatures will differ: our tool takes only `<input_file> [options]`.
+The reference CLI requires `<path_to_maude>` and `<path_to_netkat_tool>` as positional arguments. Our tool does **not** need these - we replace both external solvers with internal Lean algorithms. The CLI signatures will differ: our tool takes only `<input_file> [options]`.
 
 ---
 
@@ -533,9 +537,9 @@ Ensures the implementation maintains parity with the reference DyNetiKAT tool an
 
 ### Existing modules to reuse
 
-- `python/tests/test_netkat.py` — 16 golden tests for NetKAT semantics (packet model, complete tests, NetKAT semantics, concrete examples).
-- `scripts/verify.sh` — combined Lean build + Python test runner.
-- `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` — semantic theorems for `interpret_sem`, `idNF_sem`, `testNF_sem`, etc.
+- `python/tests/test_netkat.py` - 16 golden tests for NetKAT semantics (packet model, complete tests, NetKAT semantics, concrete examples).
+- `scripts/verify.sh` - combined Lean build + Python test runner.
+- `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` - semantic theorems for `interpret_sem`, `idNF_sem`, `testNF_sem`, etc.
 
 ### Missing components
 
@@ -571,8 +575,8 @@ Ensures the implementation maintains parity with the reference DyNetiKAT tool an
 
 The current codebase uses `noncomputable` in several places:
 
-- `NormalForm.lean`: `summandsToList` (uses `Finset.toList` — noncomputable, relies on classical choice for set-to-list conversion), `interpret` (noncomputable, depends on `summandsToList`), `testNF` (noncomputable, uses `Finset.filter` requiring classical `DecidablePred`), `assign1NF` (noncomputable, marked for consistency despite having a computable `DecidableEq` path), `unionNF` (noncomputable, uses `Finset.union` requiring `DecidableEq`), `seqNF` (noncomputable, uses `Finset.product`/`filter`/`image` requiring `DecidableEq`).
-  - **Computable exception:** `idNF` — uses the same `Finset.univ.map` pattern as `assign1NF` but is declared as a plain `def` (computable) because `Finset.map` with an explicit embedding does not require `DecidableEq` on the codomain.
+- `NormalForm.lean`: `summandsToList` (uses `Finset.toList` - noncomputable, relies on classical choice for set-to-list conversion), `interpret` (noncomputable, depends on `summandsToList`), `testNF` (noncomputable, uses `Finset.filter` requiring classical `DecidablePred`), `assign1NF` (noncomputable, marked for consistency despite having a computable `DecidableEq` path), `unionNF` (noncomputable, uses `Finset.union` requiring `DecidableEq`), `seqNF` (noncomputable, uses `Finset.product`/`filter`/`image` requiring `DecidableEq`).
+  - **Computable exception:** `idNF` - uses the same `Finset.univ.map` pattern as `assign1NF` but is declared as a plain `def` (computable) because `Finset.map` with an explicit embedding does not require `DecidableEq` on the codomain.
   - **Note on `DecidableEq`:** `unionNF`, `seqNF`, and `assign1NF` obtain `DecidableEq (FieldName → FieldValueEnum)` via `inferInstance` (computable, since `FieldName` and `FieldValueEnum` both derive `DecidableEq`). The `noncomputable` marker is applied defensively/consistently rather than out of mathematical necessity. Only `summandsToList` (via `Finset.toList`) and `testNF` (via `Finset.filter`) are genuinely noncomputable due to classical choice.
 - `Packet.lean`: Theorems like `holdsComplete_iff_eq` use `funext_iff` and classical reasoning.
 - `Semantics.lean`: `StarClosure` is an inductive type (computable in principle, but no termination bound proven).
@@ -599,9 +603,9 @@ The current codebase uses `noncomputable` in several places:
 
 The reference DyNetiKAT tool produces *unverified* results (Python orchestrates Maude + NetKAT tools). Our architecture must produce results that are *verified* by Lean. Two approaches:
 
-**Approach A — Extract/Lemmas**: The executable algorithm runs in Lean (computable), and its correctness is established by a theorem `algorithm_correct : result = true → property_holds`. The algorithm's result is only trusted after the theorem is checked.
+**Approach A - Extract/Lemmas**: The executable algorithm runs in Lean (computable), and its correctness is established by a theorem `algorithm_correct : result = true → property_holds`. The algorithm's result is only trusted after the theorem is checked.
 
-**Approach B — Reflection**: Define the algorithm as a Lean function, prove it correct by reflection (the algorithm *is* the proof witness). This is the idiomatic Lean approach for decision procedures.
+**Approach B - Reflection**: Define the algorithm as a Lean function, prove it correct by reflection (the algorithm *is* the proof witness). This is the idiomatic Lean approach for decision procedures.
 
 **Design decision:** Use a hybrid:
 
@@ -632,7 +636,7 @@ The current implementation uses a concrete `FieldName` (4 constructors) and `Fie
 To support larger schemas:
 
 1. **Parameterize the executable algorithms** over `FieldType` and `Value` types with `[Fintype FieldType]` and `[Fintype Value]` instances, plus `[DecidableEq FieldType]`.
-2. **Computable field enumeration**: The `fieldEnum : List FieldName` approach is hardcoded to 4 fields. For a general `FieldType`, we need `(Finset.univ : Finset FieldType).toList` — but this is `noncomputable`. To make it computable:
+2. **Computable field enumeration**: The `fieldEnum : List FieldName` approach is hardcoded to 4 fields. For a general `FieldType`, we need `(Finset.univ : Finset FieldType).toList` - but this is `noncomputable`. To make it computable:
    - Require `[Fintype FieldType]` to provide a `Finset.univ`.
    - Use a `Computable` enumeration function that works when `FieldType` is concrete (inductive with a known number of constructors).
    - For the 4×4 case, `fieldEnum` is an explicit list (computable). For larger schemas, the enumeration must be generated from the `Fintype` instance or a user-provided list.
@@ -651,15 +655,15 @@ The 4×4 model is a test fixture; the general case requires the parameterized ty
 
 **Analysis:**
 
-The current normal-form representation uses `Fintype CtxPkt`, which for the 4×4 model has `4^4 = 256` packets. For a realistic network (e.g., 14 fields with 256 values each), this is `256^14 ≈ 10^34` packets — impossible to enumerate.
+The current normal-form representation uses `Fintype CtxPkt`, which for the 4×4 model has `4^4 = 256` packets. For a realistic network (e.g., 14 fields with 256 values each), this is `256^14 ≈ 10^34` packets - impossible to enumerate.
 
 **Design decision:** Use **symbolic normal forms** instead of enumeration:
 
 1. **Normal forms as symbolic sums**: A normal form `Σ_{(α,π)∈A} α·π` is a finite set of summands. Each summand `(α, π)` is a pair of total valuations, represented symbolically (not as an enumerated packet). The set `A` is typically small due to NetKAT's structure (it is the language model `G(p)` from Lemma 5).
 
-2. **Symbolic evaluation, not enumeration**: The equivalence decision procedure compares normal forms by comparing their `Finset` representations directly (`A = B` as finite sets), not by evaluating `⟦N⟧` on every packet. This is the standard NetKAT approach — Lemma 5 shows every term has a normal form, and equivalence reduces to normal-form equality.
+2. **Symbolic evaluation, not enumeration**: The equivalence decision procedure compares normal forms by comparing their `Finset` representations directly (`A = B` as finite sets), not by evaluating `⟦N⟧` on every packet. This is the standard NetKAT approach - Lemma 5 shows every term has a normal form, and equivalence reduces to normal-form equality.
 
-3. **head/tail as symbolic extraction**: The `head` operator extracts the *leading NetKAT policy* from a DyNetKAT term — this is a syntactic transformation, not a packet enumeration. Similarly, `tail` extracts the continuation after synchronization.
+3. **head/tail as symbolic extraction**: The `head` operator extracts the *leading NetKAT policy* from a DyNetKAT term - this is a syntactic transformation, not a packet enumeration. Similarly, `tail` extracts the continuation after synchronization.
 
 4. **Finite-domain assumption is for star termination, not for enumeration**: The paper's finiteness assumption ensures `⟦N*⟧ = ⋃ₖ ⟦N⟧ᵏ` terminates. But the *implementation* uses normal-form decomposition, not star unfolding, for equivalence checking. The normal-form construction itself is structural (Lemma 5 proof), not enumeration-based.
 
@@ -671,7 +675,7 @@ The current normal-form representation uses `Fintype CtxPkt`, which for the 4×4
 
 **Analysis:**
 
-The reference DyNetiKAT tool uses `π_n` (projection to depth `n`) with a user-specified bound. The Approximation Induction Principle (AIP) states that `p = q` if `∀ n: π_n(p) = π_n(q)`, but this is a meta-principle — the tool checks up to a finite `n`.
+The reference DyNetiKAT tool uses `π_n` (projection to depth `n`) with a user-specified bound. The Approximation Induction Principle (AIP) states that `p = q` if `∀ n: π_n(p) = π_n(q)`, but this is a meta-principle - the tool checks up to a finite `n`.
 
 **Design decision:** Maintain a strict distinction in the type system and output:
 
@@ -681,7 +685,7 @@ The reference DyNetiKAT tool uses `π_n` (projection to depth `n`) with a user-s
 
 3. **CLI output distinguishes**: The reference tool prints `property satisfied` for bounded results. We should print `property satisfied (bounded, n=N)` or `property satisfied (unbounded)` to make the distinction clear. The reference tool's format can be matched for `satisfied`/`violated`/`error`, but additional metadata should indicate boundedness.
 
-4. **Counterexample soundness**: If the bounded check says "violated" (i.e., it found a counterexample within bound `n`), this is an *unbounded* guarantee — the counterexample is a concrete packet/trace that witnesses the violation, verifiable by the kernel regardless of the bound.
+4. **Counterexample soundness**: If the bounded check says "violated" (i.e., it found a counterexample within bound `n`), this is an *unbounded* guarantee - the counterexample is a concrete packet/trace that witnesses the violation, verifiable by the kernel regardless of the bound.
 
 **Evaluation criteria:** Every result must carry a proof level: `bounded_satisfied` (may not hold unboundedly), `violated` (hard counterexample), or `unbounded_satisfied` (proven via AIP or structural argument).
 
@@ -704,7 +708,7 @@ The reference tool's input format (JSON) and output format (console) are *specif
    - Our equivalence checker (Layer 3) replaces `katbv`/`netkat-automata`.
    - Our projection/restriction (Layer 5) replaces the Maude `pi` and `delta` operators.
 
-4. **Preprocessing difference**: The reference tool's preprocessing step (Section 5.1 of audit) extracts NetKAT sub-terms, checks them for equivalence to `zero`, and zeroes out dead branches. In our architecture, this is *not* a preprocessing step but a *structural* part of normalization — the normalization algorithm naturally produces zero for drop-only branches. The JSON output of preprocessing (for `-p`/non-preprocessed mode) should match the reference format for interoperability.
+4. **Preprocessing difference**: The reference tool's preprocessing step (Section 5.1 of audit) extracts NetKAT sub-terms, checks them for equivalence to `zero`, and zeroes out dead branches. In our architecture, this is *not* a preprocessing step but a *structural* part of normalization - the normalization algorithm naturally produces zero for drop-only branches. The JSON output of preprocessing (for `-p`/non-preprocessed mode) should match the reference format for interoperability.
 
 **Evaluation criteria:** Given the same JSON input, our tool must classify each property as `satisfied`/`violated`/`error` identically to DyNetiKAT. The intermediate representations differ (our normal forms vs. their Maude terms + NetKAT terms), but the final classification must match.
 
@@ -772,25 +776,25 @@ The following components are verified (build passes, all theorems proven, no pro
 
 ### New interfaces needed between proof code and executable algorithms
 
-1. `normalize` (Layer 1 -> Layer 3) — produces normal form from a NetKAT term.
-2. `normalize_correct` (Layer 1+2 -> Layer 3) — proves normalization preserves semantics.
-3. `decideEquiv` (Layer 1 -> Layer 3) — decides NetKAT equivalence via normal forms.
-4. `decideEquiv_sound` (Layer 3 -> Layer 2) — soundness of equivalence decision.
-5. `decideEquiv_complete` (Layer 1 -> Layer 3) — completeness (finite domains).
-6. `project` (Layer 4 -> Layer 5) — bounded unfolding.
-7. `project_correct` (Layer 5 -> Layer 2) — bounded semantics of projection.
-8. `restrict` (Layer 4 -> Layer 5) — restriction operator.
-9. `restrict_sound` (Layer 5 -> Layer 2) — soundness of restriction.
-10. `head` (Layer 4 -> Layer 5) — current configuration extraction.
-11. `head_correct` (Layer 5 -> Layer 2) — correctness of head extraction.
-12. `tail` (Layer 4 -> Layer 5) — post-synchronization extraction.
-13. `tail_correct` (Layer 5 -> Layer 2) — correctness of tail extraction.
+1. `normalize` (Layer 1 -> Layer 3) - produces normal form from a NetKAT term.
+2. `normalize_correct` (Layer 1+2 -> Layer 3) - proves normalization preserves semantics.
+3. `decideEquiv` (Layer 1 -> Layer 3) - decides NetKAT equivalence via normal forms.
+4. `decideEquiv_sound` (Layer 3 -> Layer 2) - soundness of equivalence decision.
+5. `decideEquiv_complete` (Layer 1 -> Layer 3) - completeness (finite domains).
+6. `project` (Layer 4 -> Layer 5) - bounded unfolding.
+7. `project_correct` (Layer 5 -> Layer 2) - bounded semantics of projection.
+8. `restrict` (Layer 4 -> Layer 5) - restriction operator.
+9. `restrict_sound` (Layer 5 -> Layer 2) - soundness of restriction.
+10. `head` (Layer 4 -> Layer 5) - current configuration extraction.
+11. `head_correct` (Layer 5 -> Layer 2) - correctness of head extraction.
+12. `tail` (Layer 4 -> Layer 5) - post-synchronization extraction.
+13. `tail_correct` (Layer 5 -> Layer 2) - correctness of tail extraction.
 
 ### Correctness obligations for those interfaces
 
 Each interface must satisfy:
 1. **Soundness**: If the executable algorithm returns /satisfied, there exists a Lean-checked proof that the property holds (semantically).
-2. **Completeness (finite domains)**: If the property holds (semantically), the algorithm returns /satisfied — provided the packet domain is finite and the unfolding bound is sufficient.
+2. **Completeness (finite domains)**: If the property holds (semantically), the algorithm returns /satisfied - provided the packet domain is finite and the unfolding bound is sufficient.
 3. **Counterexample soundness**: If the algorithm returns /violated, it produces a concrete counterexample (packet, trace) that can be verified by Lean in constant time.
 
 ### Potential conflicts between functional parity and formal verification
@@ -857,20 +861,20 @@ The key architectural boundary is between **Layer 2 (proofs)** and **Layer 3/5 (
 The following Lean declarations already exist and are machine-checked (no `sorry`/`axiom`):
 
 **NetKAT semantic core (Layer 1):**
-- `Packet`, `FieldName`, `FieldValueEnum`, `CtxPkt` (`Packet.lean:36,117,132,147`) — packet model and finite type instances (Definition 1, p. 5).
-- `CompleteTest`, `holdsComplete` (`Packet.lean:193,204`) — complete tests as total valuations (Definition 4, p. 8).
-- `CompleteAssignmentValuation`, `applyValuation`, `applyValuation_field` (`Packet.lean:253,268,277`) — complete-assignment valuations and their application (Definition 4, p. 8).
-- `Predicate` inductive with `eval`/`holds` (`AST.lean:37,49`) — predicate language (Fig. 3).
-- `NetKAT` inductive with 8 constructors (`AST.lean:89`) — NetKAT⁻ᵈᵘᵖ syntax (Eq. 1, p. 6; Fig. 3).
-- `fieldEnum`, `fieldEnum_complete`, `fieldEnum_nodup` (`AST.lean:131,150,156`) — computable field enumeration.
-- `completeAssignExpr`, `completeAssignExpr_sem` (`AST.lean:137`; `Semantics.lean:635`) — valuation-to-NetKAT expression builder and its semantic correspondence.
-- `Semantics`, `eval`, `StarClosure` (`Semantics.lean:61,74,51`) — denotational semantics and reflexive-transitive closure (Fig. 3, p. 5-6).
-- Semantic identity theorems (`Semantics.lean:82-102,140-147,156-243,252,263-295,311,343-349,360-387,390-433,436-490,498-550,558-588,595-655`) — 30+ proven identities: basic Kleene algebra (T1.3), Boolean algebra (BA-EXCL-MID, BA-CONTRA, double-negation, De Morgan), packet algebra, and complete-assignment correspondence.
+- `Packet`, `FieldName`, `FieldValueEnum`, `CtxPkt` (`Packet.lean:36,117,132,147`) - packet model and finite type instances (Definition 1, p. 5).
+- `CompleteTest`, `holdsComplete` (`Packet.lean:193,204`) - complete tests as total valuations (Definition 4, p. 8).
+- `CompleteAssignmentValuation`, `applyValuation`, `applyValuation_field` (`Packet.lean:253,268,277`) - complete-assignment valuations and their application (Definition 4, p. 8).
+- `Predicate` inductive with `eval`/`holds` (`AST.lean:37,49`) - predicate language (Fig. 3).
+- `NetKAT` inductive with 8 constructors (`AST.lean:89`) - NetKAT⁻ᵈᵘᵖ syntax (Eq. 1, p. 6; Fig. 3).
+- `fieldEnum`, `fieldEnum_complete`, `fieldEnum_nodup` (`AST.lean:131,150,156`) - computable field enumeration.
+- `completeAssignExpr`, `completeAssignExpr_sem` (`AST.lean:137`; `Semantics.lean:635`) - valuation-to-NetKAT expression builder and its semantic correspondence.
+- `Semantics`, `eval`, `StarClosure` (`Semantics.lean:61,74,51`) - denotational semantics and reflexive-transitive closure (Fig. 3, p. 5-6).
+- Semantic identity theorems (`Semantics.lean:82-102,140-147,156-243,252,263-295,311,343-349,360-387,390-433,436-490,498-550,558-588,595-655`) - 30+ proven identities: basic Kleene algebra (T1.3), Boolean algebra (BA-EXCL-MID, BA-CONTRA, double-negation, De Morgan), packet algebra, and complete-assignment correspondence.
 
 **NetKAT normal forms (Layer 3 foundation):**
-- `NormalForm` type, `empty`, `ofSummand`, `summandsToList`, `interpret` (`NormalForm.lean:60,64,80,93,114`) — normal-form representation and interpretation (Lemma 5, p. 13). `interpret` and `summandsToList` are `noncomputable` (use `Finset.toList`); `empty` (line 64) and `ofSummand` (line 80) are computable.
-- `idNF`, `testNF`, `assign1NF`, `unionNF`, `seqNF` and their semantic correspondence theorems (`NormalForm.lean:371,400,558,592,755`; `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem` at lines 417,478,624,686,883) — per-constructor normal-form constructions (T1.4). **Computability:** `idNF` is computable (plain `def`, uses `Finset.univ.map` with explicit embedding); `testNF`, `assign1NF`, `unionNF`, and `seqNF` are `noncomputable` (they rely on `Finset.filter`, `Finset.union`, `Finset.product`, or `Finset.image`, which require classical `DecidableEq`/`DecidablePred` or are marked so for consistency).
-- `interpret_sem`, `ofSummand_sem`, `fold_sem`, `emptyNF_sem`, `mem_seqNF_iff` (`NormalForm.lean:263,138,199,337,802`) — bridge from normal forms to denotational semantics.
+- `NormalForm` type, `empty`, `ofSummand`, `summandsToList`, `interpret` (`NormalForm.lean:60,64,80,93,114`) - normal-form representation and interpretation (Lemma 5, p. 13). `interpret` and `summandsToList` are `noncomputable` (use `Finset.toList`); `empty` (line 64) and `ofSummand` (line 80) are computable.
+- `idNF`, `testNF`, `assign1NF`, `unionNF`, `seqNF` and their semantic correspondence theorems (`NormalForm.lean:371,400,558,592,755`; `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem` at lines 417,478,624,686,883) - per-constructor normal-form constructions (T1.4). **Computability:** `idNF` is computable (plain `def`, uses `Finset.univ.map` with explicit embedding); `testNF`, `assign1NF`, `unionNF`, and `seqNF` are `noncomputable` (they rely on `Finset.filter`, `Finset.union`, `Finset.product`, or `Finset.image`, which require classical `DecidableEq`/`DecidablePred` or are marked so for consistency).
+- `interpret_sem`, `ofSummand_sem`, `fold_sem`, `emptyNF_sem`, `mem_seqNF_iff` (`NormalForm.lean:263,138,199,337,802`) - bridge from normal forms to denotational semantics.
 
 ### Proposed executable interfaces (future work)
 
@@ -878,29 +882,29 @@ The 13 interfaces listed in §11 (lines 771-785) are **proposed but not yet impl
 
 | # | Interface | Layer direction | Existing? | Correctness theorem (proposed) |
 |---|-----------|-----------------|-----------|-------------------------------|
-| 1 | `normalize : NetKAT → NormalForm` | L1→L3 | No — not implemented | `normalize_correct : ⟦N⟧ = ⟦interpret(normalize N)⟧` |
-| 2 | `normalize_correct` | L1+2→L3 | No — theorem pending | Soundness via `interpret_sem`; completeness requires Lemma 5 + `E_NK` |
-| 3 | `decideEquiv : NetKAT → NetKAT → Bool` | L1→L3 | No — not implemented | `decideEquiv_sound`, `decideEquiv_complete` |
-| 4 | `decideEquiv_sound` | L3→L2 | No — theorem pending | `decideEquiv p q = true → ⟦p⟧ = ⟦q⟧` |
-| 5 | `decideEquiv_complete` | L1→L3 | No — theorem pending | `[Fintype CtxPkt] → ⟦p⟧ = ⟦q⟧ → decideEquiv p q = true` |
-| 6 | `project : ℕ → DyNetKAT → DyNetKAT` | L4→L5 | No — not implemented | `project_correct : ⟦interpret_DNK(project D n)⟧ = π_n(D)` |
-| 7 | `project_correct` | L5→L2 | No — theorem pending | Bounded soundness of projection |
-| 8 | `restrict : List Label → DyNetKAT → DyNetKAT` | L4→L5 | No — not implemented | `restrict_sound : δ_H preserves bisimilarity` |
-| 9 | `restrict_sound` | L5→L2 | No — theorem pending | Restriction preserves semantics |
-| 10 | `head : DyNetKAT → NetKAT` | L4→L5 | No — not implemented | `head_correct : head(D)` extracts current NetKAT policy |
-| 11 | `head_correct` | L5→L2 | No — theorem pending | Head extraction correctness (T3.1-T3.4) |
-| 12 | `tail : DyNetKAT → List Action → DyNetKAT` | L4→L5 | No — not implemented | `tail_correct : tail(D,R)` extracts post-synchronization policy |
-| 13 | `tail_correct` | L5→L2 | No — theorem pending | Tail extraction correctness (T3.1-T3.4) |
+| 1 | `normalize : NetKAT → NormalForm` | L1→L3 | No - not implemented | `normalize_correct : ⟦N⟧ = ⟦interpret(normalize N)⟧` |
+| 2 | `normalize_correct` | L1+2→L3 | No - theorem pending | Soundness via `interpret_sem`; completeness requires Lemma 5 + `E_NK` |
+| 3 | `decideEquiv : NetKAT → NetKAT → Bool` | L1→L3 | No - not implemented | `decideEquiv_sound`, `decideEquiv_complete` |
+| 4 | `decideEquiv_sound` | L3→L2 | No - theorem pending | `decideEquiv p q = true → ⟦p⟧ = ⟦q⟧` |
+| 5 | `decideEquiv_complete` | L1→L3 | No - theorem pending | `[Fintype CtxPkt] → ⟦p⟧ = ⟦q⟧ → decideEquiv p q = true` |
+| 6 | `project : ℕ → DyNetKAT → DyNetKAT` | L4→L5 | No - not implemented | `project_correct : ⟦interpret_DNK(project D n)⟧ = π_n(D)` |
+| 7 | `project_correct` | L5→L2 | No - theorem pending | Bounded soundness of projection |
+| 8 | `restrict : List Label → DyNetKAT → DyNetKAT` | L4→L5 | No - not implemented | `restrict_sound : δ_H preserves bisimilarity` |
+| 9 | `restrict_sound` | L5→L2 | No - theorem pending | Restriction preserves semantics |
+| 10 | `head : DyNetKAT → NetKAT` | L4→L5 | No - not implemented | `head_correct : head(D)` extracts current NetKAT policy |
+| 11 | `head_correct` | L5→L2 | No - theorem pending | Head extraction correctness (T3.1-T3.4) |
+| 12 | `tail : DyNetKAT → List Action → DyNetKAT` | L4→L5 | No - not implemented | `tail_correct : tail(D,R)` extracts post-synchronization policy |
+| 13 | `tail_correct` | L5→L2 | No - theorem pending | Tail extraction correctness (T3.1-T3.4) |
 
 ### Required future correctness theorems
 
 The following theorems are **mandatory** but have no Lean realization. They connect proposed executable interfaces to existing mathematical semantics:
 
 - **Lemma 5** (T1.4, p. 13): `normalize_correct` soundness requires this; completeness requires `E_NK` derivability relation (which does not exist).
-- **`E_NK` derivability relation** (T1.4): Inductive relation `EDNK ⊢ p ≡ q` for NetKAT axioms — no Lean realization exists; only semantic theorems are proven.
-- **Soundness of `E_DNK`** (T7.1, Theorem 1 part 1): `EDNK p q → p ∼ q` — depends on bisimulation (T4.1, not yet defined).
-- **Ground-completeness of `E_DNK`** (T7.2, Theorem 1 part 2): `p ∼ q → EDNK p q` — depends on Lemma 9 (normalization) and Lemma 5.
-- **`star_terminates`**: Proof that `StarClosure` stabilizes in ≤ `|CtxPkt|²` steps on finite domains — blocks executable star traversal and `normalize(N.star n)`.
+- **`E_NK` derivability relation** (T1.4): Inductive relation `EDNK ⊢ p ≡ q` for NetKAT axioms - no Lean realization exists; only semantic theorems are proven.
+- **Soundness of `E_DNK`** (T7.1, Theorem 1 part 1): `EDNK p q → p ∼ q` - depends on bisimulation (T4.1, not yet defined).
+- **Ground-completeness of `E_DNK`** (T7.2, Theorem 1 part 2): `p ∼ q → EDNK p q` - depends on Lemma 9 (normalization) and Lemma 5.
+- **`star_terminates`**: Proof that `StarClosure` stabilizes in ≤ `|CtxPkt|²` steps on finite domains - blocks executable star traversal and `normalize(N.star n)`.
 
 ### Correctness guarantee flow
 
@@ -921,7 +925,7 @@ graph LR
     L8 -->|Console/GUI| User[User]
 ```
 
-**Note:** Proposed interfaces (items 1–13 above) are identified as future work. No claim is made that `normalize`, `decideEquiv`, `project`, `restrict`, `head`, or `tail` — or their correctness theorems — currently exist as Lean declarations. They depend on Layer 4 (DyNetKAT syntax, operational semantics, bisimulation) which is entirely missing.
+**Note:** Proposed interfaces (items 1–13 above) are identified as future work. No claim is made that `normalize`, `decideEquiv`, `project`, `restrict`, `head`, or `tail` - or their correctness theorems - currently exist as Lean declarations. They depend on Layer 4 (DyNetKAT syntax, operational semantics, bisimulation) which is entirely missing.
 
 ---
 
@@ -1364,7 +1368,7 @@ defined by the DyNetiKAT reference tool.
      (Component 3).
    - **Justification:** The paper defines reachability as
      `in . (p . t)* . out != 0` (`REF_AUDIT:448-451`). The tool does NOT construct
-     `(p·t)*` directly — it applies `pi_n` (unfolding) and `head` to extract the
+     `(p·t)*` directly - it applies `pi_n` (unfolding) and `head` to extract the
      current NetKAT policy `p`, then composes `in · p · out`. The `*` and trace
      `t` are in the paper's mathematical formula only; see Interface 3 for the
      corrected formal property.
@@ -1592,17 +1596,17 @@ Full packet enumeration is not assumed scalable.
 theorem evalExec_sound : ∀ N σ τ, τ ∈ evalExec N σ → Semantics N σ τ
 ```
 Soundness certifies enumerated outputs. Completeness requires `Fintype CtxPkt`
-(Task 2S — established) and a star-termination bound — no `star_terminates`
+(Task 2S - established) and a star-termination bound - no `star_terminates`
 theorem exists, blocking computable star traversal.
 **Existing reusable:** `Semantics` (`:61`), `StarClosure` (`:51`), `eval`
 (`:74`), `Fintype CtxPkt` (`:158`), `assign1_sem`, `seq_sem`, `union_sem`,
 `completeAssignExpr_sem` (`:635`).
 **Noncomputable note:** `NormalForm.interpret` (`:114`) and `summandsToList`
 (`:93`) are `noncomputable` (`Finset.toList` + classical choice). `evalExec`
-must traverse the `NetKAT` AST directly using `fieldEnum` — must not depend
+must traverse the `NetKAT` AST directly using `fieldEnum` - must not depend
 on these definitions.
-**Missing:** (a) `evalExec` — computable with no noncomputable dependency;
-(b) `star_terminates` — proof `StarClosure` stabilizes in ≤ `|CtxPkt|²` steps;
+**Missing:** (a) `evalExec` - computable with no noncomputable dependency;
+(b) `star_terminates` - proof `StarClosure` stabilizes in ≤ `|CtxPkt|²` steps;
 blocks `G(N.star n)`. **Not full enumeration:** 256-packet enumeration is
 O(`|CtxPkt|²`) per star step; normal-form comparison (Interface 3) avoids this.
 
@@ -1617,27 +1621,27 @@ O(`|CtxPkt|²`) per star step; normal-form comparison (Interface 3) avoids this.
 theorem normalize_semantic (σ τ : CtxPkt) :
   Semantics N σ τ ↔ Semantics (NormalForm.interpret (G N)) σ τ
 ```
-- **Soundness (semantic normalization correctness):** `⟦G(N)⟧ ⊆ ⟦N⟧` —
+- **Soundness (semantic normalization correctness):** `⟦G(N)⟧ ⊆ ⟦N⟧` -
   provable via `interpret_sem` (no `E_NK` needed).
-- **Completeness (semantic normalization correctness):** `⟦N⟧ ⊆ ⟦G(N)⟧` —
+- **Completeness (semantic normalization correctness):** `⟦N⟧ ⊆ ⟦G(N)⟧` -
   requires Lemma 5 (`E_NK ⊢ N ≡ interpret(G(N))`), a **mandatory independent
   obligation** proved under equational normalization.
 **Existing reusable:** `NormalForm` type (`:60`), `interpret` (`:114`),
 `ofSummand` (`:80`), `interpret_sem` (`:263`), `idNF_sem`/`testNF_sem`/`assign1NF_sem`/`unionNF_sem`/`seqNF_sem`
-(`:417—936`), `fieldEnum`/`completeAssignExpr` (AST `:124,137`),
+(`:417-936`), `fieldEnum`/`completeAssignExpr` (AST `:124,137`),
 `completeAssignExpr_sem` (`:635`), `assign1_seq_sem` (`:285`), `assign_list_sem` (`:319`),
 `fieldEnum_updates_complete` (`:595`).
 **Noncomputable addressed:** `G` must produce `NormalForm` without calling `interpret`.
 The theorem bridges computable `G` to noncomputable `interpret`; `interpret` is
 used in proofs only; execution uses `G` + `decideEquiv` on `Finset`.
-**Missing:** (a) `G` — no normalization function exists; (b) Lemma 5 — requires
+**Missing:** (a) `G` - no normalization function exists; (b) Lemma 5 - requires
 `E_NK` derivability relation; (c) star normalization requires `star_terminates`.
 **Not full enumeration:** `G` constructs NFs structurally; `Finset` equality is O(`|A|+|B|`).
 **`Finset` representation:** `NormalForm` is `Finset (CompleteTest × CompleteAssignmentValuation)`
-— an explicit pair store, not a symbolic representation. `Finset` equality does not
+- an explicit pair store, not a symbolic representation. `Finset` equality does not
 automatically enable scalable verification beyond the underlying finite domain size.
 **Future architectural decision:** symbolic representation of normal forms (e.g.,
-BDDs or SAT/SMT encodings) is deferred — out of scope for the current finite-domain
+BDDs or SAT/SMT encodings) is deferred - out of scope for the current finite-domain
 formalization.
 
 ### Interface 3: Executable Equivalence Checking ↔ Semantic Equivalence
@@ -1653,21 +1657,21 @@ theorem decideEquiv_complete [Fintype CtxPkt] :
 ```
 - **Soundness of semantic-equivalence checking:** requires `normalize_semantic`
   (Interface 2: semantic normalization correctness) + `Finset` extensionality
-  — no finiteness needed.
+  - no finiteness needed.
 - **Completeness of semantic-equivalence checking:** requires `Fintype CtxPkt`
   + Lemma 5 (`G(p)=G(q)` ⇒ `⟦p⟧=⟦q⟧`). Without Lemma 5, fails for
   semantically-equal terms with structurally-different NFs.
 - **Proof dependency distinction:** A semantic equivalence decision procedure
   (soundness + completeness of `⟦p⟧ = ⟦q⟧` checking) does **not** necessarily
-  require `E_NK` derivability. Only Lemma 5 — the equational normalization
-  under `E_NK` (`E_NK ⊢ N ≡ interpret(G(N))`) — depends on `E_NK`. Lemma 5
+  require `E_NK` derivability. Only Lemma 5 - the equational normalization
+  under `E_NK` (`E_NK ⊢ N ≡ interpret(G(N))`) - depends on `E_NK`. Lemma 5
   is a **mandatory independent obligation** and must be proved separately.
 **Existing reusable:** `NormalForm`, `unionNF` + `unionNF_sem` (`:558`),
 `seqNF` + `seqNF_sem` + `mem_seqNF_iff` (`:755`), `idNF`/`testNF`/`assign1NF`
 + correctness theorems, `interpret_sem` (`:263`), `ofSummand_sem` (`:138`),
 `Fintype CtxPkt` (`:158`).
 **Missing:** `decideEquiv`, `G` (Interface 2 gap), Lemma 5, `E_NK` derivability
-relation. **Not full enumeration:** Compares `G(p)=G(q)` as `Finset`s —
+relation. **Not full enumeration:** Compares `G(p)=G(q)` as `Finset`s -
 O(`|A|+|B|`). `Finset` equality is explicit pair comparison, not a symbolic
 representation; does not automatically enable scalable verification.
 
@@ -1675,11 +1679,11 @@ representation; does not automatically enable scalable verification.
 
 | # | Obligation | Status |
 |---|---|---|
-| 1 | `star_terminates` | Missing — blocks star eval + `G(N.star n)` |
+| 1 | `star_terminates` | Missing - blocks star eval + `G(N.star n)` |
 | 2 | `normalize_semantic` | Blocked by missing `G` |
 | 3 | `G : NetKAT → NormalForm` | Not implemented |
 | 4 | Lemma 5: `E_NK ⊢ N ≡ interpret(G(N))` | Blocked by missing `E_NK` |
-| 5 | `E_NK` derivability relation | Missing — only semantic theorems |
+| 5 | `E_NK` derivability relation | Missing - only semantic theorems |
 | 6 | `decideEquiv_sound` | Blocked by Interface 2 |
 | 7 | `decideEquiv_complete` | Blocked by Lemma 5 + `E_NK` |
 | 8 | `Fintype CtxPkt` | Done (Task 2S) |
@@ -1694,10 +1698,10 @@ decision procedure does not by itself require `E_NK` derivability.**
 ## DyNetKAT Process Proof Interfaces
 
 Executable DyNetKAT process analysis connects to Lean-checked operational
-semantics via two interfaces. Both use proposed types only — no existing Lean
+semantics via two interfaces. Both use proposed types only - no existing Lean
 declarations are invented. The paper's mathematical meanings are preserved.
 
-### Interface 1 — Process execution
+### Interface 1 - Process execution
 
 - **Inputs (proposed):** `D : DyNetKAT`, `H : List Label`, `H' : List Label`,
   `σ : CtxPkt`, where `Label` represents the paper's action labels
@@ -1706,7 +1710,7 @@ declarations are invented. The paper's mathematical meanings are preserved.
   D o+ D | rcfg(x,N) | X`.
 - **Executable transition results (proposed):**
   `stepExec : DyNetKAT → CtxPkt → List Label → List Label →
-  List (DyNetKAT × CtxPkt × List Label × List Label)` — a computable
+  List (DyNetKAT × CtxPkt × List Label × List Label)` - a computable
   enumeration of all configurations reachable in one SOS step.
 - **Connection to paper's SOS:** The paper's labeled transition relation
   `(d, H, H') →γ (d', H'', H''')` (Fig. 8) is the least relation closed under
@@ -1719,7 +1723,7 @@ declarations are invented. The paper's mathematical meanings are preserved.
   - `step_complete` (completeness): every valid SOS transition is produced by
     `stepExec`.
 
-### Interface 2 — Bounded unfolding and projection
+### Interface 2 - Bounded unfolding and projection
 
 - **Inputs (proposed):** `D : DyNetKAT`, `n : ℕ` (unfolding depth).
 - **Expected executable output:** A DyNetKAT term `D_n` with all recursive
@@ -1742,7 +1746,7 @@ declarations are invented. The paper's mathematical meanings are preserved.
     discussion; reference audit §13.3 "Bounded unfolding" is the audit's own
     structure and is not a paper section).
   - **Unbounded (AIP):** The paper's Approximation Induction Principle (AIP,
-    p. 613) — "`p = q` if `∀n, π_n(p) = π_n(q)`" — provides the theoretical
+    p. 613) - "`p = q` if `∀n, π_n(p) = π_n(q)`" - provides the theoretical
     basis for unbounded equivalence. This is a meta-level principle, not an
     executable decision procedure (§6.5, §14.2). The executable `unfold`
      supports only the bounded case; AIP remains a future separate obligation.
@@ -1755,13 +1759,13 @@ declarations are invented. The paper's mathematical meanings are preserved.
 waypointing checks to mathematically defined properties (reference: `equiv`,
 `REF_AUDIT:231-244`, `REF_AUDIT:72-85`).
 
-### Interface 3 — Reachability verification
+### Interface 3 - Reachability verification
 
 - **Inputs:** `in_p, out_p : Predicate`, `N : NetKAT`.
   Note: `n : ℕ` is an input to the **preprocessing** step (`pi_n`, Interface 2),
-  not to the reachability check itself — `dynetkat.py:72-77` checks equivalence
+  not to the reachability check itself - `dynetkat.py:72-77` checks equivalence
   without re-passing `n` (`REF_AUDIT:314-321`).
-- **Output:** `Bool` — the tool classifies results as "satisfied"/"violated"/`"error"`
+- **Output:** `Bool` - the tool classifies results as "satisfied"/"violated"/`"error"`
   (`REF_AUDIT:365-369`); the Lean wrapper returns `true` when the terms are
   `equiv`-equal and `false` otherwise.
 - **Reference:** `dynetkat.py:72-77` constructs `in · network · out` (no `*`),
@@ -1783,21 +1787,21 @@ waypointing checks to mathematically defined properties (reference: `equiv`,
   - `reachability_complete_bounded`: If a witnessing path has depth ≤ `n`,
     then `checkReachability` reports reachable.
    - `reachability_unbounded_complete`: If `⟦in · (p·t)* · out⟧ ≠ ∅` (including
-     infinite paths), then `∀n, checkReachability` reports reachable — requires AIP.
+     infinite paths), then `∀n, checkReachability` reports reachable - requires AIP.
    - **Results** (matching the tool's three-way classification, `REF_AUDIT:365-369`):
    - Satisfied (`!0` expected, returns `false`): proof of reachability.
    - Violated (`!0` expected, returns `true`): counterexample packet `σ`.
    - Error: tool or decision procedure returned `None` (parse/execution failure).
 
-### Interface 4 — Waypointing verification
+### Interface 4 - Waypointing verification
 
 - **Inputs:** `in_p, out_p, wp : Predicate`, `N : NetKAT`.
   Note: `n : ℕ` is an input to **preprocessing** (`pi_n`, Interface 2), not to the
-  waypointing equivalence check itself — `dynetkat.py:78-85` calls `equiv term1 term2`
+  waypointing equivalence check itself - `dynetkat.py:78-85` calls `equiv term1 term2`
   without re-passing `n` (`REF_AUDIT:314-321`).
 - **Output:** The tool returns `"true"`/`"false"`/`None` mapped to
   "satisfied"/"violated"/"error" (`REF_AUDIT:248-256`); the Lean wrapper returns
-  `Bool` — `true` if `term1 = term2`, else `false`.
+  `Bool` - `true` if `term1 = term2`, else `false`.
 - **Reference:** `dynetkat.py:78-85` (`REF_AUDIT:243-244`):
   - `term1 = in · N · out + in · (~out · N)* · wp · (~in · N)* · out`
   - `term2 = in · (~out · N)* · wp · (~in · N)* · out`
@@ -1807,7 +1811,7 @@ waypointing checks to mathematically defined properties (reference: `equiv`,
 - **Bounded (`n` finite):** Sound for depth-`n`: equivalence holds at depth `n`.
    A non-equivalence at depth `n` does not prove unbounded non-equivalence (bounded
    soundness only; the tool reports what it finds at depth `n`).
-- **Unbounded:** Requires AIP (T5.2, T7.2) — `∀n, π_n(term1) = π_n(term2)`
+- **Unbounded:** Requires AIP (T5.2, T7.2) - `∀n, π_n(term1) = π_n(term2)`
   implies `term1 ∼ term2`. No executable procedure.
 - **Required theorems:**
   - `waypointing_sound`: `checkWaypointing` reports satisfied ⟹
@@ -1815,7 +1819,7 @@ waypointing checks to mathematically defined properties (reference: `equiv`,
   - `waypointing_complete_bounded`: If `⟦term1⟧ = ⟦term2⟧` and all distinguishing
     behaviors are within depth `n`, then `checkWaypointing` reports satisfied.
   - `waypointing_unbounded_complete`: If `⟦term1⟧ = ⟦term2⟧` (including infinite
-    paths), then `∀n, checkWaypointing` reports satisfied — requires AIP.
+    paths), then `∀n, checkWaypointing` reports satisfied - requires AIP.
 - **Results** (matching tool's three-way classification, `REF_AUDIT:365-369`):
    - Satisfied (returns `true`): proof `⟦term1⟧ = ⟦term2⟧`.
    - Violated (returns `false`): counterexample packet bypassing `wp`.
@@ -1829,9 +1833,9 @@ waypointing checks to mathematically defined properties (reference: `equiv`,
 
 **Paper assumption:** The original DyNetKAT paper (p. 6, §I-B; p. 291–296) assumes packet fields range over finite domains, enabling explicit enumeration of packet behaviors. This is a mathematical convenience, not an engineering claim.
 
-**Reference capability:** DyNetiKAT (`REF_AUDIT:150-155`, `DNYKAT_REFERENCE_AUDIT.md`) relies on the NetKAT decision procedure (external `katbv`/`netkat-automata`) for equivalence checking. The tool does NOT enumerate all packet pairs; it operates on normal-form representations symbolically — the enumeration is internal to the NetKAT backend, not user-facing.
+**Reference capability:** DyNetiKAT (`REF_AUDIT:150-155`, `DNYKAT_REFERENCE_AUDIT.md`) relies on the NetKAT decision procedure (external `katbv`/`netkat-automata`) for equivalence checking. The tool does NOT enumerate all packet pairs; it operates on normal-form representations symbolically - the enumeration is internal to the NetKAT backend, not user-facing.
 
-**Current implementation:** The NetKAT normal form (`NormalForm.lean:60-66`) is defined as `Finset (CompleteTest × CompleteAssignmentValuation)`. With the current packet model (`4 fields × 4 values`), `CtxPkt` has `4^4 = 256` elements, yielding `256^2 = 65,536` packet pairs. If **N** is the packet-domain cardinality (distinct packets), the normal form `Finset` has at most **O(N²)** summands in the worst case — the worst-case explicit pair count, one per test-assignment pair. This is tractable for small benchmarks (stateful firewall, distributed controller) but does **not** scale: the FatTree benchmarks (`FEATURE_GAP_ANALYSIS.md:721-733`) use networks with up to 4,352 switches and multi-field packet headers far exceeding 4 fields × 4 values.
+**Current implementation:** The NetKAT normal form (`NormalForm.lean:60-66`) is defined as `Finset (CompleteTest × CompleteAssignmentValuation)`. With the current packet model (`4 fields × 4 values`), `CtxPkt` has `4^4 = 256` elements, yielding `256^2 = 65,536` packet pairs. If **N** is the packet-domain cardinality (distinct packets), the normal form `Finset` has at most **O(N²)** summands in the worst case - the worst-case explicit pair count, one per test-assignment pair. This is tractable for small benchmarks (stateful firewall, distributed controller) but does **not** scale: the FatTree benchmarks (`FEATURE_GAP_ANALYSIS.md:721-733`) use networks with up to 4,352 switches and multi-field packet headers far exceeding 4 fields × 4 values.
 
 **Proposed engineering choice:** Explicit `Finset` enumeration over the full packet domain is acceptable only for the small concrete model used in the formalization. A standalone verifier must not enumerate all packet pairs for large domains.
 
@@ -1839,7 +1843,7 @@ waypointing checks to mathematically defined properties (reference: `equiv`,
 
 **Paper assumption:** The paper's semantics are parameterized over field types `FieldType → FieldValue`. The formalization currently fixes `FieldName` (4 fields) and `FieldValueEnum` (4 values) concretely (`Packet.lean:117-129`). The paper does not prescribe a maximum domain size.
 
-**Reference capability:** DyNetiKAT handles arbitrary field/value domains through its NetKAT backend. The tool's JSON input does not constrain field counts or value ranges — they emerge from the property expressions.
+**Reference capability:** DyNetiKAT handles arbitrary field/value domains through its NetKAT backend. The tool's JSON input does not constrain field counts or value ranges - they emerge from the property expressions.
 
 **Current implementation:** `Fintype` instances are defined only for the concrete 4×4 model (`Packet.lean:125-161`). Scaling to larger domains requires either (a) parameterized types with explicit `Fintype` instances, or (b) a symbolic representation that avoids explicit enumeration.
 
@@ -1847,7 +1851,7 @@ waypointing checks to mathematically defined properties (reference: `equiv`,
 
 ### 9.3 Possible symbolic representations
 
-> These are candidate approaches only — no choice is made here. Each must satisfy the correctness proofs in §9.5.
+> These are candidate approaches only - no choice is made here. Each must satisfy the correctness proofs in §9.5.
 
 **Symbolic predicates:** Represent packet fields as symbolic variables rather than enumerated values. A packet predicate becomes a boolean formula over field variables; equivalence checking reduces to SMT-satisfiability. The reference DyNetiKAT uses this internally via its NetKAT backend (which compiles to BDDs/automata).
 
@@ -1855,7 +1859,7 @@ waypointing checks to mathematically defined properties (reference: `equiv`,
 
 **Automata-based representation:** Convert NetKAT terms to DFAs over the packet alphabet, as `netkat-automata` does. State explosion is a concern but automata support language-theoretic operations (union, concatenation, star) directly.
 
-**Semiring-based representation:** Use the Joyal–rig approach — represent NetKAT semantics as matrices over a semiring, enabling algebraic optimization. This aligns with the paper's use of `ℕ`-idempotent semirings.
+**Semiring-based representation:** Use the Joyal–rig approach - represent NetKAT semantics as matrices over a semiring, enabling algebraic optimization. This aligns with the paper's use of `ℕ`-idempotent semirings.
 
 **Hybrid approach:** Combine explicit enumeration for small, critical subsets (the formalization's 4×4 model) with symbolic representation for the standalone verifier's larger domains. The Lean formalization serves as the trusted specification; the verifier uses a symbolic engine validated against it.
 
@@ -1865,8 +1869,8 @@ waypointing checks to mathematically defined properties (reference: `equiv`,
 
 | Topology (pods) | Packets (in/out) | Unfoldings | Reachability | Waypointing |
 |---|---|---|---|---|
-| stateful_firewall | 2 pairs | 2 | < 2s | — |
-| distributed_controller | 2 pairs | 2–3 | < 2s | — |
+| stateful_firewall | 2 pairs | 2 | < 2s | - |
+| distributed_controller | 2 pairs | 2–3 | < 2s | - |
 | FatTree-6 (931 switches) | 2 properties × 2-5 unfoldings | 2–5 | < 2s | up to 2 min |
 | FatTree-16 (4,352 switches) | 3 properties × 3-5 unfoldings | 3–5 | up to 5 min | up to 11 min |
 
@@ -1882,13 +1886,13 @@ Actual thresholds require benchmarks against the DyNetKAT reference tool.
 | FatTree-16 | 5–11 min | ≤ 10× slowdown vs. reference |
 | Memory | Bounded by NetKAT term size | Bounded by symbolic representation size |
 
-**Scalability requirement (illustrative):** A standalone verifier should aim to process FatTree-16 within 10× the reference tool's time. Since we cannot use the external NetKAT backend (prohibited), we must implement a Lean-based decision procedure that meets this target on the same benchmarks. **This is a proposed engineering goal, not an approved acceptance criterion — thresholds require benchmark validation.**
+**Scalability requirement (illustrative):** A standalone verifier should aim to process FatTree-16 within 10× the reference tool's time. Since we cannot use the external NetKAT backend (prohibited), we must implement a Lean-based decision procedure that meets this target on the same benchmarks. **This is a proposed engineering goal, not an approved acceptance criterion - thresholds require benchmark validation.**
 
 ### 9.5 Correctness proofs needed for a future symbolic backend
 
 **Paper assumption:** The paper proves soundness and completeness of the NetKAT axiomatization (`PAPER_CONFORMANCE.md:20-21`; `PROOF_OBLIGATIONS.md` T7.1, T7.2). Equivalence checking via normalization (Lemma 5) is correct because `E_NK` is sound and complete.
 
-**Reference capability:** DyNetiKAT trusts its external NetKAT backend (`katbv`/`netkat-automata`) for correctness. The Lean project cannot make this assumption — every algorithm must be self-certified.
+**Reference capability:** DyNetiKAT trusts its external NetKAT backend (`katbv`/`netkat-automata`) for correctness. The Lean project cannot make this assumption - every algorithm must be self-certified.
 
 **Required theorems for a symbolic backend:**
 
@@ -1898,9 +1902,9 @@ Actual thresholds require benchmarks against the DyNetKAT reference tool.
 
 3. **Symbolic-packet preservation**: If a symbolic representation represents a set `S ⊆ Packet`, then for any property `P` checked on the symbolic representation, the result matches checking `P` on every packet in `S`. This is the bridge between symbolic and concrete verification.
 
-4. **Projection soundness** (AIP, T5.2): `pi_n` is sound — if `pi_n(p) ∼ pi_n(q)` for all `n`, then `p ∼ q`. This guarantees that bounded checking does not produce false positives when a property is reported as satisfied.
+4. **Projection soundness** (AIP, T5.2): `pi_n` is sound - if `pi_n(p) ∼ pi_n(q)` for all `n`, then `p ∼ q`. This guarantees that bounded checking does not produce false positives when a property is reported as satisfied.
 
-5. **Restriction preservation** (T5.4): `delta_H` preserves bisimulation equivalence — `delta_H(p) ∼ delta_H(q)` whenever `p ∼ q`.
+5. **Restriction preservation** (T5.4): `delta_H` preserves bisimulation equivalence - `delta_H(p) ∼ delta_H(q)` whenever `p ∼ q`.
 
 **Proposed engineering choice:** The symbolic backend must be certified against the same 31 proof obligations in `PROOF_OBLIGATIONS.md`. The formalization's small concrete model (4×4 fields) serves as the trusted specification; the symbolic engine is validated on small cases (where enumeration is feasible) before scaling to large domains.
 
@@ -1910,7 +1914,7 @@ Actual thresholds require benchmarks against the DyNetKAT reference tool.
 
 **Paper semantics:** Recursive policies via `recurse X` with unique equation `X ≜ d` (p. 13, Def. 7). Guardedness requires `X` under a preceding policy; unguarded recursion excluded (p. 14).
 
-**Reference implementation:** Lazy unfolding driven by `pi_n` — variables unfold only when budget remains AND term is unguarded (`dnk.maude:109-122`).
+**Reference implementation:** Lazy unfolding driven by `pi_n` - variables unfold only when budget remains AND term is unguarded (`dnk.maude:109-122`).
 
 **Future requirements:** Implement `recurse`/`var` with `IsGuarded` predicate (`PAPER_CONFORMANCE.md:672`).
 
@@ -1926,7 +1930,7 @@ Actual thresholds require benchmarks against the DyNetKAT reference tool.
 
 **Reference implementation:** On-demand unfolding when `pi_n` has budget AND term is unguarded (`dnk.maude:109-122`).
 
-**Research / Design Alarm:** No paper statement governs lazy vs. eager — lazy is a reference-tool choice. Engine must support on-demand unfolding.
+**Research / Design Alarm:** No paper statement governs lazy vs. eager - lazy is a reference-tool choice. Engine must support on-demand unfolding.
 
 ### Bounded verification correctness
 
@@ -1940,7 +1944,7 @@ Actual thresholds require benchmarks against the DyNetKAT reference tool.
 
 **Paper semantics:** AIP is meta-level: `p ∼ q` iff `π_n(p) = π_n(q)` for all `n` (Lemma 11, p. 613). NOT an equational axiom in `E_DNK` (`PAPER_CONFORMANCE.md:185`).
 
-**Reference implementation:** Not in Maude — not a decision procedure (`DYNETIKAT_REFERENCE_AUDIT.md:505`). Tool uses bounded `pi_n` only.
+**Reference implementation:** Not in Maude - not a decision procedure (`DYNETIKAT_REFERENCE_AUDIT.md:505`). Tool uses bounded `pi_n` only.
 
 **Future requirements:** Implement AIP as a meta-level theorem, NOT an axiom. Finite unfolding alone does NOT prove unrestricted correctness.
 ---
@@ -1954,13 +1958,13 @@ Sources: `DYNETIKAT_REFERENCE_AUDIT.md` §2–5, 8; `dnk.py`, `dnk.maude`.
 `out_packets` (dict; egress, keys match `in_packets`), `properties` (dict; key → list of 4-element lists).
 
 **Property format (confirmed):** `["r"|"w", "<expr>", "<expected>", <unfoldings>]`
-— type: `"r"`/`"w"`; expression: `head(@Program)`, `tail(@Program, {rcfg(...)})`;
+- type: `"r"`/`"w"`; expression: `head(@Program)`, `tail(@Program, {rcfg(...)})`;
 expected: `"!0"`/`"=0"`/waypoint predicate; unfoldings: positive int.
 
 **CLI options & defaults (confirmed from `dnk.py:20-32`):** Reference:
 `python3 dnk.py <maude> <netkat_tool> <input> [opts]`; `-t/--threads` (cores),
 `-p/--preprocessed` (false), `-v/--netkat-version` (`netkat-idd`), `-s/--time-stats` (false).
-Proposed: our tool takes only `<input_file> [options]` — drops both solver paths.
+Proposed: our tool takes only `<input_file> [options]` - drops both solver paths.
 
 **Results/diagnostics (confirmed from `dnk.py:86-100`):** Console per (packet, property):
 `Packet: {packet} - property: #{n}: property satisfied.` / `... violated.` /
@@ -1988,28 +1992,28 @@ Confirmed: JSON keys, property format, CLI options/defaults, output, classificat
 
 ### Tests already available
 - **Python golden tests:** `python/tests/test_netkat.py` (16 tests; `scripts/verify.sh` runs them). Covers packet model, complete tests, NetKAT semantics, and `(tp_src=8);drop` on packets with tp_src 8 and 9. These mirror `Semantics.lean` clauses, not DyNetiKAT end-to-end behavior.
-- **`fieldEnum`/`completeAssignExpr` proofs:** `fieldEnum_complete`, `fieldEnum_nodup` (AST.lean) — coverage and distinctness.
+- **`fieldEnum`/`completeAssignExpr` proofs:** `fieldEnum_complete`, `fieldEnum_nodup` (AST.lean) - coverage and distinctness.
 - **`assign1`/`assign_list`/`completeAssignExpr` semantic theorems:** `assign1_sem`, `assign1_seq_sem`, `assign_list_sem`, `completeAssignExpr_sem`, `fieldEnum_updates_complete` (Semantics.lean).
 - **`testNF`/`assign1NF`/`idNF`/`emptyNF` semantic correspondence:** `idNF_sem`, `emptyNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem`, `interpret_sem`, `ofSummand_sem`, `fold_sem` (NormalForm.lean).
 
 ### Reference benchmark networks not yet reproduced
 Per `DYNETIKAT_REFERENCE_AUDIT.md` (Sections 9–12) and `FEATURE_GAP_ANALYSIS.md` (§14):
-- **Stateful firewall** (`benchmarks/stateful_firewall.json`) — Figure 3 model with recursive variables `Switch`/`SwitchPrime`/`Host`, `rcfg(x,r)` transitions, reachability properties at 2 unfoldings. Missing: DyNetKAT encoding, safety property proof, head/tail extraction.
-- **Distributed controller** — independent and synchronized variants (`distributed_controller_*.json`). 6 switches + 2 controllers, channels `upS1`–`upS6`; synchronized adds `syn`. Missing.
-- **FatTree benchmarks** (`fattree.py`, `run_fattree.sh`) — pods ∈ {6, 8, 10, 12, 14, 16}; pods=6 → 931 switches, pods=16 → 4352 switches. Properties: reachability-I, reachability-II, waypointing, at 2–5 unfoldings. Missing: topology generator, DyNetKAT encoding, property checking.
+- **Stateful firewall** (`benchmarks/stateful_firewall.json`) - Figure 3 model with recursive variables `Switch`/`SwitchPrime`/`Host`, `rcfg(x,r)` transitions, reachability properties at 2 unfoldings. Missing: DyNetKAT encoding, safety property proof, head/tail extraction.
+- **Distributed controller** - independent and synchronized variants (`distributed_controller_*.json`). 6 switches + 2 controllers, channels `upS1`–`upS6`; synchronized adds `syn`. Missing.
+- **FatTree benchmarks** (`fattree.py`, `run_fattree.sh`) - pods ∈ {6, 8, 10, 12, 14, 16}; pods=6 → 931 switches, pods=16 → 4352 switches. Properties: reachability-I, reachability-II, waypointing, at 2–5 unfoldings. Missing: topology generator, DyNetKAT encoding, property checking.
 
 ### Input compatibility and expected verification results
 - **Reference JSON** (REF_AUDIT §3): keys `module_name`, `recursive_variables`, `program`, `channels`, `in_packets`, `out_packets`, `properties` with 4-element lists `[type, expression, expected, unfoldings]`.
 - **Reference CLI** (`dnk.py:20-32`): `dnk.py <maude> <netkat_tool> <input.json> [options]`, options `-t/--threads`, `-p/--preprocessed`, `-v/--netkat-version`, `-s/--time-stats`.
-- **Result classification** (REF_AUDIT §8.1, lines 365–369): three-way — `satisfied` / `violated` / `error` per (packet, property) pair. No "inconclusive" category in the reference tool.
+- **Result classification** (REF_AUDIT §8.1, lines 365–369): three-way - `satisfied` / `violated` / `error` per (packet, property) pair. No "inconclusive" category in the reference tool.
 - **Reachability formula** (REF_AUDIT:448): `in · (p·t)* · out ≠ 0` (reachable) or `= 0` (unreachable). The tool constructs `in · head(D) · out = in · p · out` (no star in tool construction).
 - **Waypointing formula** (REF_AUDIT:464): compares `in · (~out·p)* · w · (~in·p)* · out` with `+ in · p · out`.
-- **Expected results** are not invented here — reference JSON files would specify `expected` per property. Our tests verify *functional parity*: same inputs → same classification, not specific property values.
+- **Expected results** are not invented here - reference JSON files would specify `expected` per property. Our tests verify *functional parity*: same inputs → same classification, not specific property values.
 
 ### Unfolding depths and property semantics
 - **Projection `π_n`** (Eq. 3, p. 9): `π_0(P) = bot`, `π_{n+1}(at;p) = at;π_n(p)`. Lazy/on-demand per Sec. 7.2.
 - **Reference unfoldings:** stateful firewall (2), distributed controller (2–3), FatTree (2–5).
-- **Bounded soundness (not completeness):** `π_n(p) = π_n(q)` is sound for `p ∼ q` at depth `n`; unbounded equivalence requires AIP (meta-level, not executable). `π_n` is sound but incomplete — a counterexample at depth `n` is a hard witness; "satisfied" at depth `n` is bounded.
+- **Bounded soundness (not completeness):** `π_n(p) = π_n(q)` is sound for `p ∼ q` at depth `n`; unbounded equivalence requires AIP (meta-level, not executable). `π_n` is sound but incomplete - a counterexample at depth `n` is a hard witness; "satisfied" at depth `n` is bounded.
 
 ### Correctness regression tests (proposed)
 - **NetKAT semantic regression:** Each `Semantics` clause tested on concrete `CtxPkt` inputs (4-field × 4-value domain, 256 packets).
@@ -2022,12 +2026,12 @@ Per `DYNETIKAT_REFERENCE_AUDIT.md` (Sections 9–12) and `FEATURE_GAP_ANALYSIS.m
 - **Reference measurements** (REF_AUDIT §12, paper Figure 8 p. 1016–1028; **not independently verified** per REF_AUDIT:650):
   | Topology | Packets | Unfoldings | Reachability | Waypointing |
   |---|---|---|---|---|
-  | stateful_firewall | 2 pairs | 2 | < 2s | — |
-  | distributed_controller | 2 pairs | 2–3 | < 2s (2 min) | — |
+  | stateful_firewall | 2 pairs | 2 | < 2s | - |
+  | distributed_controller | 2 pairs | 2–3 | < 2s (2 min) | - |
   | FatTree-6 (931 sw) | 2 props | 2–5 | < 2s | ≤ 2 min |
   | FatTree-16 (4352 sw) | 3 props | 3–5 | ≤ 5 min | ≤ 11 min |
 - **Proposed targets (illustrative, not approved):** FatTree-6 ≤ 5× slowdown; FatTree-16 ≤ 10× slowdown. Thresholds require benchmark validation against the reference tool.
-- **~87% post-preprocessing time in NetKAT decision** (REF_AUDIT:587) — attributed to paper Figure 8, not independently benchmarked.
+- **~87% post-preprocessing time in NetKAT decision** (REF_AUDIT:587) - attributed to paper Figure 8, not independently benchmarked.
 - **Scalability note:** Explicit `Finset` enumeration is O(N²) worst-case (N = packet-domain cardinality). FatTree exceeds the 4×4 fixture. Proposed engineering choice: explicit enumeration only for the 4×4 formalization model; standalone verifier must use symbolic or bounded approaches.
 
 ### Passing tests ≠ Lean correctness proofs

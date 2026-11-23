@@ -51,7 +51,7 @@ A normal form is a finite set of pairs `(α, π)` where:
   (the direct dual: a total valuation that overwrites every field,
   per Definition 4, p. 8).
 
-The normal form represents the NetKAT expression `Σ_{(α,π) ∈ A} α · π` —
+The normal form represents the NetKAT expression `Σ_{(α,π) ∈ A} α · π` -
 a union of complete-test-then-complete-assignment terms. The set `A` is
 finite by construction (it is a `Finset`), reflecting the paper's statement
 that `A` and `Π` are finite (printed p. 13: "Consequently, A and Π are finite").
@@ -72,8 +72,8 @@ def NormalForm.empty : NormalForm := ∅
 Per Lemma 5 (printed p. 13), each summand `α · π` is a complete test
 followed by a complete assignment. This uses the existing
 paper-faithful constructors:
-- `NetKAT.completeTest α` — the complete test (α), per `AST.lean`.
-- `NetKAT.completeAssignExpr π` — the complete assignment (π) built from
+- `NetKAT.completeTest α` - the complete test (α), per `AST.lean`.
+- `NetKAT.completeAssignExpr π` - the complete assignment (π) built from
   primitive single-field assignments, per `AST.lean`.
 
 The sequential composition `NetKAT.seq` yields `α ; π`. -/

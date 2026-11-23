@@ -120,7 +120,7 @@ variable {schema : PacketSchema}
      - `tail R (rcfgPrefix x N D) = some deadlock`         if `(x,N) ∉ R` (33)
 
      Unsupported constructors return `none` (explicit failure):
-     `recv`, `send` (excluded by the paper's restriction precondition —
+     `recv`, `send` (excluded by the paper's restriction precondition -
      they are NOT deadlock), `parallel`, `leftMerge`, `commMerge`,
      `restrict`, `project`, `var` (variables are not resolved here).
 
@@ -252,7 +252,7 @@ variable {schema : PacketSchema}
 
  /-- Failure propagation through Eq. (32): if `rcfg_{x,N} ∈ R` but the
      continuation `D` is outside the supported fragment, the whole
-     extraction fails — the unsupported continuation is never silently
+     extraction fails - the unsupported continuation is never silently
      embedded. -/
  theorem tail_rcfgPrefix_mem_none (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema)
      (hmem : (x, N) ∈ R) (hD : tail R D = none) :
@@ -261,7 +261,7 @@ variable {schema : PacketSchema}
    rfl
 
  /-- Eq. (33): if `rcfg_{x,N} ∉ R` then `tail R (rcfg_{x,N};D) = ⊥`,
-     unconditionally on `D` — the paper's equation does not inspect the
+     unconditionally on `D` - the paper's equation does not inspect the
      continuation in this case. -/
  theorem tail_rcfgPrefix_not_mem (R : ReconfigSet schema) (x : Channel) (N : NetKAT schema) (D : DyNetKAT schema)
      (hmem : (x, N) ∉ R) : tail R (.rcfgPrefix x N D) = some .deadlock := by
@@ -298,7 +298,7 @@ variable {schema : PacketSchema}
        (Eq. 31 recurses into both).
      - `rcfgPrefix x N D` is supported when the continuation `D` is
        supported: Eq. (32) embeds `D` itself into the result and
-       recurses into it, so — unlike S4A's `head` — `tail` cannot
+       recurses into it, so - unlike S4A's `head` - `tail` cannot
        discard an unsupported continuation.
 
      Every other constructor is outside the fragment; for such
@@ -401,8 +401,8 @@ variable {schema : PacketSchema}
      This refines `TailSupported` by the one case where the paper's
      equations succeed without inspecting the continuation: Eq. (33)
      yields `⊥` for `rcfg_{x,N};D` with `(x,N) ∉ R` regardless of `D`.
-     On the paper's intended inputs — restricted normal forms, in which
-     every continuation is itself in the fragment — `TailDomain R` and
+     On the paper's intended inputs - restricted normal forms, in which
+     every continuation is itself in the fragment - `TailDomain R` and
      `TailSupported` coincide (`tailDomain_all_supported`). -/
  inductive TailDomain {schema : PacketSchema} (R : ReconfigSet schema) : DyNetKAT schema → Prop
    | deadlock : TailDomain R .deadlock
@@ -691,7 +691,7 @@ variable {schema : PacketSchema}
  ------------------------------------------------------------------------
 
  /-- `TailSuffix R D S` : `S` is one of the "DyNetKAT policies inside D
-     that appear after the reconfiguration events in R" (paper §V) —
+     that appear after the reconfiguration events in R" (paper §V) -
      the continuation after an unblocked `R`-reconfiguration prefix
      along some branch of `D`.  Unblocked means: no reconfiguration
      event outside `R` occurs on the branch before the one whose
@@ -862,8 +862,8 @@ theorem suffix_step_tail (env : RecEnv schema) (R : ReconfigSet schema) (D : DyN
      by a NetKAT policy that occurs at a branch position of `D` that
      (i) is preceded by at least one reconfiguration prefix and (ii) has
      *all* preceding reconfiguration prefixes carrying events of `R`.
-     This formalizes the paper's intuition — the policies that appear
-     after the reconfiguration events in `R` — at the level the safety
+     This formalizes the paper's intuition - the policies that appear
+     after the reconfiguration events in `R` - at the level the safety
      pipeline consumes it (Eq. (35): `in · head(tail(Init, R)) · out`). -/
  inductive TailHeadSpec {schema : PacketSchema} (R : ReconfigSet schema) : DyNetKAT schema → schema.Packet → schema.Packet → Prop
    | nSeq_of : ∀ (N : NetKAT schema) (D : DyNetKAT schema) (σ τ : schema.Packet),
@@ -1023,7 +1023,7 @@ theorem suffix_step_tail (env : RecEnv schema) (R : ReconfigSet schema) (D : DyN
 
      (b) Decomposition identity: the "all-R" contribution of `D` is
          exactly the contribution of `head D` (the policies before the
-         first reconfiguration on each branch — any event set) together
+         first reconfiguration on each branch - any event set) together
          with the tail contribution `TailHeadSpec R D`.  For `R = ∅`
          this degenerates to `AllRSpec ∅ D ↔ ⟦head D⟧`, since
          `TailHeadSpec ∅` is empty.
@@ -1178,7 +1178,7 @@ theorem suffix_step_tail (env : RecEnv schema) (R : ReconfigSet schema) (D : DyN
    (tail_head_spec_aux R D hsup).2 H hH σ τ
 
  /-- The output of `tail` on supported input is again `HeadSupported`,
-     so S4A's `head` can always consume it — the composition
+     so S4A's `head` can always consume it - the composition
      `head (tail R D)` is defined on the whole supported fragment. -/
  theorem tail_headSupported (R : ReconfigSet schema) (D : DyNetKAT schema) (hsup : TailSupported D) :
      ∀ Q, tail R D = some Q → HeadSupported Q := by
@@ -1279,7 +1279,7 @@ theorem suffix_step_tail (env : RecEnv schema) (R : ReconfigSet schema) (D : DyN
 
  /-- Whenever S4B's `preprocess` succeeds, its result satisfies the
      paper's §V precondition (`CommFree`) *and* lies in the S5A
-     `TailSupported` fragment — no additional conditions beyond S4B's
+     `TailSupported` fragment - no additional conditions beyond S4B's
      are needed for `tail`. -/
  theorem preprocess_tail_supported (env : RecEnv schema) (p : DyNetKAT schema) (q : DyNetKAT schema)
      (hq : preprocess env p = some q) : CommFree q ∧ TailSupported q := by
@@ -1288,7 +1288,7 @@ theorem suffix_step_tail (env : RecEnv schema) (R : ReconfigSet schema) (D : DyN
 
  /-- Full S4B + S5A + S4A pipeline: under S4B's preprocessing
      conditions, `preprocess` succeeds and both extractions succeed on
-     its result — the preprocessed process feeds `head` and `tail`
+     its result - the preprocessed process feeds `head` and `tail`
      simultaneously, as in the paper's Eqs. (34)–(35). -/
  theorem preprocess_head_tail_some (env : RecEnv schema) (p : DyNetKAT schema) (R : ReconfigSet schema)
      (h : PreprocessingConditions env p) :

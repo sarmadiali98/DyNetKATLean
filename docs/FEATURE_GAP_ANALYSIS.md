@@ -1,18 +1,18 @@
-# FEATURE_GAP_ANALYSIS.md — DyNetiKAT vs. DyNetKAT-Lean
+# FEATURE_GAP_ANALYSIS.md - DyNetiKAT vs. DyNetKAT-Lean
 
 **Task type:** Documentation-only gap analysis (planning task P2).
 **Date:** 2026-10-17
 **Repository analyzed:** `/Users/ali/Desktop/DyNetKAT-Lean`
 **Reference material sources:**
-- `docs/DYNETIKAT_REFERENCE_AUDIT.md` — reference tool audit (P1)
-- `docs/PAPER_CONFORMANCE.md` — paper conformance map (31 items)
-- `docs/PROOF_OBLIGATIONS.md` — proof obligations (31 theorems, 9 tiers)
-- `docs/ARCHITECTURE.md` — proposed architecture
-- `docs/NETKAT_AUDIT.md` — NetKAT phase 1.5 audit
-- `docs/DESIGN_ALARMS.md` — design alarms log
+- `docs/DYNETIKAT_REFERENCE_AUDIT.md` - reference tool audit (P1)
+- `docs/PAPER_CONFORMANCE.md` - paper conformance map (31 items)
+- `docs/PROOF_OBLIGATIONS.md` - proof obligations (31 theorems, 9 tiers)
+- `docs/ARCHITECTURE.md` - proposed architecture
+- `docs/NETKAT_AUDIT.md` - NetKAT phase 1.5 audit
+- `docs/DESIGN_ALARMS.md` - design alarms log
 - Lean source: `lean/DyNetKAT/NetKAT/{Packet,AST,Semantics,NormalForm}.lean`
 - Python source: `python/tests/test_netkat.py`
-- `HANDOFF.md` — progress checkpoints
+- `HANDOFF.md` - progress checkpoints
 
 ---
 
@@ -23,14 +23,14 @@ For each documented DyNetiKAT capability, this analysis records:
 - **Reference implementation evidence** (from P1 audit of DyNetiKAT)
 - **Corresponding implementation** in `DyNetKAT-Lean`, if any
 - **Current status:** Implemented / Partially implemented / Missing / Not verified
-- **Executable?** — whether the current implementation is executable (can produce a result on input)
-- **Machine-checked?** — whether correctness is verified by a Lean proof
+- **Executable?** - whether the current implementation is executable (can produce a result on input)
+- **Machine-checked?** - whether correctness is verified by a Lean proof
 - **Missing components** needed for parity
 - **Required verification or regression tests**
 
 Two axes are distinguished throughout:
-1. **Executable analysis algorithm** — can the tool take a DyNetKAT program and produce a yes/no answer for a property?
-2. **Machine-checked mathematical semantics** — are the semantics and proofs formalized in Lean?
+1. **Executable analysis algorithm** - can the tool take a DyNetKAT program and produce a yes/no answer for a property?
+2. **Machine-checked mathematical semantics** - are the semantics and proofs formalized in Lean?
 
 These are separable: a feature may be implemented (Lean definition exists) but not proven correct (no theorem), or proven but not executable (relations live in `Prop` with no decision procedure).
 
@@ -43,8 +43,8 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 | Field | Value |
 |---|---|
 | **Capability** | CLI entry point accepting Maude path, NetKAT tool path, JSON input, and options |
-| **Reference evidence** | `dnk.py:20-32` — `python3 dnk.py <path_to_maude> <path_to_netkat_tool> <input_file> [options]` |
-| **Our implementation** | `lean/DyNetKAT/Main.lean` — prints a project name string only. No CLI argument parsing, no JSON input, no analysis invocation. |
+| **Reference evidence** | `dnk.py:20-32` - `python3 dnk.py <path_to_maude> <path_to_netkat_tool> <input_file> [options]` |
+| **Our implementation** | `lean/DyNetKAT/Main.lean` - prints a project name string only. No CLI argument parsing, no JSON input, no analysis invocation. |
 | **Status** | Missing |
 | **Executable** | No |
 | **Machine-checked** | N/A |
@@ -57,7 +57,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | `-t/--threads` (parallel workers), `-p/--preprocessed`, `-v/--netkat-version`, `-s/--time-stats` |
 | **Reference evidence** | `dnk.py:24-31` |
-| **Our implementation** | None — `Main.lean` accepts no options |
+| **Our implementation** | None - `Main.lean` accepts no options |
 | **Status** | Missing |
 | **Executable** | No |
 | **Machine-checked** | N/A |
@@ -68,13 +68,13 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 
 | Field | Value |
 |---|---|
-| **Capability** | `install.sh` — installs Python deps, Maude, and NetKAT tool |
+| **Capability** | `install.sh` - installs Python deps, Maude, and NetKAT tool |
 | **Reference evidence** | `install.sh:1-22` |
-| **Our implementation** | `lean/lakefile.toml` — declares Mathlib4 dependency. `python/pyproject.toml` — no external deps required beyond pytest. |
+| **Our implementation** | `lean/lakefile.toml` - declares Mathlib4 dependency. `python/pyproject.toml` - no external deps required beyond pytest. |
 | **Status** | Not applicable (our approach is self-contained Lean, no external solvers) |
 | **Executable** | N/A |
 | **Machine-checked** | N/A |
-| **Missing components** | None — by design, we do not depend on external solvers |
+| **Missing components** | None - by design, we do not depend on external solvers |
 | **Note** | This is a deliberate architectural difference: DyNetiKAT is a tool that drives external solvers; ours is a self-contained formalization |
 
 ---
@@ -102,9 +102,9 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | `N ::= 0 \| 1 \| f=v \| f<-v \| alpha \| pi \| N+N \| N;N \| N*` (dup-free fragment) |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 2; paper p. 6, Section I-B (Eq. 1) |
-| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/AST.lean:89-97` — `NetKAT` inductive with 8 constructors: `drop`, `id`, `test`, `completeTest`, `assign1`, `union`, `seq`, `star` |
+| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/AST.lean:89-97` - `NetKAT` inductive with 8 constructors: `drop`, `id`, `test`, `completeTest`, `assign1`, `union`, `seq`, `star` |
 | **Status** | Implemented |
-| **Executable** | Partial — terms are inductive; `Predicate.eval` is computable, but full NetKAT semantics evaluation is not (see Section 3.3) |
+| **Executable** | Partial - terms are inductive; `Predicate.eval` is computable, but full NetKAT semantics evaluation is not (see Section 3.3) |
 | **Machine-checked** | N/A (syntax definition, not a theorem) |
 | **Missing components** | A concrete parser from string encoding to `NetKAT` terms (for CLI use). The AST itself is complete and faithful. |
 | **Required tests** | Parser round-trip tests for each constructor; conformance to Figure 3 syntax |
@@ -115,7 +115,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | `Pr ::= 0 \| 1 \| f=v \| Pr+Pr \| Pr.Pr \| ~Pr` (boolean predicates) |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 3; paper Figure 3, p. 5 |
-| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/AST.lean:37-44` — `Predicate` inductive with 6 constructors: `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, `pNot` |
+| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/AST.lean:37-44` - `Predicate` inductive with 6 constructors: `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, `pNot` |
 | **Status** | Implemented |
 | **Executable** | `Predicate.eval` is computable (`Bool`-valued) |
 | **Machine-checked** | Boolean algebra lemmas (`not_not`, `excluded_middle`, `contra`, `deMorgan_or`, `deMorgan_and`) proven in `AST.lean:205-229` |
@@ -128,10 +128,10 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | `[|N|] subset of Packet x Packet`, compositional: `[|0|]=empty`, `[|1|]={(s,s)}`, `[|N1+N2|]=[|N1|] union [|N2|]`, `[|N1;N2|]=[|N1|] circle [N2]`, `[|N*|]=Union_k [|N|]^k` |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 3; paper p. 6, Section I-B "Semantics"; `NETKAT_AUDIT.md` Section 3.5 |
-| **Our implementation** | `Semantics.lean:61-71` — `Semantics (N : NetKAT) : CtxPkt -> CtxPkt -> Prop`, compositionally defined with `StarClosure` for Kleene star |
+| **Our implementation** | `Semantics.lean:61-71` - `Semantics (N : NetKAT) : CtxPkt -> CtxPkt -> Prop`, compositionally defined with `StarClosure` for Kleene star |
 | **Status** | Implemented + verified |
-| **Executable** | Partial — the relation is `Prop`-valued, not directly executable. `StarClosure` is an inductive type. |
-| **Machine-checked** | Yes — `drop_empty`, `id_diag`, `union_sem`, `seq_sem`, `completeTest_sem`, `assign1_sem`, `assign1_seq_sem`, `assign_list_sem`, `fieldEnum_updates_complete`, `completeAssignExpr_sem`, Boolean/Kleene/packet algebra theorems all proven with no `sorry`/`admit`/`axiom` (verified Task 2U, 2V, 2M) |
+| **Executable** | Partial - the relation is `Prop`-valued, not directly executable. `StarClosure` is an inductive type. |
+| **Machine-checked** | Yes - `drop_empty`, `id_diag`, `union_sem`, `seq_sem`, `completeTest_sem`, `assign1_sem`, `assign1_seq_sem`, `assign_list_sem`, `fieldEnum_updates_complete`, `completeAssignExpr_sem`, Boolean/Kleene/packet algebra theorems all proven with no `sorry`/`admit`/`axiom` (verified Task 2U, 2V, 2M) |
 | **Missing components** | A decision procedure for NetKAT equivalence (the external `katbv`/`netkat-automata` tool in DyNetiKAT). Requires implementing normalization algorithm and equivalence checking on normal forms. |
 | **Required tests** | Regression tests for each semantic clause; equivalence decision procedure test suite |
 
@@ -144,7 +144,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 | **Our implementation** | Semantic proofs of specific instances: `union_assoc`, `union_comm`, `union_idem`, `seq_distrib_left`, `seq_distrib_right`, `seq_id_left`, `seq_id_right`, `seq_drop_left`, `seq_drop_right`, `assign_overwrite`, `assign_comm_diff`, `assign_test_same_field`, `test_assign_same_field`, `pred_excluded_middle`, `pred_contra`, `pred_double_neg`, `pred_deMorgan_or`, `pred_deMorgan_and` (`Semantics.lean` and `AST.lean`) |
 | **Status** | Partially implemented |
 | **Executable** | No (these are mathematical theorems, not executable) |
-| **Machine-checked** | Yes — all listed theorems are machine-checked in Lean with no proof holes |
+| **Machine-checked** | Yes - all listed theorems are machine-checked in Lean with no proof holes |
 | **Missing components** | The full E_NK axiomatization as a formal derivability relation (`E_NK |- p = q`). Currently we have semantic *theorems* (proofs about denotational semantics), not a syntactic *derivation system* (inductive relation over axiom applications). |
 | **Required tests** | N/A (theorems are verified by compilation) |
 
@@ -154,10 +154,10 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | Every NetKAT term `p` has a normal form `q = Sum_{alpha*pi in G} alpha*pi` such that `E_NK |- p = q` |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 15; paper Lemma 5, p. 13; `PROOF_OBLIGATIONS.md` Tier 1.4; `docs/NETKAT_AUDIT.md` Section 0.4 |
-| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` — `NormalForm` type (`Finset (CompleteTest x CompleteAssignmentValuation)`), `interpret`, `ofSummand_sem`, `interpret_sem`, `emptyNF_sem`, `idNF` + `idNF_sem`, `testNF` + `testNF_sem`, `assign1NF` + `assign1NF_sem`, `seqNF` + `mem_seqNF_iff` + `seqNF_sem`, `unionNF` + `unionNF_sem`, `fold_sem` |
+| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` - `NormalForm` type (`Finset (CompleteTest x CompleteAssignmentValuation)`), `interpret`, `ofSummand_sem`, `interpret_sem`, `emptyNF_sem`, `idNF` + `idNF_sem`, `testNF` + `testNF_sem`, `assign1NF` + `assign1NF_sem`, `seqNF` + `mem_seqNF_iff` + `seqNF_sem`, `unionNF` + `unionNF_sem`, `fold_sem` |
 | **Status** | Partially implemented |
-| **Executable** | Partial — `interpret` is `noncomputable` (uses `Finset.toList`/`Finset.map`). The semantic correspondence theorems are proven but the *normalization algorithm* (function producing the normal form from a term) is not implemented. |
-| **Machine-checked** | Yes — all semantic theorems proven with no proof holes |
+| **Executable** | Partial - `interpret` is `noncomputable` (uses `Finset.toList`/`Finset.map`). The semantic correspondence theorems are proven but the *normalization algorithm* (function producing the normal form from a term) is not implemented. |
+| **Machine-checked** | Yes - all semantic theorems proven with no proof holes |
 | **Missing components** | 1. The normalization *algorithm* `G : NetKAT -> NormalForm` (Task 3D, 3E per PLAN.md). 2. The proof that `E_NK |- p = interpret(G(p))` (Lemma 5 itself). 3. `Fintype CtxPkt` instance was added (Task 2S, `Packet.lean:158-161`). |
 | **Required tests** | Normalization algorithm tests; equivalence preservation tests |
 
@@ -167,10 +167,10 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | `[|N*|] = Union_k [|N|]^k` terminates on finite packet domains |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 2; paper p. 6, Section I-B; `PROOF_OBLIGATIONS.md` Tier 1.2 |
-| **Our implementation** | `Semantics.lean:51-53` — `StarClosure` inductive (reflexive-transitive closure). `star_refl`, `star_step` proven. `Fintype CtxPkt` added (Task 2S). |
+| **Our implementation** | `Semantics.lean:51-53` - `StarClosure` inductive (reflexive-transitive closure). `star_refl`, `star_step` proven. `Fintype CtxPkt` added (Task 2S). |
 | **Status** | Partially implemented |
 | **Executable** | `StarClosure` is defined but no proof that iteration terminates on finite domains |
-| **Machine-checked** | Partial — definition and basic properties proven, but finite-domain termination theorem not proven |
+| **Machine-checked** | Partial - definition and basic properties proven, but finite-domain termination theorem not proven |
 | **Missing components** | Proof that `StarClosure` on `Fintype CtxPkt` stabilizes after at most `|CtxPkt|^2` steps |
 | **Required tests** | N/A (requires a finiteness proof) |
 
@@ -195,7 +195,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 
 | Field | Value |
 |---|---|
-| **Capability** | The `bottom` (deadlock/bottom) process term — neutral element of `oplus` |
+| **Capability** | The `bottom` (deadlock/bottom) process term - neutral element of `oplus` |
 | **Reference evidence** | REF_AUDIT Section 4.2; paper Eq. 6, p. 14; A4 (p. 576) |
 | **Our implementation** | None |
 | **Status** | Missing |
@@ -255,7 +255,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 
 | Field | Value |
 |---|---|
-| **Capability** | Reconfiguration constant `rcfg(x,N)` — a synchronization step |
+| **Capability** | Reconfiguration constant `rcfg(x,N)` - a synchronization step |
 | **Reference evidence** | REF_AUDIT Section 4.2; paper Eq. 4, p. 13; Figure 8 |
 | **Our implementation** | None |
 | **Status** | Missing |
@@ -285,7 +285,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | Configuration `(d, H, H')` where d is the process term, H is the pending packet list, H' is the handled packet list |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 5; paper p. 9, Section II-B; `PROOF_OBLIGATIONS.md` T2.1 |
-| **Our implementation** | None — no `Config` structure exists in the codebase |
+| **Our implementation** | None - no `Config` structure exists in the codebase |
 | **Status** | Missing |
 | **Executable** | No |
 | **Machine-checked** | N/A |
@@ -298,7 +298,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | Labeled transition relation `(d, H, H') ->_gamma (d', H'', H''')` with actions `gamma ::= (sigma,sigma') | x?r | x!r | rcfg(x,r)` |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 7; paper p. 9-10, Figure 8; `PROOF_OBLIGATIONS.md` T2.2 |
-| **Our implementation** | None — no `Step` inductive relation exists |
+| **Our implementation** | None - no `Step` inductive relation exists |
 | **Status** | Missing |
 | **Executable** | No |
 | **Machine-checked** | N/A |
@@ -352,7 +352,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 
 | Field | Value |
 |---|---|
-| **Capability** | `rcfg(x,r);p ->_{rcfg(x,r)} p` — instantaneous synchronization step |
+| **Capability** | `rcfg(x,r);p ->_{rcfg(x,r)} p` - instantaneous synchronization step |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 10; paper p. 13, Section III-A; Eq. 4; REF_AUDIT Section 4.2 |
 | **Our implementation** | None |
 | **Status** | Missing |
@@ -365,7 +365,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 
 | Field | Value |
 |---|---|
-| **Capability** | Left-merge `p << q` and communication-merge `p | q` — internal operators for axiomatization |
+| **Capability** | Left-merge `p << q` and communication-merge `p | q` - internal operators for axiomatization |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 11; paper p. 13, Section III-A; Eq. 5; REF_AUDIT Section 4.2 |
 | **Our implementation** | None |
 | **Status** | Missing |
@@ -384,7 +384,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | Full DyNetKAT equational theory: A0 (deadlock sequencing), A1 (NetKAT sum to DyNetKAT choice), A2-A5 (choice laws), A6-A7 (parallel laws), A8 (parallel expansion), A9-A10 (left-merge), A11 (left-merge distributes over choice), A12 (communication synchronization), A13-A15 (communication-merge laws) |
 | **Reference evidence** | REF_AUDIT Section 11.2; paper p. 11, Figure 11; PAPER_CONFORMANCE.md item 13 |
-| **Our implementation** | None — no `AxEq` inductive relation or `EDNK` derivability exists |
+| **Our implementation** | None - no `AxEq` inductive relation or `EDNK` derivability exists |
 | **Status** | Missing |
 | **Executable** | No |
 | **Machine-checked** | N/A |
@@ -473,7 +473,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 | **Our implementation** | NetKAT semantic identities are proven (Section 3.4), but no full E_DNK soundness theorem |
 | **Status** | Partially implemented |
 | **Executable** | No |
-| **Machine-checked** | Partial — individual NetKAT axioms are proven as semantic theorems, but A0-A15 + AIP soundness not established |
+| **Machine-checked** | Partial - individual NetKAT axioms are proven as semantic theorems, but A0-A15 + AIP soundness not established |
 | **Missing components** | Soundness proofs for all 15 axioms + AIP (Lemmas 10, 11) |
 | **Required tests** | N/A (theorems) |
 
@@ -615,7 +615,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 | **Missing components** | Parallel execution framework; result aggregation |
 | **Note** | This is a performance/implementation concern, not a mathematical feature |
 
-### 11.4 head() operator — current configuration extraction
+### 11.4 head() operator - current configuration extraction
 
 | Field | Value |
 |---|---|
@@ -628,7 +628,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 | **Missing components** | `head` function: `DyNetKAT -> NetKAT`; transition rules (head(bot)=0, head(Z;D)=Z+head(D), etc.) |
 | **Required tests** | head extraction on example programs |
 
-### 11.5 tail() operator — post-synchronization policy extraction
+### 11.5 tail() operator - post-synchronization policy extraction
 
 | Field | Value |
 |---|---|
@@ -701,7 +701,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 | **Our implementation** | Python `examplePolicy := .seq tpSrc8Test .drop` (test only) in `AST.lean:190`; Python `test_tpSrc8_drop` in `test_netkat.py:237-247` |
 | **Status** | Partially implemented (test only) |
 | **Executable** | Python test is executable; Lean terms are not (no parser/CLI) |
-| **Machine-checked** | No — the Lean `examplePolicy` is a definition, not a verified property |
+| **Machine-checked** | No - the Lean `examplePolicy` is a definition, not a verified property |
 | **Missing components** | Full DyNetKAT encoding of the firewall; safety property verification; proof that packets at port=ext cannot reach port=int before reconfiguration |
 | **Required tests** | T9.1 (PAPER_CONFORMANCE.md); full firewall safety property proof |
 
@@ -759,11 +759,11 @@ that must be reproduced with machine-checked correctness.
 |---|---|
 | **Capability** | Applies E_DNK axioms via Maude rewriting to normalize DyNetKAT terms |
 | **Reference evidence** | REF_AUDIT Section 0 (architecture); `dnk.maude:46-90`; `preprocess.py`, `maude_parser.py` |
-| **Our implementation** | None — we use a self-contained Lean formalization without external Maude |
+| **Our implementation** | None - we use a self-contained Lean formalization without external Maude |
 | **Status** | Missing (replaced by approach) |
 | **Executable** | N/A |
 | **Machine-checked** | N/A |
-| **Missing components** | N/A — replaced by the Lean normalization algorithm (Section 3.5) and A0-A15 derivability (Section 7.1) |
+| **Missing components** | N/A - replaced by the Lean normalization algorithm (Section 3.5) and A0-A15 derivability (Section 7.1) |
 | **Note** | Maude is prohibited; our replacement is a Lean-based derivation/normalization system |
 
 ### 15.2 NetKAT decision procedure
@@ -772,7 +772,7 @@ that must be reproduced with machine-checked correctness.
 |---|---|
 | **Capability** | Checks NetKAT term equivalence via `katbv` or `netkat-automata` external tools |
 | **Reference evidence** | REF_AUDIT Section 0; `netkat_parser.py:42-56`; README.md |
-| **Our implementation** | None — no equivalence decision procedure exists |
+| **Our implementation** | None - no equivalence decision procedure exists |
 | **Status** | Missing |
 | **Executable** | No |
 | **Machine-checked** | N/A |
@@ -795,7 +795,7 @@ that must be reproduced with machine-checked correctness.
 
 ## 16. Summary tables
 
-### 16.1 Feature inventory — implemented vs. missing
+### 16.1 Feature inventory - implemented vs. missing
 
 | # | Capability | Reference evidence | Our status | Executable | Machine-checked |
 |---|---|---|---|---|---|
@@ -874,24 +874,24 @@ that must be reproduced with machine-checked correctness.
 This section maps existing mathematical objectives from `docs/PROOF_OBLIGATIONS.md`
 (31 theorems across 9 tiers) to the current implementation status.
 
-### Tier 1 — NetKAT semantic core (foundational)
+### Tier 1 - NetKAT semantic core (foundational)
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
-| T1.1 | Lemma 5 (p. 13) | Fintype instances for A (complete tests) and Π (complete assignments) | **Proved** — `Fintype CtxPkt`, `Fintype CompleteTest`, `Fintype CompleteAssignmentValuation` added in `Packet.lean:158-247` (Task 2S) |
-| T1.2 | §I-B (p. 6) | NetKAT denotational semantics well-defined; star terminates on finite domains | **Partially proved** — semantics defined (`Semantics.lean:61-71`); `StarClosure` defined; basic star theorems (`star_refl`, `star_step`) proven; **finite-domain termination of star NOT proved** |
-| T1.3 | §I-B, Fig. 4 | Basic semantic identities (0, 1, union, seq, star) | **Proved** — `drop_empty`, `id_diag`, `union_sem`, `seq_sem`, `star_refl`, `star_step` |
-| T1.4 | Lemma 5 (p. 13) | NetKAT normal forms: `q = Sum_{alpha*pi in G} alpha*pi` | **Partially proved** — NormalForm type and `interpret` defined; semantic correspondence theorems proven (`ofSummand_sem`, `interpret_sem`, etc.); **normalization algorithm `G` and Lemma 5 proof NOT implemented** |
+| T1.1 | Lemma 5 (p. 13) | Fintype instances for A (complete tests) and Π (complete assignments) | **Proved** - `Fintype CtxPkt`, `Fintype CompleteTest`, `Fintype CompleteAssignmentValuation` added in `Packet.lean:158-247` (Task 2S) |
+| T1.2 | §I-B (p. 6) | NetKAT denotational semantics well-defined; star terminates on finite domains | **Partially proved** - semantics defined (`Semantics.lean:61-71`); `StarClosure` defined; basic star theorems (`star_refl`, `star_step`) proven; **finite-domain termination of star NOT proved** |
+| T1.3 | §I-B, Fig. 4 | Basic semantic identities (0, 1, union, seq, star) | **Proved** - `drop_empty`, `id_diag`, `union_sem`, `seq_sem`, `star_refl`, `star_step` |
+| T1.4 | Lemma 5 (p. 13) | NetKAT normal forms: `q = Sum_{alpha*pi in G} alpha*pi` | **Partially proved** - NormalForm type and `interpret` defined; semantic correspondence theorems proven (`ofSummand_sem`, `interpret_sem`, etc.); **normalization algorithm `G` and Lemma 5 proof NOT implemented** |
 
-### Tier 2 — DyNetKAT syntax & operational semantics
+### Tier 2 - DyNetKAT syntax & operational semantics
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
-| T2.1 | Fig. 5 (p. 8) | DyNetKAT syntax well-defined (extended syntax with recursion) | **Missing** — no DyNetKAT syntax module exists |
-| T2.2 | Fig. 8 (p. 9-10) | Operational semantics is well-defined (labeled transition system) | **Missing** — no `Step` relation |
-| T2.3 | p. 8-9 (§II-B) | Per-packet consistency | **Missing** — depends on T2.2 |
+| T2.1 | Fig. 5 (p. 8) | DyNetKAT syntax well-defined (extended syntax with recursion) | **Missing** - no DyNetKAT syntax module exists |
+| T2.2 | Fig. 8 (p. 9-10) | Operational semantics is well-defined (labeled transition system) | **Missing** - no `Step` relation |
+| T2.3 | p. 8-9 (§II-B) | Per-packet consistency | **Missing** - depends on T2.2 |
 
-### Tier 3 — Extended operators
+### Tier 3 - Extended operators
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
@@ -901,39 +901,39 @@ This section maps existing mathematical objectives from `docs/PROOF_OBLIGATIONS.
 | T3.4 | Eq. 5 (p. 13) | Left-merge and communication-merge rules | **Missing** |
 | T3.5 | Definition 7 (p. 13) | Guardedness | **Missing** |
 
-### Tier 4 — Bisimulation
+### Tier 4 - Bisimulation
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
 | T4.1 | Definition 2 (p. 11) | Bisimulation well-defined (coinductive) | **Missing** |
-| T4.2 | Lemma 3 (p. 14) | Bisimilarity is a congruence | **Missing** — depends on T4.1, T2.2, T3.4 |
-| T4.3 | Proposition 1 (p. 11) | Semantic layering: `[|p|] = [|q|]` iff `(p;d) ~ (q;d)` | **Missing** — depends on T1.2, T1.3, T4.1 |
+| T4.2 | Lemma 3 (p. 14) | Bisimilarity is a congruence | **Missing** - depends on T4.1, T2.2, T3.4 |
+| T4.3 | Proposition 1 (p. 11) | Semantic layering: `[|p|] = [|q|]` iff `(p;d) ~ (q;d)` | **Missing** - depends on T1.2, T1.3, T4.1 |
 
-### Tier 5 — Axiom soundness
+### Tier 5 - Axiom soundness
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
-| T5.1 | Lemma 10 (p. 14) | Soundness of A0-A15 without AIP | **Missing** (A15 has `[owise]` side condition) — depends on T4.1, T4.2, T2.2, T3.4 |
-| T5.2 | Lemma 11 (p. 15) | Soundness of AIP | **Missing** — depends on T5.1, branching finiteness (T5.3) |
-| T5.3 | Lemma 8 (p. 13) | Branching finiteness (guarded policies are finitely branching) | **Missing** — depends on T3.5, T2.2 |
-| T5.4 | — | Soundness of restriction & projection axioms | **Missing** |
+| T5.1 | Lemma 10 (p. 14) | Soundness of A0-A15 without AIP | **Missing** (A15 has `[owise]` side condition) - depends on T4.1, T4.2, T2.2, T3.4 |
+| T5.2 | Lemma 11 (p. 15) | Soundness of AIP | **Missing** - depends on T5.1, branching finiteness (T5.3) |
+| T5.3 | Lemma 8 (p. 13) | Branching finiteness (guarded policies are finitely branching) | **Missing** - depends on T3.5, T2.2 |
+| T5.4 | - | Soundness of restriction & projection axioms | **Missing** |
 
-### Tier 6 — Normal forms & AIP
+### Tier 6 - Normal forms & AIP
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
 | T6.1 | Definition 6 (p. 14) | DyNetKAT normal forms | **Missing** |
-| T6.2 | Definition 7 (p. 13) | Guardedness | **Missing** — (same as T3.5) |
-| T6.3 | Lemma 9 (p. 14) | DyNetKAT normalization (E_DNK is normalizing) | **Missing** — depends on T1.4, T6.1, T6.2, A1 soundness |
+| T6.2 | Definition 7 (p. 13) | Guardedness | **Missing** - (same as T3.5) |
+| T6.3 | Lemma 9 (p. 14) | DyNetKAT normalization (E_DNK is normalizing) | **Missing** - depends on T1.4, T6.1, T6.2, A1 soundness |
 
-### Tier 7 — Soundness & completeness
+### Tier 7 - Soundness & completeness
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
-| T7.1 | Theorem 1 (p. 11) | Soundness of E_DNK: `E_DNK |- p = q => p ~ q` | **Missing** (partial: NetKAT axioms proven semantically in T1.3) — depends on T5.1, T5.2 |
-| T7.2 | Theorem 1 (p. 15) | Ground-completeness of E_DNK: `p ~ q => E_DNK |- p = q` | **Missing** — depends on T6.3, T7.1, T1.4 |
+| T7.1 | Theorem 1 (p. 11) | Soundness of E_DNK: `E_DNK |- p = q => p ~ q` | **Missing** (partial: NetKAT axioms proven semantically in T1.3) - depends on T5.1, T5.2 |
+| T7.2 | Theorem 1 (p. 15) | Ground-completeness of E_DNK: `p ~ q => E_DNK |- p = q` | **Missing** - depends on T6.3, T7.1, T1.4 |
 
-### Tier 8 — Safety framework
+### Tier 8 - Safety framework
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
@@ -943,7 +943,7 @@ This section maps existing mathematical objectives from `docs/PROOF_OBLIGATIONS.
 | T8.4 | Definition 16 (p. 19) | Safe network system checking | **Missing** |
 | T8.5 | Definition 17 (p. 20) | Extended safety sugars (desugaring) | **Missing** |
 
-### Tier 9 — Examples (verification)
+### Tier 9 - Examples (verification)
 
 | Item | Paper reference | Description | Status |
 |---|---|---|---|
@@ -956,14 +956,14 @@ This section maps existing mathematical objectives from `docs/PROOF_OBLIGATIONS.
 
 This analysis distinguishes three levels of implementation:
 
-1. **Type/definition exists** — A Lean definition, structure, or inductive type
+1. **Type/definition exists** - A Lean definition, structure, or inductive type
    representing the concept. Does not imply correctness.
 
-2. **Semantic theorem proven** — A machine-checked Lean theorem establishing that
+2. **Semantic theorem proven** - A machine-checked Lean theorem establishing that
    the definition has the correct semantics. This is the highest level of
    verification currently achievable.
 
-3. **Executable algorithm** — A function that can actually execute on inputs
+3. **Executable algorithm** - A function that can actually execute on inputs
    (e.g., parse a string, run the analysis, produce a result). Definitions marked
    `noncomputable` are not executable in Lean's kernel.
 
@@ -972,31 +972,31 @@ This analysis distinguishes three levels of implementation:
 The following mathematical theorems are fully machine-checked in the current codebase:
 
 **NetKAT semantic core (`Semantics.lean`):**
-- `drop_empty`, `id_diag`, `union_sem`, `seq_sem` — basic semantic identities
-- `assign1_sem`, `assign1_seq_sem` — single-field assignment semantics
-- `assign_list_sem` — fold-of-assignments semantics
-- `seq_deterministic_sem` — deterministic sequential composition
-- `completeTest_sem` — complete test semantics
-- `completeAssignExpr_sem` — complete assignment semantics (Definition 4)
-- `fieldEnum_updates_complete` — all fields updated yields valuation π
-- `pred_excluded_middle`, `pred_contra`, `pred_double_neg`, `pred_deMorgan_or`, `pred_deMorgan_and` — Boolean algebra
-- `assign_overwrite`, `assign_comm_diff`, `assign_test_same_field`, `test_assign_same_field` — packet algebra
-- `star_refl`, `star_step` — Kleene star basic properties
+- `drop_empty`, `id_diag`, `union_sem`, `seq_sem` - basic semantic identities
+- `assign1_sem`, `assign1_seq_sem` - single-field assignment semantics
+- `assign_list_sem` - fold-of-assignments semantics
+- `seq_deterministic_sem` - deterministic sequential composition
+- `completeTest_sem` - complete test semantics
+- `completeAssignExpr_sem` - complete assignment semantics (Definition 4)
+- `fieldEnum_updates_complete` - all fields updated yields valuation π
+- `pred_excluded_middle`, `pred_contra`, `pred_double_neg`, `pred_deMorgan_or`, `pred_deMorgan_and` - Boolean algebra
+- `assign_overwrite`, `assign_comm_diff`, `assign_test_same_field`, `test_assign_same_field` - packet algebra
+- `star_refl`, `star_step` - Kleene star basic properties
 
 **Normal forms (`NormalForm.lean`):**
-- `ofSummand_sem` — single summand semantics
-- `fold_sem` — list fold semantics
-- `interpret_sem` — full normal form interpretation semantics
-- `emptyNF_sem` — empty NF = drop
-- `idNF_sem` — identity NF = NetKAT id
-- `testNF_sem` — predicate test NF = NetKAT test
-- `assign1NF_sem` — assignment NF = NetKAT assign1
-- `seqNF_sem` — sequential composition NF correspondence
-- `unionNF_sem` — union NF correspondence
+- `ofSummand_sem` - single summand semantics
+- `fold_sem` - list fold semantics
+- `interpret_sem` - full normal form interpretation semantics
+- `emptyNF_sem` - empty NF = drop
+- `idNF_sem` - identity NF = NetKAT id
+- `testNF_sem` - predicate test NF = NetKAT test
+- `assign1NF_sem` - assignment NF = NetKAT assign1
+- `seqNF_sem` - sequential composition NF correspondence
+- `unionNF_sem` - union NF correspondence
 
 **Packet model (`Packet.lean`):**
-- `holdsComplete_iff_eq` — complete test matches exactly one packet
-- `applyValuation_field` — valuation overwrites every field
+- `holdsComplete_iff_eq` - complete test matches exactly one packet
+- `applyValuation_field` - valuation overwrites every field
 - `Packet.ext`, `Packet.get_update_same`, `Packet.get_update_diff`, `Packet.update_id`, `Packet.update_update_same`, `Packet.update_update_diff`
 
 **Predicate algebra (`AST.lean`):**
@@ -1034,12 +1034,12 @@ The most significant gap is the complete absence of DyNetKAT process syntax
 is no `DyNetKAT.DyNetKAT.AST` module, no process type, no configuration structure,
 and no labeled transition system. This blocks all subsequent phases:
 
-- Operational semantics (T2.2) — requires DyNetKAT syntax
-- Extended operators (T3.1-T3.5) — require DyNetKAT syntax as host
-- Bisimulation (T4.1-T4.3) — requires operational semantics
-- Axioms A0-A15 (T5.1, T7.1) — require extended operators and bisimilarity
-- Safety framework (T8.1-T8.5) — requires bisimilarity and axiomatization
-- Examples (T9.1-T9.2) — require DyNetKAT syntax
+- Operational semantics (T2.2) - requires DyNetKAT syntax
+- Extended operators (T3.1-T3.5) - require DyNetKAT syntax as host
+- Bisimulation (T4.1-T4.3) - requires operational semantics
+- Axioms A0-A15 (T5.1, T7.1) - require extended operators and bisimilarity
+- Safety framework (T8.1-T8.5) - requires bisimilarity and axiomatization
+- Examples (T9.1-T9.2) - require DyNetKAT syntax
 
 ### 19.2 No executable analysis pipeline
 
@@ -1071,8 +1071,8 @@ These are distinct from semantic equivalence and require separate construction.
 ### 19.4 External solver replacement
 
 DyNetiKAT drives two external solvers:
-1. **Maude** — applies equational rewriting (A0-A15 axioms)
-2. **NetKAT decision procedure** (`katbv`/`netkat-automata`) — checks NetKAT term equivalence
+1. **Maude** - applies equational rewriting (A0-A15 axioms)
+2. **NetKAT decision procedure** (`katbv`/`netkat-automata`) - checks NetKAT term equivalence
 
 Our project must reproduce both within Lean:
 - The Maude rewriting is replaced by the Lean derivability relation (still missing)

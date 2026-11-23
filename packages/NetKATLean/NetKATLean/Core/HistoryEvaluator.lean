@@ -101,7 +101,7 @@ theorem executeHistory_supported
 
     1. Obtain the packet-level output set `A` from `execute_correct
        p h.head`, together with its exactness `corrA`.
-    2. The history output set is `A.image (fun τ => ⟨τ, h.tail⟩)` —
+    2. The history output set is `A.image (fun τ => ⟨τ, h.tail⟩)` -
        every output packet `τ` paired with the original tail.
     3. Membership is characterized by `Finset.mem_image`.
     4. The full H3C correspondence

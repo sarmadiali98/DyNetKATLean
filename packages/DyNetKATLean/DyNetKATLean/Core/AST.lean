@@ -9,10 +9,10 @@
 --   (countably infinite) set of recursive variables.
 --
 -- Design decisions (per docs/PROCESS_AST_DESIGN.md):
---   1. `Channel := String` — countably infinite channel names (§II-C),
+--   1. `Channel := String` - countably infinite channel names (§II-C),
 --      no `Fintype` (the paper does not bound channels); `DecidableEq`
 --      comes from Lean core `String`.
---   2. `Var := String` — named recursion variables, matching the JSON
+--   2. `Var := String` - named recursion variables, matching the JSON
 --      `recursive_variables` schema. The defining equation `X ≜ d` is a
 --      well-formedness property of a separate environment (`RecEnv`),
 --      NOT encoded in the `var` constructor.
@@ -74,26 +74,26 @@ inductive CommunicationAction (schema : PacketSchema := ctxSchema) : Type
 -- The DyNetKAT inductive (Eq. 1 base syntax plus rcfg prefix from Eq. 6)
 ------------------------------------------------------------------------
 
-/-- DyNetKAT process syntax — Eq. (1), p. 8, §II-C, with the extended
+/-- DyNetKAT process syntax - Eq. (1), p. 8, §II-C, with the extended
     reconfiguration prefix from Eq. (6), p. 14:
 
     `D_e ::= ⊥ | N;D_e | x?N;D_e | x!N;D_e | rcfg_{x,N};D_e
              | D_e‖D_e | D_e⊕D_e | D_e⌊⌊D_e | D_e|D_e | X`
 
-    - `deadlock`   : ⊥        — "a dummy policy without behaviour"
-    - `nSeq`       : N;D      — NetKAT policy applied to the current packet,
+    - `deadlock`   : ⊥        - "a dummy policy without behaviour"
+    - `nSeq`       : N;D      - NetKAT policy applied to the current packet,
                                 then the next packet is fetched for D
-    - `recv`       : x?N;D    — receive a NetKAT⁻ᵈᵘᵖ policy through channel x
-    - `send`       : x!N;D    — send a NetKAT⁻ᵈᵘᵖ policy through channel x
-    - `rcfgPrefix` : rcfg_{x,N};D — extended reconfiguration prefix (Eq. 6),
+    - `recv`       : x?N;D    - receive a NetKAT⁻ᵈᵘᵖ policy through channel x
+    - `send`       : x!N;D    - send a NetKAT⁻ᵈᵘᵖ policy through channel x
+    - `rcfgPrefix` : rcfg_{x,N};D - extended reconfiguration prefix (Eq. 6),
                                     distinct from the `Action.rcfg` label
-    - `parallel`   : D‖D      — asynchronous parallel composition
-    - `choice`     : D⊕D      — non-deterministic choice
-    - `leftMerge`   : D⌊⌊D     — left-merge operator (Eq. 6)
-    - `commMerge`   : D|D      — communication-merge operator (Eq. 6)
-    - `restrict`   : δ_ℒ(D)   — restriction to communication actions (Eq. 6)
-    - `project`    : π_n(D)   — projection to depth n (Eq. 6)
-    - `var`        : X        — recursive variable (unfolded via `X ≜ d`)
+    - `parallel`   : D‖D      - asynchronous parallel composition
+    - `choice`     : D⊕D      - non-deterministic choice
+    - `leftMerge`   : D⌊⌊D     - left-merge operator (Eq. 6)
+    - `commMerge`   : D|D      - communication-merge operator (Eq. 6)
+    - `restrict`   : δ_ℒ(D)   - restriction to communication actions (Eq. 6)
+    - `project`    : π_n(D)   - projection to depth n (Eq. 6)
+    - `var`        : X        - recursive variable (unfolded via `X ≜ d`)
 
     The `NetKAT` argument is the existing dup-free `NetKAT` type
     (`NetKAT/AST.lean`), per §II-C and Eq. (6): `N ∈ NetKAT⁻ᵈᵘᵖ`. -/
@@ -134,26 +134,26 @@ def choiceOf {schema : PacketSchema} : List (DyNetKAT schema) → DyNetKAT schem
 -- Concrete examples (paper §II-C / Fig. 5 style fragments)
 ------------------------------------------------------------------------
 
-/-- `⊥` — the dummy policy. -/
+/-- `⊥` - the dummy policy. -/
 example : DyNetKAT := .deadlock
 
 /-- A NetKAT policy `tpSrc = v8; drop` applied to the current packet. -/
 example : DyNetKAT := .nSeq (NetKAT.fieldTest .tpSrc .v8) .deadlock
 
-/-- `x?N; ⊥` — receive a policy through channel "ctrl" and apply it. -/
+/-- `x?N; ⊥` - receive a policy through channel "ctrl" and apply it. -/
 example : DyNetKAT := .recv "ctrl" (NetKAT.completeAssignExpr (fun _ => .v8)) .deadlock
 
-/-- `x!N; ⊥` — send a policy through channel "ctrl". -/
+/-- `x!N; ⊥` - send a policy through channel "ctrl". -/
 example : DyNetKAT := .send "ctrl" NetKAT.id .deadlock
 
-/-- `rcfg_{x,N};D` — the extended reconfiguration prefix, not an action label. -/
+/-- `rcfg_{x,N};D` - the extended reconfiguration prefix, not an action label. -/
 example : DyNetKAT := .rcfgPrefix "ctrl" NetKAT.id .deadlock
 
-/-- `D‖D` — parallel composition of two policies. -/
+/-- `D‖D` - parallel composition of two policies. -/
 example : DyNetKAT :=
   .parallel (.nSeq NetKAT.id .deadlock) (.nSeq NetKAT.drop .deadlock)
 
-/-- `D⊕D` — non-deterministic choice. -/
+/-- `D⊕D` - non-deterministic choice. -/
 example : DyNetKAT :=
   .choice (.nSeq NetKAT.id .deadlock) (.nSeq NetKAT.drop .deadlock)
 

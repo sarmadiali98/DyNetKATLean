@@ -240,12 +240,12 @@ performance claims must be measured end to end on the original workloads.
 **Repository:** `/Users/ali/Desktop/DyNetKAT-Lean`
 **Paper:** *DyNetKAT: An Algebra of Dynamic Networks*, arXiv:2102.10035v4 (FoSSaCS 2022)
 **Scope:**
-- Phase 1.5: NetKAT semantic core — `Packet.lean`, `AST.lean`, `Semantics.lean`, Python tests.
-- Task 2N: Complete-Test Conformance Audit — Definition 4 (Complete Tests & Assignments), p. 8.
+- Phase 1.5: NetKAT semantic core - `Packet.lean`, `AST.lean`, `Semantics.lean`, Python tests.
+- Task 2N: Complete-Test Conformance Audit - Definition 4 (Complete Tests & Assignments), p. 8.
 
 ---
 
-## 0. Task 2N — Complete-Test Conformance Audit (Definition 4)
+## 0. Task 2N - Complete-Test Conformance Audit (Definition 4)
 
 **Task date:** 2026-10-17
 **Task ID:** 2N
@@ -266,7 +266,7 @@ performance claims must be measured end to end on the original workloads.
 3. The notation σα / σπ treats α and π as *valuations* (functions F → Vᵢ) applied to a packet σ.
 4. Complete tests and general predicates (Figure 3: `Pr ::= 0 | 1 | f=v | Pr+Pr | Pr·Pr | ¬Pr`) are **distinct** concepts.
 
-**Context from the paper (Lemma 5, p. 647):** "Let A be the set of all complete tests, and Π be the set of all complete assignments. ... Consequently, A and Π are finite." — The finiteness of A and Π follows from the finiteness of each Vᵢ.
+**Context from the paper (Lemma 5, p. 647):** "Let A be the set of all complete tests, and Π be the set of all complete assignments. ... Consequently, A and Π are finite." - The finiteness of A and Π follows from the finiteness of each Vᵢ.
 
 ### 0.2 Corresponding Lean definitions (as of Task 2R-L, 2026-10-17)
 
@@ -293,10 +293,10 @@ The concrete packet type is `CtxPkt := Packet FieldName FieldValueEnum` where
 
 ### 0.3 Correspondence check
 
-#### 0.3.1 Complete tests — equivalent ✅
+#### 0.3.1 Complete tests - equivalent ✅
 
-**Paper:** α = `f₁=v₁ · ... · fₙ=vₙ` — every field assigned exactly one value.
-**Lean:** `CompleteTest := CtxPkt = FieldName → FieldValueEnum` — a total function from fields to values.
+**Paper:** α = `f₁=v₁ · ... · fₙ=vₙ` - every field assigned exactly one value.
+**Lean:** `CompleteTest := CtxPkt = FieldName → FieldValueEnum` - a total function from fields to values.
 
 The total-function representation **enforces** totality by construction: there is no
 way to construct a `CompleteTest` that leaves a field unspecified or assigns
@@ -308,39 +308,39 @@ is in bijection with the set of complete test expressions `f₁=v₁ · ... · f
 (each function corresponds to exactly one such expression, and vice versa).
 The representation is faithful and introduces **no additional assumptions**.
 
-#### 0.3.2 Complete assignments — fully conformant ✅ (as of Task 2R-L, 2026-10-17)
+#### 0.3.2 Complete assignments - fully conformant ✅ (as of Task 2R-L, 2026-10-17)
 
-**Paper:** π = `f₁←v₁ · ... · fₙ←vₙ` — overwrites every field. The notation σπ
+**Paper:** π = `f₁←v₁ · ... · fₙ←vₙ` - overwrites every field. The notation σπ
 denotes the packet resulting from applying π to σ. A complete assignment is a
 specific *syntactic form* that always overwrites all fields, implemented as a
 sequence of primitive single-field assignments per the PA axioms.
 
 **Lean:** The legacy `CompleteAssignment := CtxPkt → CtxPkt` (arbitrary function
 superset) has been **removed**. It is replaced by:
-- `CompleteAssignmentValuation := CtxPkt` — a total valuation `FieldName → FieldValueEnum`,
+- `CompleteAssignmentValuation := CtxPkt` - a total valuation `FieldName → FieldValueEnum`,
   the direct dual of `CompleteTest`. By construction, every field maps to exactly
   one value, matching Definition 4.
-- `applyValuation (pi sigma) := pi` — returns the valuation π itself, matching
+- `applyValuation (pi sigma) := pi` - returns the valuation π itself, matching
   Definition 4's σπ = π ("the result equals the valuation").
-- `completeAssignExpr (π)` — builds `assign1 f₀ (π f₀) ; assign1 f₁ (π f₁) ; ...`
+- `completeAssignExpr (π)` - builds `assign1 f₀ (π f₀) ; assign1 f₁ (π f₁) ; ...`
   from the `fieldEnum` enumeration, implementing `f₁←v₁ · ... · fₙ←vₙ`.
-- `completeAssignExpr_sem` — proves `⟦completeAssignExpr π⟧(σ,τ) ↔ τ = π`.
+- `completeAssignExpr_sem` - proves `⟦completeAssignExpr π⟧(σ,τ) ↔ τ = π`.
 
 The paper-faithful representation treats π as a valuation (field → value), and
 σπ is the packet where every field is overwritten to π's value. No completeness
-invariant is needed — the total-function type enforces it by construction.
+invariant is needed - the total-function type enforces it by construction.
 
 **Assessment:** ✅ Fully conformant. The superset issue is eliminated. All
 assignment theorems are proven with no `sorry`/`admit`/`axiom`.
 
-#### 0.3.3 Single-field assignments — primitive constructor `f←v` ✅ (as of Task 2R-L, 2026-10-17)
+#### 0.3.3 Single-field assignments - primitive constructor `f←v` ✅ (as of Task 2R-L, 2026-10-17)
 
 The legacy `fieldAssign` helper (`AST.lean` old lines 112-113) has been **removed**.
 It is replaced by the paper's primitive single-field assignment constructor:
 
-- `assign1 : FieldName → FieldValueEnum → NetKAT` (`AST.lean:94`) — the paper's
+- `assign1 : FieldName → FieldValueEnum → NetKAT` (`AST.lean:94`) - the paper's
   `f←n` basic term per Figure 3 (p. 5).
-- Semantics: `| .assign1 f v => τ = Packet.update σ f v` (`Semantics.lean:68`) —
+- Semantics: `| .assign1 f v => τ = Packet.update σ f v` (`Semantics.lean:68`) -
   matches the paper's `⟦f←v⟧ = {(σ, σ[f:=v])}`.
 
 A single-field assignment `f←v` is a **distinct syntactic category** from complete
@@ -349,22 +349,22 @@ assignments π per Definition 4. Complete assignments are built as sequences of
 decomposition: `f₁←v₁ · ... · fₙ←vₙ = (f₁←v₁);...;(fₙ←vₙ)` per the PA axioms
 (Figure 4).
 
-#### 0.3.4 Complete tests and general predicates — distinct ✅
+#### 0.3.4 Complete tests and general predicates - distinct ✅
 
 The implementation correctly maintains the paper's distinction:
-- `Predicate` inductive (`AST.lean:37-44`): `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, `pNot` — matches Figure 3.
+- `Predicate` inductive (`AST.lean:37-44`): `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, `pNot` - matches Figure 3.
 - `CompleteTest` is a separate type (`CtxPkt`, a total function).
 - The `NetKAT` AST has **separate constructors**: `test : Predicate → NetKAT` (line 92) and `completeTest : CompleteTest → NetKAT` (line 93).
-- The `holdsFinset` legacy path (`Packet.lean:182`) is **not used** in `Semantics.lean` — only `holdsComplete` is referenced (line 67).
+- The `holdsFinset` legacy path (`Packet.lean:182`) is **not used** in `Semantics.lean` - only `holdsComplete` is referenced (line 67).
 
 **Assessment:** ✅ No conflation. General predicates and complete tests remain distinct types.
 
 #### 0.3.5 Total-valuation representation preserves paper meaning ✅
 
-- `holdsComplete`: `forall f, alpha f = sigma f` — exactly the paper's "α holds on σ iff all field values match."
-- `applyValuation`: `pi sigma := pi` — exactly the paper's `σπ` notation (π applied to σ, output equals π).
-- Semantics: `.completeTest α => holdsComplete α σ ∧ σ = τ` — matches `⟦α⟧ = {(σ,σ) | α holds on σ}`.
-- Semantics: `⟦completeAssignExpr π⟧(σ,τ) ↔ τ = π` — matches `⟦π⟧ = {(σ, π)}` (σπ = π); proven by `completeAssignExpr_sem` theorem.
+- `holdsComplete`: `forall f, alpha f = sigma f` - exactly the paper's "α holds on σ iff all field values match."
+- `applyValuation`: `pi sigma := pi` - exactly the paper's `σπ` notation (π applied to σ, output equals π).
+- Semantics: `.completeTest α => holdsComplete α σ ∧ σ = τ` - matches `⟦α⟧ = {(σ,σ) | α holds on σ}`.
+- Semantics: `⟦completeAssignExpr π⟧(σ,τ) ↔ τ = π` - matches `⟦π⟧ = {(σ, π)}` (σπ = π); proven by `completeAssignExpr_sem` theorem.
 
 **Assessment:** ✅ The total-valuation representation preserves the paper's meaning for complete tests and complete assignments. The `holdsComplete_iff_eq` theorem (`Packet.lean:218`) establishes the proven correspondence: a complete test α holds on σ iff σ = α. For complete assignments, `applyValuation` and `completeAssignExpr_sem` establish σπ = π (the result of a complete assignment equals the valuation itself, independently of the input packet). No conflation between total valuations and arbitrary functions remains.
 
@@ -372,12 +372,12 @@ The implementation correctly maintains the paper's distinction:
 
 | # | Obligation | Paper reference | Status |
 |---|---|---|---|
-| 1 | `Fintype CtxPkt` instance | Lemma 5: "A and Π are finite" | **Satisfied** — `instance : Fintype CtxPkt` at `Packet.lean:158-161` (established by Task 2S); `Fintype CompleteTest` and `Fintype CompleteAssignmentValuation` instances also registered at `Packet.lean:198-200` and `Packet.lean:258-260` |
-| 2 | `Fintype CompleteTest` (finite A) | Lemma 5: "A is finite" | **Satisfied** — `instance : Fintype CompleteTest` at `Packet.lean:198-200`, obtained by transferring `Fintype CtxPkt` along `CompleteTest = CtxPkt` |
-| 3 | `Fintype CompleteAssignmentValuation` (finite Π) | Lemma 5: "Π is finite" | **Satisfied** — `instance : Fintype CompleteAssignmentValuation` at `Packet.lean:258-260`, obtained by transferring `Fintype CtxPkt` along `CompleteAssignmentValuation = CtxPkt` |
-| 4 | Completeness invariant for complete assignments | Definition 4: π = `f₁←v₁ · ... · fₙ←vₙ` | **Satisfied (by construction)** — `CompleteAssignmentValuation := CtxPkt` (a total valuation) enforces one-value-per-field by type, and `applyValuation pi _sigma := pi` directly returns π, matching σπ = π |
-| 5 | Equivalence of `CompleteTest` representation ↔ Definition 4 | Definition 4 | **Proven** — `holdsComplete_iff_eq` (`Packet.lean:218`) establishes that a complete test α holds on σ iff σ = α, confirming exactly-one-packet-matching semantics |
-| 6 | Each complete test specifies exactly one value per field | Definition 4: "vi ∈ Vi for i ∈ {1,...,n}" | **Proven (by construction + theorem)** — `CompleteTest := CtxPkt` (total function `FieldName → FieldValueEnum`) enforces one value per field; `holdsComplete_iff_eq` confirms uniqueness |
+| 1 | `Fintype CtxPkt` instance | Lemma 5: "A and Π are finite" | **Satisfied** - `instance : Fintype CtxPkt` at `Packet.lean:158-161` (established by Task 2S); `Fintype CompleteTest` and `Fintype CompleteAssignmentValuation` instances also registered at `Packet.lean:198-200` and `Packet.lean:258-260` |
+| 2 | `Fintype CompleteTest` (finite A) | Lemma 5: "A is finite" | **Satisfied** - `instance : Fintype CompleteTest` at `Packet.lean:198-200`, obtained by transferring `Fintype CtxPkt` along `CompleteTest = CtxPkt` |
+| 3 | `Fintype CompleteAssignmentValuation` (finite Π) | Lemma 5: "Π is finite" | **Satisfied** - `instance : Fintype CompleteAssignmentValuation` at `Packet.lean:258-260`, obtained by transferring `Fintype CtxPkt` along `CompleteAssignmentValuation = CtxPkt` |
+| 4 | Completeness invariant for complete assignments | Definition 4: π = `f₁←v₁ · ... · fₙ←vₙ` | **Satisfied (by construction)** - `CompleteAssignmentValuation := CtxPkt` (a total valuation) enforces one-value-per-field by type, and `applyValuation pi _sigma := pi` directly returns π, matching σπ = π |
+| 5 | Equivalence of `CompleteTest` representation ↔ Definition 4 | Definition 4 | **Proven** - `holdsComplete_iff_eq` (`Packet.lean:218`) establishes that a complete test α holds on σ iff σ = α, confirming exactly-one-packet-matching semantics |
+| 6 | Each complete test specifies exactly one value per field | Definition 4: "vi ∈ Vi for i ∈ {1,...,n}" | **Proven (by construction + theorem)** - `CompleteTest := CtxPkt` (total function `FieldName → FieldValueEnum`) enforces one value per field; `holdsComplete_iff_eq` confirms uniqueness |
 
 ### 0.5 Actual semantic discrepancies
 
@@ -390,13 +390,13 @@ The implementation correctly maintains the paper's distinction:
 
 ### 0.6 Conclusions
 
-1. **Complete tests are faithfully implemented** ✅ — The total-function
+1. **Complete tests are faithfully implemented** ✅ - The total-function
    representation (`CompleteTest := CtxPkt`) enforces exactly-one-value-per-field
    by construction, matching Definition 4. `holdsComplete` correctly checks
    all fields. The `holdsComplete_iff_eq` theorem (`Packet.lean:218`) proves the
    key correspondence: α holds on σ iff σ = α. No additional assumptions are introduced.
 
-2. **Complete assignments are faithfully represented** ✅ —
+2. **Complete assignments are faithfully represented** ✅ -
    The legacy `CompleteAssignment := CtxPkt → CtxPkt` (arbitrary function superset)
    has been removed. The replacement `CompleteAssignmentValuation := CtxPkt` (total
    valuation at `Packet.lean:253`) is the direct dual of `CompleteTest` and enforces
@@ -405,22 +405,22 @@ The implementation correctly maintains the paper's distinction:
    Definition 4's σπ = π. `applyValuation pi _sigma := pi` (`Packet.lean:268`)
    directly returns π, confirming the output depends only on π, not σ.
 
-3. **Complete tests and general predicates are distinct** ✅ — Separate `Predicate`
+3. **Complete tests and general predicates are distinct** ✅ - Separate `Predicate`
    (inductive, `AST.lean:37-44`) and `CompleteTest` (total valuation) types with
    separate AST constructors (`test` at `AST.lean:92`, `completeTest` at `AST.lean:93`).
    No conflation. The only legacy artifact is `holdsFinset` (`Packet.lean:182`),
    which is retained as a backward-compatibility helper but is **not used** in the
    active semantics (`Semantics.lean:67` uses `holdsComplete`).
 
-4. **No missing assumptions for complete tests** ✅ — The representation introduces
+4. **No missing assumptions for complete tests** ✅ - The representation introduces
    no assumptions absent from Definition 4 for complete tests. The `Fintype` instances
    for `CtxPkt`, `CompleteTest`, and `CompleteAssignmentValuation` are all registered
    (`Packet.lean:158-200, 258-260`), satisfying the finiteness requirement of
    Lemma 5 for the finite (4×4) concrete domain.
 
-5. **Finite-domain infrastructure** ✅ — The `[Fintype CtxPkt]` instance
+5. **Finite-domain infrastructure** ✅ - The `[Fintype CtxPkt]` instance
    (`Packet.lean:158-161`) is established. However, the star-termination theorem
-   (`star_terminates` — proof that `StarClosure` stabilizes in ≤ `|CtxPkt|²` steps on
+   (`star_terminates` - proof that `StarClosure` stabilizes in ≤ `|CtxPkt|²` steps on
    a finite domain) is **not yet proven**. This is a separate obligation from
    complete-test representation and remains deferred.
 
@@ -446,7 +446,7 @@ and the assignment conformance migration (Tasks 2O–2R-L):
 
 ## 2. Build Status
 
-`lake build DyNetKAT` — **SUCCESS** (exit code 0). Build completes successfully:
+`lake build DyNetKAT` - **SUCCESS** (exit code 0). Build completes successfully:
 
 ```
 ✔ [540/541] Built DyNetKAT
@@ -455,9 +455,9 @@ Build completed successfully.
 
 ### Build warnings (non-fatal, pre-existing, not introduced by Task 2R-L)
 
-- `AST.lean` dupNamespace linter warnings (all `NetKAT` constructors) — pre-existing.
-- `Semantics.lean:586` unused variable `h` — pre-existing in `test_assign_same_field`.
-- `git diff --check` reports a new blank line at EOF in `Semantics.lean:656` —
+- `AST.lean` dupNamespace linter warnings (all `NetKAT` constructors) - pre-existing.
+- `Semantics.lean:586` unused variable `h` - pre-existing in `test_assign_same_field`.
+- `git diff --check` reports a new blank line at EOF in `Semantics.lean:656` -
   pre-existing, not introduced by Task 2R-L.
 
 ---
@@ -481,8 +481,8 @@ The parameterization follows the paper's abstraction. The concrete 4×4 instance
 is retained only as a test fixture (matching the design decision in A2).
 
 However, the paper notes per-field value domains (`Vi`), whereas the implementation
-uses a single `Value` type for all fields. This is a minor simplification — the
-finiteness argument applies equally — but should be documented.
+uses a single `Value` type for all fields. This is a minor simplification - the
+finiteness argument applies equally - but should be documented.
 
 > **Note:** The `Fintype` instances for `FieldName` and `FieldValueEnum` exist,
 > but there is no `Fintype CtxPkt` instance (finiteness of the packet domain,
@@ -493,13 +493,13 @@ finiteness argument applies equally — but should be documented.
 
 **Question:** Are complete tests guaranteed to specify exactly one value for every field?
 
-**Paper (Definition 4, p. 8):** "We call *complete test* ... an expression f₁=v₁ · … · fₙ=vₙ, with vi ∈ Vi, for i ∈ {1,...,n}." A complete test is a **total valuation** — every field gets exactly one value.
+**Paper (Definition 4, p. 8):** "We call *complete test* ... an expression f₁=v₁ · … · fₙ=vₙ, with vi ∈ Vi, for i ∈ {1,...,n}." A complete test is a **total valuation** - every field gets exactly one value.
 
 **Current implementation:**
-- `def CompleteTest := CtxPkt` — represented as a total function `FieldName → FieldValueEnum`.  ✅
-- `def holdsComplete (alpha : CtxPkt) (sigma : CtxPkt) : Prop := forall f, alpha f = sigma f` — checks all fields.  ✅
+- `def CompleteTest := CtxPkt` - represented as a total function `FieldName → FieldValueEnum`.  ✅
+- `def holdsComplete (alpha : CtxPkt) (sigma : CtxPkt) : Prop := forall f, alpha f = sigma f` - checks all fields.  ✅
 
-The representation as a total function **enforces** totality by construction —
+The representation as a total function **enforces** totality by construction -
 there is no way to construct a `CompleteTest` that leaves a field unspecified.
 
 **Legacy helper `holdsFinset`:** The `holdsFinset` function (`Packet.lean:182`)
@@ -508,12 +508,12 @@ pairs), not on `CompleteTest`. It is a partial (non-total) test predicate: an
 empty `Finset` is treated as the predicate `true` (matching all packets), which
 is **not** a complete test per Definition 4 (which requires totality). This
 `holdsFinset` helper is retained for backward compatibility but is **not used**
-in the active NetKAT semantics — `Semantics.lean:67` uses `holdsComplete` for
+in the active NetKAT semantics - `Semantics.lean:67` uses `holdsComplete` for
 `.completeTest`. The `Predicate` inductive (`AST.lean:37-44`) is the proper
 typed representation for non-complete predicates including `f=v` tests.
 
 **Classification:** ***Canonical representation is `CompleteTest := CtxPkt`** ✅
-— A total function `FieldName → FieldValueEnum` enforcing totality by
+- A total function `FieldName → FieldValueEnum` enforcing totality by
 construction. `holdsComplete_iff_eq` (`Packet.lean:218`) proves the
 one-to-one correspondence: α holds on σ iff σ = α.
 
@@ -521,7 +521,7 @@ one-to-one correspondence: α holds on σ iff σ = α.
 
 **Question:** Are predicate negation, conjunction, disjunction, true, and false represented?
 
-**Paper (Figure 3, p. 5):** `Pr ::= 0 | 1 | Pr+Pr | Pr·Pr | ¬Pr` — predicates include false (0), true (1), disjunction (+), conjunction (·), and negation (¬).
+**Paper (Figure 3, p. 5):** `Pr ::= 0 | 1 | Pr+Pr | Pr·Pr | ¬Pr` - predicates include false (0), true (1), disjunction (+), conjunction (·), and negation (¬).
 
 **Current implementation:**
 - `inductive Predicate | pFalse | pTrue | pFieldEq | pAnd | pOr | pNot`  ✅
@@ -572,7 +572,7 @@ as total valuations (not arbitrary functions).
 **Paper (Figure 3, p. 5–6; §I-B "Semantics"):**
 - `⟦0⟧ = ∅`
 - `⟦1⟧ = {(σ,σ)}`
-- `⟦f=n⟧ = {(σ,σ) | σ(f) = n}` — but the paper's full semantics operates on **histories** `h ∈ H`, with `⟦N⟧ : N → (H → 𝒫(H))`
+- `⟦f=n⟧ = {(σ,σ) | σ(f) = n}` - but the paper's full semantics operates on **histories** `h ∈ H`, with `⟦N⟧ : N → (H → 𝒫(H))`
 - `⟦¬a⟧(h) = {h} \ ⟦a⟧(h)`
 - `⟦α⟧ = ∩_{f=v ∈ α} ⟦f=v⟧` (conjunction of field tests)
 - `⟦π⟧ = {(σ, π(σ))}`
@@ -616,7 +616,7 @@ build succeeds and all theorems are machine-checked with no proof holes.
 
 **Question:** Is Kleene star represented as unbounded closure?
 
-**Paper:** `⟦N*⟧ = ⋃ₖ⟦N⟧ᵏ` — reflexive-transitive closure. On finite domains this is finite.
+**Paper:** `⟦N*⟧ = ⋃ₖ⟦N⟧ᵏ` - reflexive-transitive closure. On finite domains this is finite.
 
 **Current implementation:**
 ```lean
@@ -624,7 +624,7 @@ inductive StarClosure {α : Type} (R : α → α → Prop) : α → α → Prop
   | refl : ∀ a, StarClosure R a a
   | step : ∀ {a b c}, R a b → StarClosure R b c → StarClosure R a c
 ```
-This is the standard inductive reflexive-transitive closure — the correct
+This is the standard inductive reflexive-transitive closure - the correct
 representation of `⋃ₖ⟦N⟧ᵏ`.  ✅
 
 **Classification:** ***Conformant.***
@@ -632,7 +632,7 @@ representation of `⋃ₖ⟦N⟧ᵏ`.  ✅
 The star is correctly represented as inductive reflexive-transitive closure.
 On a finite packet domain, this terminates (finite number of distinct paths).
 
-### 3.7 Paper Example — `(tp_src = 8);drop`
+### 3.7 Paper Example - `(tp_src = 8);drop`
 
 **Paper reference:** §I-A (running example). The policy `(tp_src = 8);drop`
 drops packets with `tp_src = 8` and passes others (the test fails → drop).
@@ -660,7 +660,7 @@ are also dropped (test fails → ∅). Result is always ∅, matching the paper.
 
 ### 4.1 Build status
 
-`lake build DyNetKAT` — **SUCCESS** (exit code 0). Build completed successfully.
+`lake build DyNetKAT` - **SUCCESS** (exit code 0). Build completed successfully.
 No compilation errors or proof holes remain. The audit sections below describe
 the state **after** the assignment conformance migration (Tasks 2O–2R-L).
 
@@ -676,15 +676,15 @@ the state **after** the assignment conformance migration (Tasks 2O–2R-L).
 
 | Issue | Paper Reference | Status |
 |---|---|---|
-| `holdsFinset` (legacy helper, not a complete test) | Definition 4, p. 8 | **Retained but isolated** — legacy `Finset FieldEq`-based helper for partial field-value tests; not used in `.completeTest` semantics (only `holdsComplete` is referenced at `Semantics.lean:67`). This is a non-canonical helper, not a parallel representation of complete tests. |
-| Per-field value domains `Vi` vs. single `Value` | Definition 1, p. 5 | **Minor simplification** — documented, acceptable |
-| Semantics over single packets vs. histories | Figure 3, p. 181 | **Equivalent for dup-free** — documented in comments at `Semantics.lean:20-25` |
+| `holdsFinset` (legacy helper, not a complete test) | Definition 4, p. 8 | **Retained but isolated** - legacy `Finset FieldEq`-based helper for partial field-value tests; not used in `.completeTest` semantics (only `holdsComplete` is referenced at `Semantics.lean:67`). This is a non-canonical helper, not a parallel representation of complete tests. |
+| Per-field value domains `Vi` vs. single `Value` | Definition 1, p. 5 | **Minor simplification** - documented, acceptable |
+| Semantics over single packets vs. histories | Figure 3, p. 181 | **Equivalent for dup-free** - documented in comments at `Semantics.lean:20-25` |
 
 ### 4.4 What remains for Lemma 5 (NOT addressed by Task 2R-L)
 
 - Lemma 5 (normal forms) is the Phase 1 deliverable but is **not yet implemented**.
 - `[Fintype CtxPkt]` instance **is established** (`Packet.lean:158-161`); however,
-  the star-termination theorem (`star_terminates` — proof that `StarClosure`
+  the star-termination theorem (`star_terminates` - proof that `StarClosure`
   stabilizes in ≤ `|CtxPkt|²` steps) is not yet proven, blocking computable star
   evaluation and normalization of star terms.
 
@@ -718,14 +718,14 @@ All assignments in the previous (stale) recommendations have been addressed:
 - ✅ `CompleteAssignmentValuation := CtxPkt` (total valuation) as sole representation.
 - ✅ `completeAssignExpr` builds compound assignments from `assign1`.
 - ✅ `completeAssignExpr_sem`, `assign1_sem`, `assign_list_sem`, `fieldEnum_updates_complete`
-  all proven — no `sorry`/`admit`/`axiom`.
+  all proven - no `sorry`/`admit`/`axiom`.
 - ✅ Build passes (`lake build DyNetKAT` exit code 0).
 - ✅ No dangling references to legacy types.
 
 ### 6.2 Remaining (out of scope for Task 2R-L)
 
-- Implement Lemma 5 (normal forms) — Phase 1 deliverable, requires `E_NK` derivability relation.
-- Prove `star_terminates` — the theorem that `StarClosure` stabilizes in ≤ `|CtxPkt|²` steps on finite domains (blocks computable star evaluation and star-term normalization).
+- Implement Lemma 5 (normal forms) - Phase 1 deliverable, requires `E_NK` derivability relation.
+- Prove `star_terminates` - the theorem that `StarClosure` stabilizes in ≤ `|CtxPkt|²` steps on finite domains (blocks computable star evaluation and star-term normalization).
 
 > **Note:** `[Fintype CtxPkt]` (including `Fintype CompleteTest` and `Fintype CompleteAssignmentValuation`) **has been established** (`Packet.lean:158-200, 258-260`) in a subsequent task. This recommendation is retained from the Task 2R-L perspective but is now satisfied.
 
@@ -745,7 +745,7 @@ sound and align with the paper. They correctly:
 - Add Boolean algebra lemmas (BA-EXCL-MID, BA-CONTRA, De Morgan).
 - Add Kleene algebra and packet algebra laws.
 - Prove `completeAssignExpr_sem`, `assign1_sem`, `assign_list_sem`,
-  `fieldEnum_updates_complete` — no `sorry`/`admit`/`axiom`.
+  `fieldEnum_updates_complete` - no `sorry`/`admit`/`axiom`.
 
 The changes should be **preserved as-is**. Do not revert to the Phase 1 base
 (committed HEAD), which lacks the `Predicate` type and the complete test/assignment

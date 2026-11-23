@@ -12,12 +12,12 @@
 
 The DyNetKAT-Lean repository contains a **faithful, machine-verified partial formalization** of the original DyNetKAT calculus in Lean 4. The formalization covers:
 
-1. **NetKAT⁻ᵈᵘᵖ** (finite-domain packet model, denotational semantics, normal forms, executable evaluator with correctness proofs) — **fully implemented** and verified.
-2. **DyNetKAT extended syntax** (all operators from Eq. 1 and Eq. 6, including `rcfgPrefix`, `leftMerge`, `commMerge`, `restrict`, `project`) — **fully implemented**.
-3. **Labeled operational semantics (Fig. 8)** — **fully implemented** with all 10 Step constructors.
-4. **Bisimulation and congruence theorems** — **fully implemented** (reflexivity, symmetry, transitivity + congruence for every operator).
-5. **Definedness, guardedness, well-formedness predicates** — **fully defined** with theorems establishing relationships.
-6. **Executable transition generator** — **fully implemented** with soundness and completeness theorems.
+1. **NetKAT⁻ᵈᵘᵖ** (finite-domain packet model, denotational semantics, normal forms, executable evaluator with correctness proofs) - **fully implemented** and verified.
+2. **DyNetKAT extended syntax** (all operators from Eq. 1 and Eq. 6, including `rcfgPrefix`, `leftMerge`, `commMerge`, `restrict`, `project`) - **fully implemented**.
+3. **Labeled operational semantics (Fig. 8)** - **fully implemented** with all 10 Step constructors.
+4. **Bisimulation and congruence theorems** - **fully implemented** (reflexivity, symmetry, transitivity + congruence for every operator).
+5. **Definedness, guardedness, well-formedness predicates** - **fully defined** with theorems establishing relationships.
+6. **Executable transition generator** - **fully implemented** with soundness and completeness theorems.
 
 **Key limitations:** The formalization does **not** yet include the equational axiom system (A0–A15, AIP), the completeness theorem (Theorem 1), or the safety framework (Definitions 12–17). The `Step` relation is parameterized by an explicit `RecEnv` (recursion environment), which is a faithful explicit representation of the paper's meta-level recursive variable notation.
 
@@ -71,31 +71,31 @@ The DyNetKAT-Lean repository contains a **faithful, machine-verified partial for
 
 ```
 lean/
-├── DyNetKAT.lean          — library root (imports all modules)
-├── lakefile.toml          — project config, depends on Mathlib4 v4.19.0
-├── lean-toolchain         — pins leanprover/lean4:v4.19.0
+├── DyNetKAT.lean          - library root (imports all modules)
+├── lakefile.toml          - project config, depends on Mathlib4 v4.19.0
+├── lean-toolchain         - pins leanprover/lean4:v4.19.0
 ├── DyNetKAT/
-│   ├── Basic.lean         — project name string (1 theorem)
-│   ├── Main.lean          — CLI entry point (prints project name)
-│   ├── NetKAT/            — NetKAT⁻ᵈᵘᵖ semantic core (Phase 1)
-│   │   ├── AST.lean       — 8-constructor NetKAT + Predicate + fieldEnum
-│   │   ├── Packet.lean    — packet model, fields, values, complete tests/assignments
-│   │   ├── Semantics.lean — denotational semantics ⟦N⟧, 30+ identity theorems
-│   │   ├── NormalForm.lean— normal form representation + semantic correctness
-│   │   └── Evaluator.lean — executable evaluator + execute_correct theorem
-│   └── DyNetKAT/          — DyNetKAT calculus (Phase 2–4)
-│       ├── AST.lean       — DyNetKAT process syntax (12 constructors)
-│       ├── Action.lean    — 4-label Action type (packet, recv, send, rcfg)
-│       ├── Config.lean    — Config structure (proc, pending, handled)
-│       ├── RecEnv.lean    — RecEnv type and operations
-│       ├── Definedness.lean — ReachableVar, ClosedDefined, WellFormed, GuardedOccurrences
-│       ├── Semantics.lean  — Step inductive (Fig. 8 labeled SOS, 10 constructors)
-│       ├── Bisimulation.lean — IsBisimulation, Bisimilar, 13 congruence theorems
-│       ├── NetKATBridge.lean — execute_supported_iff_semantics, execute_packet_step
-│       └── Executable.lean  — packetTransitions + soundness/completeness
-├── test_evaluator_integration.lean — integration tests for execute_correct
-├── test_*.lean (10 files)          — various scratch tests
-└── docs/ (13 files)                 — research notes, design docs, audits
+│   ├── Basic.lean         - project name string (1 theorem)
+│   ├── Main.lean          - CLI entry point (prints project name)
+│   ├── NetKAT/            - NetKAT⁻ᵈᵘᵖ semantic core (Phase 1)
+│   │   ├── AST.lean       - 8-constructor NetKAT + Predicate + fieldEnum
+│   │   ├── Packet.lean    - packet model, fields, values, complete tests/assignments
+│   │   ├── Semantics.lean - denotational semantics ⟦N⟧, 30+ identity theorems
+│   │   ├── NormalForm.lean - normal form representation + semantic correctness
+│   │   └── Evaluator.lean - executable evaluator + execute_correct theorem
+│   └── DyNetKAT/          - DyNetKAT calculus (Phase 2–4)
+│       ├── AST.lean       - DyNetKAT process syntax (12 constructors)
+│       ├── Action.lean    - 4-label Action type (packet, recv, send, rcfg)
+│       ├── Config.lean    - Config structure (proc, pending, handled)
+│       ├── RecEnv.lean    - RecEnv type and operations
+│       ├── Definedness.lean - ReachableVar, ClosedDefined, WellFormed, GuardedOccurrences
+│       ├── Semantics.lean  - Step inductive (Fig. 8 labeled SOS, 10 constructors)
+│       ├── Bisimulation.lean - IsBisimulation, Bisimilar, 13 congruence theorems
+│       ├── NetKATBridge.lean - execute_supported_iff_semantics, execute_packet_step
+│       └── Executable.lean  - packetTransitions + soundness/completeness
+├── test_evaluator_integration.lean - integration tests for execute_correct
+├── test_*.lean (10 files)          - various scratch tests
+└── docs/ (13 files)                 - research notes, design docs, audits
 ```
 
 ### Implementation status by component
@@ -175,7 +175,7 @@ theorem RecEnv.lookup_define_other (env : RecEnv) (name candidate : Var)
 
 **Type explanation:**
 
-- `Var` is defined in `AST.lean:64` as `abbrev Var : Type := String` — countably infinite recursion-variable names.
+- `Var` is defined in `AST.lean:64` as `abbrev Var : Type := String` - countably infinite recursion-variable names.
 - `RecEnv` is a **total function** `Var → Option DyNetKAT`. It maps each variable name to either `some body` (defined) or `none` (undefined).
 - The `lookup` method applies the function (syntactic sugar for `env name`).
 - `empty` is the environment with no recursive definitions (everything maps to `none`).
@@ -209,7 +209,7 @@ The `Step` relation is parameterized by `RecEnv` as its first argument:
 inductive Step (env : RecEnv) : Config → Action → Config → Prop
 ```
 
-Every constructor of `Step` receives the same `env` parameter. The environment is **fixed** throughout a derivation — it is not modified by transitions. The only constructor that consults `env` is `cpol_var`, which uses it as a premise to look up the defining body of a recursive variable.
+Every constructor of `Step` receives the same `env` parameter. The environment is **fixed** throughout a derivation - it is not modified by transitions. The only constructor that consults `env` is `cpol_var`, which uses it as a premise to look up the defining body of a recursive variable.
 
 ### B. Why do we need an environment?
 
@@ -238,7 +238,7 @@ Every constructor of `Step` receives the same `env` parameter. The environment i
 7. **Does our Lean formalization use one fixed environment, or quantify over environments?**
    The formalization uses **one fixed environment** passed as a parameter to both `Step` and `Bisimilar`. The congruence theorems all state: given `Bisimilar env p q` (for a fixed `env`), conclude `Bisimilar env (C[p]) (C[q])` (under the same `env`). There is no quantification over environments in the current theorems. This means bisimilarity is proved **relative to a fixed environment**.
 
-**Caveat:** The paper's bisimilarity `p ∼ q` is intended to hold for a given recursive specification (the implicit context). The Lean formalization faithfully captures this by parameterizing everything on `env`. However, the paper's completeness theorem (Theorem 1) is stated without explicit environment quantification — it implicitly assumes all recursive variables in the terms are well-defined. The Lean formalization would need to state: "for all well-formed environments `env`, `E_DNK ⊢ p ≡ q` iff `Bisimilar env p q`" — but this theorem is **not yet proved**.
+**Caveat:** The paper's bisimilarity `p ∼ q` is intended to hold for a given recursive specification (the implicit context). The Lean formalization faithfully captures this by parameterizing everything on `env`. However, the paper's completeness theorem (Theorem 1) is stated without explicit environment quantification - it implicitly assumes all recursive variables in the terms are well-defined. The Lean formalization would need to state: "for all well-formed environments `env`, `E_DNK ⊢ p ≡ q` iff `Bisimilar env p q`" - but this theorem is **not yet proved**.
 
 ### C. Recursive unfolding
 
@@ -272,13 +272,13 @@ The paper's rule (cpolX) states:
 
 - **How the defining body is obtained:** The premise `definition : env.lookup name = some body` in the Lean constructor corresponds to the paper's meta-level `[X ≜ p]` annotation. The body `p` is retrieved from the environment via `env.lookup name`.
 - **How the body's transition becomes a transition of the variable:** Given a transition of the body `(p, H, H′) →γ (p′, H″, H‴)` (the `step` premise), the constructor produces the transition `(X, H, H′) →γ (p′, H″, H‴)` with the same label, same input packet lists, and same output packet lists.
-- **Does unfolding produce an observable action?** Yes — the label `γ` is **inherited** from the body's transition. The rule does not have an "internal" or silent label; whatever action the body produces is the same action the variable produces. This matches the paper: the variable `X` "behaves according to `p`."
-- **Is the same environment used throughout the derivation?** Yes. The `env` parameter is fixed for the entire `Step` derivation. Recursive unfolding of nested variables (e.g., if `body` itself contains a `var`) uses the same `env` — `cpol_var` is applied recursively with the same `env`.
-- **Does unfolding require definedness or guardedness assumptions?** The `cpol_var` constructor itself does **not** require guardedness. It requires only `env.lookup name = some body` (the variable must be defined). Guardedness (Definition 7) is a **separate well-formedness concern** — it ensures that recursive unfolding terminates (produces a well-founded derivation). The `WellFormed` predicate (Section 3) combines `ClosedDefined` with `GuardedOccurrences` of all reachable variable bodies. However, **the current theorems do not require `WellFormed`** — they quantify over arbitrary environments and arbitrary terms.
+- **Does unfolding produce an observable action?** Yes - the label `γ` is **inherited** from the body's transition. The rule does not have an "internal" or silent label; whatever action the body produces is the same action the variable produces. This matches the paper: the variable `X` "behaves according to `p`."
+- **Is the same environment used throughout the derivation?** Yes. The `env` parameter is fixed for the entire `Step` derivation. Recursive unfolding of nested variables (e.g., if `body` itself contains a `var`) uses the same `env` - `cpol_var` is applied recursively with the same `env`.
+- **Does unfolding require definedness or guardedness assumptions?** The `cpol_var` constructor itself does **not** require guardedness. It requires only `env.lookup name = some body` (the variable must be defined). Guardedness (Definition 7) is a **separate well-formedness concern** - it ensures that recursive unfolding terminates (produces a well-founded derivation). The `WellFormed` predicate (Section 3) combines `ClosedDefined` with `GuardedOccurrences` of all reachable variable bodies. However, **the current theorems do not require `WellFormed`** - they quantify over arbitrary environments and arbitrary terms.
 
 **Key difference from the paper's presentation:**
 
-The paper writes `[X ≜ p]` as a side annotation on the rule, treating it as implicit meta-level context. The Lean encoding makes it an **explicit premise**: `definition : env.lookup name = some body`. This is a faithful and standard encoding — it makes the dependency explicit in the type theory, which is necessary because Lean 4 does not have meta-level variable definitions.
+The paper writes `[X ≜ p]` as a side annotation on the rule, treating it as implicit meta-level context. The Lean encoding makes it an **explicit premise**: `definition : env.lookup name = some body`. This is a faithful and standard encoding - it makes the dependency explicit in the type theory, which is necessary because Lean 4 does not have meta-level variable definitions.
 
 
 ## 3. Definedness, Guardedness, and Well-Formedness
@@ -307,9 +307,9 @@ This is a **transitive closure** over variable occurrences and definitions: if `
 **Where it is used:** `ClosedDefined` (line 35), `WellFormed` (line 140), and all their derived theorems (`reachableView.direct`, `reachableView.through_definition`, `reachableView.body`, `reachableView_of_reachable_body`).
 
 **Theorems established:**
-- `reachableVar_direct` (line 38) — direct occurrences are reachable
-- `reachableVar_through_definition` (line 43) — variables in a reachable variable's body are reachable
-- `ReachableVar.body` (line 57) — transitively through definitions
+- `reachableVar_direct` (line 38) - direct occurrences are reachable
+- `reachableVar_through_definition` (line 43) - variables in a reachable variable's body are reachable
+- `ReachableVar.body` (line 57) - transitively through definitions
 
 **What has NOT been proved:** No theorem about the finiteness of `ReachableVar`. No preservation theorem for reachability under unfolding alone.
 
@@ -322,12 +322,12 @@ def Defined (env : RecEnv) (process : DyNetKAT) : Prop :=
   ∀ name ∈ recursiveVars process, (env.lookup name).isSome
 ```
 
-**Mathematical meaning:** Every recursive variable occurring **directly** in `process` has a definition in `env`. This is a **shallow** check — it does not inspect the bodies of definitions.
+**Mathematical meaning:** Every recursive variable occurring **directly** in `process` has a definition in `env`. This is a **shallow** check - it does not inspect the bodies of definitions.
 
 **Where it is used:** Used in the proof of `ClosedDefined.defined` (line 51).
 
 **Theorems established:**
-- `ClosedDefined.defined` (line 51) — `ClosedDefined` implies `Defined`
+- `ClosedDefined.defined` (line 51) - `ClosedDefined` implies `Defined`
 
 **What has NOT been proved:** No standalone theorems about `Defined` alone.
 
@@ -340,12 +340,12 @@ def ClosedDefined (env : RecEnv) (process : DyNetKAT) : Prop :=
   ∀ name, ReachableVar env process name → (env.lookup name).isSome
 ```
 
-**Mathematical meaning:** Every recursively reachable variable (directly or through a chain of definitions) has a definition in `env`. This is a **deep** check — it closes under the transitive closure of reachability.
+**Mathematical meaning:** Every recursively reachable variable (directly or through a chain of definitions) has a definition in `env`. This is a **deep** check - it closes under the transitive closure of reachability.
 
 **Where it is used:** `WellFormed` (line 140), `WellFormed.closedDefined` (line 145).
 
 **Theorems established:**
-- `ClosedDefined.defined` (line 51) — `ClosedDefined` implies `Defined`
+- `ClosedDefined.defined` (line 51) - `ClosedDefined` implies `Defined`
 
 **What has NOT been proved:** No theorem establishing that `ClosedDefined` is preserved under transitions (Step).
 
@@ -369,18 +369,18 @@ def GuardedOccurrences : DyNetKAT → Prop
   | .var _ => False
 ```
 
-**Mathematical meaning (Definition 7):** A process has guarded recursive-variable occurrences if every occurrence of a recursive variable is "guarded" — i.e., it appears under at least one sequencing prefix (`N;D`), communication prefix (`x?N;D`, `x!N;D`), or reconfiguration prefix (`rcfg_{x,N};D`). A bare variable `X` is **not** guarded (`GuardedOccurrences (.var name) = False`). The sequencing and communication constructors return `True` unconditionally because their continuation (which may contain variables) is guarded by the prefix.
+**Mathematical meaning (Definition 7):** A process has guarded recursive-variable occurrences if every occurrence of a recursive variable is "guarded" - i.e., it appears under at least one sequencing prefix (`N;D`), communication prefix (`x?N;D`, `x!N;D`), or reconfiguration prefix (`rcfg_{x,N};D`). A bare variable `X` is **not** guarded (`GuardedOccurrences (.var name) = False`). The sequencing and communication constructors return `True` unconditionally because their continuation (which may contain variables) is guarded by the prefix.
 
 **Where it is used:** `WellFormed` (line 141), `IsGuarded` (line 105).
 
 **Theorems established:**
 - `guardedOccurrences_deadlock` (line 107)
-- `not_guardedOccurrences_var` (line 115) — a bare variable is NOT guarded
+- `not_guardedOccurrences_var` (line 115) - a bare variable is NOT guarded
 - `guardedOccurrences_var_iff` (line 119)
 - `guardedOccurrences_choice_iff` (line 123)
-- `guardedOccurrences_nSeq` (line 128) — `N;D` is always guarded
+- `guardedOccurrences_nSeq` (line 128) - `N;D` is always guarded
 
-**What has NOT been proved:** No theorem connecting guardedness to bisimulation finiteness (Lemma 8 — not yet implemented).
+**What has NOT been proved:** No theorem connecting guardedness to bisimulation finiteness (Lemma 8 - not yet implemented).
 
 ### WellFormed (line 140)
 
@@ -403,7 +403,7 @@ def WellFormed (env : RecEnv) (process : DyNetKAT) : Prop :=
 - `WellFormed.closedDefined` (line 145)
 - `WellFormed.reachable_definition` (line 150)
 - `WellFormed.reachable_guarded` (line 157)
-- `WellFormed.body` (line 167) — preservation under unfolding
+- `WellFormed.body` (line 167) - preservation under unfolding
 - `wellFormed_var_iff` (line 183)
 
 **What has NOT been proved:**
@@ -414,12 +414,12 @@ def WellFormed (env : RecEnv) (process : DyNetKAT) : Prop :=
 
 The main `Step`, `Bisimilar`, and executable-correctness theorems do **NOT** explicitly require well-formed environments:
 
-- `Step` (Semantics.lean:13): `inductive Step (env : RecEnv) : Config → Action → Config → Prop` — **no `WellFormed` precondition**.
-- `Bisimilar` (Bisimulation.lean:26): `def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop` — **no `WellFormed` precondition**.
-- `packetTransitions` (Executable.lean:25) — **no `WellFormed` precondition**.
-- `packetTransitions_sound` (Executable.lean:57) — **no `WellFormed` hypothesis**.
-- `packetTransitions_complete` (Executable.lean:90) — **no `WellFormed` hypothesis**.
-- `execute_correct` (Evaluator.lean:1078) — **no `RecEnv` or `WellFormed` parameter** (NetKAT-only).
+- `Step` (Semantics.lean:13): `inductive Step (env : RecEnv) : Config → Action → Config → Prop` - **no `WellFormed` precondition**.
+- `Bisimilar` (Bisimulation.lean:26): `def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop` - **no `WellFormed` precondition**.
+- `packetTransitions` (Executable.lean:25) - **no `WellFormed` precondition**.
+- `packetTransitions_sound` (Executable.lean:57) - **no `WellFormed` hypothesis**.
+- `packetTransitions_complete` (Executable.lean:90) - **no `WellFormed` hypothesis**.
+- `execute_correct` (Evaluator.lean:1078) - **no `RecEnv` or `WellFormed` parameter** (NetKAT-only).
 
 
 ## 4. Operational Semantics and Bisimulation
@@ -471,7 +471,7 @@ The `Step` relation is an inductive with exactly 10 constructors, corresponding 
 
 | Constructor | Paper rule | Line |
 |---|---|---|
-| `cpol_seq_ok` | (cpolX;) — packet flow | Semantics.lean:14 |
+| `cpol_seq_ok` | (cpolX;) - packet flow | Semantics.lean:14 |
 | `cpol_choice_l` | (cpol⊕) left | Semantics.lean:26 |
 | `cpol_choice_r` | (cpol⊕) right | Semantics.lean:38 |
 | `cpol_par_l` | (cpol‖) left | Semantics.lean:50 |
@@ -482,7 +482,7 @@ The `Step` relation is an inductive with exactly 10 constructors, corresponding 
 | `cpol_recv` | (cpol?) | Semantics.lean:123 |
 | `cpol_send` | (cpol!) | Semantics.lean:134 |
 | `cpol_rcfg` | (rcfg_{x,z}) | Semantics.lean:145 |
-| `cpol_var` | (cpolX) — recursion | Semantics.lean:156 |
+| `cpol_var` | (cpolX) - recursion | Semantics.lean:156 |
 | `cpol_sync_recv_send` | synchronization | Semantics.lean:169 |
 | `cpol_sync_send_recv` | synchronization | Semantics.lean:187 |
 | `cpol_project` | π_{n+1} lifting | Semantics.lean:205 |
@@ -529,7 +529,7 @@ def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop :=
   ∃ R, IsBisimulation env R ∧ R p q
 ```
 
-**Bisimulation is defined over processes** (not configurations). The relation `R` ranges over `DyNetKAT → DyNetKAT → Prop`. The simulation condition quantifies over all packet histories (`pending`, `handled`) — this means the bisimulation must match transitions for all possible configurations of the related processes.
+**Bisimulation is defined over processes** (not configurations). The relation `R` ranges over `DyNetKAT → DyNetKAT → Prop`. The simulation condition quantifies over all packet histories (`pending`, `handled`) - this means the bisimulation must match transitions for all possible configurations of the related processes.
 
 ### Theorem inventory
 
@@ -546,8 +546,8 @@ def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop :=
 | `Bisimilar.parallel_left` | 214 | `Bisimilar env p q → Bisimilar env (r‖p) (r‖q)` |
 | `Bisimilar.leftMerge_left` | 278 | `Bisimilar env p q → Bisimilar env (p⌊⌊r) (q⌊⌊r)` |
 | `Bisimilar.leftMerge_right` | 314 | `Bisimilar env p q → Bisimilar env (r⌊⌊p) (r⌊⌊q)` |
-| `Bisimilar.commMerge_right` | 345 | `Bisimilar env p q → Bisimilar env (p|q) (q|r)` — left operand |
-| `Bisimilar.commMerge_left` | 393 | `Bisimilar env p q → Bisimilar env (r|p) (r|q)` — right operand |
+| `Bisimilar.commMerge_right` | 345 | `Bisimilar env p q → Bisimilar env (p|q) (q|r)` - left operand |
+| `Bisimilar.commMerge_left` | 393 | `Bisimilar env p q → Bisimilar env (r|p) (r|q)` - right operand |
 | `Bisimilar.nSeq_left` | 441 | `Bisimilar env p q → Bisimilar env (n;p) (n;q)` |
 | `Bisimilar.recv_left` | 472 | `Bisimilar env p q → Bisimilar env (x?n;p) (x?n;q)` |
 | `Bisimilar.send_left` | 503 | `Bisimilar env p q → Bisimilar env (x!n;p) (x!n;q)` |
@@ -555,10 +555,10 @@ def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop :=
 | `Bisimilar.restrict` | 565 | `Bisimilar env p q → Bisimilar env (δ_ℒ(p)) (δ_ℒ(q))` |
 | `Bisimilar.project` | 617 | `Bisimilar env p q → Bisimilar env (π_n(p)) (π_n(q))` |
 
-**All 17 theorems (including refl/symm/trans) are unconditional on `WellFormed`** — they work for any environment. Every congruence theorem is parameterized by `env : RecEnv` and concludes `Bisimilar env ...`.
+**All 17 theorems (including refl/symm/trans) are unconditional on `WellFormed`** - they work for any environment. Every congruence theorem is parameterized by `env : RecEnv` and concludes `Bisimilar env ...`.
 
 **Theorems NOT yet proved:**
-- Lemma 3 (bisimilarity is a congruence — this is the collection above, but the paper's specific statement)
+- Lemma 3 (bisimilarity is a congruence - this is the collection above, but the paper's specific statement)
 - Proposition 1 (semantic layering: ⟦p⟧ = ⟦q⟧ iff (p;d) ∼ (q;d))
 - Lemma 8 (branching finiteness)
 - Lemma 10, 11 (axiom soundness)
@@ -566,7 +566,7 @@ def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop :=
 
 ### Comparison with the original paper
 
-The paper's Definition 2 defines bisimilarity as the **largest bisimulation**. The Lean formalization defines `Bisimilar` as "there exists a bisimulation relating `p` and `q`" — this is equivalent to the **greatest fixed point** (the largest bisimulation), since the union of all bisimulations is itself a bisimulation. This encoding is standard and faithful.
+The paper's Definition 2 defines bisimilarity as the **largest bisimulation**. The Lean formalization defines `Bisimilar` as "there exists a bisimulation relating `p` and `q`" - this is equivalent to the **greatest fixed point** (the largest bisimulation), since the union of all bisimulations is itself a bisimulation. This encoding is standard and faithful.
 
 **Key difference:** The paper's `p ∼ q` does not explicitly parameterize by an environment. The Lean formalization parameterizes everything by `env`. As defended in Section 2.B, this is a faithful explicit encoding of the paper's implicit recursive-variable context.
 
@@ -602,7 +602,7 @@ def execute : NetKAT → CtxPkt → EvalResult
   | .star p, σ => boundedStarWith (execute p) (Fintype.card CtxPkt) σ
 ```
 
-**All constructors are supported** — no term returns `.unsupported` unless a sub-term does. The `execute_supported` theorem (line 618) proves this: `∀ p σ, ∃ B, execute p σ = .supported B`.
+**All constructors are supported** - no term returns `.unsupported` unless a sub-term does. The `execute_supported` theorem (line 618) proves this: `∀ p σ, ∃ B, execute p σ = .supported B`.
 
 ### What is CtxPkt?
 
@@ -679,7 +679,7 @@ theorem execute_correct
 
 This theorem establishes **both soundness and completeness** of the evaluator in one statement:
 - **Soundness direction** (⇒): If `execute p σ = .supported B`, then `∀ τ, Semantics p σ τ ↔ τ ∈ B`. Every computed output is semantically valid, and every semantically valid output is computed.
-- **Totality + supportedness**: `execute p σ = .supported B` for some `B` — the evaluator always produces a supported result (never `.unsupported`). This is `execute_supported` (line 618).
+- **Totality + supportedness**: `execute p σ = .supported B` for some `B` - the evaluator always produces a supported result (never `.unsupported`). This is `execute_supported` (line 618).
 
 ### Limitations arising from the finite packet model or dup-free NetKAT
 
@@ -749,7 +749,7 @@ theorem execute_packet_step
 - `pending = sigma :: pendingTail` (the pending list is non-empty with `sigma` as head)
 - `handled` is arbitrary (no constraint on the already-handled packets)
 
-**Process structure:** The theorem is specifically about `nSeq p continuation` — the base packet-processing rule. It does not cover `recv`, `send`, `parallel`, or other operators.
+**Process structure:** The theorem is specifically about `nSeq p continuation` - the base packet-processing rule. It does not cover `recv`, `send`, `parallel`, or other operators.
 
 **Recursive environments:** The theorem is parameterized by `env : RecEnv` but the `cpol_seq_ok` constructor does not consult `env` (packet processing is independent of the recursion environment). The `env` parameter is threaded through for uniformity.
 
@@ -834,37 +834,37 @@ theorem packetTransitions_complete
 ### Explanation
 
 **Which process constructors are handled:**
-Only **`.nSeq p continuation`** — the `nSeq` constructor. The function name and type signature make this explicit: it takes `p : NetKAT` and `continuation : DyNetKAT`, and the theorems prove equivalence between `packetTransitions` results and `Step` for configurations of shape `{ proc := .nSeq p continuation, ... }`.
+Only **`.nSeq p continuation`** - the `nSeq` constructor. The function name and type signature make this explicit: it takes `p : NetKAT` and `continuation : DyNetKAT`, and the theorems prove equivalence between `packetTransitions` results and `Step` for configurations of shape `{ proc := .nSeq p continuation, ... }`.
 
 No other constructor is handled: `recv`, `send`, `rcfgPrefix`, `parallel`, `choice`, `leftMerge`, `commMerge`, `restrict`, `project`, `var`, `deadlock` are **all out of scope**.
 
 **What constitutes the input state:**
-- `p : NetKAT` — the NetKAT policy
-- `continuation : DyNetKAT` — the DyNetKAT continuation
-- `pending : List CtxPkt` — the pending packet history
-- `handled : List CtxPkt` — the handled packet history
+- `p : NetKAT` - the NetKAT policy
+- `continuation : DyNetKAT` - the DyNetKAT continuation
+- `pending : List CtxPkt` - the pending packet history
+- `handled : List CtxPkt` - the handled packet history
 
 **How pending and handled histories are updated:**
 - **Pending:** If `pending = sigma :: pendingTail`, the head `sigma` is consumed (removed), and `pendingTail` becomes the new pending list. If `pending = []`, the result is empty (no packet to process).
-- **Handled:** For each output `tau` of `p` on `sigma`, the resulting configuration has `handled := tau :: handled` — the output is consed onto the front of the handled list.
+- **Handled:** For each output `tau` of `p` on `sigma`, the resulting configuration has `handled := tau :: handled` - the output is consed onto the front of the handled list.
 
 **How possible packet outputs are enumerated:**
 The `execute` evaluator returns `.supported outputs` (a `Finset CtxPkt`). The function maps over `outputs.1` (the underlying list of the finset) to produce one `(Action, Config)` pair per output packet `tau`.
 
 **How action labels are constructed:**
-Each generated transition carries the label `Action.packet sigma tau` — a packet-flow action from the input `sigma` to the output `tau`.
+Each generated transition carries the label `Action.packet sigma tau` - a packet-flow action from the input `sigma` to the output `tau`.
 
 **What the function returns and what `none` means:**
 - Returns `Option (Multiset (Action × Config))`.
-- `.some results` — evaluation was supported; `results` contains all generated transitions (possibly empty if `outputs = ∅`).
-- `.none` — evaluation was `.unsupported` (the NetKAT evaluator did not support some sub-term). Per `execute_supported`, this never happens for valid NetKAT terms, but the `Option` type allows it defensively.
+- `.some results` - evaluation was supported; `results` contains all generated transitions (possibly empty if `outputs = ∅`).
+- `.none` - evaluation was `.unsupported` (the NetKAT evaluator did not support some sub-term). Per `execute_supported`, this never happens for valid NetKAT terms, but the `Option` type allows it defensively.
 
 **Why `Multiset` and not `List` or `Finset`:**
 `Multiset` is used because the evaluator returns a `Finset` of outputs, and `Finset.1` converts to a list (which may have order-dependent enumeration). `Multiset` avoids requiring a noncomputable ordering of the `Finset` and preserves the multiplicity structure if needed. As the code comment (line 23) states: "preserves the evaluator's executable finite enumeration without requiring a noncomputable ordering of a `Finset`."
 
 **Which transitions are NOT currently generated:**
 - **All non-`nSeq` transitions:** `recv`, `send`, `rcfgPrefix`, `parallel` (including synchronization), `choice`, `leftMerge`, `commMerge`, `restrict`, `project`, `var` (recursive unfolding) are not generated.
-- **Empty pending list:** Returns an empty multiset (not `.none`) — but this means no transitions are generated for an empty pending list.
+- **Empty pending list:** Returns an empty multiset (not `.none`) - but this means no transitions are generated for an empty pending list.
 - **Unsupported evaluation:** Returns `.none` (not applicable in practice due to `execute_supported`, but the type allows it).
 
 ### Soundness theorem
@@ -885,9 +885,9 @@ Each generated transition carries the label `Action.packet sigma tau` — a pack
 ### Verification: Results apply only to top-level nSeq
 
 **Confirmed by source inspection:** Yes, the results apply **only** to top-level `nSeq`:
-- `packetTransitions` takes `p : NetKAT` and `continuation : DyNetKAT` — not a general `DyNetKAT` process.
+- `packetTransitions` takes `p : NetKAT` and `continuation : DyNetKAT` - not a general `DyNetKAT` process.
 - Both theorems are stated with `proc := .nSeq p continuation` in the `Step` predicate.
-- The completeness proof uses `cases hStep with | cpol_seq_ok` — it only handles the `cpol_seq_ok` constructor, ignoring all other `Step` constructors.
+- The completeness proof uses `cases hStep with | cpol_seq_ok` - it only handles the `cpol_seq_ok` constructor, ignoring all other `Step` constructors.
 
 **This is NOT an executable implementation of the complete DyNetKAT semantics.** It is a verified executable fragment for the single packet-processing rule in the context of `nSeq`.
 
@@ -935,29 +935,29 @@ def myProc : DyNetKAT := .nSeq NetKAT.id .deadlock
 
 ### Actual output and verification
 
-- **`Fintype.card CtxPkt = 256`** — compiles successfully (`rfl`). The packet domain has exactly 256 elements (4 fields × 4 values each = 4⁴ = 256).
-- **`execute (.assign1 .tpSrc .v9) examplePacket`** — compiles successfully. Produces `.supported {Packet.update examplePacket .tpSrc .v9}` — a single output packet where `tpSrc` is set to `v9`.
-- **`packetTransitions NetKAT.id .deadlock [examplePacket] []`** — compiles successfully. `native_decide` confirms the result is `some` with cardinality `1`. This means: the identity policy on `examplePacket` produces exactly **one transition**: `(Action.packet examplePacket examplePacket, Config with proc := .deadlock, pending := [], handled := [examplePacket])`.
-- **`packetTransitions NetKAT.drop .deadlock [examplePacket] []`** — compiles successfully. `native_decide` confirms cardinality `0`. The `drop` policy consumes the packet but produces no output (the packet is dropped), resulting in an empty multiset of transitions.
-- **`packetTransitions NetKAT.id .deadlock [] []`** — compiles successfully. `rfl` confirms that with an empty pending list, the result is `some (∅ : Multiset (Action × Config))` — no transitions can fire because there is no packet to process.
+- **`Fintype.card CtxPkt = 256`** - compiles successfully (`rfl`). The packet domain has exactly 256 elements (4 fields × 4 values each = 4⁴ = 256).
+- **`execute (.assign1 .tpSrc .v9) examplePacket`** - compiles successfully. Produces `.supported {Packet.update examplePacket .tpSrc .v9}` - a single output packet where `tpSrc` is set to `v9`.
+- **`packetTransitions NetKAT.id .deadlock [examplePacket] []`** - compiles successfully. `native_decide` confirms the result is `some` with cardinality `1`. This means: the identity policy on `examplePacket` produces exactly **one transition**: `(Action.packet examplePacket examplePacket, Config with proc := .deadlock, pending := [], handled := [examplePacket])`.
+- **`packetTransitions NetKAT.drop .deadlock [examplePacket] []`** - compiles successfully. `native_decide` confirms cardinality `0`. The `drop` policy consumes the packet but produces no output (the packet is dropped), resulting in an empty multiset of transitions.
+- **`packetTransitions NetKAT.id .deadlock [] []`** - compiles successfully. `rfl` confirms that with an empty pending list, the result is `some (∅ : Multiset (Action × Config))` - no transitions can fire because there is no packet to process.
 
 ### Explanation of the example
 
-1. **Initial packet:** `examplePacket` (from `Packet.lean:288`) is `fun | .tpSrc => .v8 | _ => .v0` — a packet with `tpSrc = v8` and all other fields `v0`.
+1. **Initial packet:** `examplePacket` (from `Packet.lean:288`) is `fun | .tpSrc => .v8 | _ => .v0` - a packet with `tpSrc = v8` and all other fields `v0`.
 
-2. **NetKAT policy:** `NetKAT.id` — the identity policy, which produces one output for each input packet: `⟦id⟧(σ, τ) ↔ τ = σ`.
+2. **NetKAT policy:** `NetKAT.id` - the identity policy, which produces one output for each input packet: `⟦id⟧(σ, τ) ↔ τ = σ`.
 
-3. **DyNetKAT process:** `myProc = .nSeq NetKAT.id .deadlock` — a process that applies the identity NetKAT policy to the current packet, then transitions to `deadlock`.
+3. **DyNetKAT process:** `myProc = .nSeq NetKAT.id .deadlock` - a process that applies the identity NetKAT policy to the current packet, then transitions to `deadlock`.
 
-4. **Pending history:** `[examplePacket]` — a list with one packet (the one being processed).
+4. **Pending history:** `[examplePacket]` - a list with one packet (the one being processed).
 
-5. **Handled history:** `[]` — no packets handled yet.
+5. **Handled history:** `[]` - no packets handled yet.
 
 6. **Generated transition:** The `packetTransitions` function produces a multiset containing **exactly one element**:
-   - **Action:** `Action.packet examplePacket examplePacket` — the packet flows through the identity policy unchanged.
-   - **Resulting Config:** `{ proc := .deadlock, pending := [], handled := [examplePacket] }` — the identity policy is consumed, the packet moves from pending to handled (front of the handled list), and the process continues as `deadlock`.
+   - **Action:** `Action.packet examplePacket examplePacket` - the packet flows through the identity policy unchanged.
+   - **Resulting Config:** `{ proc := .deadlock, pending := [], handled := [examplePacket] }` - the identity policy is consumed, the packet moves from pending to handled (front of the handled list), and the process continues as `deadlock`.
 
-7. **`drop` variant:** When the policy is `NetKAT.drop`, the pending list still has `examplePacket`, but no transition fires — the configuration is **stuck** (the drop rule produces no output, so no `Step` witness exists). The multiset is empty.
+7. **`drop` variant:** When the policy is `NetKAT.drop`, the pending list still has `examplePacket`, but no transition fires - the configuration is **stuck** (the drop rule produces no output, so no `Step` witness exists). The multiset is empty.
 
 8. **`none` meaning:** Neither example produces `none` (`.unsupported`). This confirms that `execute_supported` (the totality theorem) holds: all NetKAT terms evaluate to `.supported`, never `.unsupported`.
 
@@ -1014,13 +1014,13 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 | Aspect | Assessment |
 |---|---|
-| No `sorry`/`admit` in proofs | ✅ Verified — zero occurrences |
-| No `axiom` declarations | ✅ Verified — zero occurrences |
-| No `unsafe` code | ✅ Verified — zero occurrences |
-| Build succeeds | ✅ Verified — `lake build DyNetKAT` passes |
+| No `sorry`/`admit` in proofs | ✅ Verified - zero occurrences |
+| No `axiom` declarations | ✅ Verified - zero occurrences |
+| No `unsafe` code | ✅ Verified - zero occurrences |
+| Build succeeds | ✅ Verified - `lake build DyNetKAT` passes |
 | Theorems are unconditional | ⚠️ See note below |
 
-**Important note on "unconditional" theorems:** While the theorems do not contain `sorry`/`axiom`, some use `Classical` (non-constructive reasoning) and depend on Mathlib's standard axioms. The key correctness theorems (`execute_correct`, `packetTransitions_sound`, `packetTransitions_complete`) are established over **all** environments and **all** terms — they do not require `WellFormed`. This means the theorems are mathematically sound but **weaker** than what the paper proves (the paper's Theorem 1 requires guardedness; our completeness theorem is only for the `nSeq` fragment).
+**Important note on "unconditional" theorems:** While the theorems do not contain `sorry`/`axiom`, some use `Classical` (non-constructive reasoning) and depend on Mathlib's standard axioms. The key correctness theorems (`execute_correct`, `packetTransitions_sound`, `packetTransitions_complete`) are established over **all** environments and **all** terms - they do not require `WellFormed`. This means the theorems are mathematically sound but **weaker** than what the paper proves (the paper's Theorem 1 requires guardedness; our completeness theorem is only for the `nSeq` fragment).
 
 
 ## 10. Slide Recommendations
@@ -1038,7 +1038,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 **Slide 2: Representing DyNetKAT in Lean**
 
 - **Exact technical claim:** DyNetKAT syntax is an inductive type with 12 constructors covering both Eq. 1 (base) and Eq. 6 (extended) of the paper.
-- **Lean declaration:** `inductive DyNetKAT` — `AST.lean:100-113`.
+- **Lean declaration:** `inductive DyNetKAT` - `AST.lean:100-113`.
 - **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/AST.lean:100`.
 - **Visual:** Constructor table mapping Lean constructors to paper syntax.
 - **Backup:** Field/value type definitions (`Packet.lean`).
@@ -1052,8 +1052,8 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 **Slide 4: Why We Introduced RecEnv**
 
-- **Exact technical claim:** In Lean 4, the meta-level `X ≜ d` cannot be used directly — the environment must be made explicit as `RecEnv : Var → Option DyNetKAT`. This is a standard type-theoretic encoding, not a semantic change.
-- **Lean declaration:** `abbrev RecEnv : Type := Var → Option DyNetKAT` — `RecEnv.lean:9`.
+- **Exact technical claim:** In Lean 4, the meta-level `X ≜ d` cannot be used directly - the environment must be made explicit as `RecEnv : Var → Option DyNetKAT`. This is a standard type-theoretic encoding, not a semantic change.
+- **Lean declaration:** `abbrev RecEnv : Type := Var → Option DyNetKAT` - `RecEnv.lean:9`.
 - **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/RecEnv.lean:9`.
 - **Key point:** `Option` allows undefined variables (well-formedness is checked separately).
 - **Backup:** Why not store the body in the `var` constructor (it would break inductiveness).
@@ -1061,7 +1061,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 **Slide 5: Recursive Unfolding in the SOS**
 
 - **Exact technical claim:** The `cpol_var` constructor mirrors the paper's (cpolX) rule: a recursive variable unfolds to its body, inheriting the same label and packet histories.
-- **Lean declaration:** `cpol_var` — `Semantics.lean:156-167`.
+- **Lean declaration:** `cpol_var` - `Semantics.lean:156-167`.
 - **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Semantics.lean:156`.
 - **Visual:** Side-by-side: paper rule vs. Lean constructor.
 - **Backup:** No guardedness assumption in the constructor itself.
@@ -1069,9 +1069,9 @@ These are standard Mathlib axioms, not project-specific assumptions.
 **Slide 6: Environment-Relative Bisimulation**
 
 - **Exact technical claim:** `Bisimilar` takes `env : RecEnv` as a parameter: `Bisimilar env p q`. All theorems work relative to a **fixed** environment, not quantifying over all environments.
-- **Lean declaration:** `def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop` — `Bisimulation.lean:26`.
+- **Lean declaration:** `def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop` - `Bisimulation.lean:26`.
 - **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Bisimulation.lean:26`.
-- **Key defense:** This faithfully captures the paper's implicit recursive context. The paper's `p ∼ q` is "under a fixed recursive specification" — our `env` makes this explicit.
+- **Key defense:** This faithfully captures the paper's implicit recursive context. The paper's `p ∼ q` is "under a fixed recursive specification" - our `env` makes this explicit.
 - **Backup:** Theorem list (refl, symm, trans, 13 congruence theorems).
 
 **Slide 7: Definedness, Guardedness, and Well-Formedness**
@@ -1079,13 +1079,13 @@ These are standard Mathlib axioms, not project-specific assumptions.
 - **Exact technical claim:** Definedness predicates (`ReachableVar`, `ClosedDefined`, `GuardedOccurrences`, `WellFormed`) are defined but **NOT required** by any `Step`, `Bisimilar`, or executable theorem.
 - **Lean declarations:** All in `Definedness.lean:22-143`.
 - **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Definedness.lean`.
-- **Key defense:** We define these predicates (faithful to the paper's requirements), but our theorems are **stronger** — they hold for all environments, not just well-formed ones.
+- **Key defense:** We define these predicates (faithful to the paper's requirements), but our theorems are **stronger** - they hold for all environments, not just well-formed ones.
 - **Backup:** The `WellFormed` definition and its component theorems.
 
 **Slide 8: Operational Semantics and Bisimulation Results**
 
 - **Exact technical claim:** The `Step` inductive has exactly 10 constructor families matching Figure 8. The `Bisimulation.lean` module proves 17 theorems (refl, symm, trans + 14 congruence theorems).
-- **Lean declarations:** `inductive Step` — `Semantics.lean:13`; `IsBisimulation`/`Bisimilar` — `Bisimulation.lean:9,26`.
+- **Lean declarations:** `inductive Step` - `Semantics.lean:13`; `IsBisimulation`/`Bisimilar` - `Bisimulation.lean:9,26`.
 - **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Semantics.lean`; `packages/DyNetKATLean/DyNetKATLean/Core/Bisimulation.lean`.
 - **Visual:** The 10-rule constructor table.
 - **Backup:** Full theorem inventory with exact statements.
@@ -1093,23 +1093,23 @@ These are standard Mathlib axioms, not project-specific assumptions.
 **Slide 9: Making NetKAT Executable**
 
 - **Exact technical claim:** The `execute` function computes NetKAT policy evaluation over a finite 256-packet domain, returning `EvalResult` with supported (finite set) or unsupported.
-- **Lean declaration:** `def execute : NetKAT → CtxPkt → EvalResult` — `Evaluator.lean:171`.
+- **Lean declaration:** `def execute : NetKAT → CtxPkt → EvalResult` - `Evaluator.lean:171`.
 - **Source:** `packages/NetKATLean/NetKATLean/Core/Evaluator.lean:171`.
 - **Key facts:** 256 = 4⁴ (4 fields × 4 values); star bounded by `Fintype.card CtxPkt`.
 - **Backup:** The `EvalResult` type and `execute_supported` totality theorem.
 
 **Slide 10: Proving the Evaluator Correct**
 
-- **Exact technical claim:** `execute_correct` proves the evaluator computes exactly ⟦p⟧(σ) for all `p` and `σ` — soundness, completeness, and totality in one theorem.
-- **Lean declaration:** `theorem execute_correct (p : NetKAT) (σ : CtxPkt) : ∃ B, execute p σ = .supported B ∧ ∀ τ, Semantics p σ τ ↔ τ ∈ B` — `Evaluator.lean:1078`.
+- **Exact technical claim:** `execute_correct` proves the evaluator computes exactly ⟦p⟧(σ) for all `p` and `σ` - soundness, completeness, and totality in one theorem.
+- **Lean declaration:** `theorem execute_correct (p : NetKAT) (σ : CtxPkt) : ∃ B, execute p σ = .supported B ∧ ∀ τ, Semantics p σ τ ↔ τ ∈ B` - `Evaluator.lean:1078`.
 - **Source:** `packages/NetKATLean/NetKATLean/Core/Evaluator.lean:1078`.
-- **Key point:** This is a **self-contained NetKAT** correctness theorem — no DyNetKAT assumptions.
+- **Key point:** This is a **self-contained NetKAT** correctness theorem - no DyNetKAT assumptions.
 - **Backup:** The star-bound theorems (`reachableWithin_stable_at_card`, `reachableWithin_iff_at_card`).
 
 **Slide 11: Connecting Execution to DyNetKAT SOS**
 
 - **Exact technical claim:** `execute_packet_step` and `execute_supported_iff_semantics` bridge the executable evaluator to the `Step` relation, justifying one packet-processing transition per evaluator output.
-- **Lean declarations:** `execute_supported_iff_semantics` — `NetKATBridge.lean:10`; `execute_packet_step` — `NetKATBridge.lean:24`.
+- **Lean declarations:** `execute_supported_iff_semantics` - `NetKATBridge.lean:10`; `execute_packet_step` - `NetKATBridge.lean:24`.
 - **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/NetKATBridge.lean`.
 - **Connection to paper:** Bridges to `cpol_seq_ok` (`Step.cpol_seq_ok`), the (cpolX;) rule.
 - **Backup:** Assumptions (nSeq shape, non-empty pending).
@@ -1117,9 +1117,9 @@ These are standard Mathlib axioms, not project-specific assumptions.
 **Slide 12: Generating Executable Transitions**
 
 - **Exact technical claim:** `packetTransitions` enumerates packet-flow transitions for `nSeq` processes; `packetTransitions_sound` and `packetTransitions_complete` establish bidirectional equivalence.
-- **Lean declarations:** `packetTransitions` — `Executable.lean:25`; theorems — `Executable.lean:57, 90`.
+- **Lean declarations:** `packetTransitions` - `Executable.lean:25`; theorems - `Executable.lean:57, 90`.
 - **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Executable.lean`.
-- **Key caveat:** **Only `nSeq` is handled** — not recv/send/rcfg/parallel/etc.
+- **Key caveat:** **Only `nSeq` is handled** - not recv/send/rcfg/parallel/etc.
 - **Backup:** The Multiset explanation, `none` meaning, and the executable example.
 
 **Slide 13: Soundness and Completeness**
@@ -1175,7 +1175,7 @@ The proposed ordering (Slides 1–14 above) is mathematically sound:
 | `restrict` (δ_ℒ(D)) | `cpol_restrict` | Constructor exists; no `packetTransitions` case |
 | `project` (π_n(D)) | `cpol_project` | Constructor exists; no `packetTransitions` case |
 | `var` (X) | `cpol_var` | Constructor exists; no `packetTransitions` case |
-| `deadlock` (⊥) | none | No transitions (by design — A0) |
+| `deadlock` (⊥) | none | No transitions (by design - A0) |
 
 ### Communication and reconfiguration transitions
 
@@ -1275,13 +1275,13 @@ The `Main.lean` only prints the project name ("DyNetKAT formalization: DyNetKAT"
 
 5. **Do NOT claim NetKAT completeness:** Lemma 5 (every NetKAT term has a normal form under E_NK) is **not proved**. The `NormalForm` module contains semantic correspondence theorems, not the normalization algorithm or E_NK derivation relation. As stated in `docs/PROOF_OBLIGATIONS.md` T1.4: "Semantic correspondence theorems establish that `interpret` is sound with respect to the denotational semantics, but they do not establish that every NetKAT term has an equational normal form under E_NK."
 
-6. **Do NOT conflate semantic equivalence with equational derivability:** The existing theorems prove `⟦N⟧ = ⟦M⟧` (semantic equivalence), not `E_NK ⊢ N ≡ M` (equational derivability). These are distinct — the latter requires an inductive derivation relation that does not yet exist.
+6. **Do NOT conflate semantic equivalence with equational derivability:** The existing theorems prove `⟦N⟧ = ⟦M⟧` (semantic equivalence), not `E_NK ⊢ N ≡ M` (equational derivability). These are distinct - the latter requires an inductive derivation relation that does not yet exist.
 
 7. **Do NOT claim the `Step` relation handles all operators executable:** Only `nSeq` has an executable transition generator. `recv`, `send`, `rcfgPrefix`, `parallel`, `choice`, `var` all have `Step` constructors but no executable generation.
 
 8. **Do NOT claim bisimilarity checking is automated:** The congruence theorems are manual proofs. There is no decision procedure for `Bisimilar`.
 
-9. **Do NOT claim environment-universal bisimilarity:** The theorems are parameterized by a **fixed** `env : RecEnv`, not quantified over all environments. The paper's `p ∼ q` is under a fixed recursive specification — our `env` makes this explicit, but the theorems do not state "for all well-formed environments."
+9. **Do NOT claim environment-universal bisimilarity:** The theorems are parameterized by a **fixed** `env : RecEnv`, not quantified over all environments. The paper's `p ∼ q` is under a fixed recursive specification - our `env` makes this explicit, but the theorems do not state "for all well-formed environments."
 
 10. **Do NOT claim the journal extension features are included:** The formalization explicitly excludes log-based extraction, SDNRacer causality, bounded schedules, and other journal-extension artifacts (per `README.md:13-15` and `PLAN.md`).
 
@@ -1293,7 +1293,7 @@ The paper's Theorem 1 (soundness & ground-completeness) is stated without explic
 
 ### 2. Coinductive bisimilarity not yet used coinductively
 
-`Bisimilar` is defined as "there exists a bisimulation relating p and q" — this is the existential encoding of the **greatest fixed point**. The paper uses coinduction. While mathematically equivalent, the current proofs use manual constructions (explicit relations `T`), not Lean's coinductive type facilities. **Should the formalization migrate to `coinductive` types for cleaner bisimulation proofs?** The PLAN.md notes (line 85) that this was a design decision.
+`Bisimilar` is defined as "there exists a bisimulation relating p and q" - this is the existential encoding of the **greatest fixed point**. The paper uses coinduction. While mathematically equivalent, the current proofs use manual constructions (explicit relations `T`), not Lean's coinductive type facilities. **Should the formalization migrate to `coinductive` types for cleaner bisimulation proofs?** The PLAN.md notes (line 85) that this was a design decision.
 
 ### 3. Star termination: theorem vs. practical bound
 
@@ -1301,7 +1301,7 @@ The paper's Theorem 1 (soundness & ground-completeness) is stated without explic
 
 ### 4. `recursion` vs `rcfg` terminology
 
-The paper uses `rcfg_{x,z}` as a **term constant** (Eq. 6, A12) and `rcfg(x,q)` as an **action label** (Fig. 8). The Lean AST introduces `rcfgPrefix` as a constructor name for the term constant, and `cpol_rcfg` as the Step rule. **Is `rcfgPrefix` the right name?** The paper does not name the constructor. This is a documentation choice — verify with authors if the naming is clear.
+The paper uses `rcfg_{x,z}` as a **term constant** (Eq. 6, A12) and `rcfg(x,q)` as an **action label** (Fig. 8). The Lean AST introduces `rcfgPrefix` as a constructor name for the term constant, and `cpol_rcfg` as the Step rule. **Is `rcfgPrefix` the right name?** The paper does not name the constructor. This is a documentation choice - verify with authors if the naming is clear.
 
 ### 5. NetKAT vs NetKAT⁻ᵈᵘᵖ
 
@@ -1316,7 +1316,7 @@ Per the task instructions, the original paper (`DyNetKAT.pdf`) could not be dire
 
 **The following comparisons remain unverified** against the original paper text:
 - Exact Figure 8 rule names (the ar5iv text extraction is garbled in places)
-- Exact axiom statements (A0–A15) — the `PROOF_OBLIGATIONS.md` lists them but they are not yet implemented
+- Exact axiom statements (A0–A15) - the `PROOF_OBLIGATIONS.md` lists them but they are not yet implemented
 - Exact proof sketches in the appendix
 
 The `docs/` files consistently note when paper evidence is from text extraction vs. direct PDF inspection. The `DyNetKAT.pdf` file in the repository root (`DyNetKAT.pdf`, 1.2MB) is the paper referenced throughout the design docs.

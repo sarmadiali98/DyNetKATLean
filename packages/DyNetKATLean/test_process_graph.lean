@@ -1,7 +1,7 @@
 import DyNetKATLean
 
 ------------------------------------------------------------------------
--- Standalone tests for S6A — finite recursive process graphs and
+-- Standalone tests for S6A - finite recursive process graphs and
 -- operational correspondence (`DyNetKAT.DyNetKAT.ProcessGraph`).
 --
 -- Run with:  lake env lean test_process_graph.lean   (from lean/)
@@ -56,7 +56,7 @@ import DyNetKATLean
    exact h
 
  ------------------------------------------------------------------------
- -- Example 1 — a nonrecursive process
+ -- Example 1 - a nonrecursive process
  --
  -- `env` is empty and the process is variable-free, so the support set is
  -- empty and the graph has no nodes: the root is the plain translation.
@@ -106,7 +106,7 @@ import DyNetKATLean
    exact GStep.seq_ok NetKAT.id .deadlock σ₀ σ' [] [] ev
 
  ------------------------------------------------------------------------
- -- Example 2 — a single recursive variable
+ -- Example 2 - a single recursive variable
  --
  -- `X ≜ id; ⊥`: one supported variable, one node, no cycle.
  ------------------------------------------------------------------------
@@ -150,7 +150,7 @@ import DyNetKATLean
      (by rw [ex2_label]; exact GStep.seq_ok NetKAT.id .deadlock σ₀ σ' [] [] ev)
 
  ------------------------------------------------------------------------
- -- Example 3 (and 10) — a self-referential guarded definition with an
+ -- Example 3 (and 10) - a self-referential guarded definition with an
  -- explicit back-edge
  --
  -- `X ≜ id; X`: one node whose label contains a reference back to the
@@ -193,7 +193,7 @@ import DyNetKATLean
    toGraph_corr ex3Env ex3Proc ex3Sup ex3_sup
 
  ------------------------------------------------------------------------
- -- Example 4 — two mutually recursive variables
+ -- Example 4 - two mutually recursive variables
  --
  -- `X ≜ id; Y`, `Y ≜ id; X`: two nodes, two back-edges, one cycle.
  ------------------------------------------------------------------------
@@ -299,7 +299,7 @@ import DyNetKATLean
        exact ⟨gp', hstep, Or.inr (Or.inr rfl)⟩
 
  /-- **Unbounded payoff of the cyclic bisimulation**: the two mutually
-     recursive variables are bisimilar in the original SOS — an unbounded
+     recursive variables are bisimilar in the original SOS - an unbounded
      result derived from a finite cyclic graph bisimulation. -/
  theorem ex4_mutually_bisimilar :
      Bisimilar ex4Env (.var "X") (.var "Y") := by
@@ -318,7 +318,7 @@ import DyNetKATLean
      ⟨ex4R, ex4_isGBisimulation, Or.inr (Or.inl ⟨rfl, rfl⟩)⟩
 
  ------------------------------------------------------------------------
- -- Example 5 — a recursive cycle containing packet processing
+ -- Example 5 - a recursive cycle containing packet processing
  --
  -- `X ≜ (port = v8); X`: the cycle body performs a NetKAT packet step.
  ------------------------------------------------------------------------
@@ -352,7 +352,7 @@ import DyNetKATLean
    toGraph_corr ex5Env ex5Proc ex5Sup ex5_sup
 
  ------------------------------------------------------------------------
- -- Example 6 — a recursive cycle containing choice
+ -- Example 6 - a recursive cycle containing choice
  --
  -- `X ≜ (id; X) ⊕ ⊥`.
  ------------------------------------------------------------------------
@@ -387,7 +387,7 @@ import DyNetKATLean
    toGraph_corr ex6Env ex6Proc ex6Sup ex6_sup
 
  ------------------------------------------------------------------------
- -- Example 7 — the zero-depth cutoff
+ -- Example 7 - the zero-depth cutoff
  --
  -- Zero-depth exploration identifies only the source configuration; it
  -- cannot observe any behavior (contrast with example 8).
@@ -405,7 +405,7 @@ import DyNetKATLean
    exact absurd (GReachableWithin.zero_eq h) (by simp)
 
  ------------------------------------------------------------------------
- -- Example 8 — a bounded execution traversing the cycle three times
+ -- Example 8 - a bounded execution traversing the cycle three times
  --
  -- With three pending packets, the self-loop `X ≜ id; X` executes the
  -- cycle once per packet; the graph execution and the SOS execution
@@ -475,9 +475,9 @@ import DyNetKATLean
      (by simp)
 
  ------------------------------------------------------------------------
- -- Example 9 — an unguarded recursive definition
+ -- Example 9 - an unguarded recursive definition
  --
- -- `X ≜ Y`, `Y ≜ X`: both the SOS and the graph are stuck — no
+ -- `X ≜ Y`, `Y ≜ X`: both the SOS and the graph are stuck - no
  -- transition exists on either side (proved by induction on the
  -- transition derivation).  The graph still constructs: guardedness is
  -- NOT required for the finite-support construction.
@@ -531,7 +531,7 @@ import DyNetKATLean
      ex9_labelY pt hl a dst
 
  ------------------------------------------------------------------------
- -- Example 10 — a finite graph with explicit back-edges, and the
+ -- Example 10 - a finite graph with explicit back-edges, and the
  -- bounded/unbounded distinction
  --
  -- One graph with two nodes: an infinite self-loop (back-edge to itself)

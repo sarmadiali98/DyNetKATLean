@@ -1,5 +1,5 @@
 ------------------------------------------------------------------------
--- S6B — Graph-native head extraction for recursive DyNetKAT processes
+-- S6B - Graph-native head extraction for recursive DyNetKAT processes
 --
 -- Paper grounding (DyNetKAT paper, arXiv:2102.10035v4, §V, Eqs. (29)-(32)):
 --   head(⊥)            = 0                    (29)
@@ -11,7 +11,7 @@
 -- variables (`head (var X) = none`).  This module lifts `head` to the
 -- finite recursive process graphs of S6A (`ProcessGraph.lean`), where
 -- recursive variables are `GProc.ref` edges into a finite node set and
--- recursive definitions are cycles — so the head policy of
+-- recursive definitions are cycles - so the head policy of
 --
 --   X ≜ N;X,      X ≜ N;Y,  Y ≜ M;X,      X ≜ Y,  Y ≜ X
 --
@@ -38,7 +38,7 @@
 --   * `headCollect` collects the LOCAL NetKAT policy of a graph term
 --     (paper Eqs. (29)-(31)): packet prefixes contribute their policy,
 --     ⊥ and reconfiguration prefixes contribute `.drop`, choice unions
---     the branches, and a reference contributes `.drop` locally —
+--     the branches, and a reference contributes `.drop` locally -
 --     references are NEVER followed here.  Unsupported constructors
 --     (`recv`, `send`, `parallel`, `leftMerge`, `commMerge`,
 --     `restrict`, `project`) fail explicitly with `none`.
@@ -48,7 +48,7 @@
 --     everything with `NetKAT.union`.  Unreachable definitions are
 --     never enumerated, and extraction failure (`none`) is distinct
 --     from the empty policy (`some .drop`).
---   * `graphHead_sound` (S6B Part 3A) — semantic soundness of the
+--   * `graphHead_sound` (S6B Part 3A) - semantic soundness of the
 --     extraction w.r.t. the relational specification: whenever
 --     `graphHead G = some H`, the semantics of `H` is included in the
 --     behavior described by `GraphHeadSpec G G.root`.  Cycles are
@@ -56,7 +56,7 @@
 --     contribution comes from a head-reachable node's label, and a
 --     reference contributes `.drop` locally, so cyclic references
 --     neither duplicate nor fabricate contributions.
---   * `graphHead_complete` (S6B Part 3B) — semantic completeness, the
+--   * `graphHead_complete` (S6B Part 3B) - semantic completeness, the
 --     converse inclusion: whenever `graphHead G = some H`, every packet
 --     pair described by `GraphHeadSpec G G.root` lies in the semantics
 --     of `H`.  No supportedness hypothesis is needed beyond the success
@@ -1472,7 +1472,7 @@ inductive HeadShapeOk {schema : NetKAT.PacketSchema} (G : ProcessGraph schema) :
 
 /-- The process shapes on which head extraction explicitly fails: the
     communication prefixes (excluded by the paper's restriction
-    precondition — they are NOT deadlock), the three merge operators,
+    precondition - they are NOT deadlock), the three merge operators,
     restriction and projection. -/
 inductive HeadUnsupported {schema : NetKAT.PacketSchema} : GProc schema → Prop
   | recv (x : Channel) (N : NetKAT schema) (cont : GProc schema) :
@@ -1695,29 +1695,29 @@ theorem graphHead_supported_some_root (G : ProcessGraph schema)
 --
 -- `graphHead_sound`: every packet pair in the semantics of a
 -- successfully extracted head policy satisfies `GraphHeadSpec G G.root`
--- — the union of the semantics of the NetKAT policies occurring at
+-- - the union of the semantics of the NetKAT policies occurring at
 -- packet-processing prefixes reachable from the root before any
 -- reconfiguration boundary.
 --
 -- Architecture (each step reuses the existing infrastructure):
---   1. `headCollect_prefix_sound` — a successful local collection is
+--   1. `headCollect_prefix_sound` - a successful local collection is
 --      sound: its packet pairs come from a `HeadPrefixOf` witness.
---   2. `headPrefixOf_headSub_lift` — prefix occurrences lift through
+--   2. `headPrefixOf_headSub_lift` - prefix occurrences lift through
 --      `HeadSub` containment, so the collection of the root and the
 --      collection of any head-reachable node's label are sound AT the
 --      root (`HeadPathTo` gives `HeadSub G G.root (G.label j)` via
 --      `headPathTo_sub`).
---   3. `unionOverList_sem_decomp` — every packet pair of the
+--   3. `unionOverList_sem_decomp` - every packet pair of the
 --      successfully folded union comes either from the start value
 --      (the root's collection) or from exactly one visited node's
 --      collection.
---   4. `headRun_root_success` — the visited list contains EXACTLY the
+--   4. `headRun_root_success` - the visited list contains EXACTLY the
 --      head-reachable nodes, so every node contribution is legitimate.
 --
 -- Cycles: the worklist visits each node exactly once and a reference
 -- contributes `.drop` locally (its label is collected separately), so
 -- a cyclic graph neither duplicates contributions nor introduces
--- spurious ones — every contribution is accounted for by a
+-- spurious ones - every contribution is accounted for by a
 --     head-reachable node, which is all soundness requires.  (Completeness
 --     is established in §9.)
 ------------------------------------------------------------------------
@@ -1766,7 +1766,7 @@ theorem headCollect_node_spec_sound (G : ProcessGraph schema) (j : NodeId)
     the root.  Each contribution is either the root's own or the label
     of a visited node, and visited nodes are head-reachable
     (`headRun_root_success`), so no contribution escapes the
-    specification — regardless of cycles in the reference structure. -/
+    specification - regardless of cycles in the reference structure. -/
 theorem graphHeadUnion_sound (G : ProcessGraph schema) (L : List NodeId) (H : NetKAT schema)
     (hrun : headRun G (headRefsList G.root) ∅ [] = some L)
     (hfold : graphHeadUnion G L (headCollect G.root) = some H)
@@ -1791,8 +1791,8 @@ theorem graphHeadUnion_sound (G : ProcessGraph schema) (L : List NodeId) (H : Ne
     NetKAT policy produced by `graphHead` has exactly the behavior
     prescribed by the specification, in the inclusion sense: whenever
     `graphHead G = some H`, the semantics of `H` is included in the
-    behavior described by `GraphHeadSpec G G.root`.  (Completeness —
-    the converse inclusion — is `graphHead_complete` in §9.) -/
+    behavior described by `GraphHeadSpec G G.root`.  (Completeness -
+    the converse inclusion - is `graphHead_complete` in §9.) -/
 theorem graphHead_sound (G : ProcessGraph schema) (H : NetKAT schema)
     (hhead : graphHead G = some H) :
     ∀ σ τ : schema.Packet, Semantics H σ τ → GraphHeadSpec G G.root σ τ := by
@@ -1827,7 +1827,7 @@ theorem graphHead_sound_of_supported (G : ProcessGraph schema)
 -- equivalence `graphHead_spec_iff` on the supported domain.
 --
 -- Architecture (each step reuses the existing infrastructure):
---   1. `HeadPrefixOfFree` and `headCollect_prefix_complete` — LOCAL
+--   1. `HeadPrefixOfFree` and `headCollect_prefix_complete` - LOCAL
 --      completeness of the collection, opposite in direction to
 --      `headCollect_prefix_sound`: every packet pair contributed by a
 --      REF-FREE prefix occurrence lies in the semantics of the local
@@ -1837,14 +1837,14 @@ theorem graphHead_sound_of_supported (G : ProcessGraph schema)
 --      (a reference contributes `.drop` locally); it is covered by the
 --      referenced node's collection, which is exactly the contribution
 --      the worklist fold adds.
---   2. `headSub_collection_point` — every head-subterm occurrence is
+--   2. `headSub_collection_point` - every head-subterm occurrence is
 --      reached from its anchor by ref-free steps followed by at most one
 --      final reference jump, so every occurrence has a collection point:
 --      the anchor itself or the label of a head-reachable node.
 --   3. `unionOverList_start_some`, `unionOverList_start_cover`,
---      `unionOverList_mem_cover` — the fold covers the start value and
+--      `unionOverList_mem_cover` - the fold covers the start value and
 --      every visited node's contribution.
---   4. `headRun_root_success` — the visited list contains EXACTLY the
+--   4. `headRun_root_success` - the visited list contains EXACTLY the
 --      head-reachable nodes, so every collection point of the second
 --      kind is a visited node.
 --
@@ -1852,7 +1852,7 @@ theorem graphHead_sound_of_supported (G : ProcessGraph schema)
 -- the success hypothesis `graphHead G = some H` already entails that the
 -- root collection and the collection of every visited label succeeded.
 -- Supportedness (`GraphHeadSupported`, or its weaker shape-only root
--- condition — see `graphHead_supported_some_root`, which derives the
+-- condition - see `graphHead_supported_some_root`, which derives the
 -- node closure from the graph's own `root_closed`/`closed` fields) is
 -- needed only to GUARANTEE that some `H` exists, i.e. for the packaged
 -- existence statement and the equivalence theorem.  Without it the
@@ -1931,7 +1931,7 @@ theorem headPrefixOfFree_iff_headSubFree (G : ProcessGraph schema) (gp : GProc s
 /-- **Local completeness of the collection** (S6B Part 3B): the direction
     opposite to `headCollect_prefix_sound`, on its exact domain of
     validity.  Every packet pair contributed by a ref-free prefix
-    occurrence lies in the semantics of the local collection — provided
+    occurrence lies in the semantics of the local collection - provided
     the collection succeeds.  (Occurrences behind references are covered
     by the referenced node's own collection; see
     `headSub_collection_point` and `graphHead_complete`.  `HeadShapeOk`
@@ -2100,7 +2100,7 @@ theorem graphHeadUnion_complete (G : ProcessGraph schema) (L : List NodeId) (H :
     prescribed by the specification: whenever `graphHead G = some H`, the
     behavior described by `GraphHeadSpec G G.root` is included in the
     semantics of `H`.  Together with `graphHead_sound` (S6B Part 3A) the
-    extraction is semantically exact whenever it succeeds — no
+    extraction is semantically exact whenever it succeeds - no
     supportedness hypothesis is needed beyond the success itself, because
     success already forces every involved local collection to succeed. -/
 theorem graphHead_complete (G : ProcessGraph schema) (H : NetKAT schema)
@@ -2172,7 +2172,7 @@ theorem graphHead_spec_iff_of_shapeOk_root (G : ProcessGraph schema)
     branches and live references into node labels), then every
     head-subterm of the anchor is shape-ok.  This discharges the shape
     condition of `GraphHeadSupported` for concrete graphs by a finite
-    invariant — cyclic definitions included, since the induction runs on
+    invariant - cyclic definitions included, since the induction runs on
     the finite `HeadSub` derivation, never on the unfolding. -/
 theorem headShapeOk_of_headSub_inv (G : ProcessGraph schema) :
     ∀ (a dst : GProc schema), HeadSub G a dst →
@@ -2210,14 +2210,14 @@ theorem headShapeOk_of_headSub_inv (G : ProcessGraph schema) :
 --
 -- The four required behaviors are witnessed by concrete graphs and
 -- executable extraction results:
---   * guarded self-reference `X ≜ N;X`       — semantically `N`;
+--   * guarded self-reference `X ≜ N;X`       - semantically `N`;
 --   * guarded mutual recursion `X ≜ N;Y`,
---     `Y ≜ M;X`                              — semantically `N + M`;
---   * unguarded cycle `X ≜ Y`, `Y ≜ X`       — `some` empty head
+--     `Y ≜ M;X`                              - semantically `N + M`;
+--   * unguarded cycle `X ≜ Y`, `Y ≜ X`       - `some` empty head
 --     (a valid empty head, not an unsupported process);
---   * unreachable recursive definitions      — contribute nothing and
+--   * unreachable recursive definitions      - contribute nothing and
 --     cause no failure;
---   * reconfiguration boundary               — references and
+--   * reconfiguration boundary               - references and
 --     unsupported constructors after `rcfgPrefix` are not traversed.
 ------------------------------------------------------------------------
 
@@ -2339,7 +2339,7 @@ def exUnguardedGraph : ProcessGraph where
       tauto
 
 /-- The unguarded cycle is SUPPORTED: it extracts the empty head
-    `0 + (0 + 0)` — a valid empty head, not an unsupported process. -/
+    `0 + (0 + 0)` - a valid empty head, not an unsupported process. -/
 theorem exUnguarded_extracted :
     graphHead exUnguardedGraph =
       some (NetKAT.union (NetKAT.union .drop .drop) .drop) := by

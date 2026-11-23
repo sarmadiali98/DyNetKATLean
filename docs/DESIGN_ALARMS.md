@@ -1,4 +1,4 @@
-# DESIGN_ALARMS.md — Research / Design Alarms
+# DESIGN_ALARMS.md - Research / Design Alarms
 
 This file records conflicts between source evidence and implementation
 decisions or proof statements.  Alarms must be resolved before the conflicting
@@ -13,7 +13,7 @@ work proceeds.
 
 ---
 
-## A1 — Existing repository is a journal extension, not faithful DyNetKAT
+## A1 - Existing repository is a journal extension, not faithful DyNetKAT
 
 **Date:** 2026-10-16
 
@@ -29,9 +29,9 @@ faithfully in Lean 4.
   journal extension (log-based extraction, SDNRacer-specific causality,
   bounded schedules).  See `REUSE_AUDIT.md`.
 - Key deviations from the paper:
-  - `Policy` includes `dup` — paper uses NetKAT⁻ᵈᵘᵖ (dup-free).
-  - `Configuration` has a `flowTable` field — paper's config is `(d, H, H′)`.
-  - `evalPolicy` uses bounded fuel — paper uses denotational `⟦N⟧`.
+  - `Policy` includes `dup` - paper uses NetKAT⁻ᵈᵘᵖ (dup-free).
+  - `Configuration` has a `flowTable` field - paper's config is `(d, H, H′)`.
+  - `evalPolicy` uses bounded fuel - paper uses denotational `⟦N⟧`.
   - `Label` type differs (concrete packets vs. `(σ,σ′) | x?r | x!r | rcfg(x,r)`).
   - Missing operators: `⌊⌊`, `| |`, `δ_ℒ(−)`, `π_n(−)`, `rcfg_{x,r}` constant.
 - The existing `docs/RESEARCH_NOTES.md` confirms these deviations:
@@ -55,7 +55,7 @@ reimplementing from scratch.
 - (Recommended) Start fresh in `/Users/ali/Desktop/DyNetKAT-Lean`.  Use the
   existing repo only as a conceptual reference and for toolchain/version
   information.
-- (Not recommended) Attempt to adapt the existing code — would require
+- (Not recommended) Attempt to adapt the existing code - would require
   extensive rewriting and would conflate the journal extension with the
   original calculus.
 
@@ -63,13 +63,13 @@ reimplementing from scratch.
 
 ---
 
-## A2 — Discrepancy: Packet model is hardcoded rather than parameterized
+## A2 - Discrepancy: Packet model is hardcoded rather than parameterized
 
 **Date:** 2026-10-16
 
 **Type:** Semantic deviation from paper
 
-**Severity:** High — this is a modeling deviation, not a correctness bug
+**Severity:** High - this is a modeling deviation, not a correctness bug
 
 **Paper reference:** Definition 1 (p. 5): "Let F = {f1,...,fn} be a set of field names with values in Vi, for i∈{1,...,n}. We call *network packet* a function in F → ℕ."
 
@@ -84,11 +84,11 @@ reimplementing from scratch.
 
 **Resolution:** Refactor to parameterize over `FieldType : Type` with `[Fintype FieldType]` and `FieldValue : FieldType → Type` with `[∀ f, Fintype (FieldValue f)]`. Keep the concrete 4-field/4-value instance as a test fixture. The `Packet` type becomes `FieldType → ∀ f, FieldValue f` (a dependent function).
 
-**Status:** Open — will be resolved in Phase 1.5 implementation.
+**Status:** Open - will be resolved in Phase 1.5 implementation.
 
 ---
 
-## A3 — Discrepancy: CompleteTest uses Finset FieldEq without completeness enforcement
+## A3 - Discrepancy: CompleteTest uses Finset FieldEq without completeness enforcement
 
 **Date:** 2026-10-16
 
@@ -100,8 +100,8 @@ reimplementing from scratch.
 
 **Evidence from paper:**
 - Definition 4 explicitly requires a complete test to assign a value to EVERY field: `f₁=v₁ · … · fₙ=vₙ`.
-- The empty expression `⟨⟩` (empty Finset) is NOT a complete test — it is the paper's `Pr` predicate `1` (true), but not a complete test.
-- The current `holds` function: `def holds (α : Finset FieldEq) (p : Packet) : Prop := ∀ fe ∈ α, p fe.field = fe.value` — this treats an empty set as "holds on all packets", which is the predicate `true`, NOT a complete test.
+- The empty expression `⟨⟩` (empty Finset) is NOT a complete test - it is the paper's `Pr` predicate `1` (true), but not a complete test.
+- The current `holds` function: `def holds (α : Finset FieldEq) (p : Packet) : Prop := ∀ fe ∈ α, p fe.field = fe.value` - this treats an empty set as "holds on all packets", which is the predicate `true`, NOT a complete test.
 
 **Current implementation:** `CompleteTest := Finset FieldEq` with `holds`. No completeness invariant is enforced. A `test` with 0 or 1 field pairs is allowed and treated as a valid complete test.
 
@@ -109,11 +109,11 @@ reimplementing from scratch.
 
 **Resolution:** Represent `CompleteTest` as a total packet valuation (`FieldType → ∀ f, FieldValue f`) or enforce a completeness invariant on `Finset FieldEq` (each field appears exactly once). Keep `Predicate` as a separate type for general boolean predicates (including negation). The `holds` function for complete tests should require the test to cover all fields.
 
-**Status:** Open — will be resolved in Phase 1.5 implementation.
+**Status:** Open - will be resolved in Phase 1.5 implementation.
 
 ---
 
-## A4 — Discrepancy: Missing Boolean predicate syntax (negation, disjunction)
+## A4 - Discrepancy: Missing Boolean predicate syntax (negation, disjunction)
 
 **Date:** 2026-10-16
 
@@ -137,42 +137,42 @@ reimplementing from scratch.
 
 **Resolution:** Introduce a `Predicate` inductive type with constructors `pFalse`, `pTrue`, `pAnd`, `pOr`, `pNot`, `pFieldEq` (atomic), and an embedding `predToNetKAT : Predicate → NetKAT`. Prove semantic correspondence. Complete tests become a special case (conjunctions over all fields). The current `test` constructor can remain as syntactic sugar for complete tests.
 
-**Status:** Open — will be resolved in Phase 1.5 implementation.
+**Status:** Open - will be resolved in Phase 1.5 implementation.
 
 ---
 
-## A5 — Discrepancy: Semantics defined over single packets, not histories
+## A5 - Discrepancy: Semantics defined over single packets, not histories
 
 **Date:** 2026-10-16
 
 **Type:** Equivalent representation choice
 
-**Severity:** Low — this is a valid simplification for the dup-free fragment
+**Severity:** Low - this is a valid simplification for the dup-free fragment
 
 **Paper reference:** Figure 3 (NetKAT Semantics): `⟦N⟧ : N → (H → 𝒫(H))` where `H` is the set of packet histories.
 
 **Evidence from paper:**
 - The paper's denotational semantics maps NetKAT policies to `H → 𝒫(H)` (history → set of histories).
-- The `cpol_;✓` rule in Fig. 8 uses `⟦p⟧(σ::⟨⟩)` — applying NetKAT semantics to a single-packet history (σ prepended to empty history).
-- Lemma 5 (p. 13) works with the dup-free fragment where `G(p) = {αi·πi | i ∈ I}` — no history tracking needed.
+- The `cpol_;✓` rule in Fig. 8 uses `⟦p⟧(σ::⟨⟩)` - applying NetKAT semantics to a single-packet history (σ prepended to empty history).
+- Lemma 5 (p. 13) works with the dup-free fragment where `G(p) = {αi·πi | i ∈ I}` - no history tracking needed.
 
-**Current implementation:** `Semantics (N : NetKAT) : Packet → Packet → Prop` — a binary relation on single packets, not histories.
+**Current implementation:** `Semantics (N : NetKAT) : Packet → Packet → Prop` - a binary relation on single packets, not histories.
 
 **Analysis:** This is a valid equivalence for the dup-free fragment. Without `dup`, histories are always of the form `σ::⟨⟩` (single packet). The operational rule `(cpol_;✓)` confirms: `⟦p⟧(σ::⟨⟩)` is used, evaluating on a single-packet history. The current `Packet → Packet → Prop` semantics is semantically equivalent for NetKAT⁻ᵈᵘᵖ.
 
 **Resolution:** Keep the single-packet semantics but document the correspondence formally: `⟦N⟧(σ) = {σ′ | (σ,σ′) ∈ ⟦N⟧_single}` is equivalent to `{σ'::⟨⟩ | σ'::⟨⟩ ∈ ⟦N⟧_history(σ::⟨⟩)}` when `dup` is absent.
 
-**Status:** Resolved — this is an equivalent representation, not a deviation. Document the correspondence.
+**Status:** Resolved - this is an equivalent representation, not a deviation. Document the correspondence.
 
 ---
 
-## A6 — Discrepancy: Missing Boolean algebra axioms and packet algebra axioms
+## A6 - Discrepancy: Missing Boolean algebra axioms and packet algebra axioms
 
 **Date:** 2026-10-16
 
 **Type:** Missing implementation coverage
 
-**Severity:** Medium — needed for Section 6 foundational theorems
+**Severity:** Medium - needed for Section 6 foundational theorems
 
 **Paper reference:** Figure 4 (NetKAT axioms E_NK): BA-EXCL-MID, BA-CONTRA, PA-MOD-MOD-COMM, PA-MOD-FILTER-COMM, PA-MOD-FILTER, PA-FILTER-MOD, PA-CONTRA, PA-MATCH-ALL, etc.
 
@@ -186,17 +186,17 @@ reimplementing from scratch.
 
 **Resolution:** Prove axioms semantically (as lemmas about the denotational semantics) rather than as a separate equational theory. This is sufficient for the Phase 1.5 scope.
 
-**Status:** Open — will be resolved in Phase 1.5 implementation.
+**Status:** Open - will be resolved in Phase 1.5 implementation.
 
 ---
 
-## A7 — CompleteAssignment admits arbitrary functions; single-field assignments conflated with complete assignments
+## A7 - CompleteAssignment admits arbitrary functions; single-field assignments conflated with complete assignments
 
 **Date:** 2026-10-17
 
 **Type:** Semantic deviation from paper
 
-**Severity:** High — affects Definition 4 conformance
+**Severity:** High - affects Definition 4 conformance
 
 **Status:** Resolved (Task 2R-L, 2026-10-17)
 
@@ -209,11 +209,11 @@ reimplementing from scratch.
 
 **Key points:**
 1. A **complete assignment** π = `f₁←v₁ · ... · fₙ←vₙ` overwrites **every** field.
-2. The notation σπ denotes the packet where each field f gets the value π(f) — i.e., π acts as a **valuation** (field → value), not an arbitrary transformation.
+2. The notation σπ denotes the packet where each field f gets the value π(f) - i.e., π acts as a **valuation** (field → value), not an arbitrary transformation.
 3. **Figure 3 (NetKAT Syntax)** lists `f←n` as a basic NetKAT term (`N ::= Pr | f←n | ...`). Single-field assignment `f←n` is distinct from a complete assignment `f₁←v₁ · ... · fₙ←vₙ`.
-4. Figure 3 (Semantics): `Jf←nK(σ::h) = {σ[f:=n]::h}` — a single-field assignment changes only field f, leaving all others unchanged.
+4. Figure 3 (Semantics): `Jf←nK(σ::h) = {σ[f:=n]::h}` - a single-field assignment changes only field f, leaving all others unchanged.
 
-### Current implementation (pre-correction state — before resolution)
+### Current implementation (pre-correction state - before resolution)
 
 | Paper concept | Lean definition | File:Line |
 |---|---|---|
@@ -234,7 +234,7 @@ reimplementing from scratch.
 
 ### Recommended minimal correction
 
-**Option 1 (minimal — align with CompleteTest representation):**
+**Option 1 (minimal - align with CompleteTest representation):**
 Change `CompleteAssignment` from `CtxPkt → CtxPkt` to `CtxPkt` (a total valuation `FieldName → FieldValueEnum`), mirroring `CompleteTest`. Then:
 - `σπ` is computed by `fun σ f => π f` (overwrite every field with π's value).
 - Semantics: `.assign π => ∀ f, τ f = π f` (or equivalently `τ = π` as a function).
@@ -274,47 +274,47 @@ The migration to a paper-faithful assignment representation was completed across
 Tasks 2O–2R-K. The following evidence confirms Definition 4 and Figure 3 conformance:
 
 **Definitions in place (all verified):**
-- `CompleteAssignmentValuation := CtxPkt` (`Packet.lean:253`) — a total valuation
+- `CompleteAssignmentValuation := CtxPkt` (`Packet.lean:253`) - a total valuation
   `FieldName → FieldValueEnum`, the direct dual of `CompleteTest`. Admits only
   total field-overwriting valuations, matching Definition 4's σπ notation.
-- `applyValuation (π σ) := π` (`Packet.lean:268`) — the output equals the valuation π
+- `applyValuation (π σ) := π` (`Packet.lean:268`) - the output equals the valuation π
   itself, matching Definition 4's "σπ equals π".
-- `assign1 : FieldName → FieldValueEnum → NetKAT` (`AST.lean:94`) — the paper's
+- `assign1 : FieldName → FieldValueEnum → NetKAT` (`AST.lean:94`) - the paper's
   primitive single-field assignment constructor `f←v` (Figure 3, p. 5).
-- `fieldEnum : List FieldName` (`AST.lean:137`) — enumerates all fields exactly
+- `fieldEnum : List FieldName` (`AST.lean:137`) - enumerates all fields exactly
   once; proven complete (`fieldEnum_complete`, `AST.lean:150`) and nodup
   (`fieldEnum_nodup`, `AST.lean:156`).
-- `completeAssignExpr (π) : NetKAT` (`AST.lean:137`) — composes `assign1 f (π f)`
+- `completeAssignExpr (π) : NetKAT` (`AST.lean:137`) - composes `assign1 f (π f)`
   for every field via sequential composition, implementing `f₁←v₁ · ... · fₙ←vₙ`.
-- Semantics clause `| .assign1 f v => τ = Packet.update σ f v` (`Semantics.lean:68`) —
+- Semantics clause `| .assign1 f v => τ = Packet.update σ f v` (`Semantics.lean:68`) -
   matches the paper's `⟦f←v⟧ = {(σ, σ[f:=v])}`.
 
 **Theorems proving correspondence (all verified, machine-checked):**
-- `assign1_sem` (`Semantics.lean:263`) — `⟦f←v⟧` maps σ to `σ[f↦v]`.
-- `assign1_seq_sem` (`Semantics.lean:277`) — `⟦(f←v);N⟧(σ,τ) ↔ ⟦N⟧(σ[f:=v],τ)`.
-- `assign_list_sem` (`Semantics.lean:311`) — fold of `assign1` equals fold of
+- `assign1_sem` (`Semantics.lean:263`) - `⟦f←v⟧` maps σ to `σ[f↦v]`.
+- `assign1_seq_sem` (`Semantics.lean:277`) - `⟦(f←v);N⟧(σ,τ) ↔ ⟦N⟧(σ[f:=v],τ)`.
+- `assign_list_sem` (`Semantics.lean:311`) - fold of `assign1` equals fold of
   `Packet.update`.
-- `fieldEnum_updates_complete` (`Semantics.lean:595`) — updating every field to π's
+- `fieldEnum_updates_complete` (`Semantics.lean:595`) - updating every field to π's
   values yields π, independent of input.
-- `completeAssignExpr_sem` (`Semantics.lean:635`) — `⟦completeAssignExpr π⟧(σ,τ) ↔ τ = π`.
-- `applyValuation_field` (`Packet.lean:277`) — applying π yields a packet whose
+- `completeAssignExpr_sem` (`Semantics.lean:635`) - `⟦completeAssignExpr π⟧(σ,τ) ↔ τ = π`.
+- `applyValuation_field` (`Packet.lean:277`) - applying π yields a packet whose
   every field is π's value.
 
 **Legacy representation removed:**
-- `CompleteAssignment := CtxPkt → CtxPkt` — removed (`Packet.lean`; only referenced
+- `CompleteAssignment := CtxPkt → CtxPkt` - removed (`Packet.lean`; only referenced
   in a comment at `Packet.lean:239`).
-- `applyAssign` — removed (dead code, no callers).
-- `fieldAssign` — removed, superseded by `assign1` (paper primitive).
-- `.assign` AST constructor — removed, superseded by `completeAssignExpr`.
-- `.assign` semantics clause — removed.
-- `assign_sem` theorem — removed, superseded by `completeAssignExpr_sem`.
-- `fieldAssign_sem` theorem — removed, superseded by `assign1_sem`.
+- `applyAssign` - removed (dead code, no callers).
+- `fieldAssign` - removed, superseded by `assign1` (paper primitive).
+- `.assign` AST constructor - removed, superseded by `completeAssignExpr`.
+- `.assign` semantics clause - removed.
+- `assign_sem` theorem - removed, superseded by `completeAssignExpr_sem`.
+- `fieldAssign_sem` theorem - removed, superseded by `assign1_sem`.
 
 **Verification results:**
-- `lake build DyNetKAT` — SUCCESS (exit code 0). Build completed successfully.
-- `git diff --check` — 1 pre-existing warning (`Semantics.lean:656`: new blank
+- `lake build DyNetKAT` - SUCCESS (exit code 0). Build completed successfully.
+- `git diff --check` - 1 pre-existing warning (`Semantics.lean:656`: new blank
   line at EOF); not introduced by this task.
-- Proof-hole scan (`sorry`/`admit`/`axiom` in `.lean` files) — 0 matches
+- Proof-hole scan (`sorry`/`admit`/`axiom` in `.lean` files) - 0 matches
   (only the English word "axioms" appears in comments at `Semantics.lean:353`).
 
 **Classification:** ✅ Conformance established. The assignment implementation
@@ -323,5 +323,5 @@ valuations) and Figure 3 (primitive `f←v` constructor with `σ[f:=v]` semantic
 The legacy arbitrary-function `CompleteAssignment` type and its `applyAssign`
 function are fully removed with no dangling references.
 
-**Status:** Resolved — design decision implemented and verified. A7 is now
+**Status:** Resolved - design decision implemented and verified. A7 is now
 eligible for closure.

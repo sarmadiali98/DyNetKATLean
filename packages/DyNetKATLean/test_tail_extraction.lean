@@ -125,7 +125,7 @@ import DyNetKATLean
                   (.nSeq N2 .deadlock))
          N1                                                                -- true
 
- -- 10. Unsupported expressions fail explicitly — never a silent ⊥:
+ -- 10. Unsupported expressions fail explicitly - never a silent ⊥:
  --     recv/send are communication prefixes, NOT deadlock (⊥).
  #eval tailFails ∅ (.recv "c" NetKAT.id .deadlock)                      -- true
  #eval tailFails ∅ (.send "c" NetKAT.id .deadlock)                      -- true

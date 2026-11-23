@@ -2,15 +2,20 @@
 
 The final [arXiv v4 conformance audit](docs/PAPER_CONFORMANCE.md)
 closes mathematical formalization under the documented typed scope.
-The remaining project phase is [DyNetiKAT v1.1 functional and empirical
-parity](docs/DYNETIKAT_PARITY.md). Definition 17 nested negation remains a
+The [DyNetiKAT v1.1 parity ledger](docs/DYNETIKAT_PARITY.md) tracks the
+functional and empirical comparison. Definition 17 nested negation remains a
 documented source ambiguity. The v1.1 loader now validates original raw
 JSON and constructs admitted inputs. The serial batch runner returns
 checked bounded reachability and waypoint verdicts using a prepared
 session. Checkpoint 4 records [generator and native campaign
 evidence](docs/DYNETIKAT_V11_CAMPAIGN.md). The reconstructed reference
-runtime agreed with Lean on all 120 pinned query dispatches. The
-historical timing campaign remains pending.
+runtime agreed with Lean on all 120 pinned query dispatches. The recorded
+Ubuntu timing campaign completed, including the separate timeout recovery.
+The canonical benchmark on the final 20-core host remains pending.
+
+The three packages are physically extracted. The repository and local checkout
+renames are complete, and all four Docker verification jobs passed on Ubuntu
+and in hosted CI.
 
 ## Symbolic native KAT
 
@@ -116,13 +121,13 @@ flowchart TD
   P9 --> P10
 ```
 
-### Phase 0 — Conformance audit
+### Phase 0 - Conformance audit
 
 Use the pinned editions, immutable tool revision, and working-tree evidence in
 the three ledgers. The mathematical audit is recorded in the paper inventory. Executing the
 original artifact baseline belongs to the tool parity phase.
 
-### Phase 1 — General NetKAT foundations
+### Phase 1 - General NetKAT foundations
 
 The first schema stage supplies `PacketSchema`, dependent valuations,
 and the generic DyNetKATLean semantic foundation. The original
@@ -146,7 +151,7 @@ outside current DyNetKAT completion. Build a proved reference evaluator
 and measure its behavior on the FatTree workload. The
 [NetKAT audit](docs/NETKAT_AUDIT.md) gives the query proof and measurement gates.
 
-### Phase 2 — Complete DyNetKAT language and SOS
+### Phase 2 - Complete DyNetKAT language and SOS
 
 Lift the existing AST, packet lists, action labels and all base and extended
 rules to the general packet schema. For the current typed grammar,
@@ -157,7 +162,7 @@ expose references. Record the exact payload
 equality used in SOS, restriction and derivability. Discharge the inversions,
 atomic packet behavior and alphabet support required downstream.
 
-### Phase 3 — Complete algebraic theory
+### Phase 3 - Complete algebraic theory
 
 Formalize equational derivability and the NetKAT import boundary, including
 A0–A15, four restriction axioms, four projection axioms, named definitions
@@ -170,7 +175,7 @@ variable-free terms in a shared recursion environment by `ground_derives_iff_bis
 direction uses summand matching and induction on process-prefix counts in
 `DerivesNoAIP`. Completeness for recursive entry terms remains separate.
 
-### Phase 4 — Recursive semantics and bisimulation
+### Phase 4 - Recursive semantics and bisimulation
 
 Prove general finite branching for the actual closed guarded domain, including
 derivatives. Resolve root references, mutual recursion and finite support for
@@ -185,7 +190,7 @@ schema-generic. Bisimilarity transport under consistent renaming, replacement
 of declarations, and a source bridge between independent closed graphs are
 separate extensions.
 
-### Phase 5 — Full safety-property theory
+### Phase 5 - Full safety-property theory
 
 Definitions 12–16 and Eq. (27) are proved for admitted programs over
 arbitrary finite schemas and a supplied finite safety alphabet. Definition 17's explicit
@@ -207,7 +212,7 @@ the ordered four-update migration, non-SSH forwarding in all five
 phases, all-trace SSH isolation, and final waypoint endpoint inclusion.
 The original generator comparison and timing measurements remain open.
 
-### Phase 6 — Extraction and normalization
+### Phase 6 - Extraction and normalization
 
 Exact projection and sequential preprocessing give
 `projectedReachability_correct` for head and nested tails at a specified
@@ -240,7 +245,7 @@ finite administrative unfolding to a ground process. A guarded cyclic
 component describes syntactic recursion and carries no derivative bound.
 Quotient discovery and strategy selection remain separate.
 
-### Phase 7 — Full DyNetiKAT functionality
+### Phase 7 - Full DyNetiKAT functionality
 
 Provide a usable CLI for the v1.1 program and JSON schema, recursive
 declarations, channels and packet predicates. Support reachability,
@@ -251,7 +256,7 @@ timing and per-property verdicts. Match meaningful v1.1 behavior and document
 parser and error-handling decisions. Internal backend paths and subprocess
 formats are replaceable. Also expose the broader safety language of Phase 5.
 
-### Phase 8 — End-to-end formal correctness
+### Phase 8 - End-to-end formal correctness
 
 Connect accepted input bytes and declared field domains to typed syntax and
 environments, then to restriction, exact projection, extraction, NetKAT
@@ -261,7 +266,7 @@ original backend formula and separately discharge any claimed universal
 path interpretation. Show caching, certificate checks and worker scheduling
 preserve results and that errors remain distinct from property violations.
 
-### Phase 9 — Benchmark and experimental parity
+### Phase 9 - Benchmark and experimental parity
 
 Run the pinned firewall and both distributed-controller variants. Reproduce
 the six FatTrees (6, 8, 10, 12, 14 and 16 pods, through 1,344 switches).
@@ -275,7 +280,7 @@ extraction, and NetKAT solving separately, including reuse of preprocessing.
 Record any baseline failures and keep them out of performance comparisons.
 Make any performance-parity claim conditional on comparable measurements.
 
-### Phase 10 — Verification and release
+### Phase 10 - Verification and release
 
 Cross-check the paper and tool ledgers item by item. Build the complete Lean
 library and CLI, review theorem statements and trusted dependencies, and run

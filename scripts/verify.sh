@@ -1,5 +1,5 @@
 #!/bin/bash
-# verify.sh — combined Lean + Python validation
+# verify.sh - combined Lean + Python validation
 set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")/.." && pwd)

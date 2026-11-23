@@ -4,7 +4,7 @@ Research and documentation only. No Lean sources were modified.
 
 **Paper:** `DyNetKAT.pdf` (repo root; FoSSaCS 2022 version, arXiv:2102.10035). Page/section
 anchors below use the paper's own definition/equation numbers.
-**Original tool:** `hcantunc/DyNetiKAT`, commit `1c6bd42` (v1.1) — the same revision audited in
+**Original tool:** `hcantunc/DyNetiKAT`, commit `1c6bd42` (v1.1) - the same revision audited in
 `docs/DYNETIKAT_REFERENCE_AUDIT.md`, whose findings were re-verified against source.
 **Source caveat (verified):** `/Users/ali/Desktop/DyNetKAT` no longer hosts the original tool; it
 is now the separate `sarmadiali98/DyNetKAT` repository (SDNRacer-oriented). The tool was
@@ -43,7 +43,7 @@ Labels: **[V]** verified fact, **[I]** interpretation, **[R]** recommendation.
    DyNetKAT axioms A0/A3/A4/A7–A13/A15 (`dnk.maude:46-69,93`), restriction equations
    `[D1]–[D-plus]` (`dnk.maude:72-80`), projection equations `[PI-0]–[PI-plus]`
    (`dnk.maude:83-90`), and head/tail equations (`dnk.maude:140-149`). Result: a **NetKAT term
-   as an opaque string** — Maude never reasons about NetKAT algebra.
+   as an opaque string** - Maude never reasons about NetKAT algebra.
 6. **NetKAT decision** (`netkat_parser.py`): the string is converted to tool syntax
    (`<-`→`:=`, `zero`→`F`/`drop`, `one`→`T`/`pass`, `.`→`;`, integers→binary for `netkat-idd`)
    and checked by the external procedure: `katbv equiv f1 f2` or `Decide_Repl.native "(t1) == (t2)"`.
@@ -52,7 +52,7 @@ Labels: **[V]** verified fact, **[I]** interpretation, **[R]** recommendation.
      `W = in · (~out · net)* · wp · (~in · net)* · out` (`dynetkat.py:44-51, 78-85`).
 7. **Verdict** (`dynetkat.py:97-122`): `r`/`!0` satisfied iff equiv returns `false`
    (term ≢ 0); `r`/`=0` satisfied iff `true`; `w` satisfied iff `true`; Maude/NetKAT failure
-   yields `error`. **No counterexamples are generated** — the backends return only
+   yields `error`. **No counterexamples are generated** - the backends return only
    true/false; a violation is reported as the bare word "violated".
 
 **[I]** Relation to the paper. The paper's general framework (Def. 12 syntax, Def. 13 head
@@ -66,22 +66,22 @@ existence of a finite trace with some forbidden word `wᵢ` as prefix; reachabil
 decision-theoretic form.
 
 **[V]** `head`/`tail` (paper Eqs. (29)–(33), `dnk.maude:140-149`):
-`head(⊥)=0`; `head(N;D)=N+head(D)`; `head(D⊕Q)=head(D)+head(Q)`; `head(rcfg;D)=0` — the sum of
+`head(⊥)=0`; `head(N;D)=N+head(D)`; `head(D⊕Q)=head(D)+head(Q)`; `head(rcfg;D)=0` - the sum of
 all NetKAT policies reachable before any reconfiguration. `tail(⊥,R)=⊥`; `tail(N;D,R)=tail(D,R)`;
 `tail(D⊕Q,R)=tail(D,R)⊕tail(Q,R)`; `tail(rcfg;D,R)=D⊕tail(D,R)` if `rcfg(X,Z)∈R`, else `⊥`.
-Both assume the input is restricted (no `x?q`/`x!q` remains) — paper §V and `dnk.maude:138-139`.
+Both assume the input is restricted (no `x?q`/`x!q` remains) - paper §V and `dnk.maude:138-139`.
 Note `head` is applied to the *whole* truncated term, so it sums policies at every depth `≤ n`
 that precede the first `rcfg` on each branch; `pi_n` bounds how deep this reaches.
 
 ## 2. Recursion and cyclic-graph findings
 
 - **[V]** Representation in the tool: variables are Maude constants of sort `Recursive`; bodies
-  live in generated `getRecPol` equations; unfolding is lazy — `pi{s(M)}(P) = pi{s(M)}(unfold(P))`
+  live in generated `getRecPol` equations; unfolding is lazy - `pi{s(M)}(P) = pi{s(M)}(unfold(P))`
   fires only when `P` is an (un)guarded term blocking progress (`dnk.maude:114-124`).
 - **[V]** Neither operator eliminates recursion *by solving* it. Restriction `δ_H` never touches
   variables (it only cuts communication prefixes, `dnk.maude:72-80`). Projection eliminates
   variables **by bounded truncation**: unfolding is forced while `pi` still has budget, and
-  `pi{0}(P) = bot` cuts whatever remains (`dnk.maude:83`). After `pi_n`, no variable survives —
+  `pi{0}(P) = bot` cuts whatever remains (`dnk.maude:83`). After `pi_n`, no variable survives -
   but the result is an under-approximation of depth > n behavior, not a fixpoint resolution.
 - **[V]** No normalization, unfolding-to-fixpoint, or graph/cyclic solving exists anywhere in
   the tool; the A-axioms only normalize choice/parallel structure. The claimed "resolve
@@ -89,12 +89,12 @@ that precede the first `rcfg` on each branch; `pi_n` bounds how deep this reache
   in **neither** the FoSSaCS paper nor the journal draft (searched both); it is not reflected in
   the code. Treat it as unverified guidance, not an implemented mechanism.
 - **[V]** Unboundedness: the paper itself concedes the bound ("for a fixed n, the verification
-  procedure resembles bounded model checking", §IV) and provides only the ingredients — Lemma 8
-  (guarded ⇒ finitely branching) and Lemma 11 (AIP soundness, proof uses Lemma 8) — not an
+  procedure resembles bounded model checking", §IV) and provides only the ingredients - Lemma 8
+  (guarded ⇒ finitely branching) and Lemma 11 (AIP soundness, proof uses Lemma 8) - not an
   algorithm. AIP (`p ≡ q if ∀n, pi_n(p) ≡ pi_n(q)`, Fig. 11) is a meta-principle, not a Maude
   equation.
 - **[I]** Consequence for us: `RecEnv` can remain a purely semantic device. The checker
-  interface should take a *resolved view* — (program, `RecEnv`, property, bound `n`) — and
+  interface should take a *resolved view* - (program, `RecEnv`, property, bound `n`) - and
   perform unfolding internally, mirroring `getRecPol`. An unbounded "safe" verdict additionally
   requires a **stabilization argument**: on the finite packet domain, a guarded, restricted
   system's reachable process space (up to bisimilarity) is finite, so `pi_n` behavior
@@ -119,7 +119,7 @@ the PA block ends with `PA-CONTRA` + `PA-MATCH-ALL`; the substantive answers bel
 readings.
 
 - **What they establish.** `KA-LFP-L/R` are the least-fixpoint (induction) axioms that make
-  `*` complete — without them KA reasoning about iteration is incomplete. `PA-CONTRA` and
+  `*` complete - without them KA reasoning about iteration is incomplete. `PA-CONTRA` and
   `PA-MATCH-ALL` tie the algebra to the finite packet domain; together with `PA-MOD-MOD` they
   are exactly what makes the dup-free normal-form theorem work: Lemma 5 (`E_NK ⊢ p ≡ Σ_{α·π∈G} α·π`,
   via language model (7)–(8)) needs every packet to satisfy *some* complete test
@@ -132,17 +132,17 @@ readings.
 - **Does our evaluator implement their behavior?** **[V]** Yes, semantically, on the finite
   `CtxPkt` domain: contradictory tests evaluate to `∅`; every `σ : CtxPkt` satisfies some
   complete test since fields range over the finite `FieldValueEnum` (`Packet.lean` `Fintype`
-  instances); star is handled by `boundedStar` with `execute_star_correct` — the semantic
+  instances); star is handled by `boundedStar` with `execute_star_correct` - the semantic
   counterpart of the LFP induction principle (`NetKAT/Evaluator.lean:171,233,244`).
 - **Equational derivability vs semantic decision procedure.** **[I]** These must be
   distinguished: Theorem 1 (`EDNK` sound + ground-complete for bisimilarity) is about
-  *derivability*; the tool never performs derivations — it delegates equivalence to a decision
+  *derivability*; the tool never performs derivations - it delegates equivalence to a decision
   procedure justified by completeness. For our checker, a **semantic decision procedure on the
   finite domain is sufficient and sound and complete** for the relational semantics we have
   verified; an explicit `EDNK`/`E_NK` derivability relation is not needed to build the checker
   (it would only be needed to mirror the paper's proof theory). Mathlib v4.19 (installed)
   provides `KleeneAlgebra` as an ordered idempotent-semiring-with-star class
-  (`Mathlib/Algebra/Order/Kleene.lean:89`) — structure only, no NetKAT/packet algebra and no
+  (`Mathlib/Algebra/Order/Kleene.lean:89`) - structure only, no NetKAT/packet algebra and no
   decision procedure.
 
 ## 4. Maude / Python / NetKAT delegation map
@@ -175,10 +175,10 @@ per pipeline: zero-equivalence during preprocessing and equivalence at verdict t
   `Definedness`/`WellFormed` (`RecEnv.lean`, `Definedness.lean`); bisimulation + congruence
   fragments (`Bisimulation.lean`); verified `nSeq` packet-step enumeration
   `packetTransitions_sound/complete` (`Executable.lean:57,90`, `NetKATBridge.lean`).
-- `NormalForm` representation only — no normalizer (`NetKAT/NormalForm.lean`, header disclaimer).
+- `NormalForm` representation only - no normalizer (`NetKAT/NormalForm.lean`, header disclaimer).
 
 **[V] Missing, mapped to pipeline stages:**
-1. NetKAT **equivalence decision procedure** (replaces `katbv`/`Decide_Repl`) — used at two
+1. NetKAT **equivalence decision procedure** (replaces `katbv`/`Decide_Repl`) - used at two
    pipeline points (§4).
 2. Encapsulation-set collection over the AST (trivial fold).
 3. Syntactic restriction `δ_H : AST → AST` + soundness vs `Step.cpol_restrict`.
@@ -190,7 +190,7 @@ per pipeline: zero-equivalence during preprocessing and equivalence at verdict t
 
 ## 6. Recommended first implementation task
 
-**[R]** **S2 — verified finite-domain NetKAT equivalence checker.** New file (e.g.
+**[R]** **S2 - verified finite-domain NetKAT equivalence checker.** New file (e.g.
 `lean/DyNetKAT/NetKAT/Equiv.lean`): a boolean/decidable function comparing `execute p σ` and
 `execute q σ` for all `σ` in the finite packet universe, plus special case `equivZero`.
 

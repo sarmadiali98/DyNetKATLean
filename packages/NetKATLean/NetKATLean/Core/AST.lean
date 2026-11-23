@@ -12,7 +12,7 @@
 --   2. CompleteTest is a total valuation (distinct from general predicates).
 --   3. NetKAT AST has `test` for general predicates and `completeTest` for
 --      complete tests. Complete tests are embedded as special cases.
---   4. No `dup` — this is NetKAT^dup-free, the fragment used by DyNetKAT.
+--   4. No `dup` - this is NetKAT^dup-free, the fragment used by DyNetKAT.
 ------------------------------------------------------------------------
 
 import NetKATLean.Core.Packet
@@ -94,7 +94,7 @@ end Predicate
 --   - π: complete assignments (total valuations, Definition 4)
 ------------------------------------------------------------------------
 
-/-- NetKAT^dup-free syntax — the dup-free fragment used by DyNetKAT.
+/-- NetKAT^dup-free syntax - the dup-free fragment used by DyNetKAT.
     See paper p. 6, §I-B. -/
 inductive NetKAT (schema : PacketSchema := ctxSchema)
   | drop             : NetKAT schema  -- 0 (drop, empty relation)
@@ -128,7 +128,7 @@ def completeTestEmbed (α : CompleteTest) : NetKAT :=
 
     `FieldName` is a concrete 4-element inductive type with constructors
     `.tpSrc`, `.tpDst`, `.swId`, `.port`.  This list provides a fixed,
-    decidable ordering of all fields — required so that
+    decidable ordering of all fields - required so that
     `completeAssignExpr` composes the single-field assignments in a
     deterministic order.
 
@@ -143,7 +143,7 @@ def fieldEnum : List FieldName :=
 
     For each field `f`, generate `assign1 f (π f)` and compose them
     sequentially with `;`.  Every field appears exactly once, so the
-    expression overwrites every field of the packet — matching the paper's
+    expression overwrites every field of the packet - matching the paper's
     Definition 4 (`f₁←v₁ · ... · fₙ←vₙ`) at the level of single-field updates.
 
     The field enumeration is taken from `fieldEnum`, which lists each
@@ -156,7 +156,7 @@ def completeAssignExpr (π : CompleteAssignmentValuation) : NetKAT :=
       fs.foldr (fun f' acc => .seq (assign1 f' (π f')) acc) .id
     .seq (assign1 f (π f)) assignRest
 
-/-- Choice: N + N — shorthand for union -/
+/-- Choice: N + N - shorthand for union -/
 def plus (n₁ n₂ : NetKAT) : NetKAT := .union n₁ n₂
 
 /-- Coverage: `fieldEnum` enumerates every `FieldName` constructor exactly once.

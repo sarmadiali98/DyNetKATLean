@@ -47,7 +47,7 @@ open Packet
 /-! Relators for relational operations -/
 
 /-- Reflexive-transitive closure of a relation (Kleene star semantics).
-    ⟦N*⟧ = ⋃ₖ ⟦N⟧ᵏ — the reflexive-transitive closure. -/
+    ⟦N*⟧ = ⋃ₖ ⟦N⟧ᵏ - the reflexive-transitive closure. -/
 inductive StarClosure {α : Type} (R : α → α → Prop) : α → α → Prop
   | refl : ∀ a, StarClosure R a a
   | step : ∀ {a b c}, R a b → StarClosure R b c → StarClosure R a c
@@ -150,7 +150,7 @@ theorem star_step (n : NetKAT) (σ τ : CtxPkt) :
 -- Test semantics: predicate and complete test semantics
 ------------------------------------------------------------------------
 
-/-- ⟦f=v⟧ = {(σ,σ) | σ(f) = v} — atomic test preserves packet iff field matches.
+/-- ⟦f=v⟧ = {(σ,σ) | σ(f) = v} - atomic test preserves packet iff field matches.
     The semantics of a predicate test is the identity relation restricted to
     packets satisfying the predicate. -/
 theorem fieldTestFor_sem {schema : PacketSchema} (f : schema.Field) (v : schema.Value f)
@@ -180,7 +180,7 @@ theorem fieldTest_sem (f : FieldName) (v : FieldValueEnum) (σ τ : CtxPkt) :
   fieldTestFor_sem (schema := ctxSchema) f v σ τ
 
 
-/-- ⟦¬Pr⟧ = {(σ,σ) | Pr does not hold on σ} — negation test.
+/-- ⟦¬Pr⟧ = {(σ,σ) | Pr does not hold on σ} - negation test.
     Per Figure 3: ⟦¬a⟧(h) ≜ {h} \ ⟦a⟧(h).
     In single-packet form: {(σ,σ) | ¬(Pr holds on σ)}. -/
 theorem notTest_sem {schema : PacketSchema} (Pr : Predicate schema) (σ τ : schema.Packet) :
@@ -203,7 +203,7 @@ theorem notTest_sem {schema : PacketSchema} (Pr : Predicate schema) (σ τ : sch
         exact Bool.eq_false_iff.mpr h1
       · rfl
 
-/-- ⟦Pr₁ ∨ Pr₂⟧ = {(σ,σ) | Pr₁ holds or Pr₂ holds} — disjunction test. -/
+/-- ⟦Pr₁ ∨ Pr₂⟧ = {(σ,σ) | Pr₁ holds or Pr₂ holds} - disjunction test. -/
 theorem orTest_sem {schema : PacketSchema} (Pr₁ Pr₂ : Predicate schema) (σ τ : schema.Packet) :
     Semantics (NetKAT.test (.pOr Pr₁ Pr₂)) σ τ ↔
     (Pr₁.holds σ ∨ Pr₂.holds σ) ∧ τ = σ := by
@@ -225,7 +225,7 @@ theorem orTest_sem {schema : PacketSchema} (Pr₁ Pr₂ : Predicate schema) (σ 
         exact h1
       · rfl
 
-/-- ⟦Pr₁ ∧ Pr₂⟧ = {(σ,σ) | Pr₁ holds and Pr₂ holds} — conjunction test. -/
+/-- ⟦Pr₁ ∧ Pr₂⟧ = {(σ,σ) | Pr₁ holds and Pr₂ holds} - conjunction test. -/
 theorem andTest_sem {schema : PacketSchema} (Pr₁ Pr₂ : Predicate schema) (σ τ : schema.Packet) :
     Semantics (NetKAT.test (.pAnd Pr₁ Pr₂)) σ τ ↔
     (Pr₁.holds σ ∧ Pr₂.holds σ) ∧ τ = σ := by
@@ -251,7 +251,7 @@ theorem andTest_sem {schema : PacketSchema} (Pr₁ Pr₂ : Predicate schema) (σ
 -- Complete test and assignment semantics
 ------------------------------------------------------------------------
 
-/-- ⟦α⟧ = {(σ,σ) | α holds on σ} — complete test preserves packet iff all match.
+/-- ⟦α⟧ = {(σ,σ) | α holds on σ} - complete test preserves packet iff all match.
     Per paper p. 6: a complete test α = f₁=v₁·...·fₙ=vₙ is the conjunction
     of all field tests. Since α is a total function, it checks every field. -/
 theorem completeTest_sem (α : CompleteTest) (σ τ : CtxPkt) :
@@ -263,7 +263,7 @@ theorem completeTest_sem (α : CompleteTest) (σ τ : CtxPkt) :
 -- Single-field assignment semantics
 ------------------------------------------------------------------------
 
-/-- ⟦f←v⟧ maps σ to σ[f↦v] — primitive single-field assignment updates the field.
+/-- ⟦f←v⟧ maps σ to σ[f↦v] - primitive single-field assignment updates the field.
     Per paper: ⟦f←v⟧ = {(σ, σ[f↦v])}. -/
 theorem assign1_sem (f : FieldName) (v : FieldValueEnum) (σ τ : CtxPkt) :
     Semantics (schema := ctxSchema) (.assign1 f v) σ τ ↔
@@ -498,7 +498,7 @@ theorem seq_distrib_right (n₁ n₂ n₃ : NetKAT) (σ τ : CtxPkt) :
 -- Boolean algebra laws (from Figure 4: BA-EXCL-MID, BA-CONTRA)
 ------------------------------------------------------------------------
 
-/-- BA-EXCL-MID: Pr + ¬Pr = 1 (excluded middle) — predicate disjunction with
+/-- BA-EXCL-MID: Pr + ¬Pr = 1 (excluded middle) - predicate disjunction with
     negation covers all packets. -/
 theorem pred_excluded_middle (Pr : Predicate) (σ : CtxPkt) :
     (Predicate.pOr Pr (Predicate.pNot Pr)).holds σ := by
@@ -507,7 +507,7 @@ theorem pred_excluded_middle (Pr : Predicate) (σ : CtxPkt) :
   | true => simp [Predicate.eval, h]
   | false => simp [Predicate.eval, h]
 
-/-- BA-CONTRA: Pr · ¬Pr = 0 (contradiction) — predicate conjunction with
+/-- BA-CONTRA: Pr · ¬Pr = 0 (contradiction) - predicate conjunction with
     negation never holds. -/
 theorem pred_contra (Pr : Predicate) (σ : CtxPkt) :
     ¬(Predicate.pAnd Pr (Predicate.pNot Pr)).holds σ := by

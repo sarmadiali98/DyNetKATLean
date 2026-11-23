@@ -20,6 +20,9 @@ jobs:
         target: [katlean, netkatlean, dynetkatlean, integration]
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Check tracked text
+        if: matrix.target == 'integration'
+        run: bash scripts/check-em-dashes.sh
       - name: Build locked image
         run: docker build -f docker/Dockerfile --target "${{ matrix.target }}" -t "verify:${{ matrix.target }}" .
       - name: Run verification without network

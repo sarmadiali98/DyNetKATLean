@@ -176,19 +176,11 @@ Keep a tagged reference baseline and versioned summaries so CI can flag
 severe regressions on a comparable runner. Record failures and resource
 limits separately from timing comparisons.
 
-## Future CI matrix
+## Hosted verification
 
-- Run KATLean smoke and full package jobs, NetKATLean smoke and full
-  package jobs, and DyNetKATLean smoke and full package jobs.
-- Run all three external consumer projects, all four Docker targets,
-  compiled documentation examples, and full integration verification.
-- Enforce dependency direction in Lake metadata, resolved dependencies,
-  and transitive Lean imports. Assign modules to their owning package and
-  fail on upward dependencies in either metadata or imports, including
-  imports reached through an umbrella. Build lower-layer jobs from a
-  context where upper-layer sources are unavailable.
-- Verify canonical naming and prose style. Run maintained axiom audits and
-  selected performance regressions through full verification.
+The first hosted run passed all four Docker jobs. The integration job
+runs the detached package and consumer builds, integration tests, and
+maintained trust and paper API checks through the release verifier.
 
 ## Coordinated naming and prose migration
 
@@ -196,16 +188,12 @@ The repository migrated from `DyNetKAT-Lean` to
 [`sarmadiali98/DyNetKATLean`](https://github.com/sarmadiali98/DyNetKATLean),
 and the Ubuntu checkout moved to `~/Desktop/DyNetKATLean`. The canonical
 package names are `KATLean`, `NetKATLean`, and `DyNetKATLean`.
-Verify fresh clones, pinned downstream dependencies, and release checks
-during release hardening.
+The clean Docker and hosted CI runs verified the pinned dependency chain.
 
-Perform a repository-wide prose pass to remove em dashes. Add a CI scan
-for Unicode U+2014 in tracked project-controlled prose, including
-documentation, tutorials, templates, and comments. Define explicit
-exclusions for vendored, external, and generated text, and preserve exact
-external quotations through narrow, documented exceptions. Check the
-source templates for project-controlled generated prose. Keep the naming
-and style gates scoped to maintained material.
+`bash scripts/check-em-dashes.sh` checks tracked text, including source
+comments and documentation. Native release verification and GitHub Actions
+run it from a checkout. Container verification uses a source snapshot without
+a Git index. The CI checkout check runs before the integration image build.
 
 ## Retirement of development comparisons
 

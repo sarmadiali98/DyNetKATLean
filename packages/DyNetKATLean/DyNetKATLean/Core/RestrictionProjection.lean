@@ -5,17 +5,17 @@
 -- PDF pages, matching the repo convention "Lemma 5 printed p. 13" = PDF
 -- p. 11):
 --
---   Eq. (2), PDF p. 8 — restriction operational rule:
+--   Eq. (2), PDF p. 8 - restriction operational rule:
 --     (p, H0, H1) --γ--> (p0, H00, H10),  γ ∉ L
 --     -------------------------------------------
 --     (δL(p), H0, H1) --γ--> (δL(p0), H00, H10)
 --
---   Eq. (3), PDF p. 9 — projection operational rule:
+--   Eq. (3), PDF p. 9 - projection operational rule:
 --     (p, H0, H1) --γ--> (p0, H00, H10)
 --     -------------------------------------------
 --     (π_{n+1}(p), H0, H1) --γ--> (π_n(p0), H00, H10)
 --
---   Fig. 11, PDF p. 10 — axioms on DyNetKAT normal forms
+--   Fig. 11, PDF p. 10 - axioms on DyNetKAT normal forms
 --   (at ::= α·π | x?z | x!z | rcfg_{x,z};  L = {c | c ::= x?N | x!N}):
 --     (δ⊥)  δL(⊥) ≡ ⊥
 --     (δ;)  δL(at ; p) ≡ at ; δL(p)      if at ∉ L
@@ -27,12 +27,12 @@
 --     (Π⊕)  πn(p ⊕ q) ≡ πn(p) ⊕ πn(q)
 --     (AIP) p ≡ q if ∀n ∈ N: πn(p) ≡ πn(q)
 --
---   Lemma 11 + Proof 6, PDF p. 13 — soundness of AIP for DyNetKAT
+--   Lemma 11 + Proof 6, PDF p. 13 - soundness of AIP for DyNetKAT
 --   bisimilarity (requires branching finiteness, Lemma 8).  NOT reproduced
 --   here: the AIP direction "∀n, πn(p) ∼ πn(q) → p ∼ q" remains a
 --   mathematical obligation (see the end of this file for what IS proved).
 --
---   §V, PDF p. 14 — "we assume the input D to the operators head and tail
+--   §V, PDF p. 14 - "we assume the input D to the operators head and tail
 --   do not contain terms of shape x?q and x!q. This can be ensured by
 --   always applying the restriction operator δ on D."
 --
@@ -875,7 +875,7 @@ theorem project_choice_bisim (env : RecEnv schema) (n : Nat) (p q : DyNetKAT sch
 
 /-- One-step budget monotonicity: every transition of `πn(p)` is matched
     by a transition of `π_{n+1}(p)` (with the budget shifted up by one).
-    This is a one-step simulation only — it is NOT a bisimulation, see
+    This is a one-step simulation only - it is NOT a bisimulation, see
     `not_bisimilar_project_depths` below. -/
 theorem project_step_monotone (env : RecEnv schema) (n : Nat) (p : DyNetKAT schema)
     (pending handled : List schema.Packet) (action : Action schema) (dest : Config schema)
@@ -1167,7 +1167,7 @@ def commActions : DyNetKAT schema → Finset (CommunicationAction schema)
     normal forms, which live in exactly this fragment; parallel
     composition, merges, nested restriction, projection, and recursive
     variables are outside it (the latter are never resolved by
-    preprocessing — H6A). -/
+    preprocessing - H6A). -/
 inductive PreprocessFragment {schema : PacketSchema} : DyNetKAT schema → Prop
   | deadlock : PreprocessFragment .deadlock
   | nSeq : ∀ (N : NetKAT schema) (D : DyNetKAT schema),
@@ -1199,7 +1199,7 @@ def CommFree : DyNetKAT schema → Prop
 
 /-- The restriction operator `δL` of the paper, as a computable function on
     the δ-axiom fragment: each step is an instance of a Fig. 11 axiom
-    (δ⊥, δ;, δ;⊥, δ⊕).  Unsupported shapes fail explicitly with `none` —
+    (δ⊥, δ;, δ;⊥, δ⊕).  Unsupported shapes fail explicitly with `none` -
     in particular recursive variables are NOT unfolded (H6A) and nested
     restriction/projection are not eliminated (no paper axiom covers
     them). -/
@@ -1282,8 +1282,8 @@ def preprocess (env : RecEnv schema) (p : DyNetKAT schema) : Option (DyNetKAT sc
 
 /-- Preprocessing conditions for the S4A integration theorem: the process
     lies in the δ-axiom fragment, and every directly occurring recursive
-    variable is defined (which is vacuous on this fragment — see
-    `PreprocessFragment.defined` — but kept to mirror the target theorem
+    variable is defined (which is vacuous on this fragment - see
+    `PreprocessFragment.defined` - but kept to mirror the target theorem
     shape and the H6A environment discipline). -/
 def PreprocessingConditions (env : RecEnv schema) (p : DyNetKAT schema) : Prop :=
   PreprocessFragment p ∧ Defined env p
@@ -1486,7 +1486,7 @@ theorem headSupported_not_commFree {schema : PacketSchema} :
     result lies in the S4A `HeadSupported` fragment.  The target form
     `HeadSupported (preprocess env process)` is not valid as stated because
     preprocessing can fail (explicit `none`) on processes outside the
-    δ-axiom fragment — in particular on processes with recursive variables,
+    δ-axiom fragment - in particular on processes with recursive variables,
     which restriction must not resolve (H6A). -/
 theorem preprocess_head_supported (env : RecEnv schema) (p : DyNetKAT schema)
     (h : PreprocessingConditions env p) :

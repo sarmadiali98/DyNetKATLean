@@ -1,4 +1,4 @@
-# H6A — Environment-Free Bisimulation Architecture Audit
+# H6A - Environment-Free Bisimulation Architecture Audit
 
 Audit and architecture only. No Lean source, AST, `Step`, `RecEnv`, or existing report was
 modified. The only artifact added by this task is this file.
@@ -28,13 +28,13 @@ theorem name that exists in the tree.
 The task's central distinction is confirmed by the source. There are three different things
 that `RecEnv` does, and they must not be conflated:
 
-1. **Interpreting recursive specifications** — `RecEnv := Var → Option DyNetKAT`
+1. **Interpreting recursive specifications** - `RecEnv := Var → Option DyNetKAT`
    (`RecEnv.lean:9`) is the mathematical object that gives `.var X` meaning. **[L]**
-2. **Executing SOS transitions** — `Step env` (`DyNetKAT/Semantics.lean:14`) carries `env` as
+2. **Executing SOS transitions** - `Step env` (`DyNetKAT/Semantics.lean:14`) carries `env` as
    an index, but exactly one of its 14 constructors consumes it: `cpol_var`
    (`Semantics.lean:159-170`), via the premise `definition : env.lookup name = some body`.
    **[L]**
-3. **Comparing two already-resolved processes** — `IsBisimulation env R` / `Bisimilar env p q`
+3. **Comparing two already-resolved processes** - `IsBisimulation env R` / `Bisimilar env p q`
    (`Bisimulation.lean:9,26`) inherit `env` solely because they quantify over `Step env`
    transitions. **[L]**
 
@@ -44,22 +44,22 @@ Roles 2 and 3 are *inherited*; only role 1 is intrinsic to `RecEnv` as a definit
 
 | # | Location | Occurrence | Role | Required by the math? | Eliminable after preprocessing? |
 |---|---|---|---|---|---|
-| 1 | `RecEnv.lean:9-19` | `RecEnv`, `lookup`, `empty`, `define` + 3 simp lemmas | 1 | Yes — the `(cpolX)` rule needs the defining equation `X ≜ p` **[P]** (Fig. 8 premise annotation) | No — this *is* the interpretation mechanism |
+| 1 | `RecEnv.lean:9-19` | `RecEnv`, `lookup`, `empty`, `define` + 3 simp lemmas | 1 | Yes - the `(cpolX)` rule needs the defining equation `X ≜ p` **[P]** (Fig. 8 premise annotation) | No - this *is* the interpretation mechanism |
 | 2 | `DyNetKAT/Semantics.lean:14` | `Step (env : RecEnv)` index | 2 | Only for `cpol_var`; the other 13 constructors never mention `env` **[L]** | Yes, for variable-free processes (needs §3.3 lemma) |
-| 3 | `DyNetKAT/Semantics.lean:159-170` | `cpol_var` premise `env.lookup name = some body` | 1+2 | Yes — this is the Lean rendering of the paper's `X ≜ p` side condition **[P]** | Only by removing `.var` from the process (preprocessing) |
-| 4 | `Bisimulation.lean:9` | `IsBisimulation env R` | 3 | No — inherited from `Step env`; the paper's Definition 2 is environment-free (context suppressed) **[P]** | Yes for variable-free `p`, `q` (§3.3) |
+| 3 | `DyNetKAT/Semantics.lean:159-170` | `cpol_var` premise `env.lookup name = some body` | 1+2 | Yes - this is the Lean rendering of the paper's `X ≜ p` side condition **[P]** | Only by removing `.var` from the process (preprocessing) |
+| 4 | `Bisimulation.lean:9` | `IsBisimulation env R` | 3 | No - inherited from `Step env`; the paper's Definition 2 is environment-free (context suppressed) **[P]** | Yes for variable-free `p`, `q` (§3.3) |
 | 5 | `Bisimulation.lean:26` | `Bisimilar env p q` | 3 | Same as 4 | Same as 4 |
-| 6 | `Bisimulation.lean:29-690` | `env` parameter of `refl/symm/trans` + all 14 congruence theorems | 3 | No — **verified [L]: no proof body in `Bisimulation.lean` mentions `cpol_var` or `env.lookup`**; every `env` is threaded opaquely | Yes — statements generalize over `env`; for variable-free processes `env` can be dropped |
-| 7 | `Definedness.lean:22,27,35,140` | `Defined env`, `ReachableVar env`, `ClosedDefined env`, `WellFormed env` | 1 | Yes — these are preprocessing/well-formedness predicates about which variables are defined and guarded **[L]** | No — they are preprocessing, not bisimulation; they should stay environment-relative |
-| 8 | `NetKATBridge.lean:50,76` | `execute_packet_step env`, `executeHistory_packet_step env` | 2 (inert) | No — `env` appears only in the conclusion's `Step env`; proofs never use it **[L]** | Yes (cosmetic; would require touching `Step`'s type — out of scope) |
-| 9 | `Executable.lean:64,97` | `packetTransitions_sound env`, `packetTransitions_complete env` | 2 (inert) | No — the `nSeq` packet fragment cannot reach `cpol_var` **[L]** (a `Step` from `.nSeq …` can only be `cpol_seq_ok`) | Yes, same caveat as 8 |
+| 6 | `Bisimulation.lean:29-690` | `env` parameter of `refl/symm/trans` + all 14 congruence theorems | 3 | No - **verified [L]: no proof body in `Bisimulation.lean` mentions `cpol_var` or `env.lookup`**; every `env` is threaded opaquely | Yes - statements generalize over `env`; for variable-free processes `env` can be dropped |
+| 7 | `Definedness.lean:22,27,35,140` | `Defined env`, `ReachableVar env`, `ClosedDefined env`, `WellFormed env` | 1 | Yes - these are preprocessing/well-formedness predicates about which variables are defined and guarded **[L]** | No - they are preprocessing, not bisimulation; they should stay environment-relative |
+| 8 | `NetKATBridge.lean:50,76` | `execute_packet_step env`, `executeHistory_packet_step env` | 2 (inert) | No - `env` appears only in the conclusion's `Step env`; proofs never use it **[L]** | Yes (cosmetic; would require touching `Step`'s type - out of scope) |
+| 9 | `Executable.lean:64,97` | `packetTransitions_sound env`, `packetTransitions_complete env` | 2 (inert) | No - the `nSeq` packet fragment cannot reach `cpol_var` **[L]** (a `Step` from `.nSeq …` can only be `cpol_seq_ok`) | Yes, same caveat as 8 |
 
 ### 1.3 Why the environment is mathematically necessary at role 1
 
 **[P]** The paper's `(cpolX)` rule (Figure 8) is rendered with the defining equation as a
 premise annotation: from `(p, H0, H1) →γ (p0, H00, H10)` and the side condition `X ≜ p`, infer
 `(X, H0, H1) →γ (p0, H00, H10)`. The same syntax `.var "X"` has different transitions under
-different definitions, so environment-relative semantics is not a Lean artifact — it is the
+different definitions, so environment-relative semantics is not a Lean artifact - it is the
 paper's semantics with the global specification made explicit. `Step.cpol_var` unfolds one step
 by delegation to the body; it does not itself assert existence, uniqueness, guardedness, or
 productivity (those live in `WellFormed`, `Definedness.lean:140-143`). **[L]**
@@ -109,7 +109,7 @@ All quoted/paraphrased content below was verified against the extracted PDF text
 
 `L` is a set of forbidden actions ranging over `x?z` and `x!z` (the communication actions of
 Eq. (1)). The paper: "In practice, we use the restriction operator to force synchronous
-communication." Restriction is what makes the `head`/`tail` precondition hold — §V: "we assume
+communication." Restriction is what makes the `head`/`tail` precondition hold - §V: "we assume
 the input D to the operators head and tail do not contain terms of shape x?z and x!z. This can
 be ensured by always applying the restriction operator δ on D."
 
@@ -143,7 +143,7 @@ is a bisimulation via the decreasing sequence `S1 ⊇ S2 ⊇ …` of one-step-de
 (Eq. 24). The three ingredients, verbatim: (1) monotone decrease "as if πn+1(p) ∼ πn+1(p0)
 then πn(p1) ∼ πn(p01)"; (2) nonemptiness "since πn+1(p) ∼ πn+1(p0) by (21)"; (3) "Sn is finite,
 for all n ∈ ℕ, as p0 is finitely branching according to Lemma 8". Finiteness comes from
-finite branching of the *one-step* derivatives only — the sets range over single-step
+finite branching of the *one-step* derivatives only - the sets range over single-step
 derivatives of `p0` with fixed histories `(H0, H00)`, so Lemma 8 alone suffices; no global
 reachable-state finiteness is used. The proof is "close to the one of Theorem 2.5.8 in [3]"
 (Bergstra–Klop-style).
@@ -175,7 +175,7 @@ verification procedure resembles bounded model checking."
 a step of the inner process with `allowed : match action with | .packet _ _ => True |
 .recv x r => CommunicationAction.recv x r ∉ actions | .send x r => … ∉ actions | .rcfg _ _ =>
 True`, residual `.restrict actions p'`. Packet and `rcfg` actions always pass; only
-communication actions can be forbidden — matching the paper's `L ⊆ {x?z, x!z}` by
+communication actions can be forbidden - matching the paper's `L ⊆ {x?z, x!z}` by
 construction (`AST.lean:66-71`). Congruence: `Bisimilar.restrict` (`Bisimulation.lean:565`).
 
 ### 3.2 Projection in Lean
@@ -183,12 +183,12 @@ construction (`AST.lean:66-71`). Congruence: `Bisimilar.restrict` (`Bisimulation
 **[L]** `Step.cpol_project` (`DyNetKAT/Semantics.lean:208-221`) matches Eq. (3): `.project
 (n+1) p` steps to `.project n p'`. The `n = 0` case has no rule, and `Bisimilar.project`
 (`Bisimulation.lean:617-637`) proves `.project 0 p` affords **no** transitions (`cases step`
-closes all goals) — the behavioral counterpart of (Π0) `π0(p) ≡ ⊥`. Congruence for `n+1` is
+closes all goals) - the behavioral counterpart of (Π0) `π0(p) ≡ ⊥`. Congruence for `n+1` is
 proved with the depth-tracking relation `∃ k c d, k ≤ n+1 ∧ R c d ∧ a = .project k c ∧ …`.
 
-### 3.3 Do they resolve recursive variables? — the critical question
+### 3.3 Do they resolve recursive variables? - the critical question
 
-**Answer: No — neither operator, as defined in the paper or in Lean, removes recursive
+**Answer: No - neither operator, as defined in the paper or in Lean, removes recursive
 variables; and the naive preprocessing theorem cannot hold.** Detail:
 
 1. **Restriction never touches variables.** **[P]** The δ rules and axioms only cut
@@ -206,7 +206,7 @@ variables; and the naive preprocessing theorem cannot hold.** Detail:
 3. **Projection (tool reading) resolves variables by bounded truncation.** **[V]** (carried
    over from `SAFETY_WORKFLOW_AUDIT.md` §2, re-verified against the paper's §IV–V text): the
    Maude implementation forces unfolding while the `pi` budget remains and cuts with
-   `pi{0}(P) = bot`, so after `pi_n` no variable survives — but the result is an
+   `pi{0}(P) = bot`, so after `pi_n` no variable survives - but the result is an
    **under-approximation of depth > n behavior, not a fixpoint resolution**. The paper's own
    caveat: "for a fixed n, the verification procedure resembles bounded model checking." **[P]**
 4. **The literal theorem cannot hold.** A statement of the form
@@ -226,7 +226,7 @@ variables; and the naive preprocessing theorem cannot hold.** Detail:
       exact, its codomain cannot be finite variable-free terms.
    b. **Eager unfolding is not total on arbitrary `env`.** `X ≜ X` makes any unfolding
       function that recurses `unfold (var X) = unfold body` diverge. (The tool avoids this by
-      *lazy* unfolding — unfold only when a step is blocked — so `X ≜ X` simply gets stuck,
+      *lazy* unfolding - unfold only when a step is blocked - so `X ≜ X` simply gets stuck,
       matching `cpol_var`'s infinite-regress semantics.) **[V]** tool behavior per
       `SAFETY_WORKFLOW_AUDIT.md` §2; **[L]** `cpol_var` requires a step *of the body*, so
       `X ≜ X` affords no transition.
@@ -255,7 +255,7 @@ variables; and the naive preprocessing theorem cannot hold.** Detail:
    `GuardedOccurrences` bodies, every variable occurrence sits directly under a prefix
    (`GuardedOccurrences (.var _) = False`, `Definedness.lean:102`), so every observed
    transition crosses at least one prefix, hence #unfoldings ≤ #transitions + 1 ≤ depth + 1.
-   **This is a bounded approximation theorem, not unbounded bisimilarity** — the distinction
+   **This is a bounded approximation theorem, not unbounded bisimilarity** - the distinction
    the task explicitly demands.
 
    **Exact (graph-level).** Variables are not eliminated from the representation; they become
@@ -270,7 +270,7 @@ variables; and the naive preprocessing theorem cannot hold.** Detail:
 | Unfolds recursive variables (Lean) | No **[L]** (`cpol_restrict` delegates; `.var` preserved syntactically) | No **[L]** (`cpol_project` wraps; `.var` reachable only via `cpol_var`) |
 | Removes all reachable `.var` occurrences | No **[L]** | No (paper SOS); yes in the *tool's* bounded-truncation reading **[V]** |
 | Result finite | Input-shaped **[L]** | Bounded-depth term under tool reading **[V]** |
-| Preserves intended operational behavior | Yes — Eq. (2) verbatim **[P]/[L]** | Yes for Eq. (3) as an operator **[P]/[L]**; tool's πn is an under-approximation **[V]** |
+| Preserves intended operational behavior | Yes - Eq. (2) verbatim **[P]/[L]** | Yes for Eq. (3) as an operator **[P]/[L]**; tool's πn is an under-approximation **[V]** |
 | Depends on `RecEnv` | Only transitively via `Step env` **[L]** | Same **[L]** |
 | Variables possible after both | Yes **[L]** | Yes (paper SOS); No (tool truncation, at the price of depth-n under-approximation) **[V]** |
 
@@ -317,7 +317,7 @@ Design decisions and why:
 
 - **`var` carries a `NodeId`, not a `Var`.** This is the whole point: the environment lookup
   is performed *once, at graph-construction time*; the graph needs no `RecEnv`. A cycle
-  `X → N;Y`, `Y → M;X` is two nodes with labels `nSeq N (var y)` and `nSeq M (var x)` — the
+  `X → N;Y`, `Y → M;X` is two nodes with labels `nSeq N (var y)` and `nSeq M (var x)` - the
   back-edges make the infinite unfolding finite. **[R]**
 - **`Finset NodeId` + `closed` predicate instead of a graph library.** Totality of every
   successor is an explicit invariant; reachability and cycle checks are finite explorations
@@ -325,7 +325,7 @@ Design decisions and why:
 - **Guardedness becomes a graph property.** Paper Definition 7 says an occurrence of `X` is
   guarded iff it lies under a prefix (`p0;t` with the variable in `t`, or `y?X;t`, `y!X;t`,
   `rcfgX;t`). On the graph this is: **every `var`-edge target is reachable from the source
-  only through at least one prefix node** — equivalently, no cycle in the graph consists
+  only through at least one prefix node** - equivalently, no cycle in the graph consists
   solely of `var` edges (a `var` node whose body node is again immediately a `var` reference
   is the graph image of an unguarded chain `X ≜ Y`). Formally checkable by finite exploration:
   ```lean
@@ -336,29 +336,29 @@ Design decisions and why:
   ```
   **[O]** proving `GraphGuarded g` equivalent to the paper's per-occurrence Definition 7 on
   the unfoldings is a genuine obligation (see §9); note the current Lean `GuardedOccurrences`
-  (`Definedness.lean:90-102`) is a *coarser* structural approximation — it declares every
+  (`Definedness.lean:90-102`) is a *coarser* structural approximation - it declares every
   occurrence under `nSeq`/`recv`/`send`/`rcfgPrefix` guarded without the paper's conditional
   clause on the prefix subterm `p0` (flagged already in `PAPER_TO_LEAN_MATRIX.md`).
 - **Successors/reachability/exploration.** `children : NodeLabel → List NodeId`; reachability
   is the reflexive-transitive closure of the child relation restricted to `nodes`; because
   `nodes` is a `Finset`, the standard worklist/`Finset.image` iteration stabilizes within
-  `nodes.card` steps, giving a *decidable*, total exploration — no coinduction needed for
+  `nodes.card` steps, giving a *decidable*, total exploration - no coinduction needed for
   the graph checks themselves. **[R]**
 
 ### 4.2 Converting `RecEnv` into this representation
 
 **[R]** Yes, under well-formedness assumptions. Construction: collect the recursively
-reachable variables of the root (`ReachableVar env root name`, `Definedness.lean:27-32`) —
+reachable variables of the root (`ReachableVar env root name`, `Definedness.lean:27-32`) -
 under `WellFormed env root` these are all defined; allocate one node per reachable variable,
 one node per distinct body subterm position (hash-consing optional; a naive tree-unrolling
 with a fuel on *distinct syntax nodes* also works), and translate `.var name` to
 `.var (nodeOf name)`. Termination of the construction needs the same care as §3.3-5 (a
 variable's body is unrolled with a fuel; under guardedness each unfolding is followed by a
-prefix, so a fuel of `depth+1` per observation level suffices) — or, more cleanly, the graph
+prefix, so a fuel of `depth+1` per observation level suffices) - or, more cleanly, the graph
 is built *directly* from the equations without unrolling: each variable gets exactly one node
 whose label is its body with `.var Y` replaced by `.var (nodeOf Y)`; bodies are finite terms,
 so this is a single structural pass over finitely many bodies, **total on any `WellFormed`
-environment** — no fuel needed. This direct construction is the recommended one. **[R]**
+environment** - no fuel needed. This direct construction is the recommended one. **[R]**
 
 ```lean
 def toGraph (env : RecEnv) (root : DyNetKAT)
@@ -392,19 +392,19 @@ project rules are structural clones of `Semantics.lean` with node indices.) **[R
 
 The four notions, kept strictly apart:
 
-1. **Bounded bisimulation** — `πn(p) ∼ πn(q)` for one fixed `n`. **[P]** Does *not* imply
+1. **Bounded bisimulation** - `πn(p) ∼ πn(q)` for one fixed `n`. **[P]** Does *not* imply
    `p ∼ q`: differences beyond depth `n` are invisible. The paper itself frames fixed-`n`
    checking as bounded-model-checking-like (§IV). Any checker verdict at a user-supplied `n`
    is sound only for traces of length ≤ n unless a stabilization argument is added.
-2. **Bisimulation on a finite cyclic graph** — ordinary LTS bisimulation over the graph
+2. **Bisimulation on a finite cyclic graph** - ordinary LTS bisimulation over the graph
    semantics of §4.3. Because the coinductive definition unrolls cycles without bound, this
    is **genuine unbounded bisimulation of the graph LTS**, and it is *decidable* in principle
    (finite branching + finite node space ⇒ partition refinement terminates). No cutoff, no
    AIP needed. **[R]**
-3. **Unbounded bisimulation of the original `Step env` LTS** — equals (2) *given* a
+3. **Unbounded bisimulation of the original `Step env` LTS** - equals (2) *given* a
    correspondence theorem between graph transitions and `Step env` transitions (§8, `GStep`
    correspondence). Without that theorem, (2) is a statement about a different LTS.
-4. **Stabilization of finite-depth approximations** — the existence of `n0` with
+4. **Stabilization of finite-depth approximations** - the existence of `n0` with
    `πn(p) ∼ πn(q)` for all `n ≥ n0` implying `p ∼ q` is exactly **AIP soundness (Lemma 11)**,
    whose proof (Proof 6) is a decreasing-sequence argument over one-step derivative sets,
    needing Lemma 8 (finite branching). **[P]** For a *checker* that wants to compute a
@@ -413,23 +413,23 @@ The four notions, kept strictly apart:
    open obligation already recorded in `SAFETY_WORKFLOW_AUDIT.md` §7.1; the graph
    representation is precisely the structure that makes such an argument *stateable* (finitely
    many nodes; configurations still range over unbounded packet lists, so the stabilization
-   must be argued per-history-context, as Proof 6 does — the bisimulation relation of
+   must be argued per-history-context, as Proof 6 does - the bisimulation relation of
    `IsBisimulation` quantifies over all `pending`/`handled`, and nothing in the current tree
    bounds them). **[L]** on the quantifier structure of `IsBisimulation`.
 
 **Necessary proof obligations for the graph route:**
 
-- **(G1)** `ProcessGraph` well-formedness (`closed`, `root_live`) — construction lemma. **[O]**
+- **(G1)** `ProcessGraph` well-formedness (`closed`, `root_live`) - construction lemma. **[O]**
 - **(G2)** `GraphGuarded g` ⇒ the graph LTS is finitely branching (Lemma 8 analogue). On the
   graph this is *easier* than the paper's term-level Lemma 8: each node has finitely many
   structural successors and packet transitions are `Finset`-valued (`executeHistory` returns
   `Finset History`, `HistoryEvaluator.lean:58` **[L]**). **[O]**
 - **(G3)** Correspondence: `GStep g` traces (or bisimilarity) coincide with `Step env` on the
-  unfoldings — see §8 for the proposed statement. Trace-level suffices for the safety
+  unfoldings - see §8 for the proposed statement. Trace-level suffices for the safety
   pipeline (the paper's safety semantics is explicitly trace-based and "not sensitive to
   branching", Definition 14 discussion **[P]**); bisimulation-level is the stronger stretch
   goal. **[O]**
-- **(G4)** Stabilization/cutoff theorem for unbounded verdicts — open (§9).
+- **(G4)** Stabilization/cutoff theorem for unbounded verdicts - open (§9).
 
 **What must never be claimed:** that checking a fixed arbitrary depth `n` establishes
 unbounded bisimulation. **[P]** The paper's only bridges from bounded to unbounded are AIP
@@ -442,7 +442,7 @@ implements neither as an algorithm. **[V]**
 
 ### 6.1 Alternatives compared
 
-**Option 1 — keep `RecEnv` for preprocessing, eliminate it from bisimulation after
+**Option 1 - keep `RecEnv` for preprocessing, eliminate it from bisimulation after
 normalization.**
 Pros: minimal change; all existing theorems (`refl/symm/trans`, 14 congruence results,
 `packetTransitions_*`) survive untouched; the environment-irrelevance lemma (§3.3-4, §8) is
@@ -450,14 +450,14 @@ self-contained and provable now. Cons: "normalization" can only mean *bounded* u
 term level (§3.3-4a: no finite variable-free term is exact for unbounded recursion), so this
 option alone caps the artifact at bounded verdicts.
 
-**Option 2 — convert recursive specifications to finite cyclic graphs; bisimulation directly
+**Option 2 - convert recursive specifications to finite cyclic graphs; bisimulation directly
 over graph nodes.**
 Pros: the only option that handles unbounded recursion exactly; finite branching (G2) is
 easy; bisimulation on the graph is decidable in principle and needs no `RecEnv`, no AIP;
 matches the authors' guidance. Cons: new LTS + correspondence theorem (G3); does not by
 itself serve the *bounded* pipeline that mirrors the tool.
 
-**Option 3 — retain environment-dependent `Step`, add an environment-independent bisimulation
+**Option 3 - retain environment-dependent `Step`, add an environment-independent bisimulation
 interface for "resolved processes".**
 Cons: presupposes term-level resolved processes, which do not exist for unbounded recursion
 (§3.3-4a). The interface is either bounded (collapses into Option 1) or graph-shaped
@@ -470,7 +470,7 @@ Cons: presupposes term-level resolved processes, which do not exist for unbounde
   predicate, the environment-irrelevance lemma, an env-free bisimilarity interface for
   variable-free processes, and the fuel-based `boundedUnfold` with its var-freeness and
   bounded-soundness theorems. This serves the tool-faithful safety pipeline (head/tail on
-  restricted, projected, variable-free terms) and justifies — *with proof* — dropping `env`
+  restricted, projected, variable-free terms) and justifies - *with proof* - dropping `env`
   from every bisimulation statement about preprocessed processes.
 - **Track B (graph level, unbounded).** Add `ProcessGraph`/`GStep`/`GBisimilar` and the
   conversion + correspondence theorems. This is where unbounded claims live, and where the
@@ -555,7 +555,7 @@ theorem gbisimilar_implies_bisimilar (…) : …                           -- [O
   *restricted, projected, variable-free* term. Track A's `boundedUnfold` + `syntacticRestrict`
   produce exactly that shape; Track B's graph would need a depth-bounded unfolding
   (`unfoldNode`) before `head` applies. The unfinished normal-form pipeline is blocked
-  precisely on this preprocessing stage — not on `head` itself.
+  precisely on this preprocessing stage - not on `head` itself.
 - **`netkatEquiv` / `netkatIsZero` (`Decision.lean:77,151`, correctness at `:124,157`).**
   **[L]** Fully proved, packet-level, finite-domain. They are the terminal decision procedures:
   consumed (i) during preprocessing (zero-elimination of NetKAT sub-terms of variable bodies,
@@ -563,9 +563,9 @@ theorem gbisimilar_implies_bisimilar (…) : …                           -- [O
   (`in · head(Init) · out ≡ 0`, Eqs. (34)-(35) **[P]**). No changes needed; the history-level
   bridge already exists (`historySemantics_singleton_iff_packetSemantics`,
   `NetKATBridge.lean:32` **[L]**).
-- **E_NK (Figure 4 / Figure 11 `ENK` block).** **[P]** The two bottom equations —
+- **E_NK (Figure 4 / Figure 11 `ENK` block).** **[P]** The two bottom equations -
   `KA-LFP-L`/`KA-LFP-R` (least-fixpoint axioms for `*`) and `PA-CONTRA`/`PA-MATCH-ALL`
-  (finite-domain tie-in) — remain mandatory for the eventual equational framework. However,
+  (finite-domain tie-in) - remain mandatory for the eventual equational framework. However,
   per `SAFETY_WORKFLOW_AUDIT.md` §3 **[V]**: the evaluator's `execute_star_correct` and the
   `Fintype CtxPkt` instances already realize their *semantic* content on the finite domain,
   and a semantic decision procedure suffices for the checker; an explicit `EDNK`/`E_NK`
@@ -580,15 +580,15 @@ theorem gbisimilar_implies_bisimilar (…) : …                           -- [O
 **Component dependency order (next implementations, no KATch):**
 
 1. `syntacticRestrict` + `syntacticProject` (AST → AST) with soundness vs
-   `Step.cpol_restrict`/`cpol_project` — unblocks `head`'s precondition formally.
-2. `tail` (paper Eqs. (33) + (29)-(32) companions; restricted input) — the missing twin of
+   `Step.cpol_restrict`/`cpol_project` - unblocks `head`'s precondition formally.
+2. `tail` (paper Eqs. (33) + (29)-(32) companions; restricted input) - the missing twin of
    `head`.
 3. `boundedUnfold` (Track A) with `boundedUnfold_var_free` + `Step.env_irrelevant_on_varFree`
-   + `BisimilarFree` — resolves variables for the bounded pipeline and de-environments the
+   + `BisimilarFree` - resolves variables for the bounded pipeline and de-environments the
    bisimulation interface.
 4. Verdict layer: property-term construction + `netkatEquiv`/`netkatIsZero` composition
    (thin; both decision procedures exist).
-5. Track B graph layer (`toGraph`, `GStep`, correspondence) — parallel track, required only
+5. Track B graph layer (`toGraph`, `GStep`, correspondence) - parallel track, required only
    for unbounded claims; sequencing after (3) is natural but not strict.
 
 ---
@@ -645,5 +645,5 @@ theorem gbisimilar_implies_bisimilar (…) : …                           -- [O
 - Worktree: all pre-existing modifications and untracked files intact (50 `git status
   --porcelain` entries before and after this task; 0 stashes).
 - `git diff --check`: clean.
-- Files changed by this task: exactly one — this report (`docs/BISIMULATION_ENVIRONMENT_AUDIT.md`).
+- Files changed by this task: exactly one - this report (`docs/BISIMULATION_ENVIRONMENT_AUDIT.md`).
 - No Lean build needed: no Lean file was touched.

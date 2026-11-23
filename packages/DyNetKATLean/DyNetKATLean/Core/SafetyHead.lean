@@ -66,7 +66,7 @@ open DyNetKAT.NetKAT
     - `head (rcfgPrefix x N D) = some .drop`               (32) head(rcfg;D) = 0
 
     Unsupported constructors return `none` (explicit failure):
-    `recv`, `send` (excluded by the paper's restriction precondition —
+    `recv`, `send` (excluded by the paper's restriction precondition -
     they are NOT deadlock), `parallel`, `leftMerge`, `commMerge`,
     `restrict`, `project`, `var` (variables are not resolved here).
 

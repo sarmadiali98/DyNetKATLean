@@ -1,4 +1,4 @@
-# Figure 8 Operational Semantics — Step SOS Rules Design
+# Figure 8 Operational Semantics - Step SOS Rules Design
 
 **Task:** Design ONLY Figure 8's packet-processing SOS rules for `Step`,
 including successful processing, failure/drop, and packet-history updates.
@@ -99,16 +99,16 @@ structure Config where
 **Notation note (§2.1, resolved by paper evidence):** The text extraction
 renders the empty list `⟨⟩` as `hi` (paper p. 5: "The empty list is denoted
 by ⟨⟩"). In the `(cpolX;)` rule the source pending list is written `σ :: H`
-and the target pending list is written `H` — i.e., **`H` in the conclusion is
+and the target pending list is written `H` - i.e., **`H` in the conclusion is
 the tail** of the source list (the source is `σ :: H`, the target keeps only
 that `H`). The premise evaluates the NetKAT policy on the **single-packet
-history** `σ :: ⟨⟩` (the current packet alone, empty rest) — the dup-free
+history** `σ :: ⟨⟩` (the current packet alone, empty rest) - the dup-free
 denotation never sees the rest of the pending list. So: head consumed, tail
 (`H`) becomes the new pending list. No ambiguity remains.
 
 ---
 
-## 3. Rule (cpolX;) — packet flow through NetKAT policy (base rule)
+## 3. Rule (cpolX;) - packet flow through NetKAT policy (base rule)
 
 This is the base rule that connects NetKAT denotational semantics to DyNetKAT
 operational semantics. It is named `(cpolX;)` in the paper (line 417).
@@ -123,24 +123,24 @@ operational semantics. It is named `(cpolX;)` in the paper (line 417).
 - The **source** pending list is `σ :: H`: head `σ` (the packet being
   processed), tail `H` (the remaining packets).
 - The **premise** evaluates the NetKAT policy `p` on the single-packet
-  history `σ :: ⟨⟩` — only the current packet, with an empty rest. (The
+  history `σ :: ⟨⟩` - only the current packet, with an empty rest. (The
   extraction renders `⟨⟩` as `hi`; the paper defines `⟨⟩` as the empty list
   at p. 5.) The dup-free denotation never inspects the tail.
-- The **target** pending list is `H` (the tail — head consumed) and the
+- The **target** pending list is `H` (the tail - head consumed) and the
   target handled list is `σ' :: H'` (output consed to head).
 
 ### Precise premises and conclusion
 
 | Component | Detail |
 |---|---|
-| **Premise 1 (NetKAT denotation)** | `σ' ∈ ⟦p⟧(σ :: ⟨⟩)` — the packet `σ'` is a valid output of applying NetKAT policy `p` to the single-packet history `σ :: ⟨⟩`. For the dup-free fragment, this is equivalent to `Semantics p σ σ'`. |
+| **Premise 1 (NetKAT denotation)** | `σ' ∈ ⟦p⟧(σ :: ⟨⟩)` - the packet `σ'` is a valid output of applying NetKAT policy `p` to the single-packet history `σ :: ⟨⟩`. For the dup-free fragment, this is equivalent to `Semantics p σ σ'`. |
 | **Premise 2 (configuration shape)** | The current configuration has `proc = p ; q`, `pending = σ :: H` (head `σ`, tail `H`), `handled = H'`. |
 | **Conclusion** | The resulting configuration has `proc = q`, `pending = H` (head consumed, tail kept), `handled = σ' :: H'` (output consed to head). Label: `(σ, σ')`. |
 
 ### Packet-history updates
 
-- **Input (`H`):** `σ :: H` → `H` — the current packet `σ` is **consumed** (removed from the head of the pending list); the tail is kept.
-- **Output (`H'`):** `H'` → `σ' :: H'` — the resulting packet `σ'` is **pushed** to the head of the handled list.
+- **Input (`H`):** `σ :: H` → `H` - the current packet `σ` is **consumed** (removed from the head of the pending list); the tail is kept.
+- **Output (`H'`):** `H'` → `σ' :: H'` - the resulting packet `σ'` is **pushed** to the head of the handled list.
 
 ### Single-packet equivalence (per DESIGN_ALARMS A5)
 
@@ -168,14 +168,14 @@ inductive Step : Config → Action → Config → Prop
 
 ---
 
-## 4. Drop / failure case — when `⟦p⟧(σ) = ∅`
+## 4. Drop / failure case - when `⟦p⟧(σ) = ∅`
 
 ### Paper evidence (no separate rule)
 
 **There is no "drop rule" in Figure 8.** The paper does not define a `(cpol_;✗)`
 rule with a distinct label. When a NetKAT policy `p` produces no output for `σ`
 (i.e., `⟦p⟧(σ) = ∅`), the `(cpolX;)` rule's premise `σ' ∈ ⟦p⟧(σ::⟨⟩)` has **no
-witness** — the rule simply does not apply. No transition fires.
+witness** - the rule simply does not apply. No transition fires.
 
 This is explicitly demonstrated in the appendix proof of A0 (lines 1113–1118
 of the text extraction):
@@ -188,11 +188,11 @@ of the text extraction):
 
 - **No transition, no label.** When `⟦N⟧(σ) = ∅`, there is **no** `Step`
   witness for the configuration `(N;q, σ::H, H')`. The configuration is
-  *stuck*: the head packet `σ` remains in `pending` (it is NOT removed — no
+  *stuck*: the head packet `σ` remains in `pending` (it is NOT removed - no
   rule fires, so no state change occurs).
 - **This is a rule-guard, not a rule.** The drop behavior is encoded in the
   *failure of the premise* of `(cpolX;)`, not as a separate transition rule.
-  In the inductive `Step` definition there is no `cpol_seq_bad` constructor —
+  In the inductive `Step` definition there is no `cpol_seq_bad` constructor -
   the relation simply has no witness for that configuration.
 
 ### Design decision (do not invent)
@@ -206,7 +206,7 @@ Following the paper faithfully:
    `pending` keeps `σ :: H` and `handled` keeps `H'` unchanged. No step exists.
 
 **Important correction to an earlier draft note:** a stuck configuration does
-*not* "consume the packet" — consumption happens only as part of a successful
+*not* "consume the packet" - consumption happens only as part of a successful
 `(cpolX;)` step. Since no rule fires, the configuration is unchanged. This is
 exactly what makes A0 (`0;p ≡ ⊥`) sound: both `0;p` and `⊥` afford no
 transitions, so they are bisimilar.
@@ -221,7 +221,7 @@ introduce one.
 
 **Ambiguity flagged (§4.2):** `PAPER_CONFORMANCE.md` §7 (lines 285–294)
 tentatively proposes a `(cpol_;✗)` rule with label `(σ, ⊥?)`. This is **not
-supported** by the Figure 8 text extraction — no such rule appears in the
+supported** by the Figure 8 text extraction - no such rule appears in the
 figure, and the appendix A0 proof states the term "does not afford any
 transition." **Recommendation:** correct `PAPER_CONFORMANCE.md` §7 to state
 that the drop case is modeled as absence of transitions (stuck configuration),
@@ -230,14 +230,14 @@ not as a labeled rule.
 ### Interaction with empty `H`
 
 When `pending = []`, the `(cpolX;)` rule's pattern `pending = σ :: H` does not
-match — there is no head packet to process. This is a guard on the
+match - there is no head packet to process. This is a guard on the
 configuration shape, not a separate rule. No packet-flow transition fires for
 an empty pending list (communication rules below do not depend on `H` and may
 still fire).
 
 ---
 
-## 5. Rule (cpol⊕) — non-deterministic choice (left and right)
+## 5. Rule (cpol⊕) - non-deterministic choice (left and right)
 
 ### Paper statement (lines 423–430):
 
@@ -296,7 +296,7 @@ handled(′). The rules propagate both lists unchanged.
 
 ---
 
-## 6. Rule (cpol‖) — parallel composition (asynchronous, left and right)
+## 6. Rule (cpol‖) - parallel composition (asynchronous, left and right)
 
 ### Paper statement (lines 433–439):
 
@@ -343,7 +343,7 @@ the target of the semantic rule."
 
 **Design note (§6.1):** `PAPER_CONFORMANCE.md` §7 lists an extra rule
 `(cpol_;_‖)` ("NetKAT policy in left of parallel") as a specialization of
-`cpol‖`. The Figure 8 extraction shows **no such separate rule** — the
+`cpol‖`. The Figure 8 extraction shows **no such separate rule** - the
 asynchronous parallel rules above already cover `N;d` in a parallel operand,
 because `(cpolX;)` fires on the sub-configuration `(N;d, σ::H, H')` and
 `(cpol‖)` lifts it. No separate constructor is needed. Flagged for
@@ -351,7 +351,7 @@ correction in `PAPER_CONFORMANCE.md`.
 
 ---
 
-## 7. Rules (cpol?) and (cpol!) — asynchronous receive and send
+## 7. Rules (cpol?) and (cpol!) - asynchronous receive and send
 
 ### Paper statement (lines 442–445):
 
@@ -372,7 +372,7 @@ correction in `PAPER_CONFORMANCE.md`.
 
 - These are **axiom rules** (no premises): a receive/send prefix always
   affords its communication step, regardless of the packet lists.
-- The label is `x?p` (resp. `x!p`) — carrying the channel `x` and the
+- The label is `x?p` (resp. `x!p`) - carrying the channel `x` and the
   communicated NetKAT policy `p`.
 - **Both packet lists remain unchanged:** `H → H`, `H' → H'`.
 
@@ -401,7 +401,7 @@ normal forms matter only for the axiomatization in §III).
 
 ---
 
-## 8. Rules (cpol!?) and (cpol?!) — synchronization
+## 8. Rules (cpol!?) and (cpol?!) - synchronization
 
 ### Paper statement (lines 447–457):
 
@@ -417,13 +417,13 @@ normal forms matter only for the axiomatization in §III).
 
 ### Premises and conclusions
 
-| (cpol!?) — left sends, right receives | (cpol?!) — left receives, right sends |
+| (cpol!?) - left sends, right receives | (cpol?!) - left receives, right sends |
 |---|---|
 | **Premise 1:** `(q, H, H') →_{x!p} (q', H, H')` | **Premise 1:** `(q, H, H') →_{x?p} (q', H, H')` |
 | **Premise 2:** `(s, H, H') →_{x?p} (s', H, H')` | **Premise 2:** `(s, H, H') →_{x!p} (s', H, H')` |
 | **Conclusion:** `(q ‖ s, H, H') →_{rcfg(x,p)} (q' ‖ s', H, H')` | **Conclusion:** `(q ‖ s, H, H') →_{rcfg(x,p)} (q' ‖ s', H, H')` |
 
-- **Both premises must use the same channel `x` and the same policy `p`** —
+- **Both premises must use the same channel `x` and the same policy `p`** -
   this is the "agreement" condition. The paper (lines 341–344): "when both
   operands q and, respectively, s 'agree' on sending/receiving a policy p on
   channel x in the context of the same packet lists H and H', and behave like
@@ -432,13 +432,13 @@ normal forms matter only for the axiomatization in §III).
 - **Both premises must use the same packet lists `H, H'`** for source and
   target. Since the send/receive rules never modify the lists, this reduces
   to: source lists shared, target lists shared.
-- The emitted label is `rcfg(x, p)` — the synchronization output.
+- The emitted label is `rcfg(x, p)` - the synchronization output.
 - The target process is `q' ‖ s'` (both continuations run in parallel).
 
 ### How the premises are discharged
 
 The premises `(q, H, H') →_{x!p} (q', H, H')` and `(s, H, H') →_{x?p}
-(s', H, H')` are themselves derived by rules (cpol!) and (cpol?) — but note
+(s', H, H')` are themselves derived by rules (cpol!) and (cpol?) - but note
 they may also be derived by any other rule that produces an `x!p` / `x?p`
 label (e.g., a nested synchronization inside a parallel operand, or a
 recursion unfolding that exposes a send). The premises are generic `Step`
@@ -462,7 +462,7 @@ the (cpol!)/(cpol?) axioms.
 ```
 
 **Ambiguity flagged (§8.1):** The paper's premise notation writes the same
-`H, H'` in both premises and the same `H, H'` in the conclusion — i.e., the
+`H, H'` in both premises and the same `H, H'` in the conclusion - i.e., the
 two sub-steps share the packet lists. Because (cpol?)/(cpol!) never modify
 the lists, sharing is automatic when the premises are derived by those rules.
 But if a premise is derived by a *different* rule (e.g., a nested parallel
@@ -479,7 +479,7 @@ dup-free `NetKAT` term.
 
 ---
 
-## 9. Rule (cpolX) — recursion unfolding
+## 9. Rule (cpolX) - recursion unfolding
 
 ### Paper statement (lines 414–420, right column):
 
@@ -494,9 +494,9 @@ defined as X ≜ p behaves according to p."
 
 ### Premises and conclusions
 
-- **Premise:** `(p, H₀, H₁) →γ (p', H₀₀, H₁₀)` — the defining body `p` of the
+- **Premise:** `(p, H₀, H₁) →γ (p', H₀₀, H₁₀)` - the defining body `p` of the
   variable `X` affords a `γ`-step.
-- **Conclusion:** `(X, H₀, H₁) →γ (p', H₀₀, H₁₀)` — the variable mimics it.
+- **Conclusion:** `(X, H₀, H₁) →γ (p', H₀₀, H₁₀)` - the variable mimics it.
 - The label and both packet lists are inherited unchanged.
 
 ### Side condition (environment, not the rule)
@@ -582,17 +582,17 @@ DyNetKAT operators only route and synchronize.
 
 The head of `pending` is the only packet a `(cpolX;)` step can consume. A
 configuration `(nSeq p q, σ :: H, H')` affords one `(σ, σ')` step for **each**
-`σ' ∈ ⟦p⟧(σ)` — branching comes from non-determinism in `⟦p⟧` (e.g., `union`),
+`σ' ∈ ⟦p⟧(σ)` - branching comes from non-determinism in `⟦p⟧` (e.g., `union`),
 not from list manipulation.
 
 ### 11.3 Stuck configurations
 
 A configuration is stuck (no `Step` witness) iff no rule applies. Notable
 stuck shapes:
-- `(nSeq p q, σ :: H, H')` with `⟦p⟧(σ) = ∅` — dropped packet (A0 soundness).
-- `(deadlock, H, H')` — no rule has `⊥` in the source (A0: `⊥` affords nothing).
-- `(nSeq p q, [], H')` — empty pending list; no head packet.
-- `(var X, H, H')` where `X` is undefined in `env` — no body to unfold.
+- `(nSeq p q, σ :: H, H')` with `⟦p⟧(σ) = ∅` - dropped packet (A0 soundness).
+- `(deadlock, H, H')` - no rule has `⊥` in the source (A0: `⊥` affords nothing).
+- `(nSeq p q, [], H')` - empty pending list; no head packet.
+- `(var X, H, H')` where `X` is undefined in `env` - no body to unfold.
 
 ### 11.4 Label-shape exclusivity
 
@@ -609,7 +609,7 @@ proofs, Lemma 10 soundness).
 | # | Ambiguity | Evidence status | Recommendation |
 |---|---|---|---|
 | 1 | Drop label / `(cpol_;✗)` rule | **Resolved by paper:** no drop rule exists; appendix A0 proof (lines 1113–1118) states `0;p` "does not afford any transition". | No `Action.drop`, no `cpol_seq_bad`. Stuck configuration. Correct `PAPER_CONFORMANCE.md` §7. |
-| 2 | `⟨⟩` rendering in the premise | Extraction renders the empty list `⟨⟩` as `hi` (paper p. 5 defines `⟨⟩`). | **Resolved:** premise is `σ' ∈ ⟦p⟧(σ::⟨⟩)` — single-packet history. Conclusion's `H` is the tail of the source `σ :: H`. |
+| 2 | `⟨⟩` rendering in the premise | Extraction renders the empty list `⟨⟩` as `hi` (paper p. 5 defines `⟨⟩`). | **Resolved:** premise is `σ' ∈ ⟦p⟧(σ::⟨⟩)` - single-packet history. Conclusion's `H` is the tail of the source `σ :: H`. |
 | 3 | `⟦p⟧(σ::⟨⟩)` vs single-packet `Semantics p σ σ'` | **Resolved:** dup-free fragment ⇒ histories are single packets (DESIGN_ALARMS A5). | Use `Semantics p σ σ'` from `NetKAT/Semantics.lean:61`. |
 | 4 | Shared lists in synchronization premises | Paper writes the same `H, H'` in both premises. | Keep the shared-list constraint literally in the Lean premises (faithful; matters for A12 soundness). |
 | 5 | Recursion environment threading | Paper treats `X ≜ p` meta-levelly; no environment in Fig. 8. | Explicit `env X = p` premise; global-vs-indexed `env` is an implementation decision (§9.2). |

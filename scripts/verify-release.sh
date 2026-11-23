@@ -16,6 +16,10 @@ case "${1:-all}" in
         verify_package "$1"
         ;;
     all)
+        # The Docker snapshot has no Git index. CI checks the checkout before building it.
+        if [[ -e .git ]]; then
+            bash scripts/check-em-dashes.sh
+        fi
         for package in KATLean NetKATLean DyNetKATLean; do
             verify_package "$package"
         done

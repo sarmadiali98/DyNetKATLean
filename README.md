@@ -4,7 +4,8 @@ The mathematical formalization of [DyNetKAT arXiv v4](https://arxiv.org/abs/2102
 is complete under the [documented typed scope](docs/PAPER_CONFORMANCE.md),
 including the distributed-controller and FatTree case studies. The scope
 records the unresolved paper ambiguity in Definition 17 (nested negation).
-DyNetiKAT v1.1 tooling and empirical parity are a separate phase.
+DyNetiKAT v1.1 reproduction is tracked separately. The canonical benchmarks
+have not run on the final 20-core host.
 
 ## Clone the repository
 
@@ -17,7 +18,8 @@ cd DyNetKATLean
 
 The mathematical packages are in `packages/`. Their Lake dependency chain is
 Mathlib → KATLean → NetKATLean → DyNetKATLean. The `lean/` workspace adds the
-compatibility library, CLI, frontend, and examples.
+compatibility library, CLI, frontend, and examples. Extraction and the
+repository rename are complete. Hosted CI verifies all four Docker targets.
 
 With Elan and Python 3.9 or later installed, run the following from the
 repository root. Install pytest in your Python environment for the full run.
@@ -33,6 +35,7 @@ Each package check runs its native `verify` and `consumer-test`. The former
 builds the library and runs every package test, including the smoke import.
 The latter builds an isolated Lake consumer. Full verification adds the
 integration Lean tests, Python tests, and standalone package-independence checks.
+Native release verification and CI also check tracked text.
 
 For Docker verification, substitute `katlean`, `netkatlean`, or `dynetkatlean`
 to check an individual package.
@@ -150,7 +153,7 @@ It proves the KA/test laws and dup-free packet laws and connects the
 current AST and evaluator to a packet-relation model. `Derives` justifies
 its KA, Boolean and packet laws directly through KATLean. Its semantic
 soundness, Lemma 5 and the E_DNK packet-prefix import follow that proof chain.
-Import `KATLean` for the algebra or `DyNetKAT.NetKAT.KATLean` for the
+Import `KATLean` for the algebra or `NetKATLean.Core.KATLean` for the
 current NetKAT bridge. See [KATLEAN.md](docs/KATLEAN.md) for Figure 4
 coverage, general-schema work and the optional full NetKAT history/dup extension.
 
@@ -164,7 +167,8 @@ layer.
 
 ```
 DyNetKATLean/
-├── lean/          # Lean 4 formalization (trusted semantic core)
+├── packages/      # KATLean, NetKATLean, and DyNetKATLean
+├── lean/          # Compatibility library, frontend, CLI, and examples
 ├── python/        # Auxiliary scripts & golden tests (untrusted adapter)
 ├── docs/          # Research notes, conformance mapping, proof roadmap
 ├── scripts/       # Build & validation scripts
@@ -192,13 +196,10 @@ DyNetKATLean/
   `lowerCamelCase` for definitions and theorems. Use Python 3 type hints,
   `snake_case`, and deterministic serialization.
 
-## Future package roadmap
+## Package layout
 
-The [post-development modularization plan](docs/MODULARIZATION_PLAN.md)
-describes standalone KATLean, NetKATLean, and DyNetKATLean packages,
-their downstream workflows, and the coordinated rename planned after
-paper and parity development. Use the current build and import instructions
-below for this checkout.
+The [extraction inventory](docs/PACKAGE_EXTRACTION_PLAN.md) records the
+physical packages, import paths, and downstream consumer checks.
 
 ## Finite packet schemas
 
