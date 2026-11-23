@@ -419,7 +419,7 @@ inductive Step (env : RecEnv) : Config → Action → Config → Prop
 
 ## Verbatim declarations: bisimulation and recursion environment
 
-`IsBisimulation` and `Bisimilar` are quoted verbatim in [SOS_AND_BISIMULATION_AUDIT.md](</Users/ali/Desktop/DyNetKAT-Lean/docs/SOS_AND_BISIMULATION_AUDIT.md>) and are located at `Bisimulation.lean:9-27`.
+`IsBisimulation` and `Bisimilar` are quoted verbatim in [SOS_AND_BISIMULATION_AUDIT.md](SOS_AND_BISIMULATION_AUDIT.md) and are located at `Bisimulation.lean:9-27`.
 
 Verbatim recursion environment declarations, `DyNetKAT/RecEnv.lean:9-19`:
 
@@ -474,11 +474,11 @@ The core congruence theorem statements, all fully proved, include:
 | `Bisimilar.nSeq_left`, `Bisimilar.recv_left`, `Bisimilar.send_left`, `Bisimilar.rcfgPrefix_left` | `:441`, `:472`, `:503`, `:534` |
 | `Bisimilar.restrict`, `Bisimilar.project` | `:565`, `:617` |
 
-The complete declarations, including proof terms, are in [Bisimulation.lean](/Users/ali/Desktop/DyNetKAT-Lean/packages/DyNetKATLean/DyNetKATLean/Core/Bisimulation.lean) at the exact starting lines above. The signatures in the inventory are verbatim declaration statements but intentionally omit the proof bodies; no proof body is reconstructed here. The relation’s universal transition quantification and the congruence proofs are substantial (the source module is 692 lines), so the source link is the authoritative complete verbatim text.
+The complete declarations, including proof terms, are in [Bisimulation.lean](../packages/DyNetKATLean/DyNetKATLean/Core/Bisimulation.lean) at the exact starting lines above. The signatures in the inventory are verbatim declaration statements but intentionally omit the proof bodies; no proof body is reconstructed here. The relation’s universal transition quantification and the congruence proofs are substantial (the source module is 692 lines), so the source link is the authoritative complete verbatim text.
 
 ## Verbatim executable bridge declarations
 
-`execute_packet_step` is quoted verbatim in [SOS_AND_BISIMULATION_AUDIT.md](</Users/ali/Desktop/DyNetKAT-Lean/docs/SOS_AND_BISIMULATION_AUDIT.md>) at source lines `NetKATBridge.lean:24-40`. `packetTransitions_sound` and `packetTransitions_complete` are quoted above with their complete proof bodies at `Executable.lean:57-119`. The executable enumeration itself is:
+`execute_packet_step` is quoted verbatim in [SOS_AND_BISIMULATION_AUDIT.md](SOS_AND_BISIMULATION_AUDIT.md) at source lines `NetKATBridge.lean:24-40`. `packetTransitions_sound` and `packetTransitions_complete` are quoted above with their complete proof bodies at `Executable.lean:57-119`. The executable enumeration itself is:
 
 ```lean
 def packetTransitions

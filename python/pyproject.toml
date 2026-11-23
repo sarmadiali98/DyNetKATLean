@@ -1,5 +1,5 @@
 [project]
-name = "dynetkat-lean-py"
+name = "dynetkatlean-py"
 version = "0.1.0"
 description = "Auxiliary Python scripts for DyNetKAT Lean formalization"
 requires-python = ">=3.9"

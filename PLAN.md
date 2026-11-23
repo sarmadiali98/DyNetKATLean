@@ -1,4 +1,4 @@
-# DyNetKAT-Lean roadmap
+# DyNetKATLean roadmap
 
 The final [arXiv v4 conformance audit](docs/PAPER_CONFORMANCE.md)
 closes mathematical formalization under the documented typed scope.

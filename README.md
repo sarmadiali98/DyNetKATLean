@@ -1,10 +1,17 @@
-# DyNetKAT-Lean
+# DyNetKATLean
 
 The mathematical formalization of [DyNetKAT arXiv v4](https://arxiv.org/abs/2102.10035v4)
 is complete under the [documented typed scope](docs/PAPER_CONFORMANCE.md),
 including the distributed-controller and FatTree case studies. The scope
 records the unresolved paper ambiguity in Definition 17 (nested negation).
 DyNetiKAT v1.1 tooling and empirical parity are a separate phase.
+
+## Clone the repository
+
+```sh
+git clone https://github.com/sarmadiali98/DyNetKATLean.git
+cd DyNetKATLean
+```
 
 ## Run v1.1 queries
 
@@ -120,7 +127,7 @@ layer.
 ## Structure
 
 ```
-DyNetKAT-Lean/
+DyNetKATLean/
 ├── lean/          # Lean 4 formalization (trusted semantic core)
 ├── python/        # Auxiliary scripts & golden tests (untrusted adapter)
 ├── docs/          # Research notes, conformance mapping, proof roadmap

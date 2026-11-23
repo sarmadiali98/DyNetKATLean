@@ -1,4 +1,4 @@
-# Unified Architecture Requirements — DyNetKAT-Lean
+# Unified Architecture Requirements — DyNetKATLean
 
 **Task:** P3A — Planning task (documentation only)
 **Date:** 2026-10-16
@@ -9,7 +9,7 @@
 ## 0. Paper-First Research Policy
 
 This document establishes an explicit **Paper-First Research Policy** for the
-DyNetKAT-Lean formalization project. This policy governs all design decisions,
+DyNetKATLean formalization project. This policy governs all design decisions,
 definitions, and proofs in this repository and is non-negotiable.
 
 ### 0.1 Authoritative source

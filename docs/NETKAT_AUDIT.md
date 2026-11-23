@@ -963,7 +963,7 @@ including Boolean tests and complete packet tests, and the row exporter
 to exercise the concrete-input query:
 
 ```sh
-# Run from the DyNetKAT-Lean checkout.
+# Run from the repository root.
 scratch=$(mktemp -d)
 mkdir "$scratch/results"
 (cd lean && lake env lean --run test_katch_differential.lean) > "$scratch/common.nkpl"

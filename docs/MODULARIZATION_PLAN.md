@@ -163,17 +163,12 @@ limits separately from timing comparisons.
 
 ## Coordinated naming and prose migration
 
-After the clean verified development baseline, carry out one coordinated
-migration from `DyNetKAT-Lean` to `DyNetKATLean`. Use the canonical
-names `KATLean`, `NetKATLean`, and `DyNetKATLean` for package metadata
-and project-controlled surfaces. Coordinate the GitHub repository rename
-to `DyNetKATLean` and the local checkout rename to
-`~/Desktop/DyNetKATLean` with maintainers. Update the remote URL, controlled
-repository links, Lake packages and project metadata, module and namespace
-references as needed, docs, scripts, CI, Docker, badges, examples, setup
-instructions, comments, and generated documentation titles. Regenerate
-outputs from their source templates. Afterward, verify fresh clones,
-pinned downstream dependency declarations, and the full release checks.
+The repository migrated from `DyNetKAT-Lean` to
+[`sarmadiali98/DyNetKATLean`](https://github.com/sarmadiali98/DyNetKATLean),
+and the Ubuntu checkout moved to `~/Desktop/DyNetKATLean`. The canonical
+package names are `KATLean`, `NetKATLean`, and `DyNetKATLean`.
+Verify fresh clones, pinned downstream dependencies, and release checks
+during release hardening.
 
 Perform a repository-wide prose pass to remove em dashes. Add a CI scan
 for Unicode U+2014 in tracked project-controlled prose, including
