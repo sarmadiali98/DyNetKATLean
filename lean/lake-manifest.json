@@ -4,6 +4,15 @@
  [{
    "type": "path",
    "scope": "",
+   "name": "DyNetKATLean",
+   "manifestFile": "lake-manifest.json",
+   "inherited": false,
+   "dir": "../packages/DyNetKATLean",
+   "configFile": "lakefile.toml"
+  },
+  {
+   "type": "path",
+   "scope": "",
    "name": "NetKATLean",
    "manifestFile": "lake-manifest.json",
    "inherited": false,

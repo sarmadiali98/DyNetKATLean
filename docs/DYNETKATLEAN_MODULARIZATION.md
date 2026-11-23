@@ -1,6 +1,8 @@
 # DyNetKATLean build and import boundary
 
-Use `import DyNetKATLean` and `lake build DyNetKATLean` in the shared Lake workspace. The default import is `NetKATLean` plus all 47 modules in `lean/DyNetKAT/DyNetKAT/` and their recursive imports, for 95 local modules. The local dependency direction is DyNetKATLean to NetKATLean to generic KATLean. Mathlib and Lean libraries supply the external foundations. Dynamic modules retain their existing granular NetKAT imports, all within the public NetKATLean closure.
+Use `import DyNetKATLean` and `lake build DyNetKATLean` from `packages/DyNetKATLean/`. The public closure owns the umbrella and all 47 modules in `packages/DyNetKATLean/DyNetKATLean/Core/`, for 95 local modules including lower dependencies. Its sole direct Lake dependency is `../NetKATLean`, which supplies KATLean and the locked Mathlib chain transitively. The integration workspace consumes this package through `../packages/DyNetKATLean`.
+
+Each former `DyNetKAT.DyNetKAT.X` now imports as `DyNetKATLean.Core.X`. Declaration names remain in `DyNetKAT.DyNetKAT`. The prototype preserved old module paths because it included only the core; the physical split has to coexist with the integration workspace, which retains the `DyNetKAT` prefix. Distinct prefixes prevent Lean's search-path selection from shadowing either tree. The exact inventory is in the [extraction plan](PACKAGE_EXTRACTION_PLAN.md#exact-source-inventory).
 
 ## Ownership
 
@@ -45,24 +47,26 @@ The reusable analyses live in the dynamic core. The v1.1 input compatibility lay
 
 The recursive import audit rejects imports outside the core allowlist, including frontend, benchmark and optional backend modules, and checks for upward edges from the lower layers. A source scan found no IO, subprocess or fixture-loading calls in the mathematical core. References to the historical tools in core comments describe semantics and provenance. The Lake build and scratch import use no benchmark scripts, benchmark JSON, historical timings, recovered reference runtime, Python, Maude or external solver binaries. Python is used by the repository verification harness to prepare the scratch tree.
 
-The focused tests check the public consumer, paper domain, guardedness and moves, projection, equations/AIP, ground normalization and completeness, finite abstraction and trace safety. The harness copies existing tests to scratch with their compatibility umbrella import replaced by the public import. It checks the example theorem separately after the core tests. The scratch path contains only audited local compiled modules and the external libraries. Physically relocating source trees, publishing independent package manifests and verifying separate clean installs remain later work.
+The package owns 28 relocated tests covering the mathematical core and a new `test_paper_results.lean` audit of public declaration names and representative axioms. The integration suite retains 15 tests, including the frontend, controller and FatTree case studies, and optional backend regressions. Run the package's `./verify.sh` with `build`, `smoke`, `test-all`, `verify` or `consumer-test`. The import audit traverses both lower packages and excludes upward edges and integration modules. The downstream consumer is a fresh Lake project with a declared path dependency on DyNetKATLean. It checks admission, forwarding by SOS, residual admissibility, finite branching and head normalization. Lake's source and object search paths are audited before the consumer builds. The integration verifier delegates to the package verifier, while the case-study tests verify the example declarations separately.
+
+The clean Ubuntu reproduction passed with fresh copies under `$HOME/.cache/dynetkat-tmp`. Lake resolved NetKATLean directly and KATLean transitively, verified all nine pinned Git revisions, and passed the build, package verification, and isolated consumer. See [the extraction plan](PACKAGE_EXTRACTION_PLAN.md) for the resolution command and Mathlib revision.
 
 ## Direct import inventory
 
-Bare names in the left column are in `DyNetKAT.DyNetKAT`. All direct edges are shown.
+Bare module names denote `DyNetKATLean.Core` modules. The declarations retain the historical namespace.
 
 | Module | Imports |
 | --- | --- |
-| `DyNetKATLean` | See the explicit imports in `lean/DyNetKATLean.lean`. |
-| `AST` | `DyNetKAT.NetKAT.AST` |
-| `Action` | `AST`, `DyNetKAT.NetKAT.Packet` |
+| `DyNetKATLean` | See the explicit imports in `packages/DyNetKATLean/DyNetKATLean.lean`. |
+| `AST` | `NetKATLean.Core.AST` |
+| `Action` | `AST`, `NetKATLean.Core.Packet` |
 | `AnalysisStrategy` | `FiniteAbstraction`, `FiniteBisimulation`, `MemoProjection` |
 | `Approximation` | `RestrictionProjection` |
 | `Bisimulation` | `Semantics` |
-| `Config` | `AST`, `DyNetKAT.NetKAT.Packet` |
+| `Config` | `AST`, `NetKATLean.Core.Packet` |
 | `Definedness` | `RecEnv` |
 | `DependencySCC` | `ProcessGraph`, `Equations`, `Ground`, `TypedGuardedness`, `Mathlib.Logic.Relation` |
-| `Equations` | `FiniteProjection`, `NetKATBridge`, `DyNetKAT.NetKAT.Normalization` |
+| `Equations` | `FiniteProjection`, `NetKATBridge`, `NetKATLean.Core.Normalization` |
 | `EquationsAIP` | `Equations`, `SemanticBranching` |
 | `Executable` | `NetKATBridge` |
 | `FiniteAbstraction` | `FiniteClosure` |
@@ -70,31 +74,31 @@ Bare names in the left column are in `DyNetKAT.DyNetKAT`. All direct edges are s
 | `FiniteBranching` | `Approximation`, `FiniteProjection` |
 | `FiniteClosure` | `GraphNormalization`, `FiniteProjection`, `DependencySCC` |
 | `FiniteProjection` | `GraphMoves`, `GraphRestriction` |
-| `GraphHead` | `Mathlib.Data.Set.Basic`, `Mathlib.Data.Finset.Basic`, `Mathlib.Data.Finset.Insert`, `Mathlib.Data.Finset.Card`, `DyNetKAT.NetKAT.Packet`, `DyNetKAT.NetKAT.Semantics`, `DyNetKAT.NetKAT.Decision`, `AST`, `RecEnv`, `SafetyHead`, `ProcessGraph` |
-| `GraphMoves` | `ProcessGraph`, `DyNetKAT.NetKAT.Decision` |
+| `GraphHead` | `Mathlib.Data.Set.Basic`, `Mathlib.Data.Finset.Basic`, `Mathlib.Data.Finset.Insert`, `Mathlib.Data.Finset.Card`, `NetKATLean.Core.Packet`, `NetKATLean.Core.Semantics`, `NetKATLean.Core.Decision`, `AST`, `RecEnv`, `SafetyHead`, `ProcessGraph` |
+| `GraphMoves` | `ProcessGraph`, `NetKATLean.Core.Decision` |
 | `GraphNormalization` | `GraphMoves`, `SafetyCheck`, `Mathlib.Data.Set.Finite.Range` |
 | `GraphPaths` | `ProcessGraph` |
-| `GraphRestriction` | `ProcessGraph`, `NetKATBridge`, `DyNetKAT.NetKAT.Decision` |
+| `GraphRestriction` | `ProcessGraph`, `NetKATBridge`, `NetKATLean.Core.Decision` |
 | `GraphTail` | `GraphPaths`, `GraphHead`, `TailExtraction` |
 | `Ground` | `Definedness`, `Semantics` |
 | `GroundCompleteness` | `HeadNormalForm`, `EquationsAIP`, `NetKATBridge` |
-| `HeadNormalForm` | `Equations`, `Ground`, `DyNetKAT.NetKAT.Normalization` |
+| `HeadNormalForm` | `Equations`, `Ground`, `NetKATLean.Core.Normalization` |
 | `MemoProjection` | `FiniteProjection` |
-| `NetKATBridge` | `DyNetKAT.NetKAT.Evaluator`, `DyNetKAT.NetKAT.HistoryEvaluator`, `Semantics` |
+| `NetKATBridge` | `NetKATLean.Core.Evaluator`, `NetKATLean.Core.HistoryEvaluator`, `Semantics` |
 | `PaperDomain` | `ProcessGraph`, `SemanticBranching`, `TypedGuardedness` |
-| `ProcessGraph` | `Mathlib.Data.Set.Basic`, `Mathlib.Data.Finset.Sort`, `Mathlib.Data.String.Basic`, `DyNetKAT.NetKAT.Packet`, `DyNetKAT.NetKAT.HistorySemantics`, `AST`, `Action`, `Config`, `RecEnv`, `Semantics`, `Bisimulation`, `Definedness`, `RestrictionProjection` |
+| `ProcessGraph` | `Mathlib.Data.Set.Basic`, `Mathlib.Data.Finset.Sort`, `Mathlib.Data.String.Basic`, `NetKATLean.Core.Packet`, `NetKATLean.Core.HistorySemantics`, `AST`, `Action`, `Config`, `RecEnv`, `Semantics`, `Bisimulation`, `Definedness`, `RestrictionProjection` |
 | `Program` | `PaperDomain`, `AnalysisStrategy`, `SafetyCheck`, `HeadNormalForm`, `GroundCompleteness` |
 | `ProjectionDerivation` | `Program`, `MemoProjection` |
 | `Reachability` | `TraceEquations` |
 | `RecEnv` | `AST` |
-| `RestrictionProjection` | `Mathlib.Data.Finset.Basic`, `DyNetKAT.NetKAT.Packet`, `DyNetKAT.NetKAT.Decision`, `Bisimulation`, `Definedness`, `SafetyHead` |
-| `SafetyCheck` | `SequentialReachability`, `DyNetKAT.NetKAT.Decision`, `SafetyHead`, `TailExtraction`, `GraphTail`, `GraphRestriction` |
-| `SafetyHead` | `AST`, `DyNetKAT.NetKAT.Semantics` |
+| `RestrictionProjection` | `Mathlib.Data.Finset.Basic`, `NetKATLean.Core.Packet`, `NetKATLean.Core.Decision`, `Bisimulation`, `Definedness`, `SafetyHead` |
+| `SafetyCheck` | `SequentialReachability`, `NetKATLean.Core.Decision`, `SafetyHead`, `TailExtraction`, `GraphTail`, `GraphRestriction` |
+| `SafetyHead` | `AST`, `NetKATLean.Core.Semantics` |
 | `SemanticBranching` | `Approximation` |
-| `Semantics` | `Config`, `Action`, `RecEnv`, `DyNetKAT.NetKAT.Semantics`, `DyNetKAT.NetKAT.HistorySemantics` |
+| `Semantics` | `Config`, `Action`, `RecEnv`, `NetKATLean.Core.Semantics`, `NetKATLean.Core.HistorySemantics` |
 | `SequentialReachability` | `GraphTail`, `GraphRestriction` |
 | `SourceTrace` | `Program` |
-| `TailExtraction` | None |
+| `TailExtraction` | `AST`, `NetKATLean.Core.Semantics`, `SafetyHead`, `RestrictionProjection` |
 | `TightReachability` | `TraceSafetyCheck`, `Reachability` |
 | `TraceEnvironment` | `SourceTrace` |
 | `TraceEquations` | `SourceTrace` |
@@ -106,9 +110,9 @@ Bare names in the left column are in `DyNetKAT.DyNetKAT`. All direct edges are s
 | `DyNetKAT.Frontend.V11Loader` | `DyNetKAT.Frontend.V11Json`, `Program` |
 | `DyNetKAT.Frontend.V11Reachability` | `TightReachability`, `DyNetKAT.Frontend.V11Loader`, `Reachability` |
 | `DyNetKAT.Frontend.V11Syntax` | None |
-| `DyNetKAT.Frontend.V11Waypoint` | `DyNetKAT.NetKAT.SymbolicDerives`, `DyNetKAT.Frontend.V11Reachability` |
+| `DyNetKAT.Frontend.V11Waypoint` | `NetKATLean.Core.SymbolicDerives`, `DyNetKAT.Frontend.V11Reachability` |
 | `DyNetKAT.Examples.DistributedControllers` | `TraceSafetyCheck`, `Reachability`, `ProjectionDerivation` |
-| `DyNetKAT.Examples.FatTree` | `Reachability`, `TraceSafetyCheck`, `DyNetKAT.NetKAT.SymbolicDerives`, `Mathlib.Tactic.DeriveFintype` |
+| `DyNetKAT.Examples.FatTree` | `Reachability`, `TraceSafetyCheck`, `NetKATLean.Core.SymbolicDerives`, `Mathlib.Tactic.DeriveFintype` |
 | `DyNetKAT.Main` | `DyNetKAT.Frontend.V11Batch`, `DyNetKAT.Frontend.V11Reachability`, `DyNetKAT.Basic`, `DyNetKAT.Frontend.V11Loader` |
 | `DyNetKAT` | See the explicit imports in `lean/DyNetKAT.lean`. |
 | `DyNetKAT.Basic` | None |

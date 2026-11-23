@@ -16,6 +16,7 @@ REPO = Path(__file__).resolve().parents[1]
 SOURCE = REPO / "lean"
 KAT = REPO / "packages/KATLean"
 NET = REPO / "packages/NetKATLean"
+DYN = REPO / "packages/DyNetKATLean"
 LAYERS = ("KATLean", "NetKATLean", "DyNetKATLean")
 EXTERNAL = {"Lean", "Init", "Std", "Mathlib"}
 
@@ -35,11 +36,11 @@ def source_manifest():
                 "NetKATLean.PacketAdapter." + name for name in ("Packet", "Guard", "Symbolic", "Closure")
             } or (module.startswith("NetKATLean.Core.")))
         else:
-            allowed = module == owner or module.startswith("DyNetKAT.DyNetKAT.")
+            allowed = module == owner or module.startswith("DyNetKATLean.Core.")
         if not allowed:
             raise ValueError(f"{owner} has an unaudited or upward import: {module}")
         path = Path(*module.split(".")).with_suffix(".lean")
-        source = ({"KATLean": KAT, "NetKATLean": NET}.get(owner, SOURCE)) / path
+        source = ({"KATLean": KAT, "NetKATLean": NET, "DyNetKATLean": DYN}.get(owner, SOURCE)) / path
         content = source.read_bytes()
         imports = re.findall(r"^\s*import\s+(\S+)", content.decode(), re.M)
         local = [name for name in imports if name.partition(".")[0] not in EXTERNAL]
@@ -73,7 +74,7 @@ def main():
     parser.add_argument("--cache", type=Path, default=SOURCE / ".lake/packages",
                         help="directory containing the pinned external Lake dependency checkouts")
     args = parser.parse_args()
-    root = Path(tempfile.mkdtemp(prefix="dynetkat-package-prototypes-", dir="/tmp")).resolve()
+    root = Path(tempfile.mkdtemp(prefix="dynetkat-package-prototypes-")).resolve()
     if root.is_relative_to(REPO):
         raise ValueError("prototype root must be outside the checkout")
     print(f"Prototype workspace: {root}", flush=True)
@@ -185,7 +186,7 @@ def main():
 
         consumer = prepare(name + "Consumer", ("Consumer", require(name, path=f"../{name}")
                                                 + '\n[[lean_lib]]\nname = "Consumer"\n'))
-        test = ({"KATLean": KAT, "NetKATLean": NET}.get(name, SOURCE)) / f"test_{name.lower()}_import.lean"
+        test = ({"KATLean": KAT, "NetKATLean": NET, "DyNetKATLean": DYN}.get(name, SOURCE)) / f"test_{name.lower()}_import.lean"
         source = test.read_text()
         if name == "KATLean":
             source += "\n#guard KATLean.Native.decideEquiv (T := Fin 1) (A := Fin 1) (.plus .one .one) .one\n"

@@ -1,5 +1,5 @@
 import DyNetKAT.Frontend.V11Json
-import DyNetKAT.DyNetKAT.Program
+import DyNetKATLean.Core.Program
 
 set_option linter.dupNamespace false
 

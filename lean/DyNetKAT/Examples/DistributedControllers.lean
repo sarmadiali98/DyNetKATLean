@@ -1,6 +1,6 @@
-import DyNetKAT.DyNetKAT.TraceSafetyCheck
-import DyNetKAT.DyNetKAT.Reachability
-import DyNetKAT.DyNetKAT.ProjectionDerivation
+import DyNetKATLean.Core.TraceSafetyCheck
+import DyNetKATLean.Core.Reachability
+import DyNetKATLean.Core.ProjectionDerivation
 
 set_option linter.dupNamespace false
 

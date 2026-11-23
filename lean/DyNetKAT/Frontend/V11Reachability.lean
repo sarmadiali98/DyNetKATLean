@@ -1,6 +1,6 @@
-import DyNetKAT.DyNetKAT.TightReachability
+import DyNetKATLean.Core.TightReachability
 import DyNetKAT.Frontend.V11Loader
-import DyNetKAT.DyNetKAT.Reachability
+import DyNetKATLean.Core.Reachability
 
 namespace DyNetKAT.Frontend.V11
 

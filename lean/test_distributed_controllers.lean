@@ -50,6 +50,7 @@ example : checkSynchronized [installationWord] = false := synchronized_checker_i
 #print axioms synchronized_admitted
 #print axioms independent_breach_steps
 #print axioms independent_initial_isolation
+#check independent_unsafe
 #print axioms independent_eq28_fails
 #print axioms independent_reachable
 #print axioms synchronized_barrier

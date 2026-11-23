@@ -57,7 +57,7 @@ head(rcfg_{X,N};D) = 0                    tail(rcfg_{X,N};D, R) = D ⊕ tail(D, 
 is `rcfg_{X,Z} ∈ R` with `Z ≠ N`, while (33) uses `rcfg_{X,N} ∉ R`. The
 audited Maude implementation of the original DyNetiKAT tool (recorded in
 `docs/DYNETIKAT_REFERENCE_AUDIT.md` and already quoted in
-`lean/DyNetKAT/DyNetKAT/TailExtraction.lean`, header lines 18–32) reads both
+`packages/DyNetKATLean/DyNetKATLean/Core/TailExtraction.lean`, header lines 18–32) reads both
 side conditions as speaking about the *same* event `rcfg(X,Z)` that heads
 the sequence:
 
@@ -217,7 +217,7 @@ what the (33) barrier guarantees.
 ## 2. The existing AST-level implementation (S5A) and its limitations
 
 All of the following exists and is proved at the checkpoint [LEAN,
-`lean/DyNetKAT/DyNetKAT/TailExtraction.lean`, 1311 lines].
+`packages/DyNetKATLean/DyNetKATLean/Core/TailExtraction.lean`, 1311 lines].
 
 ### 2.1 The extractor
 

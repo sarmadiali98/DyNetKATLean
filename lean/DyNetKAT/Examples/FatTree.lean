@@ -1,5 +1,5 @@
-import DyNetKAT.DyNetKAT.Reachability
-import DyNetKAT.DyNetKAT.TraceSafetyCheck
+import DyNetKATLean.Core.Reachability
+import DyNetKATLean.Core.TraceSafetyCheck
 import NetKATLean.Core.SymbolicDerives
 import Mathlib.Tactic.DeriveFintype
 

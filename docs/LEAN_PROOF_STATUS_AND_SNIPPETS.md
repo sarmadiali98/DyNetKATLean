@@ -474,7 +474,7 @@ The core congruence theorem statements, all fully proved, include:
 | `Bisimilar.nSeq_left`, `Bisimilar.recv_left`, `Bisimilar.send_left`, `Bisimilar.rcfgPrefix_left` | `:441`, `:472`, `:503`, `:534` |
 | `Bisimilar.restrict`, `Bisimilar.project` | `:565`, `:617` |
 
-The complete declarations, including proof terms, are in [Bisimulation.lean](/Users/ali/Desktop/DyNetKAT-Lean/lean/DyNetKAT/DyNetKAT/Bisimulation.lean) at the exact starting lines above. The signatures in the inventory are verbatim declaration statements but intentionally omit the proof bodies; no proof body is reconstructed here. The relation’s universal transition quantification and the congruence proofs are substantial (the source module is 692 lines), so the source link is the authoritative complete verbatim text.
+The complete declarations, including proof terms, are in [Bisimulation.lean](/Users/ali/Desktop/DyNetKAT-Lean/packages/DyNetKATLean/DyNetKATLean/Core/Bisimulation.lean) at the exact starting lines above. The signatures in the inventory are verbatim declaration statements but intentionally omit the proof bodies; no proof body is reconstructed here. The relation’s universal transition quantification and the congruence proofs are substantial (the source module is 692 lines), so the source link is the authoritative complete verbatim text.
 
 ## Verbatim executable bridge declarations
 

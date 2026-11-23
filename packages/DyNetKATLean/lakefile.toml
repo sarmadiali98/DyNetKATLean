@@ -1,0 +1,10 @@
+name = "DyNetKATLean"
+version = "0.1.0"
+defaultTargets = ["DyNetKATLean"]
+
+[[require]]
+name = "NetKATLean"
+path = "../NetKATLean"
+
+[[lean_lib]]
+name = "DyNetKATLean"

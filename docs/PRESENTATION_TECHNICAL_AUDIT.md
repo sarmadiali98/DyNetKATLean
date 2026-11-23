@@ -134,7 +134,7 @@ This represents the **completion of the full DyNetKAT operational semantics (Fig
 
 **Exact declaration:**
 
-File: `lean/DyNetKAT/DyNetKAT/RecEnv.lean`, line 9:
+File: `packages/DyNetKATLean/DyNetKATLean/Core/RecEnv.lean`, line 9:
 
 ```lean
 abbrev RecEnv : Type := Var → Option DyNetKAT
@@ -283,7 +283,7 @@ The paper writes `[X ≜ p]` as a side annotation on the rule, treating it as im
 
 ## 3. Definedness, Guardedness, and Well-Formedness
 
-All declarations are in `lean/DyNetKAT/DyNetKAT/Definedness.lean`.
+All declarations are in `packages/DyNetKATLean/DyNetKATLean/Core/Definedness.lean`.
 
 ### ReachableVar (line 27)
 
@@ -426,7 +426,7 @@ The main `Step`, `Bisimilar`, and executable-correctness theorems do **NOT** exp
 
 ### Process AST
 
-File: `lean/DyNetKAT/DyNetKAT/AST.lean`, line 100:
+File: `packages/DyNetKATLean/DyNetKATLean/Core/AST.lean`, line 100:
 
 ```lean
 inductive DyNetKAT : Type
@@ -465,7 +465,7 @@ structure Config where
 
 ### The Step relation
 
-File: `lean/DyNetKAT/DyNetKAT/Semantics.lean`, line 13.
+File: `packages/DyNetKATLean/DyNetKATLean/Core/Semantics.lean`, line 13.
 
 The `Step` relation is an inductive with exactly 10 constructors, corresponding to the 9 Figure 8 rule families (with ⊕ and ‖ each split into left/right halves):
 
@@ -506,7 +506,7 @@ The exact `cpol_seq_ok` constructor (the only history-modifying rule):
 
 ### Bisimulation
 
-File: `lean/DyNetKAT/DyNetKAT/Bisimulation.lean`, line 9.
+File: `packages/DyNetKATLean/DyNetKATLean/Core/Bisimulation.lean`, line 9.
 
 ```lean
 def IsBisimulation (env : RecEnv) (R : DyNetKAT → DyNetKAT → Prop) : Prop :=
@@ -700,7 +700,7 @@ The theorem also establishes **totality**: `execute p σ = .supported B` (never 
 
 ## 6. Connecting NetKAT Execution to DyNetKAT Semantics
 
-Files: `lean/DyNetKAT/DyNetKAT/NetKATBridge.lean` (41 lines).
+Files: `packages/DyNetKATLean/DyNetKATLean/Core/NetKATBridge.lean` (41 lines).
 
 ### execute_supported_iff_semantics (line 10)
 
@@ -766,7 +766,7 @@ The Lean theorem replaces `σ′ ∈ ⟦p⟧(σ :: ⟨⟩)` with `execute p sigm
 
 ## 7. Executable DyNetKAT Transition Generator
 
-File: `lean/DyNetKAT/DyNetKAT/Executable.lean` (119 lines).
+File: `packages/DyNetKATLean/DyNetKATLean/Core/Executable.lean` (119 lines).
 
 ### Definitions and theorems
 
@@ -894,7 +894,7 @@ Each generated transition carries the label `Action.packet sigma tau` — a pack
 
 ## 8. Executable Example
 
-The following example was constructed, compiled, and verified in the actual project (in `lean/DyNetKAT/DyNetKAT/ExampleTest.lean`):
+The following example was constructed, compiled, and verified in the actual project (in `packages/DyNetKATLean/DyNetKATLean/Core/ExampleTest.lean`):
 
 ### Runnable Lean code
 
@@ -1039,7 +1039,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** DyNetKAT syntax is an inductive type with 12 constructors covering both Eq. 1 (base) and Eq. 6 (extended) of the paper.
 - **Lean declaration:** `inductive DyNetKAT` — `AST.lean:100-113`.
-- **Source:** `lean/DyNetKAT/DyNetKAT/AST.lean:100`.
+- **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/AST.lean:100`.
 - **Visual:** Constructor table mapping Lean constructors to paper syntax.
 - **Backup:** Field/value type definitions (`Packet.lean`).
 
@@ -1054,7 +1054,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** In Lean 4, the meta-level `X ≜ d` cannot be used directly — the environment must be made explicit as `RecEnv : Var → Option DyNetKAT`. This is a standard type-theoretic encoding, not a semantic change.
 - **Lean declaration:** `abbrev RecEnv : Type := Var → Option DyNetKAT` — `RecEnv.lean:9`.
-- **Source:** `lean/DyNetKAT/DyNetKAT/RecEnv.lean:9`.
+- **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/RecEnv.lean:9`.
 - **Key point:** `Option` allows undefined variables (well-formedness is checked separately).
 - **Backup:** Why not store the body in the `var` constructor (it would break inductiveness).
 
@@ -1062,7 +1062,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** The `cpol_var` constructor mirrors the paper's (cpolX) rule: a recursive variable unfolds to its body, inheriting the same label and packet histories.
 - **Lean declaration:** `cpol_var` — `Semantics.lean:156-167`.
-- **Source:** `lean/DyNetKAT/DyNetKAT/Semantics.lean:156`.
+- **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Semantics.lean:156`.
 - **Visual:** Side-by-side: paper rule vs. Lean constructor.
 - **Backup:** No guardedness assumption in the constructor itself.
 
@@ -1070,7 +1070,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** `Bisimilar` takes `env : RecEnv` as a parameter: `Bisimilar env p q`. All theorems work relative to a **fixed** environment, not quantifying over all environments.
 - **Lean declaration:** `def Bisimilar (env : RecEnv) (p q : DyNetKAT) : Prop` — `Bisimulation.lean:26`.
-- **Source:** `lean/DyNetKAT/DyNetKAT/Bisimulation.lean:26`.
+- **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Bisimulation.lean:26`.
 - **Key defense:** This faithfully captures the paper's implicit recursive context. The paper's `p ∼ q` is "under a fixed recursive specification" — our `env` makes this explicit.
 - **Backup:** Theorem list (refl, symm, trans, 13 congruence theorems).
 
@@ -1078,7 +1078,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** Definedness predicates (`ReachableVar`, `ClosedDefined`, `GuardedOccurrences`, `WellFormed`) are defined but **NOT required** by any `Step`, `Bisimilar`, or executable theorem.
 - **Lean declarations:** All in `Definedness.lean:22-143`.
-- **Source:** `lean/DyNetKAT/DyNetKAT/Definedness.lean`.
+- **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Definedness.lean`.
 - **Key defense:** We define these predicates (faithful to the paper's requirements), but our theorems are **stronger** — they hold for all environments, not just well-formed ones.
 - **Backup:** The `WellFormed` definition and its component theorems.
 
@@ -1086,7 +1086,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** The `Step` inductive has exactly 10 constructor families matching Figure 8. The `Bisimulation.lean` module proves 17 theorems (refl, symm, trans + 14 congruence theorems).
 - **Lean declarations:** `inductive Step` — `Semantics.lean:13`; `IsBisimulation`/`Bisimilar` — `Bisimulation.lean:9,26`.
-- **Source:** `lean/DyNetKAT/DyNetKAT/Semantics.lean`; `lean/DyNetKAT/DyNetKAT/Bisimulation.lean`.
+- **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Semantics.lean`; `packages/DyNetKATLean/DyNetKATLean/Core/Bisimulation.lean`.
 - **Visual:** The 10-rule constructor table.
 - **Backup:** Full theorem inventory with exact statements.
 
@@ -1110,7 +1110,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** `execute_packet_step` and `execute_supported_iff_semantics` bridge the executable evaluator to the `Step` relation, justifying one packet-processing transition per evaluator output.
 - **Lean declarations:** `execute_supported_iff_semantics` — `NetKATBridge.lean:10`; `execute_packet_step` — `NetKATBridge.lean:24`.
-- **Source:** `lean/DyNetKAT/DyNetKAT/NetKATBridge.lean`.
+- **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/NetKATBridge.lean`.
 - **Connection to paper:** Bridges to `cpol_seq_ok` (`Step.cpol_seq_ok`), the (cpolX;) rule.
 - **Backup:** Assumptions (nSeq shape, non-empty pending).
 
@@ -1118,7 +1118,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** `packetTransitions` enumerates packet-flow transitions for `nSeq` processes; `packetTransitions_sound` and `packetTransitions_complete` establish bidirectional equivalence.
 - **Lean declarations:** `packetTransitions` — `Executable.lean:25`; theorems — `Executable.lean:57, 90`.
-- **Source:** `lean/DyNetKAT/DyNetKAT/Executable.lean`.
+- **Source:** `packages/DyNetKATLean/DyNetKATLean/Core/Executable.lean`.
 - **Key caveat:** **Only `nSeq` is handled** — not recv/send/rcfg/parallel/etc.
 - **Backup:** The Multiset explanation, `none` meaning, and the executable example.
 

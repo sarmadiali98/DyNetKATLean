@@ -50,7 +50,7 @@ a constructor of the base syntax in Eq. (1). This design therefore places
 Planned path (new directory, not yet created):
 
 ```
-lean/DyNetKAT/DyNetKAT/
+packages/DyNetKATLean/DyNetKATLean/Core/
 ├── AST.lean         -- Eq. (1) inductive: ⊥, N;D, x?N;D, x!N;D, ‖, ⊕, X
 ├── Config.lean      -- configurations (d, H, H′); see §7
 ├── Action.lean      -- labels γ (incl. rcfg(x,r)); see §5
@@ -442,7 +442,7 @@ within the `DyNetKAT/` subdirectory — `Config.lean` imports `AST.lean` (for th
 ### 7.5 Module structure
 
 ```
-lean/DyNetKAT/DyNetKAT/
+packages/DyNetKATLean/DyNetKATLean/Core/
 ├── AST.lean         -- Eq. (1) inductive DyNetKAT + Channel + Var types  (imported by Config)
 ├── Config.lean      -- THIS DESIGN: structure Config (d, H, H′)           (NEW)
 ├── Action.lean      -- labels γ (packet, recv, send, rcfg)                (deferred)
@@ -593,9 +593,9 @@ depends on the *type* `NetKAT`, not its internal constructors.
 
 ## 13. Next steps (deferred — implementation tasks, not this task)
 
-1. Create `lean/DyNetKAT/DyNetKAT/` directory and the five-module split:
+1. Create `packages/DyNetKATLean/DyNetKATLean/Core/` directory and the five-module split:
    `AST.lean`, `Config.lean`, `Action.lean`, `Semantics.lean`, `Operators.lean`.
-2. Add `lean/DyNetKAT/DyNetKAT/AST.lean` with the `DyNetKAT` inductive above.
+2. Add `packages/DyNetKATLean/DyNetKATLean/Core/AST.lean` with the `DyNetKAT` inductive above.
 3. Add `Config.lean` per §7 above (`structure Config := proc pending handled`
    with `pending, handled : List CtxPkt`, ordering: head = current/newest).
 4. Add `Action.lean` with `inductive Action` (incl. `rcfg` label, §14).

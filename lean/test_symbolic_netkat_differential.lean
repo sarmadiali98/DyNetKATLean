@@ -1,6 +1,6 @@
 import DyNetKAT.NetKAT.Legacy
 import NetKATLean.Core.SymbolicDerives
-import DyNetKAT.DyNetKAT.SafetyCheck
+import DyNetKATLean.Core.SafetyCheck
 import Lean.Util.FoldConsts
 
 namespace SymbolicNetKATDifferential
@@ -43,7 +43,7 @@ private partial def proofDependencies (env : Environment) (pending : List Name)
       let next := (body.map Lean.Expr.getUsedConstants).getD #[] |>.toList.filter fun n =>
         n.toString.startsWith "KATLean." || n.toString.startsWith "DyNetKAT." ||
         n.toString.startsWith "_private.KATLean." || n.toString.startsWith "_private.DyNetKAT." ||
-        n.toString.startsWith "_private.NetKATLean."
+        n.toString.startsWith "_private.NetKATLean." || n.toString.startsWith "_private.DyNetKATLean."
       proofDependencies env (next ++ rest) (seen.insert name)
 
 open Lean in

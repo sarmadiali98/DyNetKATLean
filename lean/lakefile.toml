@@ -22,5 +22,6 @@ path = "../packages/KATLean"
 name = "NetKATLean"
 path = "../packages/NetKATLean"
 
-[[lean_lib]]
+[[require]]
 name = "DyNetKATLean"
+path = "../packages/DyNetKATLean"

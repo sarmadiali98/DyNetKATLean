@@ -329,7 +329,7 @@ Defines DyNetKAT process syntax (Fig. 5), multi-packet configurations, and the l
 
 ### Missing components
 
-- **No DyNetKAT directory exists**: No `lean/DyNetKAT/DyNetKAT/` directory exists (per FEATURE_GAP_ANALYSIS.md Section 4). The proposed structure in `ARCHITECTURE.md` (lines 19–24) is aspirational, not implemented.
+- **No DyNetKAT directory exists**: No `packages/DyNetKATLean/DyNetKATLean/Core/` directory exists (per FEATURE_GAP_ANALYSIS.md Section 4). The proposed structure in `ARCHITECTURE.md` (lines 19–24) is aspirational, not implemented.
 - **Extended operators**: δ, π, rcfg, ⌊⌊, | | — none defined.
 - **Bisimulation**: Coinductive Definition 2, Lemma 3 (congruence), Proposition 1 (semantic layering) — all missing.
 
@@ -958,7 +958,7 @@ Lean realization** in the codebase.
 
 | Component | Paper reference | Status |
 |---|---|---|
-| DyNetKAT process type (bot, N;d, x?N;d, x!N;d, rcfg(x,N);d, d||d, d o+ d, X) | Eq. 6, p. 14; Fig. 5, p. 8 | **Missing** -- no `lean/DyNetKAT/DyNetKAT/` directory exists |
+| DyNetKAT process type (bot, N;d, x?N;d, x!N;d, rcfg(x,N);d, d||d, d o+ d, X) | Eq. 6, p. 14; Fig. 5, p. 8 | **Missing** -- no `packages/DyNetKATLean/DyNetKATLean/Core/` directory exists |
 | Channel type (countably infinite) | Section II-A, p. 8 | **Missing** |
 | Recursive variables with unique definitions | Eq. 6, p. 14 | **Missing** |
 | Configuration (d, H, H') | Fig. 5, p. 8; Section II-B, p. 9 | **Missing** |
@@ -1491,7 +1491,7 @@ top-level assembly that invokes Components 1--4.
 | `normalize : NetKAT -> NormalForm` | Layer 3 (new module) | Missing -- algorithm not implemented |
 | `decideEquiv : NetKAT -> NetKAT -> Bool` | Layer 3 (new module) | Missing -- no decision procedure |
 | Computable `NormalForm` path | Layer 3 (new module) | Missing -- `interpret` is `noncomputable` |
-| `DyNetKAT` inductive type | `lean/DyNetKAT/DyNetKAT/AST.lean` | Missing -- no DyNetKAT directory |
+| `DyNetKAT` inductive type | `packages/DyNetKATLean/DyNetKATLean/Core/AST.lean` | Missing -- no DyNetKAT directory |
 | `Channel` type | Layer 4 (new module) | Missing |
 | `Config` structure | Layer 4 (new module) | Missing |
 | `Step` relation (SOS) | Layer 4 (new module) | Missing |
