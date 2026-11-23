@@ -1,4 +1,4 @@
-import DyNetKAT
+import NetKATLean
 
 namespace DyNetKAT.NetKAT
 
