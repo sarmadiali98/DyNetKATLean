@@ -116,6 +116,12 @@ example (tests : Fin 1 → Predicate) :
     decideEquiv (T := Fin 1) (A := Fin 2) (.action 0) (.action 1) = false :=
   ⟨.refl _, by decide⟩
 
+open KATLean.Native in
+example (actions : Fin 2 → NetKAT) (tests : Fin 8 → Predicate) :
+    let a : Expr (Fin 8) (Fin 2) := .action 0
+    Derives (nativeEmbed actions tests (.plus a a)) (nativeEmbed actions tests a) :=
+  nativeEquational_derives (.plusIdem (.action 0)) actions tests
+
 #print axioms nativeSolver_derives
 #print axioms nativeEquational_derives
 #print axioms Derives.sound

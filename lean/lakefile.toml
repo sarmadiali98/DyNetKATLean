@@ -16,3 +16,4 @@ rev = "v4.19.0"
 
 [[lean_lib]]
 name = "KATLean"
+globs = ["KATLean", "KATLean.Native", "KATLean.Native.+"]

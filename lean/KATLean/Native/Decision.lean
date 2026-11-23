@@ -1,3 +1,4 @@
+import Mathlib.Data.Finset.Prod
 import KATLean.Native.Symbolic
 import KATLean.Native.Search
 

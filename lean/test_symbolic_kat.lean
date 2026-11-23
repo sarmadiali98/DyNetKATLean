@@ -1,6 +1,5 @@
 import KATLean.Native
 import KATLean.Native.Explicit
-import DyNetKAT.NetKAT.NativeEquations
 
 open KATLean.Native
 namespace SymbolicKATTests
@@ -47,15 +46,10 @@ private def corpus : List (Expr (Fin 2) (Fin 2)) :=
    .plus .one (.seq c (.star c)), .star (.plus c d)]
 #guard corpus.all (fun p => corpus.all (fun q => decideEquiv p q = Explicit.decideLanguageEquiv p q))
 
--- The proved algebraic direction, including its actual E_NK substitution bridge.
+-- The proved generic algebraic direction.
 example : Equational (.plus a a) a := .plusIdem a
 example : decideEquiv (.plus a a) a = true := (Equational.plusIdem a).solver_positive
 example : AlgebraicallyEquivalent (.plus a a) a := (Equational.plusIdem a).algebraic_sound
-example (actions : Fin 2 → DyNetKAT.NetKAT.NetKAT) (tests : Fin 8 → DyNetKAT.NetKAT.Predicate) :
-    DyNetKAT.NetKAT.Derives
-      (DyNetKAT.NetKAT.nativeEmbed actions tests (.plus a a))
-      (DyNetKAT.NetKAT.nativeEmbed actions tests a) :=
-  DyNetKAT.NetKAT.nativeEquational_derives (.plusIdem a) actions tests
 
 private def testSize : Test T → Nat
   | .bot | .top | .atom _ => 1
@@ -90,5 +84,4 @@ private def bench {n m : Nat} (label : String) (p q : Expr (Fin n) (Fin m)) : IO
 #print axioms decideEquiv_complete
 #print axioms Equational.algebraic_sound
 #print axioms Equational.solver_positive
-#print axioms DyNetKAT.NetKAT.nativeEquational_derives
 end SymbolicKATTests
