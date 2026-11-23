@@ -20,3 +20,6 @@ globs = ["KATLean", "KATLean.Native", "KATLean.Native.+"]
 
 [[lean_lib]]
 name = "NetKATLean"
+
+[[lean_lib]]
+name = "DyNetKATLean"
