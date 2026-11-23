@@ -1,6 +1,6 @@
-import DyNetKAT.NetKAT.NormalForm
-import DyNetKAT.NetKAT.Axioms
-import DyNetKAT.NetKAT.Symbolic
+import NetKATLean.Core.NormalForm
+import NetKATLean.Core.Axioms
+import NetKATLean.Core.Symbolic
 
 namespace DyNetKAT.NetKAT
 

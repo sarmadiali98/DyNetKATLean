@@ -4,9 +4,9 @@ This plan follows the three modularization audits. [KATLean](KATLEAN_MODULARIZAT
 
 ## Realized KATLean extraction
 
-The package root is `packages/KATLean/`, physically separate from the integration workspace under `lean/` and ready to serve as the root of a future repository. All 26 generic sources in the inventory and the four KATLean tests moved there without changes to their content. Its manifest pins Mathlib to `c44e0c8ee63ca166450922a373c7409c5d26b00b` and locks its transitive Git dependencies. The integration manifest resolves KATLean through `../packages/KATLean`.
+The package root is `packages/KATLean/`, physically separate from the integration workspace under `lean/` and ready to serve as the root of a future repository. All 26 generic sources in the inventory and the four KATLean tests moved there without changes to their content. Its manifest pins Mathlib to `c44e0c8ee63ca166450922a373c7409c5d26b00b` and locks its transitive Git dependencies. The integration manifest resolves KATLean through `../packages/KATLean`. NetKATLean resolves the same package through `../KATLean`.
 
-The four NetKAT packet adapters now live under `lean/NetKATLean/PacketAdapter/`. Their imports use `NetKATLean.PacketAdapter.{Packet,Guard,Symbolic,Closure}`; declaration namespaces remain `KATLean.NetKAT.*`. The remaining `DyNetKAT.NetKAT.*` core modules stay in place until NetKATLean extraction.
+The four NetKAT packet adapters now live under `packages/NetKATLean/NetKATLean/PacketAdapter/`. Their imports use `NetKATLean.PacketAdapter.{Packet,Guard,Symbolic,Closure}`; declaration namespaces remain `KATLean.NetKAT.*`. The remaining `DyNetKAT.NetKAT.*` core modules stay in place until NetKATLean extraction.
 
 From the package root, run `lake build` and `./verify.sh smoke`, `./verify.sh test-all`, `./verify.sh verify`, and `./verify.sh consumer-test`. The consumer creates a fresh Lake project with a path dependency on this package and checks the resolved search paths before building examples with both public imports. The integration script `scripts/verify-katlean.sh` delegates to the package-owned verifier. Python is used only to construct and check the consumer fixture.
 
@@ -30,6 +30,14 @@ Lake fetched Mathlib from GitHub and checked out the exact declared revision `c4
 
 The earlier locked offline build also passed its smoke test, all four package tests, import audit, and Lake consumer against the pinned third-party cache.
 
+
+## Realized NetKATLean extraction
+
+The package root is `packages/NetKATLean/`. Its 22 source files are listed in the inventory below. All 17 former core modules use the exact mapping `DyNetKAT.NetKAT.X → NetKATLean.Core.X` for each listed core file `X.lean`. The four `NetKATLean.PacketAdapter` modules kept their module paths. The move preserved declaration namespaces. The integration workspace consumes the public `NetKATLean` library through a path dependency. The optional `Legacy`, `KATch`, `BackendCertificate` and `EquationalCertificate` remain in the integration workspace. Existing clients now import the new core module paths directly.
+
+NetKATLean declares `../KATLean` and inherits its exact Mathlib pin and transitive Git locks. No extra Mathlib requirement is needed. Run the package-owned `./verify.sh` modes `build`, `smoke`, `test-all`, `verify`, and `consumer-test` from its root. The [NetKATLean boundary audit](NETKATLEAN_MODULARIZATION.md) gives the test inventory and consumer scope. Eight tests moved out of the integration workspace, leaving 43 there.
+
+**Network-backed NetKATLean reproducibility: PASS.** The Ubuntu terminal transcript records two successful clean runs. An intervening run reached GitHub but hit the `/tmp` disk quota while writing the Mathlib clone. The final retry used disk-backed scratch under `$HOME/.cache` and printed `NETKATLEAN CLEAN NETWORK REPRODUCIBILITY: PASS`. The script verified the declared sibling KATLean path dependency, Mathlib at `c44e0c8ee63ca166450922a373c7409c5d26b00b`, and the eight transitive Git revisions against the lockfile. The clean build, package verification and tests, and downstream consumer all passed. Dependency pins were preserved.
 
 ## Prototype protocol
 
@@ -114,28 +122,28 @@ Paths below show the current repository layout. The NetKAT core moves still foll
 
 ### NetKATLean
 
-- `lean/DyNetKAT/NetKAT/AST.lean`
-- `lean/DyNetKAT/NetKAT/Axioms.lean`
-- `lean/DyNetKAT/NetKAT/Decision.lean`
-- `lean/DyNetKAT/NetKAT/Denotation.lean`
-- `lean/DyNetKAT/NetKAT/Evaluator.lean`
-- `lean/DyNetKAT/NetKAT/History.lean`
-- `lean/DyNetKAT/NetKAT/HistoryEvaluator.lean`
-- `lean/DyNetKAT/NetKAT/HistorySemantics.lean`
-- `lean/DyNetKAT/NetKAT/Interpretation.lean`
-- `lean/DyNetKAT/NetKAT/KATLean.lean`
-- `lean/DyNetKAT/NetKAT/NativeEquations.lean`
-- `lean/DyNetKAT/NetKAT/NormalForm.lean`
-- `lean/DyNetKAT/NetKAT/Normalization.lean`
-- `lean/DyNetKAT/NetKAT/Packet.lean`
-- `lean/DyNetKAT/NetKAT/Semantics.lean`
-- `lean/DyNetKAT/NetKAT/Symbolic.lean`
-- `lean/DyNetKAT/NetKAT/SymbolicDerives.lean`
-- `lean/NetKATLean/PacketAdapter/Closure.lean`
-- `lean/NetKATLean/PacketAdapter/Guard.lean`
-- `lean/NetKATLean/PacketAdapter/Packet.lean`
-- `lean/NetKATLean/PacketAdapter/Symbolic.lean`
-- `lean/NetKATLean.lean`
+- `packages/NetKATLean/NetKATLean.lean`
+- `packages/NetKATLean/NetKATLean/Core/AST.lean`
+- `packages/NetKATLean/NetKATLean/Core/Axioms.lean`
+- `packages/NetKATLean/NetKATLean/Core/Decision.lean`
+- `packages/NetKATLean/NetKATLean/Core/Denotation.lean`
+- `packages/NetKATLean/NetKATLean/Core/Evaluator.lean`
+- `packages/NetKATLean/NetKATLean/Core/History.lean`
+- `packages/NetKATLean/NetKATLean/Core/HistoryEvaluator.lean`
+- `packages/NetKATLean/NetKATLean/Core/HistorySemantics.lean`
+- `packages/NetKATLean/NetKATLean/Core/Interpretation.lean`
+- `packages/NetKATLean/NetKATLean/Core/KATLean.lean`
+- `packages/NetKATLean/NetKATLean/Core/NativeEquations.lean`
+- `packages/NetKATLean/NetKATLean/Core/NormalForm.lean`
+- `packages/NetKATLean/NetKATLean/Core/Normalization.lean`
+- `packages/NetKATLean/NetKATLean/Core/Packet.lean`
+- `packages/NetKATLean/NetKATLean/Core/Semantics.lean`
+- `packages/NetKATLean/NetKATLean/Core/Symbolic.lean`
+- `packages/NetKATLean/NetKATLean/Core/SymbolicDerives.lean`
+- `packages/NetKATLean/NetKATLean/PacketAdapter/Closure.lean`
+- `packages/NetKATLean/NetKATLean/PacketAdapter/Guard.lean`
+- `packages/NetKATLean/NetKATLean/PacketAdapter/Packet.lean`
+- `packages/NetKATLean/NetKATLean/PacketAdapter/Symbolic.lean`
 
 ### DyNetKATLean
 

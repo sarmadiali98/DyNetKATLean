@@ -1,4 +1,4 @@
-import DyNetKAT.NetKAT.Symbolic
+import NetKATLean.Core.Symbolic
 import Lean.Util.FoldConsts
 
 namespace SymbolicNetKATTests
@@ -89,7 +89,8 @@ private partial def dependencies (env : Environment) (pending : List Name)
       let body := (env.find? name).bind ConstantInfo.value?
       let next := (body.map Lean.Expr.getUsedConstants).getD #[] |>.toList.filter fun n =>
         n.toString.startsWith "KATLean." || n.toString.startsWith "DyNetKAT.NetKAT." ||
-        n.toString.startsWith "_private.KATLean." || n.toString.startsWith "_private.DyNetKAT."
+        n.toString.startsWith "_private.KATLean." || n.toString.startsWith "_private.DyNetKAT." ||
+        n.toString.startsWith "_private.NetKATLean."
       dependencies env (next ++ rest) (seen.insert name)
 
 open Lean in

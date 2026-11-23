@@ -1,4 +1,4 @@
-import DyNetKAT.NetKAT.Normalization
+import NetKATLean.Core.Normalization
 
 /-! Exhaustive concrete normal forms and equality, retained for regression
 and compatibility. Import this module explicitly to use these constructions. -/
@@ -11,7 +11,7 @@ local infixl:65 " ⊕ " => NetKAT.union
 local infixl:70 " ⨟ " => NetKAT.seq
 
 open private word reads word_congr read_eq read_write_self write_assign
-  sumOn_congr sumOn_seq_right from DyNetKAT.NetKAT.Normalization
+  sumOn_congr sumOn_seq_right from NetKATLean.Core.Normalization
 
 private def values : List FieldValueEnum := [.v0, .v1, .v8, .v9]
 

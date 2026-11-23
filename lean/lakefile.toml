@@ -18,8 +18,9 @@ rev = "v4.19.0"
 name = "KATLean"
 path = "../packages/KATLean"
 
-[[lean_lib]]
+[[require]]
 name = "NetKATLean"
+path = "../packages/NetKATLean"
 
 [[lean_lib]]
 name = "DyNetKATLean"

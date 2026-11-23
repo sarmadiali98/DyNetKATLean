@@ -14,21 +14,20 @@ root = Path.cwd()
 kat = root.parent / "packages/KATLean"
 
 def module_root(name):
-    return kat if name.split(".")[0] == "KATLean" else root
+    return {
+        "KATLean": kat,
+        "NetKATLean": root.parent / "packages/NetKATLean",
+    }.get(name.split(".")[0], root)
 
 umbrella = "DyNetKATLean"
 case_study = "DyNetKAT.Examples.DistributedControllers"
-optional = {"BackendCertificate", "EquationalCertificate", "KATch", "Legacy"}
 
 def layer(name):
     if name.partition(".")[0] in {"Mathlib", "Lean", "Std", "Init"}:
         return 0
-    if name.startswith("NetKATLean.PacketAdapter."):
-        return 2
     if name == "KATLean" or name.startswith("KATLean."):
         return 1
-    if name == "NetKATLean" or (name.startswith("DyNetKAT.NetKAT.")
-                                and name.split(".")[2] not in optional):
+    if name == "NetKATLean" or name.startswith(("NetKATLean.Core.", "NetKATLean.PacketAdapter.")):
         return 2
     if name == umbrella or name.startswith("DyNetKAT.DyNetKAT."):
         return 3

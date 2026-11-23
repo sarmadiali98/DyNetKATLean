@@ -65,7 +65,7 @@ import DyNetKAT.DyNetKAT.SequentialReachability
 -- DyNetiKAT tool.
 ------------------------------------------------------------------------
 
-import DyNetKAT.NetKAT.Decision
+import NetKATLean.Core.Decision
 import DyNetKAT.DyNetKAT.SafetyHead
 import DyNetKAT.DyNetKAT.TailExtraction
 import DyNetKAT.DyNetKAT.GraphTail

@@ -27,9 +27,9 @@
 -- the set of `HistorySemantics` outputs.
 ------------------------------------------------------------------------
 
-import DyNetKAT.NetKAT.History
-import DyNetKAT.NetKAT.HistorySemantics
-import DyNetKAT.NetKAT.Evaluator
+import NetKATLean.Core.History
+import NetKATLean.Core.HistorySemantics
+import NetKATLean.Core.Evaluator
 
 namespace DyNetKAT.NetKAT
 

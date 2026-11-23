@@ -58,11 +58,11 @@ relations. All generic algebra uses the existing classes.
 | `packages/KATLean/KATLean/Kleene.lean` | Paper order, unfold equations and both induction formulations |
 | `packages/KATLean/KATLean/KAT.lean` | Injective Boolean test embedding and all six BA laws |
 | `packages/KATLean/KATLean/Relation.lean` | Relational Mathlib KA instance and Boolean packet-set tests |
-| `lean/NetKATLean/PacketAdapter/Packet.lean` | Field-indexed packet interface and the dup-free packet laws |
+| `packages/NetKATLean/NetKATLean/PacketAdapter/Packet.lean` | Field-indexed packet interface and the dup-free packet laws |
 | `packages/KATLean/KATLean.lean` | Public algebra import surface |
-| `lean/DyNetKAT/NetKAT/Interpretation.lean` | CtxPkt instance, AST interpretation and evaluator correctness, below Derives |
-| `lean/DyNetKAT/NetKAT/Axioms.lean` | Existing Derives and its KATLean rule induction |
-| `lean/DyNetKAT/NetKAT/KATLean.lean` | Compatibility import surface and normalization interpretation theorem |
+| `packages/NetKATLean/NetKATLean/Core/Interpretation.lean` | CtxPkt instance, AST interpretation and evaluator correctness, below Derives |
+| `packages/NetKATLean/NetKATLean/Core/Axioms.lean` | Existing Derives and its KATLean rule induction |
+| `packages/NetKATLean/NetKATLean/Core/KATLean.lean` | Compatibility import surface and normalization interpretation theorem |
 | `lean/test_katlean.lean` | Generic and concrete law tests and axiom audit |
 | `lean/test_katlean_derives.lean` | Derivation regressions, proof dependency checks, packet-prefix import and payload boundary |
 

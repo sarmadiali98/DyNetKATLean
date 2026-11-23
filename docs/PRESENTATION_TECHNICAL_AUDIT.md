@@ -573,7 +573,7 @@ The paper's Definition 2 defines bisimilarity as the **largest bisimulation**. T
 
 ## 5. Verified Executable NetKAT Evaluator
 
-File: `lean/DyNetKAT/NetKAT/Evaluator.lean` (1149 lines).
+File: `packages/NetKATLean/NetKATLean/Core/Evaluator.lean` (1149 lines).
 
 ### The EvalResult type
 
@@ -606,7 +606,7 @@ def execute : NetKAT → CtxPkt → EvalResult
 
 ### What is CtxPkt?
 
-`CtxPkt` is defined in `lean/DyNetKAT/NetKAT/Packet.lean:148`:
+`CtxPkt` is defined in `packages/NetKATLean/NetKATLean/Core/Packet.lean:148`:
 
 ```lean
 abbrev CtxPkt := Packet FieldName FieldValueEnum
@@ -1094,7 +1094,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** The `execute` function computes NetKAT policy evaluation over a finite 256-packet domain, returning `EvalResult` with supported (finite set) or unsupported.
 - **Lean declaration:** `def execute : NetKAT → CtxPkt → EvalResult` — `Evaluator.lean:171`.
-- **Source:** `lean/DyNetKAT/NetKAT/Evaluator.lean:171`.
+- **Source:** `packages/NetKATLean/NetKATLean/Core/Evaluator.lean:171`.
 - **Key facts:** 256 = 4⁴ (4 fields × 4 values); star bounded by `Fintype.card CtxPkt`.
 - **Backup:** The `EvalResult` type and `execute_supported` totality theorem.
 
@@ -1102,7 +1102,7 @@ These are standard Mathlib axioms, not project-specific assumptions.
 
 - **Exact technical claim:** `execute_correct` proves the evaluator computes exactly ⟦p⟧(σ) for all `p` and `σ` — soundness, completeness, and totality in one theorem.
 - **Lean declaration:** `theorem execute_correct (p : NetKAT) (σ : CtxPkt) : ∃ B, execute p σ = .supported B ∧ ∀ τ, Semantics p σ τ ↔ τ ∈ B` — `Evaluator.lean:1078`.
-- **Source:** `lean/DyNetKAT/NetKAT/Evaluator.lean:1078`.
+- **Source:** `packages/NetKATLean/NetKATLean/Core/Evaluator.lean:1078`.
 - **Key point:** This is a **self-contained NetKAT** correctness theorem — no DyNetKAT assumptions.
 - **Backup:** The star-bound theorems (`reachableWithin_stable_at_card`, `reachableWithin_iff_at_card`).
 

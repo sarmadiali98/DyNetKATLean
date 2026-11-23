@@ -187,10 +187,10 @@ These definitions are the **trusted kernel**. They must be faithful to the paper
 
 ### Existing modules to reuse
 
-- `lean/DyNetKAT/NetKAT/Packet.lean` — packet model, `FieldName`/`FieldValueEnum`, `CompleteTest`, `CompleteAssignmentValuation`, `Fintype` instances (including `Fintype CtxPkt` from Task 2S).
-- `lean/DyNetKAT/NetKAT/AST.lean` — `Predicate` type, `NetKAT` inductive, `fieldEnum`, `completeAssignExpr`.
-- `lean/DyNetKAT/NetKAT/Semantics.lean` — `Semantics`, `StarClosure`, all proven semantic identities and algebra theorems.
-- `lean/DyNetKAT/NetKAT/NormalForm.lean` — `NormalForm` type, `interpret`, `ofSummand`, `interpret_sem`, `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem`, `mem_seqNF_iff`.
+- `packages/NetKATLean/NetKATLean/Core/Packet.lean` — packet model, `FieldName`/`FieldValueEnum`, `CompleteTest`, `CompleteAssignmentValuation`, `Fintype` instances (including `Fintype CtxPkt` from Task 2S).
+- `packages/NetKATLean/NetKATLean/Core/AST.lean` — `Predicate` type, `NetKAT` inductive, `fieldEnum`, `completeAssignExpr`.
+- `packages/NetKATLean/NetKATLean/Core/Semantics.lean` — `Semantics`, `StarClosure`, all proven semantic identities and algebra theorems.
+- `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` — `NormalForm` type, `interpret`, `ofSummand`, `interpret_sem`, `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem`, `mem_seqNF_iff`.
 
 ### Missing components
 
@@ -323,9 +323,9 @@ Defines DyNetKAT process syntax (Fig. 5), multi-packet configurations, and the l
 
 ### Existing modules to reuse
 
-- `lean/DyNetKAT/NetKAT/Packet.lean` — `CtxPkt`, `Packet.update`, `Fintype` instances.
-- `lean/DyNetKAT/NetKAT/AST.lean` — `NetKAT`, `Predicate`, `fieldEnum`, `completeAssignExpr` (NetKAT⁻ᵈᵘᵖ is a sub-syntax of DyNetKAT).
-- `lean/DyNetKAT/NetKAT/Semantics.lean` — `Semantics` used by the `cpol_;✓` rule.
+- `packages/NetKATLean/NetKATLean/Core/Packet.lean` — `CtxPkt`, `Packet.update`, `Fintype` instances.
+- `packages/NetKATLean/NetKATLean/Core/AST.lean` — `NetKAT`, `Predicate`, `fieldEnum`, `completeAssignExpr` (NetKAT⁻ᵈᵘᵖ is a sub-syntax of DyNetKAT).
+- `packages/NetKATLean/NetKATLean/Core/Semantics.lean` — `Semantics` used by the `cpol_;✓` rule.
 
 ### Missing components
 
@@ -535,7 +535,7 @@ Ensures the implementation maintains parity with the reference DyNetiKAT tool an
 
 - `python/tests/test_netkat.py` — 16 golden tests for NetKAT semantics (packet model, complete tests, NetKAT semantics, concrete examples).
 - `scripts/verify.sh` — combined Lean build + Python test runner.
-- `lean/DyNetKAT/NetKAT/NormalForm.lean` — semantic theorems for `interpret_sem`, `idNF_sem`, `testNF_sem`, etc.
+- `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` — semantic theorems for `interpret_sem`, `idNF_sem`, `testNF_sem`, etc.
 
 ### Missing components
 
@@ -765,7 +765,7 @@ The following components are verified (build passes, all theorems proven, no pro
 
 ### Git checkpoint issue
 
-`NormalForm.lean` is **untracked** in git but is imported by `DyNetKAT.lean` (line 8: `import DyNetKAT.NetKAT.NormalForm`). The build succeeds because Lake resolves it from the working tree, but:
+`NormalForm.lean` is **untracked** in git but is imported by `DyNetKAT.lean` (line 8: `import NetKATLean.Core.NormalForm`). The build succeeds because Lake resolves it from the working tree, but:
 - Any clone of the repo without committing this file will fail to build.
 - The file contains substantial verified work (NormalForm type, 10+ theorems).
 - Per task instructions: Do not delete, stage, or commit it in this task. Record this as a checkpoint issue in HANDOFF.md.
@@ -939,10 +939,10 @@ in any of these files (confirmed by TASK 2V proof-hole scan).
 
 | Module | File | Contents | Theorems proven |
 |---|---|---|---|
-| Packet model | `lean/DyNetKAT/NetKAT/Packet.lean` | Parameterized `Packet (FieldType Value)`, concrete `FieldName`/`FieldValueEnum` (4x4 fixture), `CtxPkt`, `CompleteTest`, `CompleteAssignmentValuation`, `holdsComplete`, `applyValuation`, `Packet.update`/`get` with extensionality and update lemmas, `Fintype` instances for all finite types | `Packet.ext`, `Packet.get_update_same`, `Packet.get_update_diff`, `Packet.update_id`, `Packet.update_update_same`, `Packet.update_update_diff`, `holdsComplete_iff_eq`, `applyValuation_field` |
-| Predicate & NetKAT AST | `lean/DyNetKAT/NetKAT/AST.lean` | `Predicate` inductive (6 constructors: `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, `pNot`) with `eval`/`holds`; `NetKAT` inductive (8 constructors: `drop`, `id`, `test`, `completeTest`, `assign1`, `union`, `seq`, `star`); `fieldEnum`, `completeAssignExpr`, `NetKAT.size` | `Predicate.not_not`, `Predicate.excluded_middle`, `Predicate.contra`, `Predicate.deMorgan_or`, `Predicate.deMorgan_and`, `fieldEnum_complete`, `fieldEnum_nodup` |
-| Denotational semantics | `lean/DyNetKAT/NetKAT/Semantics.lean` | `Semantics : NetKAT -> CtxPkt -> CtxPkt -> Prop` (8 clauses); `eval` (set-of-outputs); `StarClosure` inductive (reflexive-transitive closure); all basic semantic identities, Boolean algebra laws, packet algebra laws, complete-assignment correspondence | `drop_empty`, `id_diag`, `union_sem`, `seq_sem`, `fieldTest_sem`, `notTest_sem`, `orTest_sem`, `andTest_sem`, `completeTest_sem`, `assign1_sem`, `assign1_seq_sem`, `assign_list_sem`, `seq_deterministic_sem`, `id_eval_diag`, `id_reflexive`, `drop_no_output`, `union_eval`, `drop_eval_empty`, `seq_id_left`, `seq_id_right`, `seq_drop_left`, `seq_drop_right`, `union_assoc`, `union_comm`, `union_idem`, `seq_distrib_left`, `seq_distrib_right`, `pred_excluded_middle`, `pred_contra`, `pred_double_neg`, `pred_deMorgan_or`, `pred_deMorgan_and`, `assign_overwrite`, `assign_comm_diff`, `assign_test_same_field`, `test_assign_same_field`, `fieldEnum_updates_complete`, `completeAssignExpr_sem` |
-| Normal forms | `lean/DyNetKAT/NetKAT/NormalForm.lean` (untracked, imported by `DyNetKAT.lean`) | `NormalForm := Finset (CompleteTest x CompleteAssignmentValuation)`; `empty`, `ofSummand`, `summandsToList`, `interpret`; `idNF`, `testNF`, `assign1NF`, `unionNF`, `seqNF`; `fold_sem` | `ofSummand_sem`, `fold_sem`, `interpret_sem`, `emptyNF_sem`, `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem`, `mem_seqNF_iff` |
+| Packet model | `packages/NetKATLean/NetKATLean/Core/Packet.lean` | Parameterized `Packet (FieldType Value)`, concrete `FieldName`/`FieldValueEnum` (4x4 fixture), `CtxPkt`, `CompleteTest`, `CompleteAssignmentValuation`, `holdsComplete`, `applyValuation`, `Packet.update`/`get` with extensionality and update lemmas, `Fintype` instances for all finite types | `Packet.ext`, `Packet.get_update_same`, `Packet.get_update_diff`, `Packet.update_id`, `Packet.update_update_same`, `Packet.update_update_diff`, `holdsComplete_iff_eq`, `applyValuation_field` |
+| Predicate & NetKAT AST | `packages/NetKATLean/NetKATLean/Core/AST.lean` | `Predicate` inductive (6 constructors: `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, `pNot`) with `eval`/`holds`; `NetKAT` inductive (8 constructors: `drop`, `id`, `test`, `completeTest`, `assign1`, `union`, `seq`, `star`); `fieldEnum`, `completeAssignExpr`, `NetKAT.size` | `Predicate.not_not`, `Predicate.excluded_middle`, `Predicate.contra`, `Predicate.deMorgan_or`, `Predicate.deMorgan_and`, `fieldEnum_complete`, `fieldEnum_nodup` |
+| Denotational semantics | `packages/NetKATLean/NetKATLean/Core/Semantics.lean` | `Semantics : NetKAT -> CtxPkt -> CtxPkt -> Prop` (8 clauses); `eval` (set-of-outputs); `StarClosure` inductive (reflexive-transitive closure); all basic semantic identities, Boolean algebra laws, packet algebra laws, complete-assignment correspondence | `drop_empty`, `id_diag`, `union_sem`, `seq_sem`, `fieldTest_sem`, `notTest_sem`, `orTest_sem`, `andTest_sem`, `completeTest_sem`, `assign1_sem`, `assign1_seq_sem`, `assign_list_sem`, `seq_deterministic_sem`, `id_eval_diag`, `id_reflexive`, `drop_no_output`, `union_eval`, `drop_eval_empty`, `seq_id_left`, `seq_id_right`, `seq_drop_left`, `seq_drop_right`, `union_assoc`, `union_comm`, `union_idem`, `seq_distrib_left`, `seq_distrib_right`, `pred_excluded_middle`, `pred_contra`, `pred_double_neg`, `pred_deMorgan_or`, `pred_deMorgan_and`, `assign_overwrite`, `assign_comm_diff`, `assign_test_same_field`, `test_assign_same_field`, `fieldEnum_updates_complete`, `completeAssignExpr_sem` |
+| Normal forms | `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` (untracked, imported by `DyNetKAT.lean`) | `NormalForm := Finset (CompleteTest x CompleteAssignmentValuation)`; `empty`, `ofSummand`, `summandsToList`, `interpret`; `idNF`, `testNF`, `assign1NF`, `unionNF`, `seqNF`; `fold_sem` | `ofSummand_sem`, `fold_sem`, `interpret_sem`, `emptyNF_sem`, `idNF_sem`, `testNF_sem`, `assign1NF_sem`, `unionNF_sem`, `seqNF_sem`, `mem_seqNF_iff` |
 
 **Dependencies between existing modules:**
 - `DyNetKAT.lean` imports all four NetKAT modules, Mathlib `Data.Set`, `Data.Finset`, `Data.Fintype`.
@@ -1139,7 +1139,7 @@ waypointing properties.
 
 - **Normalization (Lemma 5):** Define `normalize : NetKAT -> NormalForm` as a
   computable function. The `NormalForm` type already exists
-  (`lean/DyNetKAT/NetKAT/NormalForm.lean`) as
+  (`packages/NetKATLean/NetKATLean/Core/NormalForm.lean`) as
   `Finset (CompleteTest x CompleteAssignmentValuation)`, but
   `NormalForm.interpret` is `noncomputable` (uses `Finset.toList`/`Finset.map`).
   The executable `normalize` function must use `fieldEnum` to enumerate fields

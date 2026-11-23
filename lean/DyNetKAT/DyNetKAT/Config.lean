@@ -1,5 +1,5 @@
 import DyNetKAT.DyNetKAT.AST
-import DyNetKAT.NetKAT.Packet
+import NetKATLean.Core.Packet
 
 open DyNetKAT.NetKAT
 

@@ -1,5 +1,5 @@
-import DyNetKAT.NetKAT.Denotation
-import DyNetKAT.NetKAT.Decision
+import NetKATLean.Core.Denotation
+import NetKATLean.Core.Decision
 
 /-! Compatibility surface for concrete evaluation and KATLean denotation. -/
 

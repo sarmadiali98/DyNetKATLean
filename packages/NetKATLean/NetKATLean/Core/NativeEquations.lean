@@ -1,5 +1,5 @@
 import KATLean.Native.Completeness
-import DyNetKAT.NetKAT.Axioms
+import NetKATLean.Core.Axioms
 
 namespace DyNetKAT.NetKAT
 

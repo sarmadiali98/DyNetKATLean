@@ -1,5 +1,5 @@
-import DyNetKAT.NetKAT.Interpretation
-import DyNetKAT.NetKAT.Normalization
+import NetKATLean.Core.Interpretation
+import NetKATLean.Core.Normalization
 
 /-! Compatibility import surface for the NetKAT interpretation and the
 normalization bridge. Derivation soundness is defined in Axioms. -/

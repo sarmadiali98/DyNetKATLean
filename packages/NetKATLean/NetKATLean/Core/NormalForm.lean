@@ -29,9 +29,9 @@
 
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Prod
-import DyNetKAT.NetKAT.Packet
-import DyNetKAT.NetKAT.AST
-import DyNetKAT.NetKAT.Semantics
+import NetKATLean.Core.Packet
+import NetKATLean.Core.AST
+import NetKATLean.Core.Semantics
 
 namespace DyNetKAT.NetKAT
 

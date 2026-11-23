@@ -1,5 +1,5 @@
 import DyNetKAT.DyNetKAT.ProcessGraph
-import DyNetKAT.NetKAT.Decision
+import NetKATLean.Core.Decision
 
 set_option linter.dupNamespace false
 

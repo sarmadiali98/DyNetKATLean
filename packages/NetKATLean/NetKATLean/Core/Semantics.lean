@@ -31,8 +31,8 @@ import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Insert
 import Mathlib.Data.Fintype.Basic
 import Mathlib.Data.Bool.Basic
-import DyNetKAT.NetKAT.Packet
-import DyNetKAT.NetKAT.AST
+import NetKATLean.Core.Packet
+import NetKATLean.Core.AST
 
 namespace DyNetKAT.NetKAT
 

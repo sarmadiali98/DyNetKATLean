@@ -69,8 +69,8 @@
 ------------------------------------------------------------------------
 
 import Mathlib.Data.Finset.Basic
-import DyNetKAT.NetKAT.Packet
-import DyNetKAT.NetKAT.Decision
+import NetKATLean.Core.Packet
+import NetKATLean.Core.Decision
 import DyNetKAT.DyNetKAT.Bisimulation
 import DyNetKAT.DyNetKAT.Definedness
 import DyNetKAT.DyNetKAT.SafetyHead

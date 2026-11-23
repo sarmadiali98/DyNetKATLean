@@ -15,7 +15,7 @@
 --   4. No `dup` — this is NetKAT^dup-free, the fragment used by DyNetKAT.
 ------------------------------------------------------------------------
 
-import DyNetKAT.NetKAT.Packet
+import NetKATLean.Core.Packet
 import Mathlib.Data.Finset.Basic
 
 namespace DyNetKAT.NetKAT

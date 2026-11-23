@@ -119,7 +119,8 @@ private partial def dependencies (env : Environment) (pending : List Name)
         |>.getD #[] |>.toList.filter fun n =>
           let s := n.toString
           s.startsWith "KATLean." || s.startsWith "DyNetKAT." ||
-            s.startsWith "_private.KATLean." || s.startsWith "_private.DyNetKAT."
+            s.startsWith "_private.KATLean." || s.startsWith "_private.DyNetKAT." ||
+            s.startsWith "_private.NetKATLean."
       dependencies env (next ++ rest) (seen.insert name)
 
 open Lean in

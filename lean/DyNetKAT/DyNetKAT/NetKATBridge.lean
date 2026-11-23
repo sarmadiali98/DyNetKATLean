@@ -1,5 +1,5 @@
-import DyNetKAT.NetKAT.Evaluator
-import DyNetKAT.NetKAT.HistoryEvaluator
+import NetKATLean.Core.Evaluator
+import NetKATLean.Core.HistoryEvaluator
 import DyNetKAT.DyNetKAT.Semantics
 
 namespace DyNetKAT.DyNetKAT

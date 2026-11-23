@@ -1,4 +1,4 @@
-import DyNetKAT.NetKAT.Normalization
+import NetKATLean.Core.Normalization
 import DyNetKAT.NetKAT.KATch
 import Lean.Data.Json
 

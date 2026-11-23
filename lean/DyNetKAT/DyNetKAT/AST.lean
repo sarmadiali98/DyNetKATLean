@@ -28,7 +28,7 @@
 --      continuation, and bare `N` is expressed via `policy` below.
 ------------------------------------------------------------------------
 
-import DyNetKAT.NetKAT.AST
+import NetKATLean.Core.AST
 
 -- The `NetKAT` inductive is `DyNetKAT.NetKAT.NetKAT`; open its namespace so
 -- that `NetKAT.fieldTest`, `NetKAT.id`, … resolve below.

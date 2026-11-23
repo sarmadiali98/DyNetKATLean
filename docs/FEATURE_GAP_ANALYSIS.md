@@ -102,7 +102,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | `N ::= 0 \| 1 \| f=v \| f<-v \| alpha \| pi \| N+N \| N;N \| N*` (dup-free fragment) |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 2; paper p. 6, Section I-B (Eq. 1) |
-| **Our implementation** | `lean/DyNetKAT/NetKAT/AST.lean:89-97` — `NetKAT` inductive with 8 constructors: `drop`, `id`, `test`, `completeTest`, `assign1`, `union`, `seq`, `star` |
+| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/AST.lean:89-97` — `NetKAT` inductive with 8 constructors: `drop`, `id`, `test`, `completeTest`, `assign1`, `union`, `seq`, `star` |
 | **Status** | Implemented |
 | **Executable** | Partial — terms are inductive; `Predicate.eval` is computable, but full NetKAT semantics evaluation is not (see Section 3.3) |
 | **Machine-checked** | N/A (syntax definition, not a theorem) |
@@ -115,7 +115,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | `Pr ::= 0 \| 1 \| f=v \| Pr+Pr \| Pr.Pr \| ~Pr` (boolean predicates) |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 3; paper Figure 3, p. 5 |
-| **Our implementation** | `lean/DyNetKAT/NetKAT/AST.lean:37-44` — `Predicate` inductive with 6 constructors: `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, `pNot` |
+| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/AST.lean:37-44` — `Predicate` inductive with 6 constructors: `pFalse`, `pTrue`, `pFieldEq`, `pAnd`, `pOr`, `pNot` |
 | **Status** | Implemented |
 | **Executable** | `Predicate.eval` is computable (`Bool`-valued) |
 | **Machine-checked** | Boolean algebra lemmas (`not_not`, `excluded_middle`, `contra`, `deMorgan_or`, `deMorgan_and`) proven in `AST.lean:205-229` |
@@ -154,7 +154,7 @@ These are separable: a feature may be implemented (Lean definition exists) but n
 |---|---|
 | **Capability** | Every NetKAT term `p` has a normal form `q = Sum_{alpha*pi in G} alpha*pi` such that `E_NK |- p = q` |
 | **Reference evidence** | PAPER_CONFORMANCE.md item 15; paper Lemma 5, p. 13; `PROOF_OBLIGATIONS.md` Tier 1.4; `docs/NETKAT_AUDIT.md` Section 0.4 |
-| **Our implementation** | `lean/DyNetKAT/NetKAT/NormalForm.lean` — `NormalForm` type (`Finset (CompleteTest x CompleteAssignmentValuation)`), `interpret`, `ofSummand_sem`, `interpret_sem`, `emptyNF_sem`, `idNF` + `idNF_sem`, `testNF` + `testNF_sem`, `assign1NF` + `assign1NF_sem`, `seqNF` + `mem_seqNF_iff` + `seqNF_sem`, `unionNF` + `unionNF_sem`, `fold_sem` |
+| **Our implementation** | `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` — `NormalForm` type (`Finset (CompleteTest x CompleteAssignmentValuation)`), `interpret`, `ofSummand_sem`, `interpret_sem`, `emptyNF_sem`, `idNF` + `idNF_sem`, `testNF` + `testNF_sem`, `assign1NF` + `assign1NF_sem`, `seqNF` + `mem_seqNF_iff` + `seqNF_sem`, `unionNF` + `unionNF_sem`, `fold_sem` |
 | **Status** | Partially implemented |
 | **Executable** | Partial — `interpret` is `noncomputable` (uses `Finset.toList`/`Finset.map`). The semantic correspondence theorems are proven but the *normalization algorithm* (function producing the normal form from a term) is not implemented. |
 | **Machine-checked** | Yes — all semantic theorems proven with no proof holes |
@@ -1107,8 +1107,8 @@ were not deleted per instructions.
 
 ### 20.4 NormalForm.lean is untracked
 
-The `lean/DyNetKAT/NetKAT/NormalForm.lean` file is **untracked** in git but is
-imported by `DyNetKAT.lean` (`import DyNetKAT.NetKAT.NormalForm`). The build succeeds
+The `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` file is **untracked** in git but is
+imported by `DyNetKAT.lean` (`import NetKATLean.Core.NormalForm`). The build succeeds
 because Lake resolves it from the working tree. This should be committed before
 the file can be shared with others.
 
@@ -1130,7 +1130,7 @@ the paper uses `DyNetKAT` (no internal "i").
 ### 20.7 `DyNetKAT.lean` imports `NormalForm` but file is untracked
 
 The root `DyNetKAT.lean` imports `DyNetKAT.NetKAT.NormalForm` (line 8), but the
-file `lean/DyNetKAT/NetKAT/NormalForm.lean` is untracked. This is consistent in
+file `packages/NetKATLean/NetKATLean/Core/NormalForm.lean` is untracked. This is consistent in
 the working tree but would break for anyone cloning the repo fresh without
 committing the new file.
 

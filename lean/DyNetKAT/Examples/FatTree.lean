@@ -1,6 +1,6 @@
 import DyNetKAT.DyNetKAT.Reachability
 import DyNetKAT.DyNetKAT.TraceSafetyCheck
-import DyNetKAT.NetKAT.SymbolicDerives
+import NetKATLean.Core.SymbolicDerives
 import Mathlib.Tactic.DeriveFintype
 
 set_option linter.dupNamespace false

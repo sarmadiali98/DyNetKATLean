@@ -1,8 +1,8 @@
 import DyNetKAT.DyNetKAT.Config
 import DyNetKAT.DyNetKAT.Action
 import DyNetKAT.DyNetKAT.RecEnv
-import DyNetKAT.NetKAT.Semantics
-import DyNetKAT.NetKAT.HistorySemantics
+import NetKATLean.Core.Semantics
+import NetKATLean.Core.HistorySemantics
 
 namespace DyNetKAT.DyNetKAT
 

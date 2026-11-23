@@ -23,8 +23,8 @@
 -- enumerated.  Enumeration stays at packet level.
 ------------------------------------------------------------------------
 
-import DyNetKAT.NetKAT.Packet
-import DyNetKAT.NetKAT.AST
+import NetKATLean.Core.Packet
+import NetKATLean.Core.AST
 
 namespace DyNetKAT.NetKAT
 

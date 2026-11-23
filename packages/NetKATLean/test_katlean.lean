@@ -1,4 +1,4 @@
-import DyNetKAT.NetKAT.KATLean
+import NetKATLean.Core.KATLean
 
 open scoped Computability
 open KATLean

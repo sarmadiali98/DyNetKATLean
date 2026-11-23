@@ -1,4 +1,4 @@
-import DyNetKAT
+import NetKATLean
 
 ------------------------------------------------------------------------
 -- Executable checks for the canonical nonempty packet history

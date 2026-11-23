@@ -1,4 +1,4 @@
-import DyNetKAT
+import NetKATLean
 
 ------------------------------------------------------------------------
 -- Checks for the history-based NetKAT semantics

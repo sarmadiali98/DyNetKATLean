@@ -1,5 +1,5 @@
 import KATLean
-import DyNetKAT.NetKAT.Semantics
+import NetKATLean.Core.Semantics
 
 /-! Interpretation of the existing dup-free AST in the KATLean packet model.
 This bridge imports no DyNetKAT process modules or external backend. -/

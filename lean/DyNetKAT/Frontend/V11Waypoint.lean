@@ -1,4 +1,4 @@
-import DyNetKAT.NetKAT.SymbolicDerives
+import NetKATLean.Core.SymbolicDerives
 import DyNetKAT.Frontend.V11Reachability
 
 namespace DyNetKAT.Frontend.V11

@@ -36,7 +36,7 @@ defines `⟦-⟧ : N → (H → P(H))` over packet histories:
   (handled) of `(d, H, H')`; the latter are packet queues touching NetKAT semantics only
   via the singleton premise. **[F]**
 
-**Current Lean [F].** `lean/DyNetKAT/NetKAT/Semantics.lean:61` defines a
+**Current Lean [F].** `packages/NetKATLean/NetKATLean/Core/Semantics.lean:61` defines a
 packet-to-packet relation `Semantics : NetKAT → CtxPkt → CtxPkt → Prop` (`drop → False`,
 `id → σ=τ`, tests → `holds ∧ σ=τ`, `assign1 → τ = Packet.update σ f v`, `union → ∨`,
 `seq → ∃ρ`, `star → StarClosure (Semantics n) σ τ`; generic `StarClosure` at

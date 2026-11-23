@@ -58,8 +58,8 @@
 import Mathlib.Data.Set.Basic
 import Mathlib.Data.Finset.Sort
 import Mathlib.Data.String.Basic
-import DyNetKAT.NetKAT.Packet
-import DyNetKAT.NetKAT.HistorySemantics
+import NetKATLean.Core.Packet
+import NetKATLean.Core.HistorySemantics
 import DyNetKAT.DyNetKAT.AST
 import DyNetKAT.DyNetKAT.Action
 import DyNetKAT.DyNetKAT.Config

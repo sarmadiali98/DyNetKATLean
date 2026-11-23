@@ -97,7 +97,7 @@ inductive DyNetKAT
 
 **`nSeq` (`N;D`):**
 - The `NetKAT` argument is the *existing* `NetKAT` type from
-  `lean/DyNetKAT/NetKAT/AST.lean:89` (8 constructors: `drop, id, test,
+  `packages/NetKATLean/NetKATLean/Core/AST.lean:89` (8 constructors: `drop, id, test,
   completeTest, assign1, union, seq, star`). This is the dup-free fragment:
   Eq. (1) writes `N ::= NetKAT⁻ᵈᵘᵖ`.
 - Paper §II-C: "we do not explicitly specify the trailing `; ⊥` whenever clear

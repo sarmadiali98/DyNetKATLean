@@ -89,9 +89,9 @@ import Mathlib.Data.Set.Basic
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Insert
 import Mathlib.Data.Finset.Card
-import DyNetKAT.NetKAT.Packet
-import DyNetKAT.NetKAT.Semantics
-import DyNetKAT.NetKAT.Decision
+import NetKATLean.Core.Packet
+import NetKATLean.Core.Semantics
+import NetKATLean.Core.Decision
 import DyNetKAT.DyNetKAT.AST
 import DyNetKAT.DyNetKAT.RecEnv
 import DyNetKAT.DyNetKAT.SafetyHead

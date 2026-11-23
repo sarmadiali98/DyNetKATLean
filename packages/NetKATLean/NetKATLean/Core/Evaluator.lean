@@ -2,7 +2,7 @@
 -- Executable evaluator for the initial NetKAT fragment
 ------------------------------------------------------------------------
 
-import DyNetKAT.NetKAT.Semantics
+import NetKATLean.Core.Semantics
 import Mathlib.Data.Finset.Lattice.Basic
 import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Data.Set.Card

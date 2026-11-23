@@ -1,6 +1,6 @@
 import DyNetKAT.DyNetKAT.FiniteProjection
 import DyNetKAT.DyNetKAT.NetKATBridge
-import DyNetKAT.NetKAT.Normalization
+import NetKATLean.Core.Normalization
 
 set_option linter.dupNamespace false
 

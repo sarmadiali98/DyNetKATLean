@@ -1,4 +1,4 @@
-import DyNetKAT
+import NetKATLean
 
 ------------------------------------------------------------------------
 -- Checks for the history-level executable evaluator (H4)

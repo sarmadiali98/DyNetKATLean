@@ -434,9 +434,9 @@ and the assignment conformance migration (Tasks 2O–2R-L):
 
 | File | Status | Summary of Changes |
 |------|--------|--------------------|
-| `lean/DyNetKAT/NetKAT/Packet.lean` | Modified | Parameterized `Packet` over generic `FieldType`/`Value`; `CtxPkt` abbreviation; `CompleteTest`/`CompleteAssignmentValuation` as total valuations; `applyValuation`; paper update theorems; examples. Legacy `CompleteAssignment`/`applyAssign` removed. |
-| `lean/DyNetKAT/NetKAT/AST.lean` | Modified | `Predicate` inductive (pFalse, pTrue, pFieldEq, pAnd, pOr, pNot); `assign1` primitive constructor; `fieldEnum`; `completeAssignExpr`; `fieldEnum_complete`/`fieldEnum_nodup` theorems. Legacy `fieldAssign` and `.assign` constructor removed. |
-| `lean/DyNetKAT/NetKAT/Semantics.lean` | Modified | `Semantics` over `CtxPkt`; predicate/completeTest/assign1 semantics; Kleene/Boolean/packet algebra theorems; `assign1_sem`, `assign1_seq_sem`, `assign_list_sem`, `fieldEnum_updates_complete`, `completeAssignExpr_sem`. Legacy `.assign` clause and `assign_sem`/`fieldAssign_sem` removed. |
+| `packages/NetKATLean/NetKATLean/Core/Packet.lean` | Modified | Parameterized `Packet` over generic `FieldType`/`Value`; `CtxPkt` abbreviation; `CompleteTest`/`CompleteAssignmentValuation` as total valuations; `applyValuation`; paper update theorems; examples. Legacy `CompleteAssignment`/`applyAssign` removed. |
+| `packages/NetKATLean/NetKATLean/Core/AST.lean` | Modified | `Predicate` inductive (pFalse, pTrue, pFieldEq, pAnd, pOr, pNot); `assign1` primitive constructor; `fieldEnum`; `completeAssignExpr`; `fieldEnum_complete`/`fieldEnum_nodup` theorems. Legacy `fieldAssign` and `.assign` constructor removed. |
+| `packages/NetKATLean/NetKATLean/Core/Semantics.lean` | Modified | `Semantics` over `CtxPkt`; predicate/completeTest/assign1 semantics; Kleene/Boolean/packet algebra theorems; `assign1_sem`, `assign1_seq_sem`, `assign_list_sem`, `fieldEnum_updates_complete`, `completeAssignExpr_sem`. Legacy `.assign` clause and `assign_sem`/`fieldAssign_sem` removed. |
 | `docs/DESIGN_ALARMS.md` | Modified | A2–A6 recorded; A7 recorded (Open), marked Resolved by Task 2R-L evidence. |
 | `docs/NETKAT_AUDIT.md` | Modified | Updated for conformance verification. |
 

@@ -1,5 +1,5 @@
-import DyNetKAT.NetKAT.Symbolic
-import DyNetKAT.NetKAT.Normalization
+import NetKATLean.Core.Symbolic
+import NetKATLean.Core.Normalization
 
 /-! The proof-only bridge to E_NK. Symbolic closure supplies the star
 certificates. The star-free comparison uses the existing field partition

@@ -773,7 +773,7 @@ distinct switches to be distinct. The following Lean proof rules out
 even this injection.
 
 ```lean
-import DyNetKAT.NetKAT.Packet
+import NetKATLean.Core.Packet
 
 open DyNetKAT.NetKAT
 

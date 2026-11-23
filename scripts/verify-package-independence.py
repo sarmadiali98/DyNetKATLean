@@ -15,6 +15,7 @@ import tempfile
 REPO = Path(__file__).resolve().parents[1]
 SOURCE = REPO / "lean"
 KAT = REPO / "packages/KATLean"
+NET = REPO / "packages/NetKATLean"
 LAYERS = ("KATLean", "NetKATLean", "DyNetKATLean")
 EXTERNAL = {"Lean", "Init", "Std", "Mathlib"}
 
@@ -32,14 +33,13 @@ def source_manifest():
         elif owner == "NetKATLean":
             allowed = (module == owner or module in {
                 "NetKATLean.PacketAdapter." + name for name in ("Packet", "Guard", "Symbolic", "Closure")
-            } or (module.startswith("DyNetKAT.NetKAT.") and module.split(".")[2] not in
-                  {"Legacy", "KATch", "BackendCertificate", "EquationalCertificate"}))
+            } or (module.startswith("NetKATLean.Core.")))
         else:
             allowed = module == owner or module.startswith("DyNetKAT.DyNetKAT.")
         if not allowed:
             raise ValueError(f"{owner} has an unaudited or upward import: {module}")
         path = Path(*module.split(".")).with_suffix(".lean")
-        source = (KAT if owner == "KATLean" else SOURCE) / path
+        source = ({"KATLean": KAT, "NetKATLean": NET}.get(owner, SOURCE)) / path
         content = source.read_bytes()
         imports = re.findall(r"^\s*import\s+(\S+)", content.decode(), re.M)
         local = [name for name in imports if name.partition(".")[0] not in EXTERNAL]
@@ -58,13 +58,6 @@ def source_manifest():
     for owner in LAYERS[1:]:
         visit(owner, owner)
     return entries
-
-
-def prototype_module(name):
-    # Lean 4.19 searches by the first component before checking the full path.
-    if name.startswith("DyNetKAT.NetKAT."):
-        return "NetKATLean.Core." + name.removeprefix("DyNetKAT.NetKAT.")
-    return name
 
 
 def run(cwd, args, env, label):
@@ -86,9 +79,9 @@ def main():
     print(f"Prototype workspace: {root}", flush=True)
     entries = source_manifest()
     for entry in entries.values():
-        module = prototype_module(entry["module"])
+        module = entry["module"]
         entry["prototype_module"] = module
-        entry["prototype_imports"] = [prototype_module(name) for name in entry["local_imports"]]
+        entry["prototype_imports"] = entry["local_imports"]
         entry["package_path"] = str(Path(*module.split(".")).with_suffix(".lean"))
     pinned = json.loads((SOURCE / "lake-manifest.json").read_text())
     external = {item["name"]: item for item in pinned["packages"] if item["type"] == "git"}
@@ -183,10 +176,7 @@ def main():
         for entry in owned:
             destination = package / entry["package_path"]
             destination.parent.mkdir(parents=True, exist_ok=True)
-            source = (REPO / entry["source"]).read_text()
-            transformed = re.sub(r"^(\s*import\s+)(\S+)",
-                                 lambda m: m[1] + prototype_module(m[2]), source, flags=re.M)
-            destination.write_text(transformed)
+            shutil.copyfile(REPO / entry["source"], destination)
             entry["prototype_sha256"] = hashlib.sha256(destination.read_bytes()).hexdigest()
         (package / "source-manifest.json").write_text(json.dumps(owned, indent=2) + "\n")
         lock(package, LAYERS[:index])
@@ -195,7 +185,7 @@ def main():
 
         consumer = prepare(name + "Consumer", ("Consumer", require(name, path=f"../{name}")
                                                 + '\n[[lean_lib]]\nname = "Consumer"\n'))
-        test = (KAT if name == "KATLean" else SOURCE) / f"test_{name.lower()}_import.lean"
+        test = ({"KATLean": KAT, "NetKATLean": NET}.get(name, SOURCE)) / f"test_{name.lower()}_import.lean"
         source = test.read_text()
         if name == "KATLean":
             source += "\n#guard KATLean.Native.decideEquiv (T := Fin 1) (A := Fin 1) (.plus .one .one) .one\n"

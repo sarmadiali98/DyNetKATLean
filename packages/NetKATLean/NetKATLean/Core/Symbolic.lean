@@ -1,6 +1,6 @@
 import NetKATLean.PacketAdapter.Closure
 import KATLean.Native
-import DyNetKAT.NetKAT.Denotation
+import NetKATLean.Core.Denotation
 import Mathlib.Data.Fintype.Sigma
 import Mathlib.Logic.Equiv.Fin.Basic
 

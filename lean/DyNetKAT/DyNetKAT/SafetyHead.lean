@@ -39,7 +39,7 @@
 ------------------------------------------------------------------------
 
 import DyNetKAT.DyNetKAT.AST
-import DyNetKAT.NetKAT.Semantics
+import NetKATLean.Core.Semantics
 
 set_option linter.dupNamespace false
 

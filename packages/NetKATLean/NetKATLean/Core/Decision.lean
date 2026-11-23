@@ -1,6 +1,6 @@
-import DyNetKAT.NetKAT.Evaluator
-import DyNetKAT.NetKAT.HistorySemantics
-import DyNetKAT.NetKAT.Symbolic
+import NetKATLean.Core.Evaluator
+import NetKATLean.Core.HistorySemantics
+import NetKATLean.Core.Symbolic
 
 /-! The public NetKAT equality and zero checks use the verified native
 symbolic frontend. The pointwise API supports concrete execution certificates. -/

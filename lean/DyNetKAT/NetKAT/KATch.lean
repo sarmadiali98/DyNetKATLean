@@ -1,4 +1,4 @@
-import DyNetKAT.NetKAT.Decision
+import NetKATLean.Core.Decision
 
 namespace DyNetKAT.NetKAT
 

@@ -77,7 +77,7 @@
  ------------------------------------------------------------------------
 
  import DyNetKAT.DyNetKAT.AST
- import DyNetKAT.NetKAT.Semantics
+ import NetKATLean.Core.Semantics
  import DyNetKAT.DyNetKAT.SafetyHead
  import DyNetKAT.DyNetKAT.RestrictionProjection
 

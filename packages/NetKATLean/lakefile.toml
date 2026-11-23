@@ -1,0 +1,10 @@
+name = "NetKATLean"
+version = "0.1.0"
+defaultTargets = ["NetKATLean"]
+
+[[require]]
+name = "KATLean"
+path = "../KATLean"
+
+[[lean_lib]]
+name = "NetKATLean"

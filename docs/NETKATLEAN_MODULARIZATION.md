@@ -1,10 +1,12 @@
 # NetKATLean build and import boundary
 
-Use `import NetKATLean` and `lake build NetKATLean`. The core depends on generic KATLean, pinned Mathlib v4.19.0 and Lean's standard libraries. It shares the Lean 4.19.0 Lake workspace. The four packet adapters are NetKATLean-owned and now live under `lean/NetKATLean/PacketAdapter/`. They provide packet lookup and update, Boolean diagram operations used by the packet compiler, packet encoding and relational closure. Their module names changed to avoid Lean prefix shadowing. Their declaration namespaces remain unchanged.
+Use `import NetKATLean` and `lake build NetKATLean`. The standalone Lake package lives in `packages/NetKATLean/`. Its only direct package dependency is the sibling `../KATLean`. The core imports Mathlib modules directly and uses Mathlib transitively through KATLean's exact pin. Lean 4.19.0 and the complete transitive revisions are locked. The integration workspace imports this package via `../packages/NetKATLean`.
+
+The four packet adapters now live in the package's `NetKATLean/PacketAdapter/` directory. They provide packet lookup and update, diagram operations used by the packet compiler, packet encoding and relational closure. The public umbrella imports all 17 core modules through their dependency closure. The physical move preserves declaration namespaces, including `DyNetKAT.NetKAT` and `KATLean.NetKAT`. Old core-module imports migrate directly to the new paths.
 
 ## Core import graph
 
-The table lists every core module and its direct project-local imports. Bare names denote modules in `DyNetKAT.NetKAT`. External Lean and Mathlib edges are omitted.
+The table lists every core module and its direct project-local imports. Bare names denote modules in `NetKATLean.Core`. Each of those 17 modules moved from `DyNetKAT.NetKAT.<name>` to `NetKATLean.Core.<name>`. External Lean and Mathlib edges are omitted.
 
 | Module | Imports |
 | --- | --- |
@@ -43,4 +45,10 @@ The default closure excludes KATch, BackendCertificate, EquationalCertificate an
 
 `test_decision.lean` and `test_netkat_axioms.lean` use the public umbrella. `test_symbolic_netkat.lean` checks the symbolic solver and compiler directly. `test_netkatlean_import.lean` uses the public packet model, checks a field update and its semantics, and exercises a derivation, its KATLean interpretation, normalization and symbolic equivalence. Mixed packet-schema and KATLean derivation tests remain higher-layer integration coverage. Tests that compare against Legacy or KATch remain optional or full-workspace checks.
 
-`scripts/verify-netkatlean.sh` checks the recursive local import closure and runs the four NetKAT tests in scratch space against only those compiled local modules and the external dependency libraries. The consumer independently imports the public umbrella there. This exercises import isolation with built artifacts; independent packaging, source relocation, release metadata, CI and Docker remain future work.
+The eight owned tests are `test_netkatlean_import.lean`, `test_netkat_axioms.lean`, `test_decision.lean`, `test_symbolic_netkat.lean`, `test_katlean.lean`, `test_history.lean`, `test_history_semantics.lean`, and `test_history_evaluator.lean`. The history tests now import the NetKATLean umbrella. Dynamic and optional-backend regression tests stay in the integration workspace.
+
+Run `./verify.sh build`, `./verify.sh smoke`, `./verify.sh test-all`, `./verify.sh verify`, and `./verify.sh consumer-test` from the package root. Verification audits the NetKATLean and KATLean import trees. The consumer uses a fresh Lake project with a path dependency on NetKATLean and verifies Lake's source and object search paths. The integration wrapper `scripts/verify-netkatlean.sh` delegates to the package verifier.
+
+For a full integration test sweep from fresh build artifacts, run `lake build DyNetKATLean DyNetKAT dynetkat +DyNetKAT.Experimental +DyNetKAT.NetKAT.Legacy` from `lean/` first. The explicit optional targets refresh the certificates and exhaustive regression backend used by integration tests. Lean generates private declaration names from their module paths, so proof dependency tests now follow `_private.NetKATLean.*` in addition to the existing prefixes. The tested proof-dependency assertions and the public theorem API are preserved.
+
+The locked package build, smoke test, all eight tests, import audit and separate Lake consumer passed. The consumer exercised packet construction and semantics, an E_NK derivation, the relational interpretation, normalization and native equivalence. Clean network-backed resolution also passed on Ubuntu from disk-backed scratch under `$HOME/.cache`. See the [extraction plan](PACKAGE_EXTRACTION_PLAN.md#realized-netkatlean-extraction).

@@ -1,4 +1,4 @@
-import DyNetKAT.NetKAT.Interpretation
+import NetKATLean.Core.Interpretation
 
 namespace DyNetKAT.NetKAT
 

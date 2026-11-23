@@ -80,6 +80,7 @@ private partial def proofDependencies (env : Environment) (pending : List Name)
           let s := n.toString
           s.startsWith "KATLean." || s.startsWith "DyNetKAT." ||
             s.startsWith "_private.KATLean." || s.startsWith "_private.DyNetKAT." ||
+            s.startsWith "_private.NetKATLean." ||
             (n == ``Finset.univ && !fieldValueSums.contains name)
       proofDependencies env (next ++ rest) (seen.insert name)
 

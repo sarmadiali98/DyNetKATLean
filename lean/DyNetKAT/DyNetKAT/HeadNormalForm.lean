@@ -1,6 +1,6 @@
 import DyNetKAT.DyNetKAT.Equations
 import DyNetKAT.DyNetKAT.Ground
-import DyNetKAT.NetKAT.Normalization
+import NetKATLean.Core.Normalization
 
 set_option linter.dupNamespace false
 
