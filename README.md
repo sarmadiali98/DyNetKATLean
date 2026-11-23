@@ -13,6 +13,42 @@ git clone https://github.com/sarmadiali98/DyNetKATLean.git
 cd DyNetKATLean
 ```
 
+## Verify the release
+
+The mathematical packages are in `packages/`. Their Lake dependency chain is
+Mathlib → KATLean → NetKATLean → DyNetKATLean. The `lean/` workspace adds the
+compatibility library, CLI, frontend, and examples.
+
+With Elan and Python 3.9 or later installed, run the following from the
+repository root. Install pytest in your Python environment for the full run.
+
+```sh
+bash scripts/verify-release.sh KATLean
+bash scripts/verify-release.sh NetKATLean
+bash scripts/verify-release.sh DyNetKATLean
+bash scripts/verify-release.sh
+```
+
+Each package check runs its native `verify` and `consumer-test`. The former
+builds the library and runs every package test, including the smoke import.
+The latter builds an isolated Lake consumer. Full verification adds the
+integration Lean tests, Python tests, and standalone package-independence checks.
+
+For Docker verification, substitute `katlean`, `netkatlean`, or `dynetkatlean`
+to check an individual package.
+
+```sh
+target=integration
+docker build -f docker/Dockerfile --target "$target" -t "dynetkatlean:$target" .
+docker run --rm --network none "dynetkatlean:$target"
+```
+
+The image build resolves the checked-in Lake locks. Verification runs with
+network access disabled and needs no checkout mount. KATch is optional. The
+[historical DyNetiKAT reproduction](docs/DYNETIKAT_V11_CAMPAIGN.md#reconstructed-ubuntu-runtime)
+has a separate runtime and is outside mathematical verification.
+See the [release build notes](docs/MODULARIZATION_PLAN.md#reproducible-native-and-docker-builds).
+
 ## Run v1.1 queries
 
 From `lean/`:

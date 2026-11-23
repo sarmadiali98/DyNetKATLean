@@ -112,19 +112,48 @@ commands for each test tier. The ordinary build from each package root
 should be `lake build`, with a default target that actually builds its
 library. Docker stays optional for native Lean development.
 
-Plan separate Docker targets with pinned build inputs. The target names
-below are provisional. Select a target through `docker build --target`
-with the release's documented context.
+Select a stage in `docker/Dockerfile` at build time. Each stage's default
+command runs the corresponding verification with no source mount.
 
-| Target | Contents and verification |
+| Target | Verification |
 |---|---|
-| `katlean` | Pinned Lean and Mathlib plus KATLean. Build the package and run its smoke fixture. |
-| `netkatlean` | KATLean and NetKATLean. Build NetKATLean and run its smoke fixture. |
-| `dynetkatlean` | The supported Lean stack. Build DyNetKATLean and run its smoke fixture. |
-| `full-development` | The supported stack plus test, documentation, and benchmark tooling needed for full verification. |
+| `katlean` | KATLean tests, import audit, and isolated Lake consumer. |
+| `netkatlean` | NetKATLean tests, import audit, and isolated Lake consumer against the declared KATLean dependency. |
+| `dynetkatlean` | DyNetKATLean tests, import and paper API audits, and isolated Lake consumer against the declared lower packages. |
+| `integration` | All three package checks, compatibility library and CLI, integration Lean and Python tests, and the detached package-independence build and consumers. |
 
-Keep lower-layer images free of unrelated upper-layer dependencies.
-Record base image digests and target commands in the release instructions.
+The image installs the repository's Lean 4.19.0 toolchain and resolves the
+committed Lake locks without `lake update`. Lean dependencies build from
+the pinned sources. The upper image stages share the Git checkout
+directory created in the KATLean stage only after validating the Git locks and
+checkout revisions. The build context excludes local Lake state, virtual
+environments, and benchmark outputs. The Python base has a versioned tag and
+the test requirements are version-pinned. Debian system packages still track
+the base distribution's repositories. Record the image digest before publishing
+release images for archival reproduction.
+
+GitHub Actions runs one job per Docker target on pushes and pull requests
+against `main`, and on manual dispatch. Package jobs build their prerequisites
+through Lake. The integration job verifies the full stack. Job runs use no host
+Lean cache, and only the build step needs network access.
+
+For native runs, set `TMPDIR`, `TMP`, and `TEMP` to a disk-backed directory
+outside the checkout if system temporary storage is limited. The detached
+independence check copies the pinned external Lake cache and retains its
+prototype directory and logs for inspection.
+
+### Historical runtime
+
+Keep historical DyNetiKAT reproduction separate from the mathematical images
+and normal CI. The campaign documents DyNetiKAT
+`1c6bd422377853378c7516a7875009fcfb5ba881`, Maude 3.1 (Debian `3.1-2`),
+OCaml 4.08.1, opam 2.3.0, and mparser 1.2.3. The old-netkat revision
+`5822459fbfae0f0e9e0622843ebe30208f8bf189` is a reconstructed candidate.
+A separate image still needs a reproducible opam dependency lock or archive
+and the exact compiler and Core compatibility patch inputs. The campaign
+records the C17 and `-fcommon` settings, the signal-stack and `gettid`
+compatibility work, and the Python 3.14 launcher using `fork`. Version and
+compatibility notes alone do not verify a clean container build.
 
 ## Scalability and benchmarks
 
