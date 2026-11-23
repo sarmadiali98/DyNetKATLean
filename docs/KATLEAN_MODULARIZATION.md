@@ -4,7 +4,7 @@
 | --- | --- |
 | `KATLean.lean`, `KATLean/{Kleene,KAT,Relation}.lean` | KATLean. Mathlib Kleene laws, Boolean test embeddings and the relational model. |
 | `KATLean/Native.lean`, all `KATLean/Native/*.lean` | KATLean. Generic typed KAT syntax, Boolean diagrams, derivatives, automata, finite search, model correctness and completeness. |
-| `KATLean/NetKAT/{Packet,Guard,Symbolic,Closure}.lean` | Future NetKATLean. Packet lookup and updates, diagram operations used by the packet adapter, packet encodings and relational closure. The four files retain their current module paths for compatibility. Guard's rename and projection operations are candidates for later reuse if another consumer needs them. |
+| `lean/NetKATLean/PacketAdapter/{Packet,Guard,Symbolic,Closure}.lean` | Future NetKATLean. Packet lookup and updates, diagram operations used by the packet adapter, packet encodings and relational closure. These four files moved out of the KATLean prefix during physical extraction. Guard's rename and projection operations are candidates for later reuse if another consumer needs them. |
 | `DyNetKAT/NetKAT/*.lean` | Future NetKATLean. Packet schemas, policies and history, semantics and evaluators, E_NK, normalization and certificates. NativeEquations and SymbolicDerives translate generic KAT machinery to NetKAT. Keep Legacy and the KATch/BackendCertificate/EquationalCertificate workflow in compatibility or optional backend targets. |
 | `DyNetKAT/DyNetKAT/*.lean`, `DyNetKAT/{Basic,Experimental,Main}.lean`, `DyNetKAT.lean` | Future DyNetKATLean and its executable targets. The dynamic core owns recursion, SOS, projections, graph algorithms, equations, bisimulation and safety. Main dispatches the CLI. Experimental is an opt-in umbrella for external backend tooling. |
 | `DyNetKAT/Frontend/V11*.lean`, `DyNetKAT/Examples/*.lean` | DyNetKATLean adapters and case studies. V11 loading combines packet schema and guarded program admission. Batch and Main depend on that boundary. FatTree and DistributedControllers exercise the dynamic layer. |
@@ -16,7 +16,7 @@ The generic KAT code uses Mathlib and Lean/Std. The existing Lake workspace pins
 
 `test_native_kat.lean`, `test_kat_completeness.lean` and `test_symbolic_kat.lean` exercise the generic KAT library. `test_katlean.lean` mixes generic algebra examples with packet models, interpretation and normalization and remains integration coverage at this milestone. The new standalone import test takes over basic generic algebra coverage without the higher-layer import. NetKAT proofs and regressions belong with NetKAT, while process, frontend and case-study tests belong with DyNetKAT. Cross-layer semantic and optional-backend differential tests remain integration checks.
 
-Docker, CI and standalone release packaging are later work. This checkpoint keeps a shared Lake workspace and unchanged NetKAT and DyNetKAT imports.
+KATLean now lives in `packages/KATLean/` and the integration workspace consumes it as a Lake path dependency. See the [extraction plan](PACKAGE_EXTRACTION_PLAN.md) for the realized layout and verification commands. Docker, CI and publishing remain later work.
 
 Run `scripts/verify-katlean.sh` to check import direction, build the generic library and run its four public-import tests. Removing the packet import exposed an incidental dependency on the Finset product API in Native.Explicit and Native.Decision. Both now import Mathlib's Finset product module directly.
 

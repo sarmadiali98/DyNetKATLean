@@ -55,11 +55,11 @@ relations. All generic algebra uses the existing classes.
 
 | Module | Responsibility |
 |---|---|
-| `lean/KATLean/Kleene.lean` | Paper order, unfold equations and both induction formulations |
-| `lean/KATLean/KAT.lean` | Injective Boolean test embedding and all six BA laws |
-| `lean/KATLean/Relation.lean` | Relational Mathlib KA instance and Boolean packet-set tests |
-| `lean/KATLean/NetKAT/Packet.lean` | Field-indexed packet interface and the dup-free packet laws |
-| `lean/KATLean.lean` | Public algebra import surface |
+| `packages/KATLean/KATLean/Kleene.lean` | Paper order, unfold equations and both induction formulations |
+| `packages/KATLean/KATLean/KAT.lean` | Injective Boolean test embedding and all six BA laws |
+| `packages/KATLean/KATLean/Relation.lean` | Relational Mathlib KA instance and Boolean packet-set tests |
+| `lean/NetKATLean/PacketAdapter/Packet.lean` | Field-indexed packet interface and the dup-free packet laws |
+| `packages/KATLean/KATLean.lean` | Public algebra import surface |
 | `lean/DyNetKAT/NetKAT/Interpretation.lean` | CtxPkt instance, AST interpretation and evaluator correctness, below Derives |
 | `lean/DyNetKAT/NetKAT/Axioms.lean` | Existing Derives and its KATLean rule induction |
 | `lean/DyNetKAT/NetKAT/KATLean.lean` | Compatibility import surface and normalization interpretation theorem |

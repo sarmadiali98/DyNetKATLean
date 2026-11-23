@@ -11,7 +11,11 @@ import subprocess
 import tempfile
 
 root = Path.cwd()
-build = root / ".lake/build/lib/lean"
+kat = root.parent / "packages/KATLean"
+
+def module_root(name):
+    return kat if name.split(".")[0] == "KATLean" else root
+
 umbrella = "DyNetKATLean"
 case_study = "DyNetKAT.Examples.DistributedControllers"
 optional = {"BackendCertificate", "EquationalCertificate", "KATch", "Legacy"}
@@ -19,7 +23,7 @@ optional = {"BackendCertificate", "EquationalCertificate", "KATch", "Legacy"}
 def layer(name):
     if name.partition(".")[0] in {"Mathlib", "Lean", "Std", "Init"}:
         return 0
-    if name.startswith("KATLean.NetKAT."):
+    if name.startswith("NetKATLean.PacketAdapter."):
         return 2
     if name == "KATLean" or name.startswith("KATLean."):
         return 1
@@ -45,7 +49,7 @@ def closure(entry):
         if level == 0:
             return
         visited.add(name)
-        for line in (root / module_path(name, ".lean")).read_text().splitlines():
+        for line in (module_root(name) / module_path(name, ".lean")).read_text().splitlines():
             match = re.match(r"^\s*import\s+(\S+)", line)
             if match:
                 dependency = match[1]
@@ -89,7 +93,7 @@ with tempfile.TemporaryDirectory(prefix="dynetkatlean-consumer-") as scratch:
             path = module_path(name, ".olean")
             target = isolated / path
             target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(build / path, target)
+            shutil.copyfile(module_root(name) / ".lake/build/lib/lean" / path, target)
 
     def check(name):
         print(f"Checking isolated {name}", flush=True)

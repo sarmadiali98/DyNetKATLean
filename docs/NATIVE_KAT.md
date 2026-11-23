@@ -194,7 +194,7 @@ implemented.
 
 ## Modules and tests
 
-| Module under `lean/KATLean/Native/` | Responsibility |
+| Module under `packages/KATLean/KATLean/Native/` | Responsibility |
 |---|---|
 | `Syntax.lean` | Boolean and expression syntax, arbitrary KAT interpretation, nullable |
 | `Language.lean` | Guarded words, inductive acceptance and nullable correctness |
@@ -216,7 +216,7 @@ implemented.
 | `Model.lean` | Arbitrary KATLean relational interpretation correspondence |
 | `Correctness.lean` | Faithful trace model, final relational correctness and witness existence |
 
-`lean/KATLean/Native.lean` is the separate public surface; `DyNetKAT.lean`
+`packages/KATLean/KATLean/Native.lean` is the separate public surface; `DyNetKAT.lean`
 exports it. The algebra umbrella stays below the native solver, avoiding cycles.
 `test_native_kat.lean` covers zero versus one, idempotence, associativity,
 distributivity, both star unfolds, a star-induction consequence, Boolean

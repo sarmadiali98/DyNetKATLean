@@ -11,7 +11,11 @@ import subprocess
 import tempfile
 
 root = Path.cwd()
-build = root / ".lake/build/lib/lean"
+kat = root.parent / "packages/KATLean"
+
+def module_root(name):
+    return kat if name.split(".")[0] == "KATLean" else root
+
 optional = {"BackendCertificate", "EquationalCertificate", "KATch", "Legacy"}
 tests = ["test_netkatlean_import.lean", "test_netkat_axioms.lean",
          "test_decision.lean", "test_symbolic_netkat.lean"]
@@ -26,17 +30,15 @@ def visit(source):
         family, _, tail = name.partition(".")
         if family in {"Mathlib", "Lean", "Std", "Init"}:
             continue
-        if not (name == "NetKATLean" or family == "KATLean" or
+        if not (name == "NetKATLean" or family == "KATLean" or name.startswith("NetKATLean.PacketAdapter.") or
                 (name.startswith("DyNetKAT.NetKAT.") and tail.split(".")[1] not in optional)):
-            raise SystemExit(f"{source.relative_to(root)} imports forbidden module {name}")
-        if (source == root / "KATLean.lean" or
-                (source.is_relative_to(root / "KATLean") and
-                 not source.is_relative_to(root / "KATLean/NetKAT"))):
+            raise SystemExit(f"{source.relative_to(root.parent)} imports forbidden module {name}")
+        if source.is_relative_to(kat):
             if family != "KATLean" or tail.split(".")[0] == "NetKAT":
                 raise SystemExit(f"Generic KATLean imports a higher layer: {name}")
         if name not in modules:
             modules.add(name)
-            visit(root / (name.replace(".", "/") + ".lean"))
+            visit(module_root(name) / (name.replace(".", "/") + ".lean"))
 
 visit(root / "NetKATLean.lean")
 for test in tests:
@@ -51,7 +53,7 @@ with tempfile.TemporaryDirectory(prefix="netkatlean-consumer-") as scratch:
         path = Path(name.replace(".", "/") + ".olean")
         destination = isolated / path
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(build / path, destination)
+        shutil.copyfile(module_root(name) / ".lake/build/lib/lean" / path, destination)
     env = dict(os.environ, LEAN_PATH=os.pathsep.join([scratch, *deps]))
     print(f"Checking {len(modules)} local modules in the isolated import closure", flush=True)
     for test in tests:

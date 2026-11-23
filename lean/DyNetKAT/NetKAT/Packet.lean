@@ -18,7 +18,7 @@
 -- Packet.update while preserving all semantic properties.
 ------------------------------------------------------------------------
 
-import KATLean.NetKAT.Packet
+import NetKATLean.PacketAdapter.Packet
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Insert
 import Mathlib.Data.Fintype.Basic

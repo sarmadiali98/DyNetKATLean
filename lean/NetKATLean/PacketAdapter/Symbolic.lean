@@ -1,5 +1,5 @@
-import KATLean.NetKAT.Guard
-import KATLean.NetKAT.Packet
+import NetKATLean.PacketAdapter.Guard
+import NetKATLean.PacketAdapter.Packet
 
 /-! A symbolic relation uses one-hot field bits in two banks. Composition
 temporarily uses a third bank and projects it out of the diagram. -/

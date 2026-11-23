@@ -14,6 +14,7 @@ import tempfile
 
 REPO = Path(__file__).resolve().parents[1]
 SOURCE = REPO / "lean"
+KAT = REPO / "packages/KATLean"
 LAYERS = ("KATLean", "NetKATLean", "DyNetKATLean")
 EXTERNAL = {"Lean", "Init", "Std", "Mathlib"}
 
@@ -30,7 +31,7 @@ def source_manifest():
                                  "KATLean.Native"} or module.startswith("KATLean.Native.")
         elif owner == "NetKATLean":
             allowed = (module == owner or module in {
-                "KATLean.NetKAT." + name for name in ("Packet", "Guard", "Symbolic", "Closure")
+                "NetKATLean.PacketAdapter." + name for name in ("Packet", "Guard", "Symbolic", "Closure")
             } or (module.startswith("DyNetKAT.NetKAT.") and module.split(".")[2] not in
                   {"Legacy", "KATch", "BackendCertificate", "EquationalCertificate"}))
         else:
@@ -38,10 +39,11 @@ def source_manifest():
         if not allowed:
             raise ValueError(f"{owner} has an unaudited or upward import: {module}")
         path = Path(*module.split(".")).with_suffix(".lean")
-        content = (SOURCE / path).read_bytes()
+        source = (KAT if owner == "KATLean" else SOURCE) / path
+        content = source.read_bytes()
         imports = re.findall(r"^\s*import\s+(\S+)", content.decode(), re.M)
         local = [name for name in imports if name.partition(".")[0] not in EXTERNAL]
-        entries[module] = dict(module=module, source=str(Path("lean") / path),
+        entries[module] = dict(module=module, source=str(source.relative_to(REPO)),
                                package_path=str(path), owner=owner, local_imports=local,
                                external_imports=[name for name in imports if name not in local],
                                compatibility_path=not (module == owner or module.startswith(owner + ".")),
@@ -51,7 +53,7 @@ def source_manifest():
 
     visit("KATLean", "KATLean")
     visit("KATLean.Native", "KATLean")
-    for path in sorted((SOURCE / "KATLean/Native").glob("*.lean")):
+    for path in sorted((KAT / "KATLean/Native").glob("*.lean")):
         visit("KATLean.Native." + path.stem, "KATLean")
     for owner in LAYERS[1:]:
         visit(owner, owner)
@@ -60,8 +62,6 @@ def source_manifest():
 
 def prototype_module(name):
     # Lean 4.19 searches by the first component before checking the full path.
-    if name.startswith("KATLean.NetKAT."):
-        return "NetKATLean.PacketAdapter." + name.removeprefix("KATLean.NetKAT.")
     if name.startswith("DyNetKAT.NetKAT."):
         return "NetKATLean.Core." + name.removeprefix("DyNetKAT.NetKAT.")
     return name
@@ -91,7 +91,7 @@ def main():
         entry["prototype_imports"] = [prototype_module(name) for name in entry["local_imports"]]
         entry["package_path"] = str(Path(*module.split(".")).with_suffix(".lean"))
     pinned = json.loads((SOURCE / "lake-manifest.json").read_text())
-    external = {item["name"]: item for item in pinned["packages"]}
+    external = {item["name"]: item for item in pinned["packages"] if item["type"] == "git"}
     mathlib = external["mathlib"]
     env = {key: value for key, value in os.environ.items()
            if key not in {"LEAN_PATH", "LEAN_SRC_PATH", "LAKE_PACKAGES_DIR", "LEAN_SYSROOT"}}
@@ -195,7 +195,7 @@ def main():
 
         consumer = prepare(name + "Consumer", ("Consumer", require(name, path=f"../{name}")
                                                 + '\n[[lean_lib]]\nname = "Consumer"\n'))
-        test = SOURCE / f"test_{name.lower()}_import.lean"
+        test = (KAT if name == "KATLean" else SOURCE) / f"test_{name.lower()}_import.lean"
         source = test.read_text()
         if name == "KATLean":
             source += "\n#guard KATLean.Native.decideEquiv (T := Fin 1) (A := Fin 1) (.plus .one .one) .one\n"

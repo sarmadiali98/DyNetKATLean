@@ -1,6 +1,6 @@
 # NetKATLean build and import boundary
 
-Use `import NetKATLean` and `lake build NetKATLean`. The core depends on generic KATLean, pinned Mathlib v4.19.0 and Lean's standard libraries. It shares the Lean 4.19.0 Lake workspace. The four packet adapters are NetKATLean-owned even though their existing paths begin with `KATLean/NetKAT/`. They provide packet lookup and update, Boolean diagram operations used by the packet compiler, packet encoding and relational closure. Keeping these module paths preserves existing clients.
+Use `import NetKATLean` and `lake build NetKATLean`. The core depends on generic KATLean, pinned Mathlib v4.19.0 and Lean's standard libraries. It shares the Lean 4.19.0 Lake workspace. The four packet adapters are NetKATLean-owned and now live under `lean/NetKATLean/PacketAdapter/`. They provide packet lookup and update, Boolean diagram operations used by the packet compiler, packet encoding and relational closure. Their module names changed to avoid Lean prefix shadowing. Their declaration namespaces remain unchanged.
 
 ## Core import graph
 
@@ -22,14 +22,14 @@ The table lists every core module and its direct project-local imports. Bare nam
 | `NativeEquations` | `KATLean.Native.Completeness`, `Axioms` |
 | `NormalForm` | `Packet`, `AST`, `Semantics` |
 | `Normalization` | `NormalForm`, `Axioms`, `Symbolic` |
-| `Packet` | `KATLean.NetKAT.Packet` |
+| `Packet` | `NetKATLean.PacketAdapter.Packet` |
 | `Semantics` | `Packet`, `AST` |
-| `Symbolic` | `KATLean.NetKAT.Closure`, `KATLean.Native`, `Denotation` |
+| `Symbolic` | `NetKATLean.PacketAdapter.Closure`, `KATLean.Native`, `Denotation` |
 | `SymbolicDerives` | `Symbolic`, `Normalization` |
-| `KATLean.NetKAT.Closure` | `KATLean.NetKAT.Symbolic` |
-| `KATLean.NetKAT.Guard` | `KATLean.Native.Boolean` |
-| `KATLean.NetKAT.Packet` | `KATLean.Relation` |
-| `KATLean.NetKAT.Symbolic` | `KATLean.NetKAT.Guard`, `KATLean.NetKAT.Packet` |
+| `NetKATLean.PacketAdapter.Closure` | `NetKATLean.PacketAdapter.Symbolic` |
+| `NetKATLean.PacketAdapter.Guard` | `KATLean.Native.Boolean` |
+| `NetKATLean.PacketAdapter.Packet` | `KATLean.Relation` |
+| `NetKATLean.PacketAdapter.Symbolic` | `NetKATLean.PacketAdapter.Guard`, `NetKATLean.PacketAdapter.Packet` |
 
 Packet and AST define schemas and policy syntax. Semantics, HistorySemantics, Evaluator and HistoryEvaluator cover packet and history execution. Denotation and Interpretation connect policies to KATLean relations. Axioms defines E_NK, NormalForm and Normalization provide canonical forms, Symbolic compiles policies and invokes the native solver, and NativeEquations and SymbolicDerives translate solver and equational results into NetKAT derivations. The NetKAT-local KATLean module remains a compatibility facade. The v1.1 syntax parser contains a reusable policy parser alongside dynamic process, event and selector parsing. It stays with the dynamic frontend for this milestone.
 

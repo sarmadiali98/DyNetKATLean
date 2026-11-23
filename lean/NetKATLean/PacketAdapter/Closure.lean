@@ -1,4 +1,4 @@
-import KATLean.NetKAT.Symbolic
+import NetKATLean.PacketAdapter.Symbolic
 import Mathlib.Data.Set.Card
 
 /-! Reflexive-transitive closure by symbolic fixed-point iteration. The

@@ -2,11 +2,40 @@
 
 This plan follows the three modularization audits. [KATLean](KATLEAN_MODULARIZATION.md) owns generic Kleene algebra with tests and the native KAT decision machinery. [NetKATLean](NETKATLEAN_MODULARIZATION.md) owns packet schemas, packet adapters, policy semantics, E_NK, symbolic equivalence and normalization. [DyNetKATLean](DYNETKATLEAN_MODULARIZATION.md) owns the admissible dynamic source and residual domain, SOS, E_DNK and certified analysis. The default closures exclude the frontend, historical tool and benchmark infrastructure.
 
+## Realized KATLean extraction
+
+The package root is `packages/KATLean/`, physically separate from the integration workspace under `lean/` and ready to serve as the root of a future repository. All 26 generic sources in the inventory and the four KATLean tests moved there without changes to their content. Its manifest pins Mathlib to `c44e0c8ee63ca166450922a373c7409c5d26b00b` and locks its transitive Git dependencies. The integration manifest resolves KATLean through `../packages/KATLean`.
+
+The four NetKAT packet adapters now live under `lean/NetKATLean/PacketAdapter/`. Their imports use `NetKATLean.PacketAdapter.{Packet,Guard,Symbolic,Closure}`; declaration namespaces remain `KATLean.NetKAT.*`. The remaining `DyNetKAT.NetKAT.*` core modules stay in place until NetKATLean extraction.
+
+From the package root, run `lake build` and `./verify.sh smoke`, `./verify.sh test-all`, `./verify.sh verify`, and `./verify.sh consumer-test`. The consumer creates a fresh Lake project with a path dependency on this package and checks the resolved search paths before building examples with both public imports. The integration script `scripts/verify-katlean.sh` delegates to the package-owned verifier. Python is used only to construct and check the consumer fixture.
+
+### Network-backed reproducibility
+
+**NETWORK-BACKED REPRODUCIBILITY: PASS**
+
+The earlier Work sandbox attempt failed because its DNS and network restrictions prevented Git from resolving GitHub. The same clean test passed from the Ubuntu host terminal through its configured local proxy. The host run started from a fresh copy of `packages/KATLean` with its `.lake` directory removed and ran:
+
+```bash
+env -u LEAN_PATH -u LEAN_SRC_PATH \
+  MATHLIB_NO_CACHE_ON_UPDATE=1 \
+  lake -v --keep-toolchain update
+
+lake build
+./verify.sh verify
+./verify.sh consumer-test
+```
+
+Lake fetched Mathlib from GitHub and checked out the exact declared revision `c44e0c8ee63ca166450922a373c7409c5d26b00b`. The transitive Git dependencies were fetched at their lockfile revisions. The build, package verification, and downstream consumer all passed after clean network resolution. All dependency versions and pins were preserved.
+
+The earlier locked offline build also passed its smoke test, all four package tests, import audit, and Lake consumer against the pinned third-party cache.
+
+
 ## Prototype protocol
 
 Run `python3 scripts/verify-package-independence.py` from the checkout. It creates an external temporary directory and three packages with fresh local build directories. Each package records the exact module, repository source, package-relative path, owner, compatibility naming, direct local and external imports, and SHA-256, together with its prototype module path, transformed imports and source hash, in its `source-manifest.json`. Each has its own Lake configuration and lock and a copy of the pinned Lean toolchain file. Each standalone consumer uses a normal Lake path dependency on its one public package. The verifier checks generated lock entries and the actual `LEAN_PATH` and `LEAN_SRC_PATH` supplied by Lake. It retains logs and manifests in the temporary directory.
 
-The prototype uses an external copy of the nine pinned Git dependency checkouts and their cached dependency build artifacts. It verifies checkout revisions and preserves the recorded external pins in the generated locks. The cache defaults to the existing workspace's dependency cache and can be supplied with `--cache`. No project sources or build artifacts are served from the original workspace at build or consumer time. A network-backed `lake update` attempted during validation could not resolve GitHub in the sandbox. The offline verifier instead generates locked manifests and runs `lake build`. For a released repository with access to the dependency remotes, resolve and verify the committed lock in a fresh checkout.
+The prototype uses an external copy of the nine pinned Git dependency checkouts and their cached dependency build artifacts. It verifies checkout revisions and preserves the recorded external pins in the generated locks. The cache defaults to the existing workspace's dependency cache and can be supplied with `--cache`. No project sources or build artifacts are served from the original workspace at build or consumer time. The offline prototype verifier generates locked manifests and runs `lake build`. The separate clean Ubuntu run above verifies network-backed resolution for the extracted KATLean package. For a released repository with access to the dependency remotes, resolve and verify the committed lock in a fresh checkout.
 
 ## Final layouts and pins
 
@@ -52,36 +81,36 @@ All three standalone builds and all three Lake consumer builds passed with the m
 
 ## Exact source inventory
 
-Paths are relative to the current repository. The original paths below map to the destination roots in the table above. Other files retain their module names.
+Paths below show the current repository layout. The NetKAT core moves still follow the module mapping above.
 
 ### KATLean
 
-- `lean/KATLean.lean`
-- `lean/KATLean/KAT.lean`
-- `lean/KATLean/Kleene.lean`
-- `lean/KATLean/Native.lean`
-- `lean/KATLean/Native/Automaton.lean`
-- `lean/KATLean/Native/Boolean.lean`
-- `lean/KATLean/Native/Completeness.lean`
-- `lean/KATLean/Native/Correctness.lean`
-- `lean/KATLean/Native/Decision.lean`
-- `lean/KATLean/Native/DerivativeAlgebra.lean`
-- `lean/KATLean/Native/DerivativeLabels.lean`
-- `lean/KATLean/Native/Derivatives.lean`
-- `lean/KATLean/Native/Equations.lean`
-- `lean/KATLean/Native/Explicit.lean`
-- `lean/KATLean/Native/FiniteSimulation.lean`
-- `lean/KATLean/Native/FiniteSystem.lean`
-- `lean/KATLean/Native/Language.lean`
-- `lean/KATLean/Native/Model.lean`
-- `lean/KATLean/Native/Ordering.lean`
-- `lean/KATLean/Native/Search.lean`
-- `lean/KATLean/Native/Symbolic.lean`
-- `lean/KATLean/Native/SymbolicSimulation.lean`
-- `lean/KATLean/Native/Syntax.lean`
-- `lean/KATLean/Native/TermModel.lean`
-- `lean/KATLean/Native/TestAlgebra.lean`
-- `lean/KATLean/Relation.lean`
+- `packages/KATLean/KATLean.lean`
+- `packages/KATLean/KATLean/KAT.lean`
+- `packages/KATLean/KATLean/Kleene.lean`
+- `packages/KATLean/KATLean/Native.lean`
+- `packages/KATLean/KATLean/Native/Automaton.lean`
+- `packages/KATLean/KATLean/Native/Boolean.lean`
+- `packages/KATLean/KATLean/Native/Completeness.lean`
+- `packages/KATLean/KATLean/Native/Correctness.lean`
+- `packages/KATLean/KATLean/Native/Decision.lean`
+- `packages/KATLean/KATLean/Native/DerivativeAlgebra.lean`
+- `packages/KATLean/KATLean/Native/DerivativeLabels.lean`
+- `packages/KATLean/KATLean/Native/Derivatives.lean`
+- `packages/KATLean/KATLean/Native/Equations.lean`
+- `packages/KATLean/KATLean/Native/Explicit.lean`
+- `packages/KATLean/KATLean/Native/FiniteSimulation.lean`
+- `packages/KATLean/KATLean/Native/FiniteSystem.lean`
+- `packages/KATLean/KATLean/Native/Language.lean`
+- `packages/KATLean/KATLean/Native/Model.lean`
+- `packages/KATLean/KATLean/Native/Ordering.lean`
+- `packages/KATLean/KATLean/Native/Search.lean`
+- `packages/KATLean/KATLean/Native/Symbolic.lean`
+- `packages/KATLean/KATLean/Native/SymbolicSimulation.lean`
+- `packages/KATLean/KATLean/Native/Syntax.lean`
+- `packages/KATLean/KATLean/Native/TermModel.lean`
+- `packages/KATLean/KATLean/Native/TestAlgebra.lean`
+- `packages/KATLean/KATLean/Relation.lean`
 
 ### NetKATLean
 
@@ -102,10 +131,10 @@ Paths are relative to the current repository. The original paths below map to th
 - `lean/DyNetKAT/NetKAT/Semantics.lean`
 - `lean/DyNetKAT/NetKAT/Symbolic.lean`
 - `lean/DyNetKAT/NetKAT/SymbolicDerives.lean`
-- `lean/KATLean/NetKAT/Closure.lean`
-- `lean/KATLean/NetKAT/Guard.lean`
-- `lean/KATLean/NetKAT/Packet.lean`
-- `lean/KATLean/NetKAT/Symbolic.lean`
+- `lean/NetKATLean/PacketAdapter/Closure.lean`
+- `lean/NetKATLean/PacketAdapter/Guard.lean`
+- `lean/NetKATLean/PacketAdapter/Packet.lean`
+- `lean/NetKATLean/PacketAdapter/Symbolic.lean`
 - `lean/NetKATLean.lean`
 
 ### DyNetKATLean

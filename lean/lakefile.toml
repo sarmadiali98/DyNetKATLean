@@ -14,9 +14,9 @@ name = "mathlib"
 git = "https://github.com/leanprover-community/mathlib4"
 rev = "v4.19.0"
 
-[[lean_lib]]
+[[require]]
 name = "KATLean"
-globs = ["KATLean", "KATLean.Native", "KATLean.Native.+"]
+path = "../packages/KATLean"
 
 [[lean_lib]]
 name = "NetKATLean"
