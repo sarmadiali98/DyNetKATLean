@@ -1,0 +1,5797 @@
+{
+  "full_matched_development_timings": {
+    "by_mode": {
+      "fresh": {
+        "count": 240,
+        "geomean_speedup": 199.62412155913293,
+        "historical_max_seconds": 1135.2426432899956,
+        "historical_median_seconds": 118.5754299969999,
+        "historical_min_seconds": 4.974575859996548,
+        "historical_total_seconds": 58476.87872327093,
+        "lean_median_seconds": 0.4906439305004824,
+        "lean_total_seconds": 145.67926605700904,
+        "max_speedup": 776.8810159505144,
+        "mean_speedup": 266.1346544680986,
+        "median_speedup": 239.07268417902878,
+        "min_speedup": 46.746993340749526,
+        "original_timeouts": 80,
+        "ratio_of_totals": 401.4083836775167
+      },
+      "reused": {
+        "count": 240,
+        "geomean_speedup": 54.00652349074586,
+        "historical_max_seconds": 510.0452474439953,
+        "historical_median_seconds": 31.657909529499648,
+        "historical_min_seconds": 1.1165043430009973,
+        "historical_total_seconds": 16801.717975405,
+        "lean_median_seconds": 0.4850989159999699,
+        "lean_total_seconds": 145.3548041039985,
+        "max_speedup": 353.219313125744,
+        "mean_speedup": 77.43862490522805,
+        "median_speedup": 57.57953212605899,
+        "min_speedup": 10.296462108956833,
+        "original_timeouts": 10,
+        "ratio_of_totals": 115.59107439877737
+      }
+    },
+    "by_mode_and_query_group": {
+      "fresh/all_properties": {
+        "count": 60,
+        "geomean_speedup": 251.17337909228505,
+        "historical_max_seconds": 1135.2426432899956,
+        "historical_median_seconds": 154.60272035499884,
+        "historical_min_seconds": 7.981692152003234,
+        "historical_total_seconds": 18813.896739229986,
+        "lean_median_seconds": 0.5119104140003401,
+        "lean_total_seconds": 37.95389776900265,
+        "max_speedup": 776.8810159505144,
+        "mean_speedup": 330.4188203132323,
+        "median_speedup": 289.45747994230527,
+        "min_speedup": 70.82094465519607,
+        "original_timeouts": 20,
+        "ratio_of_totals": 495.7039420229322
+      },
+      "fresh/reachability_1": {
+        "count": 60,
+        "geomean_speedup": 186.30175153706094,
+        "historical_max_seconds": 803.6382254119962,
+        "historical_median_seconds": 110.86360653800102,
+        "historical_min_seconds": 5.5760417800047435,
+        "historical_total_seconds": 13487.091691890984,
+        "lean_median_seconds": 0.4898449279999113,
+        "lean_total_seconds": 36.33157455299988,
+        "max_speedup": 568.3257985624583,
+        "mean_speedup": 246.73751362969466,
+        "median_speedup": 219.90501793078076,
+        "min_speedup": 50.74874618754292,
+        "original_timeouts": 20,
+        "ratio_of_totals": 371.22232817672807
+      },
+      "fresh/reachability_2": {
+        "count": 60,
+        "geomean_speedup": 194.57550530748617,
+        "historical_max_seconds": 849.9020242910046,
+        "historical_median_seconds": 111.28665317500008,
+        "historical_min_seconds": 5.575947079996695,
+        "historical_total_seconds": 13519.57035693598,
+        "lean_median_seconds": 0.47375763800027926,
+        "lean_total_seconds": 35.12944487900495,
+        "max_speedup": 614.8044799752308,
+        "mean_speedup": 256.09099320115695,
+        "median_speedup": 226.038614341871,
+        "min_speedup": 55.34511893022671,
+        "original_timeouts": 20,
+        "ratio_of_totals": 384.8500994963324
+      },
+      "fresh/waypointing": {
+        "count": 60,
+        "geomean_speedup": 174.4107938961739,
+        "historical_max_seconds": 761.6953201360011,
+        "historical_median_seconds": 102.78865349449961,
+        "historical_min_seconds": 4.974575859996548,
+        "historical_total_seconds": 12656.319935213984,
+        "lean_median_seconds": 0.48132404850002786,
+        "lean_total_seconds": 36.26434885600156,
+        "max_speedup": 538.801113651023,
+        "mean_speedup": 231.29129072831043,
+        "median_speedup": 201.72615790220453,
+        "min_speedup": 46.746993340749526,
+        "original_timeouts": 20,
+        "ratio_of_totals": 349.00171475488736
+      },
+      "reused/all_properties": {
+        "count": 60,
+        "geomean_speedup": 116.99716518360276,
+        "historical_max_seconds": 510.0452474439953,
+        "historical_median_seconds": 71.34411102899867,
+        "historical_min_seconds": 4.123310834002041,
+        "historical_total_seconds": 8405.838222422019,
+        "lean_median_seconds": 0.5077081980002731,
+        "lean_total_seconds": 37.91505192199838,
+        "max_speedup": 353.219313125744,
+        "mean_speedup": 149.84966944808394,
+        "median_speedup": 137.7208328506561,
+        "min_speedup": 36.6368761510397,
+        "original_timeouts": 10,
+        "ratio_of_totals": 221.70187818060023
+      },
+      "reused/reachability_1": {
+        "count": 60,
+        "geomean_speedup": 46.36253850055779,
+        "historical_max_seconds": 166.2718075970006,
+        "historical_median_seconds": 26.70010902549984,
+        "historical_min_seconds": 1.7177060210015043,
+        "historical_total_seconds": 3077.9047084619815,
+        "lean_median_seconds": 0.48663771750034357,
+        "lean_total_seconds": 36.351605397999265,
+        "max_speedup": 118.81480125935872,
+        "mean_speedup": 58.06762661381537,
+        "median_speedup": 50.19002569164328,
+        "min_speedup": 15.73572804221552,
+        "original_timeouts": 0,
+        "ratio_of_totals": 84.67039281383111
+      },
+      "reused/reachability_2": {
+        "count": 60,
+        "geomean_speedup": 47.83909231058957,
+        "historical_max_seconds": 166.273004314,
+        "historical_median_seconds": 26.548921242000233,
+        "historical_min_seconds": 1.7179115629987791,
+        "historical_total_seconds": 3061.5649656190135,
+        "lean_median_seconds": 0.47472300849949534,
+        "lean_total_seconds": 35.128544632998455,
+        "max_speedup": 123.5867229714524,
+        "mean_speedup": 59.78374124937182,
+        "median_speedup": 54.41510231547315,
+        "min_speedup": 16.488839404577536,
+        "original_timeouts": 0,
+        "ratio_of_totals": 87.15319685470524
+      },
+      "reused/waypointing": {
+        "count": 60,
+        "geomean_speedup": 32.78380895330718,
+        "historical_max_seconds": 127.2921928570031,
+        "historical_median_seconds": 17.977871440003128,
+        "historical_min_seconds": 1.1165043430009973,
+        "historical_total_seconds": 2256.4100789019876,
+        "lean_median_seconds": 0.4800211790002322,
+        "lean_total_seconds": 35.9596021510024,
+        "max_speedup": 92.14795609808971,
+        "mean_speedup": 42.0534623096411,
+        "median_speedup": 35.51204336837782,
+        "min_speedup": 10.296462108956833,
+        "original_timeouts": 0,
+        "ratio_of_totals": 62.748471727435074
+      }
+    },
+    "by_pods": {
+      "10": {
+        "count": 80,
+        "geomean_speedup": 96.27043573500949,
+        "historical_max_seconds": 93.17689574300039,
+        "historical_median_seconds": 51.30175029899874,
+        "historical_min_seconds": 10.035275078000268,
+        "historical_total_seconds": 3573.56346029996,
+        "lean_median_seconds": 0.3585314839997409,
+        "lean_total_seconds": 28.920587130001877,
+        "max_speedup": 248.12075418225666,
+        "mean_speedup": 122.83801398830163,
+        "median_speedup": 138.73080670174366,
+        "min_speedup": 27.316384050970136,
+        "original_timeouts": 0,
+        "ratio_of_totals": 123.56469266119383
+      },
+      "12": {
+        "count": 80,
+        "geomean_speedup": 139.07226722529165,
+        "historical_max_seconds": 222.7025156159998,
+        "historical_median_seconds": 122.05812236450038,
+        "historical_min_seconds": 25.61688368000614,
+        "historical_total_seconds": 8763.862588098998,
+        "lean_median_seconds": 0.6060510275005981,
+        "lean_total_seconds": 48.88472118500067,
+        "max_speedup": 348.52236165552443,
+        "mean_speedup": 178.1659293453089,
+        "median_speedup": 194.209415156958,
+        "min_speedup": 41.736191453912596,
+        "original_timeouts": 0,
+        "ratio_of_totals": 179.2761086829727
+      },
+      "14": {
+        "count": 80,
+        "geomean_speedup": 203.50893939659198,
+        "historical_max_seconds": 525.9276439359965,
+        "historical_median_seconds": 278.6291931670039,
+        "historical_min_seconds": 59.135811168001965,
+        "historical_total_seconds": 19930.59630994198,
+        "lean_median_seconds": 0.9430666859998382,
+        "lean_total_seconds": 76.09986363299777,
+        "max_speedup": 530.8467144156657,
+        "mean_speedup": 260.42189200019465,
+        "median_speedup": 287.0514407436476,
+        "min_speedup": 61.28384144159212,
+        "original_timeouts": 40,
+        "ratio_of_totals": 261.9005522277946
+      },
+      "16": {
+        "count": 80,
+        "geomean_speedup": 283.58475438134906,
+        "historical_max_seconds": 1135.2426432899956,
+        "historical_median_seconds": 604.8128958464949,
+        "historical_min_seconds": 123.81739781000215,
+        "historical_total_seconds": 41678.823772841984,
+        "lean_median_seconds": 1.3994767469998806,
+        "lean_total_seconds": 112.76603761900333,
+        "max_speedup": 776.8810159505144,
+        "mean_speedup": 367.2369388295885,
+        "median_speedup": 410.88833225179053,
+        "min_speedup": 85.5290871691513,
+        "original_timeouts": 50,
+        "ratio_of_totals": 369.6044008716528
+      },
+      "6": {
+        "count": 80,
+        "geomean_speedup": 32.51613665548361,
+        "historical_max_seconds": 8.985216952999508,
+        "historical_median_seconds": 4.7500437624980805,
+        "historical_min_seconds": 1.1165043430009973,
+        "historical_total_seconds": 332.90133549501206,
+        "lean_median_seconds": 0.10515946999976222,
+        "lean_total_seconds": 8.417047658001138,
+        "max_speedup": 78.32622300366369,
+        "mean_speedup": 39.285867001484554,
+        "median_speedup": 44.1137110426542,
+        "min_speedup": 10.296462108956833,
+        "original_timeouts": 0,
+        "ratio_of_totals": 39.55084359995993
+      },
+      "8": {
+        "count": 80,
+        "geomean_speedup": 49.87454386480973,
+        "historical_max_seconds": 26.62338084699968,
+        "historical_median_seconds": 14.319856309998613,
+        "historical_min_seconds": 3.2207579360037926,
+        "historical_total_seconds": 998.8492319980014,
+        "lean_median_seconds": 0.19728182649987502,
+        "lean_total_seconds": 15.945812936002767,
+        "max_speedup": 126.87509247931924,
+        "mean_speedup": 62.77119695510171,
+        "median_speedup": 71.43909898849273,
+        "min_speedup": 15.41484867856028,
+        "original_timeouts": 0,
+        "ratio_of_totals": 62.640220100837894
+      }
+    },
+    "by_query_group": {
+      "all_properties": {
+        "count": 120,
+        "geomean_speedup": 171.42512453950187,
+        "historical_max_seconds": 1135.2426432899956,
+        "historical_median_seconds": 95.35067116049913,
+        "historical_min_seconds": 4.123310834002041,
+        "historical_total_seconds": 27219.734961652004,
+        "lean_median_seconds": 0.5119104140003401,
+        "lean_total_seconds": 75.86894969100103,
+        "max_speedup": 776.8810159505144,
+        "mean_speedup": 240.13424488065812,
+        "median_speedup": 188.43418342938574,
+        "min_speedup": 36.6368761510397,
+        "original_timeouts": 30,
+        "ratio_of_totals": 358.7730563361231
+      },
+      "reachability_1": {
+        "count": 120,
+        "geomean_speedup": 92.93773253290796,
+        "historical_max_seconds": 803.6382254119962,
+        "historical_median_seconds": 51.17958321549895,
+        "historical_min_seconds": 1.7177060210015043,
+        "historical_total_seconds": 16564.996400352968,
+        "lean_median_seconds": 0.4877657000001818,
+        "lean_total_seconds": 72.68317995099915,
+        "max_speedup": 568.3257985624583,
+        "mean_speedup": 152.40257012175502,
+        "median_speedup": 88.01849527027696,
+        "min_speedup": 15.73572804221552,
+        "original_timeouts": 20,
+        "ratio_of_totals": 227.9068748989876
+      },
+      "reachability_2": {
+        "count": 120,
+        "geomean_speedup": 96.47961214569858,
+        "historical_max_seconds": 849.9020242910046,
+        "historical_median_seconds": 50.97707609049985,
+        "historical_min_seconds": 1.7179115629987791,
+        "historical_total_seconds": 16581.135322554994,
+        "lean_median_seconds": 0.47472300849949534,
+        "lean_total_seconds": 70.2579895120034,
+        "max_speedup": 614.8044799752308,
+        "mean_speedup": 157.9373672252644,
+        "median_speedup": 91.23209901577472,
+        "min_speedup": 16.488839404577536,
+        "original_timeouts": 20,
+        "ratio_of_totals": 236.00355543510318
+      },
+      "waypointing": {
+        "count": 120,
+        "geomean_speedup": 75.6164674293027,
+        "historical_max_seconds": 761.6953201360011,
+        "historical_median_seconds": 42.30651037099915,
+        "historical_min_seconds": 1.1165043430009973,
+        "historical_total_seconds": 14912.730014115972,
+        "lean_median_seconds": 0.4808363665001707,
+        "lean_total_seconds": 72.22395100700396,
+        "max_speedup": 538.801113651023,
+        "mean_speedup": 136.67237651897577,
+        "median_speedup": 72.91960588256075,
+        "min_speedup": 10.296462108956833,
+        "original_timeouts": 20,
+        "ratio_of_totals": 206.4790115493654
+      }
+    },
+    "overall": {
+      "count": 480,
+      "geomean_speedup": 103.83161758492841,
+      "historical_max_seconds": 1135.2426432899956,
+      "historical_median_seconds": 59.1615286640008,
+      "historical_min_seconds": 1.1165043430009973,
+      "historical_total_seconds": 75278.59669867593,
+      "lean_median_seconds": 0.4895512670000244,
+      "lean_total_seconds": 291.03407016100755,
+      "max_speedup": 776.8810159505144,
+      "mean_speedup": 171.78663968666334,
+      "median_speedup": 91.688272004474,
+      "min_speedup": 10.296462108956833,
+      "original_timeouts": 90,
+      "ratio_of_totals": 258.6590520382369
+    }
+  },
+  "full_matrix_complete": true,
+  "host_and_runtime": {
+    "host": {
+      "affinity_cpus": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "architecture": "x86_64",
+      "cpu": {
+        "CPU max MHz": "4100.0000",
+        "CPU min MHz": "800.0000",
+        "CPU(s)": "6",
+        "Core(s) per socket": "6",
+        "Model name": "Intel(R) Core(TM) i5-8500 CPU @ 3.00GHz",
+        "Socket(s)": "1",
+        "Thread(s) per core": "1"
+      },
+      "mem_total": "MemTotal:       32176900 kB",
+      "os_release": "PRETTY_NAME=\"Ubuntu 26.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"26.04\"\nVERSION=\"26.04.1 LTS (Resolute Raccoon)\"\nVERSION_CODENAME=resolute\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=resolute\nLOGO=ubuntu-logo\n",
+      "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43"
+    },
+    "inputs": {
+      "fattree_10_pods_all_properties.json": "6e4ec9e2fc409ef2a488c25f41dcc2db7fb0b8f471d57a9e37506227459d4143",
+      "fattree_10_pods_reachability_1.json": "2cac18dd0e9268d146d18bf79a51f8d1fbd4bb03b95651024c4339cec0a1c8a6",
+      "fattree_10_pods_reachability_2.json": "6ec8fb9ae6cc02e4b16b4489681d36d76214602e4176dc99f635f72c670ae16f",
+      "fattree_10_pods_waypointing.json": "8b5e4dfdd0dcdb8c877771b11a0683996dbb5274fa3aaa62d6673ecec4309055",
+      "fattree_12_pods_all_properties.json": "e6dcae327bb0465e2917ae49a8158f7bc37c3df341458750538df08893480219",
+      "fattree_12_pods_reachability_1.json": "a2f7d6665062c56cbdf5c354d1aca86c2fc261057d37df4a342e2be78a8d3017",
+      "fattree_12_pods_reachability_2.json": "2164341593cac7e98cafc0977377e7901aaf2aa74f8b9103be079709a7f15302",
+      "fattree_12_pods_waypointing.json": "8b81861536d1f065542d515443bdfb322d4b38a78aa61c429c7882f629eb6e00",
+      "fattree_14_pods_all_properties.json": "3633d3f5ac8f5a4502dd9af5ec34d6a1f92801a41310ced7df716b0770065722",
+      "fattree_14_pods_reachability_1.json": "0986334d4e89dd9be89c7560cbbee3c3965fb40de3acd5f7cea49732e1d7d2b6",
+      "fattree_14_pods_reachability_2.json": "112b01d4812e649229a960100fbe32655a1cd250d263afae627438163bf86deb",
+      "fattree_14_pods_waypointing.json": "3d66dcd103d809c18138c3ec69ccaf6f804ac110b44501f37f9e7f130f25c8ad",
+      "fattree_16_pods_all_properties.json": "929cf42c6f0e6cebf9445e54d8082e142921693c81adc69f0707df4cfc57a7d8",
+      "fattree_16_pods_reachability_1.json": "d0022bd29b8dc03c01e38f289a8c2207000541410b32e79652a2f38d60b95361",
+      "fattree_16_pods_reachability_2.json": "3949a5265dfb5ca43fe9995fb2d21b80f581d9b03989df9c7603c3cbd9f04a0a",
+      "fattree_16_pods_waypointing.json": "f6370b354790d50ad73e52c4aa99184db73e91ce0e7dcd1e8e3c1a2c6cf83645",
+      "fattree_6_pods_all_properties.json": "ceba82e263fd51196c9b4e40103621680484a580c7d10621ae8ebbf6ed7f00ee",
+      "fattree_6_pods_reachability_1.json": "ef2c05350271b32f0f3be729b4e8ba5b795991107cda01161821be9a95c27ed3",
+      "fattree_6_pods_reachability_2.json": "2f48a5d008158bdbd93987569fddccc655880ead775fea254928f862f7c62cb8",
+      "fattree_6_pods_waypointing.json": "56ac4db317bb9686d1b5407c9b1e8e86665a793bffcc17f36c730d7889021e6d",
+      "fattree_8_pods_all_properties.json": "60be40f5e4367d85cee0f4e1e1de0f0d216bae317b919c6b53e3c6c5143d3ed4",
+      "fattree_8_pods_reachability_1.json": "57e627a89117b90c2e3f2f4210fdf559affae95723a9716bebcd06f65826bcdc",
+      "fattree_8_pods_reachability_2.json": "9bc5500d772eade94281d34cb76a5ff4adafca7c090898b6f92dcc501e638267",
+      "fattree_8_pods_waypointing.json": "22172a8c37027c56f379834cc2543767b515a3f8fd8f6b8a4bd80dfdd54ed6f9"
+    },
+    "modes": [
+      "fresh",
+      "reused"
+    ],
+    "preprocessing": {
+      "fattree_10_pods_all_properties.json": {
+        "property_map_rebound": false,
+        "sha256": "1b9aa8dac82bb7919b44dac5cf9da2ffbf177453f175ddfb3d172f4a1be2b9d6",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_10_pods_all_properties-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "1b9aa8dac82bb7919b44dac5cf9da2ffbf177453f175ddfb3d172f4a1be2b9d6"
+      },
+      "fattree_10_pods_reachability_1.json": {
+        "property_map_rebound": false,
+        "sha256": "84b4e75e782b0c5befe142dc00189b665d49cef9139698b3149e4f4fb3a76022",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_10_pods_reachability_1-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "84b4e75e782b0c5befe142dc00189b665d49cef9139698b3149e4f4fb3a76022"
+      },
+      "fattree_10_pods_reachability_2.json": {
+        "property_map_rebound": false,
+        "sha256": "c0ab5581fe9e065b7341e39ce4efe3bb40a74d1f8ae8791d0ff7cfd1b52990cf",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_10_pods_reachability_2-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "c0ab5581fe9e065b7341e39ce4efe3bb40a74d1f8ae8791d0ff7cfd1b52990cf"
+      },
+      "fattree_10_pods_waypointing.json": {
+        "property_map_rebound": false,
+        "sha256": "e035ec48273b609a572809e4bbad9b26119b7782fc6d82098b300e96f47f304b",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_10_pods_waypointing-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "e035ec48273b609a572809e4bbad9b26119b7782fc6d82098b300e96f47f304b"
+      },
+      "fattree_12_pods_all_properties.json": {
+        "property_map_rebound": false,
+        "sha256": "501b7507630194fdff691d70907ce233b4127aa4fa72442d9acdb265c7c06477",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_12_pods_all_properties-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "501b7507630194fdff691d70907ce233b4127aa4fa72442d9acdb265c7c06477"
+      },
+      "fattree_12_pods_reachability_1.json": {
+        "property_map_rebound": false,
+        "sha256": "29945083ec5f4022a566bd1d682436eeff6fd77e8c0c898bcfe48f19d312489d",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_12_pods_reachability_1-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "29945083ec5f4022a566bd1d682436eeff6fd77e8c0c898bcfe48f19d312489d"
+      },
+      "fattree_12_pods_reachability_2.json": {
+        "property_map_rebound": false,
+        "sha256": "e2a856b559e313aa8592575616ff1fd344e9978b68d05b43b765a7b6c0832f50",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_12_pods_reachability_2-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "e2a856b559e313aa8592575616ff1fd344e9978b68d05b43b765a7b6c0832f50"
+      },
+      "fattree_12_pods_waypointing.json": {
+        "property_map_rebound": false,
+        "sha256": "5de7e4f531ea40dfbd60516eda3a17b15417f8580628cc172176edd8b9878997",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_12_pods_waypointing-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "5de7e4f531ea40dfbd60516eda3a17b15417f8580628cc172176edd8b9878997"
+      },
+      "fattree_14_pods_all_properties.json": {
+        "property_map_rebound": true,
+        "sha256": "376e69be41713bbbc22a4fa9fd6758c3df1df4aaa681073b4becf4ac5de0b2d1",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_14_pods_reachability_1-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "827e257ad9faee08cfb8eb337ac04cc692f6e34ce6238c55ff8874bcef06f766"
+      },
+      "fattree_14_pods_reachability_1.json": {
+        "property_map_rebound": false,
+        "sha256": "827e257ad9faee08cfb8eb337ac04cc692f6e34ce6238c55ff8874bcef06f766",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_14_pods_reachability_1-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "827e257ad9faee08cfb8eb337ac04cc692f6e34ce6238c55ff8874bcef06f766"
+      },
+      "fattree_14_pods_reachability_2.json": {
+        "property_map_rebound": true,
+        "sha256": "fa95f8da2cd6e9e4198019334bdf4fce6434dbc85fa3a1bb253921e55022f26d",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_14_pods_reachability_1-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "827e257ad9faee08cfb8eb337ac04cc692f6e34ce6238c55ff8874bcef06f766"
+      },
+      "fattree_14_pods_waypointing.json": {
+        "property_map_rebound": true,
+        "sha256": "dfb0bef113ded370960c31a4a11ea6a1abeba25445bb0ff2a492a9841efd55c1",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_14_pods_reachability_1-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "827e257ad9faee08cfb8eb337ac04cc692f6e34ce6238c55ff8874bcef06f766"
+      },
+      "fattree_16_pods_all_properties.json": {
+        "property_map_rebound": false,
+        "sha256": "4b21f75a886e031bf7af36e2f395b0aa4b0b56dde8dc9164bb3e318b631ea048",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_16_pods_all_properties-extended/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "4b21f75a886e031bf7af36e2f395b0aa4b0b56dde8dc9164bb3e318b631ea048"
+      },
+      "fattree_16_pods_reachability_1.json": {
+        "property_map_rebound": true,
+        "sha256": "79bc38d53edb8e97014576781d30bab4b92f399f76cbb891ee25200e5c1105b7",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_16_pods_all_properties-extended/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "4b21f75a886e031bf7af36e2f395b0aa4b0b56dde8dc9164bb3e318b631ea048"
+      },
+      "fattree_16_pods_reachability_2.json": {
+        "property_map_rebound": true,
+        "sha256": "d9bac99a7cc723842c45d1e2d018ea164104a34d9727cee863b5f5655c69dba0",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_16_pods_all_properties-extended/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "4b21f75a886e031bf7af36e2f395b0aa4b0b56dde8dc9164bb3e318b631ea048"
+      },
+      "fattree_16_pods_waypointing.json": {
+        "property_map_rebound": true,
+        "sha256": "eacbe3a487fd1c3f1ba3bfc9e84cdd1dc86d2dccf21e94ca3dfabb393a0bde43",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_16_pods_all_properties-extended/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "4b21f75a886e031bf7af36e2f395b0aa4b0b56dde8dc9164bb3e318b631ea048"
+      },
+      "fattree_6_pods_all_properties.json": {
+        "property_map_rebound": false,
+        "sha256": "a908ae5dee312a8f2617ed11308d111887f7e88f04bed6b8b24e5ad52703d8eb",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_6_pods_all_properties-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "a908ae5dee312a8f2617ed11308d111887f7e88f04bed6b8b24e5ad52703d8eb"
+      },
+      "fattree_6_pods_reachability_1.json": {
+        "property_map_rebound": false,
+        "sha256": "920e0fc9a6c9efbeb7b9d012fd10f8642101697624e4be51bf259b55c479d0fb",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_6_pods_reachability_1-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "920e0fc9a6c9efbeb7b9d012fd10f8642101697624e4be51bf259b55c479d0fb"
+      },
+      "fattree_6_pods_reachability_2.json": {
+        "property_map_rebound": false,
+        "sha256": "31e502cfe3f72b8081277d2cdef1e2c8570ec117ec6b174319031885dc29c208",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_6_pods_reachability_2-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "31e502cfe3f72b8081277d2cdef1e2c8570ec117ec6b174319031885dc29c208"
+      },
+      "fattree_6_pods_waypointing.json": {
+        "property_map_rebound": false,
+        "sha256": "616d50e0c4d48f6dbeecffc8786b785362bff9349f51f940cb299661d41f0978",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_6_pods_waypointing-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "616d50e0c4d48f6dbeecffc8786b785362bff9349f51f940cb299661d41f0978"
+      },
+      "fattree_8_pods_all_properties.json": {
+        "property_map_rebound": false,
+        "sha256": "6c42efa2f28d2977e78082fa79f6d2e71df0638fd174c498a28e78a8262bc8db",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_8_pods_all_properties-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "6c42efa2f28d2977e78082fa79f6d2e71df0638fd174c498a28e78a8262bc8db"
+      },
+      "fattree_8_pods_reachability_1.json": {
+        "property_map_rebound": false,
+        "sha256": "ec1a8f57c9a01df6a1b95a50fee1b88d52ae9a84061513626ae5008704febd96",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_8_pods_reachability_1-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "ec1a8f57c9a01df6a1b95a50fee1b88d52ae9a84061513626ae5008704febd96"
+      },
+      "fattree_8_pods_reachability_2.json": {
+        "property_map_rebound": false,
+        "sha256": "3facea108531ee6ee882b87ee673f911ccd75949e308178ab865c716339b642b",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_8_pods_reachability_2-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "3facea108531ee6ee882b87ee673f911ccd75949e308178ab865c716339b642b"
+      },
+      "fattree_8_pods_waypointing.json": {
+        "property_map_rebound": false,
+        "sha256": "06b70b689177821a7473e5845d0270bca61b31a5b24ed2bb7bc820bd1364a78d",
+        "source": "/tmp/dynetikat-v11-linux/differential/fattree_8_pods_waypointing-fresh1/output/FAT-TREE_preprocessed.json",
+        "source_sha256": "06b70b689177821a7473e5845d0270bca61b31a5b24ed2bb7bc820bd1364a78d"
+      }
+    },
+    "repetitions": 10,
+    "runtime": {
+      "archive_sha256": {
+        "DyNetiKAT-1c6bd42.tar.gz": "4a98fbe1d463ebe9e1cdca9821fd2e45335968f0a9c3fbbde386d0041f3111e8",
+        "libbdd0c2_2.4+dfsg-1_amd64.deb": "d58f0714b34c69f76efc4592bbd5dc8fbf7e1b8e829c3f3e76ee8f1c52aec670",
+        "libgmpxx4ldbl_6.2.1+dfsg-1+deb11u1_amd64.deb": "687a7fef6b90181382cea4eba80843796566d78c6a00ff79014cd9679a2708ab",
+        "libsigsegv2_2.13-1_amd64.deb": "c56a7108e1c6dca27b4db9cce5c7c2b0c9d961b3572a1d1fe89058388401bd2b",
+        "libtecla1_1.6.3-2.1_amd64.deb": "76bfddd6d191f96b3369aa73e5bd923e02d32503d076db96fb23bc82ab1b789d",
+        "maude_3.1-2_amd64.deb": "29d104487e883e86e47ea9b90088e19ad56e26385b28a90e73672599657938a8",
+        "networkx-3.6.1-py3-none-any.whl": "d47fbf302e7d9cbbb9e2555a0d267983d2aa476bac30e90dfbe5669bd57f3762",
+        "numpy-2.5.5-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl": "c48960d420e90cf305cb1fde0d4e6082cc90512cda87a9acf0b6e04e91cf4abe",
+        "ocaml-4.08.1.tar.gz": "b53ed3d487b83fd49bc181bded066ae8e6fb592cf40514261d27d36050d5db85",
+        "old-netkat-5822459.tar.gz": "4930e2ff663a1e6a38eec0f77cc1e9d07fa53d65e4bb9a1fa617f5a5b129ec81",
+        "opam-repository-3ee0d83.tar.gz": "8a2b0f7ae42aa6ef6f179d8279df02dcbdcc4e83c9717438d5241cc54a92a9dc"
+      },
+      "backend_candidate": "5822459fbfae0f0e9e0622843ebe30208f8bf189",
+      "backend_provenance": "strongest reconstructed candidate, not historically proven exact",
+      "binary_sha256": {
+        "/tmp/dynetikat-v11-linux/bin/opam": "324e78e3f33efeba279aacf9f9610cfec7b2df7d7e0e1640f75f09de85f96cc9",
+        "/tmp/dynetikat-v11-linux/maude/usr/bin/maude": "09653669e90aaf5e45e3bfde1550cc45f315f47e081276e4007312a33b3bb610",
+        "/tmp/dynetikat-v11-linux/opam-root/historical/bin/katbv": "01175d4ce6b13f45f8d78b7c0700154e718955e0d9545db9663994fc83bb2892"
+      },
+      "compiler_flags": "gcc -std=gnu17 -fcommon",
+      "launcher": "import multiprocessing as mp, os, runpy, sys; sys.path.insert(0, os.path.dirname(os.path.abspath(sys.argv[1]))); mp.set_start_method(\"fork\"); sys.argv.pop(0); runpy.run_path(sys.argv[0], run_name=\"__main__\")",
+      "maude_environment": {
+        "LD_LIBRARY_PATH": "/tmp/dynetikat-v11-linux/maude/usr/lib/x86_64-linux-gnu",
+        "MAUDE_LIB": "/tmp/dynetikat-v11-linux/maude/usr/share/maude"
+      },
+      "patches": {
+        "core-gettid.patch": "--- /tmp/dynetikat-v11-linux/core-unix-stubs.original\t2026-11-21 14:11:28.631170761 +0330\n+++ src/unix_stubs.c\t2026-11-21 14:11:28.652981640 +0330\n@@ -1381,6 +1381,11 @@\n   CAMLreturn(Val_unit);\n }\n \n+#if defined(__linux__) && !defined(GET_THREAD_ID)\n+#include <sys/syscall.h>\n+#define GET_THREAD_ID syscall(SYS_gettid)\n+#endif\n+\n #if defined(GET_THREAD_ID)\n \n CAMLprim value core_unix_gettid(value v_unit __unused)\n",
+        "ocaml-signal-stack.patch": "--- /tmp/dynetikat-v11-linux/signals_nat.c.original\t2026-11-21 14:08:40.228053658 +0330\n+++ runtime/signals_nat.c\t2026-11-21 14:08:40.229643890 +0330\n@@ -182,7 +182,7 @@\n #ifdef HAS_STACK_OVERFLOW_DETECTION\n \n static char * system_stack_top;\n-static char sig_alt_stack[SIGSTKSZ];\n+static char sig_alt_stack[64 * 1024];\n \n #if defined(SYS_linux)\n /* PR#4746: recent Linux kernels with support for stack randomization\n@@ -276,7 +276,7 @@\n     stack_t stk;\n     struct sigaction act;\n     stk.ss_sp = sig_alt_stack;\n-    stk.ss_size = SIGSTKSZ;\n+    stk.ss_size = sizeof(sig_alt_stack);\n     stk.ss_flags = 0;\n     SET_SIGACT(act, segv_handler);\n     act.sa_flags |= SA_ONSTACK | SA_NODEFER;\n"
+      },
+      "paths": {
+        "katbv": "/tmp/dynetikat-v11-linux/opam-root/historical/bin/katbv",
+        "maude": "/tmp/dynetikat-v11-linux/maude/usr/bin/maude",
+        "python": "/tmp/dynetikat-v11-linux/reference-python/bin/python",
+        "reference": "/tmp/dynetikat-v11-linux/DyNetiKAT-1c6bd422377853378c7516a7875009fcfb5ba881"
+      },
+      "reference_sha": "1c6bd422377853378c7516a7875009fcfb5ba881",
+      "versions": {
+        "maude": "3.1 (Debian 3.1-2)",
+        "mparser": "1.2.3",
+        "networkx": "3.6.1",
+        "ocaml": "4.08.1",
+        "opam": "2.3.0",
+        "python_numpy": "3.14.7 2.5.5"
+      }
+    },
+    "target": 480,
+    "timeout_seconds": 300,
+    "warmup_runs": 0,
+    "workers": 1
+  },
+  "native": {
+    "by_group": {
+      "fresh": {
+        "attempted": 240,
+        "completed": 240,
+        "failure": 0,
+        "median_wall_seconds": 0.4906439305004824,
+        "range_wall_seconds": [
+          0.09865197099952638,
+          1.526311880999856
+        ],
+        "timeout": 0
+      },
+      "fresh/10": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.36018942100008644,
+        "range_wall_seconds": [
+          0.33919512200009194,
+          0.3983749790004367
+        ],
+        "timeout": 0
+      },
+      "fresh/10/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.37447647599992706,
+        "range_wall_seconds": [
+          0.36930550599936396,
+          0.3983749790004367
+        ],
+        "timeout": 0
+      },
+      "fresh/10/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.36254998699996577,
+        "range_wall_seconds": [
+          0.3500154120001753,
+          0.37614167599986104
+        ],
+        "timeout": 0
+      },
+      "fresh/10/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.34589728050013946,
+        "range_wall_seconds": [
+          0.33919512200009194,
+          0.36460239400003047
+        ],
+        "timeout": 0
+      },
+      "fresh/10/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.35430999900017923,
+        "range_wall_seconds": [
+          0.35007152300022426,
+          0.36903653100034717
+        ],
+        "timeout": 0
+      },
+      "fresh/12": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.6082575115001418,
+        "range_wall_seconds": [
+          0.582912882000528,
+          0.6535319960003108
+        ],
+        "timeout": 0
+      },
+      "fresh/12/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.6312871215000087,
+        "range_wall_seconds": [
+          0.6254458490002435,
+          0.6535319960003108
+        ],
+        "timeout": 0
+      },
+      "fresh/12/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.6082575115001418,
+        "range_wall_seconds": [
+          0.6035481799999616,
+          0.6285352010008864
+        ],
+        "timeout": 0
+      },
+      "fresh/12/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.5907267664997562,
+        "range_wall_seconds": [
+          0.582912882000528,
+          0.613128326000151
+        ],
+        "timeout": 0
+      },
+      "fresh/12/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.6033358930003487,
+        "range_wall_seconds": [
+          0.5936115659997085,
+          0.6241733870001553
+        ],
+        "timeout": 0
+      },
+      "fresh/14": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.9448186514996451,
+        "range_wall_seconds": [
+          0.906406223999511,
+          1.0043846199996551
+        ],
+        "timeout": 0
+      },
+      "fresh/14/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.9872597629996562,
+        "range_wall_seconds": [
+          0.9831375990006563,
+          1.0043846199996551
+        ],
+        "timeout": 0
+      },
+      "fresh/14/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.9502956524997899,
+        "range_wall_seconds": [
+          0.9338561610002216,
+          0.9811708340002951
+        ],
+        "timeout": 0
+      },
+      "fresh/14/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.9227404685002512,
+        "range_wall_seconds": [
+          0.906406223999511,
+          0.9477396570000565
+        ],
+        "timeout": 0
+      },
+      "fresh/14/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.9324928420005563,
+        "range_wall_seconds": [
+          0.9299973260003753,
+          0.9500739909999538
+        ],
+        "timeout": 0
+      },
+      "fresh/16": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 1.4048715525000262,
+        "range_wall_seconds": [
+          1.3384000120004202,
+          1.526311880999856
+        ],
+        "timeout": 0
+      },
+      "fresh/16/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.4614154189998771,
+        "range_wall_seconds": [
+          1.4439922190003927,
+          1.526311880999856
+        ],
+        "timeout": 0
+      },
+      "fresh/16/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.3975194454997109,
+        "range_wall_seconds": [
+          1.3769329050001033,
+          1.4160639460005768
+        ],
+        "timeout": 0
+      },
+      "fresh/16/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.3499837465001292,
+        "range_wall_seconds": [
+          1.3384000120004202,
+          1.384038946000146
+        ],
+        "timeout": 0
+      },
+      "fresh/16/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.4148569805001898,
+        "range_wall_seconds": [
+          1.3730430189998515,
+          1.4960076300003493
+        ],
+        "timeout": 0
+      },
+      "fresh/6": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.10559073300009914,
+        "range_wall_seconds": [
+          0.09865197099952638,
+          0.11471531000006507
+        ],
+        "timeout": 0
+      },
+      "fresh/6/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.11009070249974684,
+        "range_wall_seconds": [
+          0.10855855600038922,
+          0.11471531000006507
+        ],
+        "timeout": 0
+      },
+      "fresh/6/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.10671836050005368,
+        "range_wall_seconds": [
+          0.10368486200059124,
+          0.10987548299999617
+        ],
+        "timeout": 0
+      },
+      "fresh/6/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.0998622490001253,
+        "range_wall_seconds": [
+          0.09865197099952638,
+          0.10076304700032779
+        ],
+        "timeout": 0
+      },
+      "fresh/6/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.1033052510001653,
+        "range_wall_seconds": [
+          0.10161673500078905,
+          0.10749854599998798
+        ],
+        "timeout": 0
+      },
+      "fresh/8": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.19501622300003874,
+        "range_wall_seconds": [
+          0.18422718300007546,
+          0.20983930199963652
+        ],
+        "timeout": 0
+      },
+      "fresh/8/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.20555228550028914,
+        "range_wall_seconds": [
+          0.20465306599999167,
+          0.20983930199963652
+        ],
+        "timeout": 0
+      },
+      "fresh/8/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.19624648200033334,
+        "range_wall_seconds": [
+          0.1924682720000419,
+          0.19981155500045134
+        ],
+        "timeout": 0
+      },
+      "fresh/8/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.1889507545001834,
+        "range_wall_seconds": [
+          0.18422718300007546,
+          0.18986021899945627
+        ],
+        "timeout": 0
+      },
+      "fresh/8/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.1945014819998505,
+        "range_wall_seconds": [
+          0.1912207909999779,
+          0.19812351599921385
+        ],
+        "timeout": 0
+      },
+      "reused": {
+        "attempted": 240,
+        "completed": 240,
+        "failure": 0,
+        "median_wall_seconds": 0.4850989159999699,
+        "range_wall_seconds": [
+          0.09833297100067284,
+          1.480784049000249
+        ],
+        "timeout": 0
+      },
+      "reused/10": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.35574382000004334,
+        "range_wall_seconds": [
+          0.3430190440003571,
+          0.38947027700032777
+        ],
+        "timeout": 0
+      },
+      "reused/10/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.3756374384997798,
+        "range_wall_seconds": [
+          0.37076071400042565,
+          0.38947027700032777
+        ],
+        "timeout": 0
+      },
+      "reused/10/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.3556011695000052,
+        "range_wall_seconds": [
+          0.35309661100018275,
+          0.37388571100018453
+        ],
+        "timeout": 0
+      },
+      "reused/10/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.3469570134998321,
+        "range_wall_seconds": [
+          0.3430190440003571,
+          0.36871846199937863
+        ],
+        "timeout": 0
+      },
+      "reused/10/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.35388874200043574,
+        "range_wall_seconds": [
+          0.3483824100003403,
+          0.3674061560004702
+        ],
+        "timeout": 0
+      },
+      "reused/12": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.6050857880004514,
+        "range_wall_seconds": [
+          0.580727554999612,
+          0.66656101999979
+        ],
+        "timeout": 0
+      },
+      "reused/12/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.6295862104998378,
+        "range_wall_seconds": [
+          0.6259461190002185,
+          0.6518497609995393
+        ],
+        "timeout": 0
+      },
+      "reused/12/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.6058718000003864,
+        "range_wall_seconds": [
+          0.5993897240005026,
+          0.66656101999979
+        ],
+        "timeout": 0
+      },
+      "reused/12/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.5878198254995368,
+        "range_wall_seconds": [
+          0.580727554999612,
+          0.61070808400018
+        ],
+        "timeout": 0
+      },
+      "reused/12/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.5977326370002629,
+        "range_wall_seconds": [
+          0.5926362019999942,
+          0.6210112879998633
+        ],
+        "timeout": 0
+      },
+      "reused/14": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.9421143310000843,
+        "range_wall_seconds": [
+          0.9028952729995581,
+          1.02094435699928
+        ],
+        "timeout": 0
+      },
+      "reused/14/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.9938142644996333,
+        "range_wall_seconds": [
+          0.9825572420004391,
+          1.02094435699928
+        ],
+        "timeout": 0
+      },
+      "reused/14/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.9462739040000088,
+        "range_wall_seconds": [
+          0.9368477090001761,
+          0.9647871010001836
+        ],
+        "timeout": 0
+      },
+      "reused/14/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.9166480589997263,
+        "range_wall_seconds": [
+          0.9028952729995581,
+          0.9329713600000105
+        ],
+        "timeout": 0
+      },
+      "reused/14/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.9313706445000207,
+        "range_wall_seconds": [
+          0.9270486369996433,
+          0.9657765880001534
+        ],
+        "timeout": 0
+      },
+      "reused/16": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 1.396875242999613,
+        "range_wall_seconds": [
+          1.3362576749996151,
+          1.480784049000249
+        ],
+        "timeout": 0
+      },
+      "reused/16/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.4616923670000688,
+        "range_wall_seconds": [
+          1.4439902589992926,
+          1.480784049000249
+        ],
+        "timeout": 0
+      },
+      "reused/16/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.4028837319997365,
+        "range_wall_seconds": [
+          1.3853628289998596,
+          1.4255413959999714
+        ],
+        "timeout": 0
+      },
+      "reused/16/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.3482191810003314,
+        "range_wall_seconds": [
+          1.3362576749996151,
+          1.388934061999862
+        ],
+        "timeout": 0
+      },
+      "reused/16/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.3890343870002653,
+        "range_wall_seconds": [
+          1.3757611009996253,
+          1.4476642029994764
+        ],
+        "timeout": 0
+      },
+      "reused/6": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.10463403550011208,
+        "range_wall_seconds": [
+          0.09833297100067284,
+          0.11255106800035719
+        ],
+        "timeout": 0
+      },
+      "reused/6/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.10995892749997438,
+        "range_wall_seconds": [
+          0.10851871300019411,
+          0.11255106800035719
+        ],
+        "timeout": 0
+      },
+      "reused/6/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.10546930650025388,
+        "range_wall_seconds": [
+          0.10278107999965869,
+          0.10922087699964322
+        ],
+        "timeout": 0
+      },
+      "reused/6/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.09921077450007942,
+        "range_wall_seconds": [
+          0.09833297100067284,
+          0.1043079660003059
+        ],
+        "timeout": 0
+      },
+      "reused/6/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.10408985050025876,
+        "range_wall_seconds": [
+          0.10049898400029633,
+          0.10849169599987363
+        ],
+        "timeout": 0
+      },
+      "reused/8": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 0.2011197120000361,
+        "range_wall_seconds": [
+          0.19090573500034225,
+          0.21845151399975293
+        ],
+        "timeout": 0
+      },
+      "reused/8/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.21123030049966474,
+        "range_wall_seconds": [
+          0.20342217199959123,
+          0.21845151399975293
+        ],
+        "timeout": 0
+      },
+      "reused/8/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.2003575955004635,
+        "range_wall_seconds": [
+          0.19624334899981477,
+          0.21009242699983588
+        ],
+        "timeout": 0
+      },
+      "reused/8/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.1962852700003168,
+        "range_wall_seconds": [
+          0.1935578140000871,
+          0.2070478740006365
+        ],
+        "timeout": 0
+      },
+      "reused/8/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 0.19777017849992262,
+        "range_wall_seconds": [
+          0.19090573500034225,
+          0.20900082000025577
+        ],
+        "timeout": 0
+      }
+    },
+    "raw_log_sha256": "6bbddc2fad7cbab073eca4b3a2b9994818d44641640926fdb5f2f0087cf740eb",
+    "totals": {
+      "attempted": 480,
+      "completed": 480,
+      "failure": 0,
+      "median_wall_seconds": 0.4895512670000244,
+      "range_wall_seconds": [
+        0.09833297100067284,
+        1.526311880999856
+      ],
+      "timeout": 0
+    }
+  },
+  "native_environment": {
+    "generator_blobs": {
+      "distributed_controller_independent.json": "9f5a1ff5a70ebf4d84e6f58ee66826fe7a9c8987",
+      "distributed_controller_synchronized.json": "69519129187010c88492b54a7aefe004194a1a88",
+      "fattree.py": "9026b2be679eb50fbe90934cdeebd8e498881faa",
+      "stateful_firewall.json": "d27371403ca7c03c9dba4e38aac3e5755671ebc5",
+      "util.py": "80d561992d09397a4252661d2d1701924bc75ca0"
+    },
+    "lean_sha256": "4ea4305b9d014133cc3d1ae390a85aac4003f784c0bc5cd6fb50ba3bbb3db883",
+    "machine": "x86_64",
+    "networkx": "3.6.1",
+    "pinned_reference": "1c6bd422377853378c7516a7875009fcfb5ba881",
+    "platform": "Linux-7.0.0-43-generic-x86_64-with-glibc2.43",
+    "python": "3.14.7 (main, Aug  5 2026, 10:29:49) [GCC 13.3.0]",
+    "reference_available": false,
+    "workers": 1
+  },
+  "reference": {
+    "by_group": {
+      "fresh": {
+        "attempted": 240,
+        "completed": 160,
+        "failure": 0,
+        "median_wall_seconds": 42.03155298249885,
+        "range_wall_seconds": [
+          4.974575859996548,
+          222.7025156159998
+        ],
+        "timeout": 80
+      },
+      "fresh/10": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 63.07899603650003,
+        "range_wall_seconds": [
+          57.43972511799802,
+          93.17689574300039
+        ],
+        "timeout": 0
+      },
+      "fresh/10/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 88.53404551899894,
+        "range_wall_seconds": [
+          87.60506026700023,
+          93.17689574300039
+        ],
+        "timeout": 0
+      },
+      "fresh/10/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 63.052654481998616,
+        "range_wall_seconds": [
+          62.60277848599799,
+          67.17907160300001
+        ],
+        "timeout": 0
+      },
+      "fresh/10/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 63.10402138350037,
+        "range_wall_seconds": [
+          62.60231954399933,
+          67.97460923800008
+        ],
+        "timeout": 0
+      },
+      "fresh/10/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 57.88942831050008,
+        "range_wall_seconds": [
+          57.43972511799802,
+          61.60334273799981
+        ],
+        "timeout": 0
+      },
+      "fresh/12": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 156.32978594449924,
+        "range_wall_seconds": [
+          143.97396425099942,
+          222.7025156159998
+        ],
+        "timeout": 0
+      },
+      "fresh/12/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 217.7594301145,
+        "range_wall_seconds": [
+          216.0285449669973,
+          222.7025156159998
+        ],
+        "timeout": 0
+      },
+      "fresh/12/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 155.8292699374988,
+        "range_wall_seconds": [
+          154.54814147300203,
+          170.06472901000052
+        ],
+        "timeout": 0
+      },
+      "fresh/12/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 156.32978594449924,
+        "range_wall_seconds": [
+          154.59869711200008,
+          168.6418545079996
+        ],
+        "timeout": 0
+      },
+      "fresh/12/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 145.12509886649968,
+        "range_wall_seconds": [
+          143.97396425099942,
+          155.2045144499998
+        ],
+        "timeout": 0
+      },
+      "fresh/14": {
+        "attempted": 40,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 40
+      },
+      "fresh/14/all_properties": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "fresh/14/reachability_1": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "fresh/14/reachability_2": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "fresh/14/waypointing": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "fresh/16": {
+        "attempted": 40,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 40
+      },
+      "fresh/16/all_properties": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "fresh/16/reachability_1": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "fresh/16/reachability_2": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "fresh/16/waypointing": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "fresh/6": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 5.577467159499065,
+        "range_wall_seconds": [
+          4.974575859996548,
+          8.985216952999508
+        ],
+        "timeout": 0
+      },
+      "fresh/6/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 8.031683370496467,
+        "range_wall_seconds": [
+          7.981692152003234,
+          8.985216952999508
+        ],
+        "timeout": 0
+      },
+      "fresh/6/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 5.577467159499065,
+        "range_wall_seconds": [
+          5.5760417800047435,
+          6.177293603999715
+        ],
+        "timeout": 0
+      },
+      "fresh/6/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 5.601436783000281,
+        "range_wall_seconds": [
+          5.575947079996695,
+          6.228158609999809
+        ],
+        "timeout": 0
+      },
+      "fresh/6/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 5.00097818049926,
+        "range_wall_seconds": [
+          4.974575859996548,
+          5.526729348000117
+        ],
+        "timeout": 0
+      },
+      "fresh/8": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 17.301890398999603,
+        "range_wall_seconds": [
+          15.848195209997357,
+          26.62338084699968
+        ],
+        "timeout": 0
+      },
+      "fresh/8/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 24.417017495998152,
+        "range_wall_seconds": [
+          24.266420485000708,
+          26.62338084699968
+        ],
+        "timeout": 0
+      },
+      "fresh/8/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 17.176578282000264,
+        "range_wall_seconds": [
+          17.05133382400527,
+          18.554890477999834
+        ],
+        "timeout": 0
+      },
+      "fresh/8/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 17.301890398999603,
+        "range_wall_seconds": [
+          17.10097523299919,
+          18.554007556000215
+        ],
+        "timeout": 0
+      },
+      "fresh/8/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 15.974327074501161,
+        "range_wall_seconds": [
+          15.848195209997357,
+          17.508262212999398
+        ],
+        "timeout": 0
+      },
+      "reused": {
+        "attempted": 240,
+        "completed": 230,
+        "failure": 0,
+        "median_wall_seconds": 25.8414589945005,
+        "range_wall_seconds": [
+          1.1165043430009973,
+          231.59273934999874
+        ],
+        "timeout": 10
+      },
+      "reused/10": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 15.42289429399898,
+        "range_wall_seconds": [
+          10.035275078000268,
+          45.16377547999946
+        ],
+        "timeout": 0
+      },
+      "reused/10/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 40.678686976998506,
+        "range_wall_seconds": [
+          40.30106919199898,
+          45.16377547999946
+        ],
+        "timeout": 0
+      },
+      "reused/10/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 15.398562259997561,
+        "range_wall_seconds": [
+          15.29765263399895,
+          17.257694616000663
+        ],
+        "timeout": 0
+      },
+      "reused/10/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 15.423344279999583,
+        "range_wall_seconds": [
+          15.298280871997122,
+          16.904097818999617
+        ],
+        "timeout": 0
+      },
+      "reused/10/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 10.11135981699772,
+        "range_wall_seconds": [
+          10.035275078000268,
+          10.338859200000115
+        ],
+        "timeout": 0
+      },
+      "reused/12": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 36.444390716498674,
+        "range_wall_seconds": [
+          25.61688368000614,
+          100.14228047800134
+        ],
+        "timeout": 0
+      },
+      "reused/12/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 98.50176501349779,
+        "range_wall_seconds": [
+          97.52444657799788,
+          100.14228047800134
+        ],
+        "timeout": 0
+      },
+      "reused/12/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 36.369351082999856,
+        "range_wall_seconds": [
+          36.14252343499902,
+          39.756387944999915
+        ],
+        "timeout": 0
+      },
+      "reused/12/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 36.568308981499285,
+        "range_wall_seconds": [
+          36.19374466500085,
+          39.35183263700037
+        ],
+        "timeout": 0
+      },
+      "reused/12/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 25.8414589945005,
+        "range_wall_seconds": [
+          25.61688368000614,
+          27.173295624000275
+        ],
+        "timeout": 0
+      },
+      "reused/14": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 82.89611346650054,
+        "range_wall_seconds": [
+          59.135811168001965,
+          231.59273934999874
+        ],
+        "timeout": 0
+      },
+      "reused/14/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 224.47163277549953,
+        "range_wall_seconds": [
+          223.29423823900288,
+          231.59273934999874
+        ],
+        "timeout": 0
+      },
+      "reused/14/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 83.42214023949782,
+        "range_wall_seconds": [
+          82.64671475600335,
+          94.87730048099911
+        ],
+        "timeout": 0
+      },
+      "reused/14/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 82.56974281750081,
+        "range_wall_seconds": [
+          81.89286499199807,
+          86.31959897200068
+        ],
+        "timeout": 0
+      },
+      "reused/14/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 59.53780912699949,
+        "range_wall_seconds": [
+          59.135811168001965,
+          61.30027798900119
+        ],
+        "timeout": 0
+      },
+      "reused/16": {
+        "attempted": 40,
+        "completed": 30,
+        "failure": 0,
+        "median_wall_seconds": 163.89639461250044,
+        "range_wall_seconds": [
+          123.81739781000215,
+          166.273004314
+        ],
+        "timeout": 10
+      },
+      "reused/16/all_properties": {
+        "attempted": 10,
+        "completed": 0,
+        "failure": 0,
+        "median_wall_seconds": null,
+        "range_wall_seconds": null,
+        "timeout": 10
+      },
+      "reused/16/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 164.07037293350004,
+        "range_wall_seconds": [
+          163.81974046400137,
+          166.2718075970006
+        ],
+        "timeout": 0
+      },
+      "reused/16/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 164.19592335799825,
+        "range_wall_seconds": [
+          163.72049660300036,
+          166.273004314
+        ],
+        "timeout": 0
+      },
+      "reused/16/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 125.42072879649731,
+        "range_wall_seconds": [
+          123.81739781000215,
+          127.2921928570031
+        ],
+        "timeout": 0
+      },
+      "reused/6": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 1.7186173455002063,
+        "range_wall_seconds": [
+          1.1165043430009973,
+          4.5255116649996125
+        ],
+        "timeout": 0
+      },
+      "reused/6/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 4.149463544502396,
+        "range_wall_seconds": [
+          4.123310834002041,
+          4.5255116649996125
+        ],
+        "timeout": 0
+      },
+      "reused/6/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.7185817065001174,
+        "range_wall_seconds": [
+          1.7177060210015043,
+          1.8686508390001109
+        ],
+        "timeout": 0
+      },
+      "reused/6/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.7187098060003336,
+        "range_wall_seconds": [
+          1.7179115629987791,
+          1.8720515759996488
+        ],
+        "timeout": 0
+      },
+      "reused/6/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 1.1169841660012025,
+        "range_wall_seconds": [
+          1.1165043430009973,
+          1.2173390019997896
+        ],
+        "timeout": 0
+      },
+      "reused/8": {
+        "attempted": 40,
+        "completed": 40,
+        "failure": 0,
+        "median_wall_seconds": 4.425107904500692,
+        "range_wall_seconds": [
+          3.2207579360037926,
+          12.79151740999987
+        ],
+        "timeout": 0
+      },
+      "reused/8/all_properties": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 11.715578409502996,
+        "range_wall_seconds": [
+          11.638958514005935,
+          12.79151740999987
+        ],
+        "timeout": 0
+      },
+      "reused/8/reachability_1": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 4.424500832001286,
+        "range_wall_seconds": [
+          4.4229340629972285,
+          4.824939899000128
+        ],
+        "timeout": 0
+      },
+      "reused/8/reachability_2": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 4.449842244501269,
+        "range_wall_seconds": [
+          4.423793994996231,
+          4.876323833000242
+        ],
+        "timeout": 0
+      },
+      "reused/8/waypointing": {
+        "attempted": 10,
+        "completed": 10,
+        "failure": 0,
+        "median_wall_seconds": 3.221428251497855,
+        "range_wall_seconds": [
+          3.2207579360037926,
+          3.4227681580005083
+        ],
+        "timeout": 0
+      }
+    },
+    "noncompleted": [
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00095903799956
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009192010002
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0017076109998
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00093905599897
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009422209987
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00361173799865
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0008858099991
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009528589999
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00102780700036
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00086646900127
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009552350002
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0010002939998
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00092130099983
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0028739820009
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00096225200105
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009515109996
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00338449800074
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0040241159986
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0015398260002
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009439450005
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009281599996
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0010030379999
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00098027499916
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009635940005
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00092913000117
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00097397300124
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0010065989991
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0014823700003
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0020537070013
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00404726899797
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00092825200045
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009860280006
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00376097999833
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00093046000256
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009132269988
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00385305500095
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00422943800004
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00094334700043
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0010414069984
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00093167499654
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009518730003
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0017008680006
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0008694220014
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009623650003
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00319324400334
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00103509699693
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00173067700234
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00095162600337
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00118835600006
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0008737349999
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00087711800006
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.001373703999
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00107978899905
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.002855576
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00188041399815
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0016534489987
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009503420006
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00276565600507
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0021303090034
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009482929963
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0032324240019
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00103517800017
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.004749577005
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00181124200026
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00104217300395
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0016599839946
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00100048600143
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0033178759986
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00169251999614
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0031762189974
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.000951853006
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009651529981
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00137485400046
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.001953236002
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009952170003
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0010123259999
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009357559975
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0016026660014
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.002725170998
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.000925362001
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0035562260018
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009506370043
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00110907300405
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.001005651
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00108195800567
+      },
+      {
+        "exit": null,
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00099392500124
+      },
+      {
+        "exit": null,
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00471950399515
+      },
+      {
+        "exit": null,
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0009766419971
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.0013275629972
+      },
+      {
+        "exit": null,
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "timeout_seconds": 300,
+        "wall_seconds": 300.00090798699966
+      }
+    ],
+    "raw_log_sha256": "8ec932c474d8dd6a4a7e26a23e0bbb44a76d518179dacc140171d54d15c22dfb",
+    "totals": {
+      "attempted": 480,
+      "completed": 390,
+      "failure": 0,
+      "median_wall_seconds": 25.917009572998722,
+      "range_wall_seconds": [
+        1.1165043430009973,
+        231.59273934999874
+      ],
+      "timeout": 90
+    }
+  },
+  "same_host_median_comparison": {
+    "fresh": {
+      "lean_completed": 240,
+      "lean_median_seconds": 0.4906439305004824,
+      "reference_completed": 160,
+      "reference_median_seconds": 42.03155298249885,
+      "reference_to_lean": 85.6661019726148
+    },
+    "fresh/10": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.36018942100008644,
+      "reference_completed": 40,
+      "reference_median_seconds": 63.07899603650003,
+      "reference_to_lean": 175.1272868074737
+    },
+    "fresh/10/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.37447647599992706,
+      "reference_completed": 10,
+      "reference_median_seconds": 88.53404551899894,
+      "reference_to_lean": 236.42084668361434
+    },
+    "fresh/10/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.36254998699996577,
+      "reference_completed": 10,
+      "reference_median_seconds": 63.052654481998616,
+      "reference_to_lean": 173.91437523897793
+    },
+    "fresh/10/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.34589728050013946,
+      "reference_completed": 10,
+      "reference_median_seconds": 63.10402138350037,
+      "reference_to_lean": 182.43572569364252
+    },
+    "fresh/10/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.35430999900017923,
+      "reference_completed": 10,
+      "reference_median_seconds": 57.88942831050008,
+      "reference_to_lean": 163.38638049690152
+    },
+    "fresh/12": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.6082575115001418,
+      "reference_completed": 40,
+      "reference_median_seconds": 156.32978594449924,
+      "reference_to_lean": 257.01250373208546
+    },
+    "fresh/12/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.6312871215000087,
+      "reference_completed": 10,
+      "reference_median_seconds": 217.7594301145,
+      "reference_to_lean": 344.9451488842023
+    },
+    "fresh/12/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.6082575115001418,
+      "reference_completed": 10,
+      "reference_median_seconds": 155.8292699374988,
+      "reference_to_lean": 256.18963513196576
+    },
+    "fresh/12/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.5907267664997562,
+      "reference_completed": 10,
+      "reference_median_seconds": 156.32978594449924,
+      "reference_to_lean": 264.6397536221406
+    },
+    "fresh/12/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.6033358930003487,
+      "reference_completed": 10,
+      "reference_median_seconds": 145.12509886649968,
+      "reference_to_lean": 240.5378174084793
+    },
+    "fresh/6": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.10559073300009914,
+      "reference_completed": 40,
+      "reference_median_seconds": 5.577467159499065,
+      "reference_to_lean": 52.821559250789825
+    },
+    "fresh/6/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.11009070249974684,
+      "reference_completed": 10,
+      "reference_median_seconds": 8.031683370496467,
+      "reference_to_lean": 72.95514687550418
+    },
+    "fresh/6/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.10671836050005368,
+      "reference_completed": 10,
+      "reference_median_seconds": 5.577467159499065,
+      "reference_to_lean": 52.26342621236446
+    },
+    "fresh/6/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.0998622490001253,
+      "reference_completed": 10,
+      "reference_median_seconds": 5.601436783000281,
+      "reference_to_lean": 56.091634617534524
+    },
+    "fresh/6/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.1033052510001653,
+      "reference_completed": 10,
+      "reference_median_seconds": 5.00097818049926,
+      "reference_to_lean": 48.409719080894135
+    },
+    "fresh/8": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.19501622300003874,
+      "reference_completed": 40,
+      "reference_median_seconds": 17.301890398999603,
+      "reference_to_lean": 88.72026200095243
+    },
+    "fresh/8/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.20555228550028914,
+      "reference_completed": 10,
+      "reference_median_seconds": 24.417017495998152,
+      "reference_to_lean": 118.78738023549636
+    },
+    "fresh/8/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.19624648200033334,
+      "reference_completed": 10,
+      "reference_median_seconds": 17.176578282000264,
+      "reference_to_lean": 87.52553476077644
+    },
+    "fresh/8/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.1889507545001834,
+      "reference_completed": 10,
+      "reference_median_seconds": 17.301890398999603,
+      "reference_to_lean": 91.56825250455833
+    },
+    "fresh/8/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.1945014819998505,
+      "reference_completed": 10,
+      "reference_median_seconds": 15.974327074501161,
+      "reference_to_lean": 82.12959053192941
+    },
+    "reused": {
+      "lean_completed": 240,
+      "lean_median_seconds": 0.4850989159999699,
+      "reference_completed": 230,
+      "reference_median_seconds": 25.8414589945005,
+      "reference_to_lean": 53.27049420679823
+    },
+    "reused/10": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.35574382000004334,
+      "reference_completed": 40,
+      "reference_median_seconds": 15.42289429399898,
+      "reference_to_lean": 43.35393456447704
+    },
+    "reused/10/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.3756374384997798,
+      "reference_completed": 10,
+      "reference_median_seconds": 40.678686976998506,
+      "reference_to_lean": 108.29241925262023
+    },
+    "reused/10/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.3556011695000052,
+      "reference_completed": 10,
+      "reference_median_seconds": 15.398562259997561,
+      "reference_to_lean": 43.3029010608958
+    },
+    "reused/10/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.3469570134998321,
+      "reference_completed": 10,
+      "reference_median_seconds": 15.423344279999583,
+      "reference_to_lean": 44.453184918848876
+    },
+    "reused/10/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.35388874200043574,
+      "reference_completed": 10,
+      "reference_median_seconds": 10.11135981699772,
+      "reference_to_lean": 28.572143210436657
+    },
+    "reused/12": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.6050857880004514,
+      "reference_completed": 40,
+      "reference_median_seconds": 36.444390716498674,
+      "reference_to_lean": 60.23012180955651
+    },
+    "reused/12/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.6295862104998378,
+      "reference_completed": 10,
+      "reference_median_seconds": 98.50176501349779,
+      "reference_to_lean": 156.4547688160066
+    },
+    "reused/12/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.6058718000003864,
+      "reference_completed": 10,
+      "reference_median_seconds": 36.369351082999856,
+      "reference_to_lean": 60.02812985020372
+    },
+    "reused/12/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.5878198254995368,
+      "reference_completed": 10,
+      "reference_median_seconds": 36.568308981499285,
+      "reference_to_lean": 62.21006402841733
+    },
+    "reused/12/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.5977326370002629,
+      "reference_completed": 10,
+      "reference_median_seconds": 25.8414589945005,
+      "reference_to_lean": 43.232471166685066
+    },
+    "reused/14": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.9421143310000843,
+      "reference_completed": 40,
+      "reference_median_seconds": 82.89611346650054,
+      "reference_to_lean": 87.98944113131543
+    },
+    "reused/14/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.9938142644996333,
+      "reference_completed": 10,
+      "reference_median_seconds": 224.47163277549953,
+      "reference_to_lean": 225.868797414089
+    },
+    "reused/14/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.9462739040000088,
+      "reference_completed": 10,
+      "reference_median_seconds": 83.42214023949782,
+      "reference_to_lean": 88.15855524163017
+    },
+    "reused/14/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.9166480589997263,
+      "reference_completed": 10,
+      "reference_median_seconds": 82.56974281750081,
+      "reference_to_lean": 90.0779115897582
+    },
+    "reused/14/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.9313706445000207,
+      "reference_completed": 10,
+      "reference_median_seconds": 59.53780912699949,
+      "reference_to_lean": 63.92493630606173
+    },
+    "reused/16": {
+      "lean_completed": 40,
+      "lean_median_seconds": 1.396875242999613,
+      "reference_completed": 30,
+      "reference_median_seconds": 163.89639461250044,
+      "reference_to_lean": 117.33073188451222
+    },
+    "reused/16/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 1.4028837319997365,
+      "reference_completed": 10,
+      "reference_median_seconds": 164.07037293350004,
+      "reference_to_lean": 116.9522243298284
+    },
+    "reused/16/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 1.3482191810003314,
+      "reference_completed": 10,
+      "reference_median_seconds": 164.19592335799825,
+      "reference_to_lean": 121.78726254003494
+    },
+    "reused/16/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 1.3890343870002653,
+      "reference_completed": 10,
+      "reference_median_seconds": 125.42072879649731,
+      "reference_to_lean": 90.29346571279186
+    },
+    "reused/6": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.10463403550011208,
+      "reference_completed": 40,
+      "reference_median_seconds": 1.7186173455002063,
+      "reference_to_lean": 16.425031657107073
+    },
+    "reused/6/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.10995892749997438,
+      "reference_completed": 10,
+      "reference_median_seconds": 4.149463544502396,
+      "reference_to_lean": 37.73648614846087
+    },
+    "reused/6/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.10546930650025388,
+      "reference_completed": 10,
+      "reference_median_seconds": 1.7185817065001174,
+      "reference_to_lean": 16.294614646925556
+    },
+    "reused/6/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.09921077450007942,
+      "reference_completed": 10,
+      "reference_median_seconds": 1.7187098060003336,
+      "reference_to_lean": 17.323822081430862
+    },
+    "reused/6/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.10408985050025876,
+      "reference_completed": 10,
+      "reference_median_seconds": 1.1169841660012025,
+      "reference_to_lean": 10.73096138223799
+    },
+    "reused/8": {
+      "lean_completed": 40,
+      "lean_median_seconds": 0.2011197120000361,
+      "reference_completed": 40,
+      "reference_median_seconds": 4.425107904500692,
+      "reference_to_lean": 22.00235800108891
+    },
+    "reused/8/all_properties": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.21123030049966474,
+      "reference_completed": 10,
+      "reference_median_seconds": 11.715578409502996,
+      "reference_to_lean": 55.463531424184055
+    },
+    "reused/8/reachability_1": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.2003575955004635,
+      "reference_completed": 10,
+      "reference_median_seconds": 4.424500832001286,
+      "reference_to_lean": 22.083020216675788
+    },
+    "reused/8/reachability_2": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.1962852700003168,
+      "reference_completed": 10,
+      "reference_median_seconds": 4.449842244501269,
+      "reference_to_lean": 22.670281088815717
+    },
+    "reused/8/waypointing": {
+      "lean_completed": 10,
+      "lean_median_seconds": 0.19777017849992262,
+      "reference_completed": 10,
+      "reference_median_seconds": 3.221428251497855,
+      "reference_to_lean": 16.28874624036968
+    }
+  },
+  "target_per_implementation": 480,
+  "timeout_recovery": {
+    "by_configuration": {
+      "14/fresh/all_properties": {
+        "count": 10,
+        "geomean_speedup": 503.07077400227263,
+        "historical_max_seconds": 525.9276439359965,
+        "historical_median_seconds": 491.3890965299943,
+        "historical_min_seconds": 490.4144270290126,
+        "historical_total_seconds": 4981.619636192001,
+        "lean_median_seconds": 0.9872597629996562,
+        "lean_total_seconds": 9.899392078000346,
+        "max_speedup": 530.8467144156657,
+        "mean_speedup": 503.2158195035649,
+        "median_speedup": 498.32746611728476,
+        "min_speedup": 494.1709169754964,
+        "original_timeouts": 10,
+        "ratio_of_totals": 503.22480380010126
+      },
+      "14/fresh/reachability_1": {
+        "count": 10,
+        "geomean_speedup": 369.867572248166,
+        "historical_max_seconds": 374.4608491429972,
+        "historical_median_seconds": 350.1625861784996,
+        "historical_min_seconds": 349.0205877069966,
+        "historical_total_seconds": 3532.5602075479983,
+        "lean_median_seconds": 0.9502956524997899,
+        "lean_total_seconds": 9.550045193999722,
+        "max_speedup": 388.91490867069535,
+        "mean_speedup": 369.9492125666486,
+        "median_speedup": 369.7647835565592,
+        "min_speedup": 359.51020805451924,
+        "original_timeouts": 10,
+        "ratio_of_totals": 369.8998419156697
+      },
+      "14/fresh/reachability_2": {
+        "count": 10,
+        "geomean_speedup": 386.1136784862478,
+        "historical_max_seconds": 384.3802372079954,
+        "historical_median_seconds": 350.2503709459925,
+        "historical_min_seconds": 349.7258768629981,
+        "historical_total_seconds": 3566.1958818589774,
+        "lean_median_seconds": 0.9227404685002512,
+        "lean_total_seconds": 9.231273382999461,
+        "max_speedup": 424.07060656746194,
+        "mean_speedup": 386.5048984885435,
+        "median_speedup": 380.3614241752677,
+        "min_speedup": 369.01049173146214,
+        "original_timeouts": 10,
+        "ratio_of_totals": 386.3167879337829
+      },
+      "14/fresh/waypointing": {
+        "count": 10,
+        "geomean_speedup": 354.53278522418793,
+        "historical_max_seconds": 361.65647024799546,
+        "historical_median_seconds": 326.2945029104958,
+        "historical_min_seconds": 325.6656469840091,
+        "historical_total_seconds": 3325.123897906,
+        "lean_median_seconds": 0.9324928420005563,
+        "lean_total_seconds": 9.372879135001313,
+        "max_speedup": 380.66137340245643,
+        "mean_speedup": 354.7462584580297,
+        "median_speedup": 349.83940994329794,
+        "min_speedup": 343.08259769431703,
+        "original_timeouts": 10,
+        "ratio_of_totals": 354.76013826839284
+      },
+      "16/fresh/all_properties": {
+        "count": 10,
+        "geomean_speedup": 708.0757738037927,
+        "historical_max_seconds": 1135.2426432899956,
+        "historical_median_seconds": 1030.2961428039998,
+        "historical_min_seconds": 1026.2129168380052,
+        "historical_total_seconds": 10434.252220227005,
+        "lean_median_seconds": 1.4614154189998771,
+        "lean_total_seconds": 14.731949747001636,
+        "max_speedup": 776.8810159505144,
+        "mean_speedup": 708.6220149749782,
+        "median_speedup": 706.115160998613,
+        "min_speedup": 672.4373348713348,
+        "original_timeouts": 10,
+        "ratio_of_totals": 708.2736772402219
+      },
+      "16/fresh/reachability_1": {
+        "count": 10,
+        "geomean_speedup": 537.377778281461,
+        "historical_max_seconds": 803.6382254119962,
+        "historical_median_seconds": 741.178790733502,
+        "historical_min_seconds": 739.1716188989958,
+        "historical_total_seconds": 7516.3900995909935,
+        "lean_median_seconds": 1.3975194454997109,
+        "lean_total_seconds": 13.982370981000713,
+        "max_speedup": 568.3257985624583,
+        "mean_speedup": 537.5564697691553,
+        "median_speedup": 531.8547795985106,
+        "min_speedup": 524.9389472281497,
+        "original_timeouts": 10,
+        "ratio_of_totals": 537.5619134840783
+      },
+      "16/fresh/reachability_2": {
+        "count": 10,
+        "geomean_speedup": 552.7581986980728,
+        "historical_max_seconds": 849.9020242910046,
+        "historical_median_seconds": 739.8384696305002,
+        "historical_min_seconds": 738.5291072109976,
+        "historical_total_seconds": 7512.648757076997,
+        "lean_median_seconds": 1.3499837465001292,
+        "lean_total_seconds": 13.580163771000116,
+        "max_speedup": 614.8044799752308,
+        "mean_speedup": 553.1533941645647,
+        "median_speedup": 550.1845946007211,
+        "min_speedup": 533.6042814007053,
+        "original_timeouts": 10,
+        "ratio_of_totals": 553.2075226603637
+      },
+      "16/fresh/waypointing": {
+        "count": 10,
+        "geomean_speedup": 495.2089388306592,
+        "historical_max_seconds": 761.6953201360011,
+        "historical_median_seconds": 700.5278767799973,
+        "historical_min_seconds": 699.5805442489946,
+        "historical_total_seconds": 7072.07055001799,
+        "lean_median_seconds": 1.4148569805001898,
+        "lean_total_seconds": 14.28163892900011,
+        "max_speedup": 538.801113651023,
+        "mean_speedup": 495.59928929362195,
+        "median_speedup": 496.7995334196132,
+        "min_speedup": 468.5573513778371,
+        "original_timeouts": 10,
+        "ratio_of_totals": 495.18620273038385
+      },
+      "16/reused/all_properties": {
+        "count": 10,
+        "geomean_speedup": 314.2148897597854,
+        "historical_max_seconds": 510.0452474439953,
+        "historical_median_seconds": 451.64133517449955,
+        "historical_min_seconds": 450.9403953879955,
+        "historical_total_seconds": 4596.647744992995,
+        "lean_median_seconds": 1.4616923670000688,
+        "lean_total_seconds": 14.619391645999713,
+        "max_speedup": 353.219313125744,
+        "mean_speedup": 314.48387361531286,
+        "median_speedup": 310.5471320245106,
+        "min_speedup": 304.6751560726204,
+        "original_timeouts": 10,
+        "ratio_of_totals": 314.42127390100876
+      }
+    },
+    "by_pods_and_mode": {
+      "14/fresh": {
+        "count": 40,
+        "geomean_speedup": 399.4953544955036,
+        "historical_max_seconds": 525.9276439359965,
+        "historical_median_seconds": 350.32408223499806,
+        "historical_min_seconds": 325.6656469840091,
+        "historical_total_seconds": 15405.499623504977,
+        "lean_median_seconds": 0.9448186514996451,
+        "lean_total_seconds": 38.05358979000084,
+        "max_speedup": 530.8467144156657,
+        "mean_speedup": 403.60404725419664,
+        "median_speedup": 377.2967770802584,
+        "min_speedup": 343.08259769431703,
+        "original_timeouts": 40,
+        "ratio_of_totals": 404.8369604160973
+      },
+      "16/fresh": {
+        "count": 40,
+        "geomean_speedup": 568.0947513638004,
+        "historical_max_seconds": 1135.2426432899956,
+        "historical_median_seconds": 741.1393281644996,
+        "historical_min_seconds": 699.5805442489946,
+        "historical_total_seconds": 32535.361626912985,
+        "lean_median_seconds": 1.4048715525000262,
+        "lean_total_seconds": 56.576123428002575,
+        "max_speedup": 776.8810159505144,
+        "mean_speedup": 573.7327920505801,
+        "median_speedup": 540.0340744780286,
+        "min_speedup": 468.5573513778371,
+        "original_timeouts": 40,
+        "ratio_of_totals": 575.0723035719602
+      },
+      "16/reused": {
+        "count": 10,
+        "geomean_speedup": 314.2148897597854,
+        "historical_max_seconds": 510.0452474439953,
+        "historical_median_seconds": 451.64133517449955,
+        "historical_min_seconds": 450.9403953879955,
+        "historical_total_seconds": 4596.647744992995,
+        "lean_median_seconds": 1.4616923670000688,
+        "lean_total_seconds": 14.619391645999713,
+        "max_speedup": 353.219313125744,
+        "mean_speedup": 314.48387361531286,
+        "median_speedup": 310.5471320245106,
+        "min_speedup": 304.6751560726204,
+        "original_timeouts": 10,
+        "ratio_of_totals": 314.42127390100876
+      }
+    },
+    "by_query_group": {
+      "all_properties": {
+        "count": 30,
+        "geomean_speedup": 481.923970348706,
+        "historical_max_seconds": 1135.2426432899956,
+        "historical_median_seconds": 492.59084372800135,
+        "historical_min_seconds": 450.9403953879955,
+        "historical_total_seconds": 20012.519601412,
+        "lean_median_seconds": 1.4521337109999877,
+        "lean_total_seconds": 39.250733471001695,
+        "max_speedup": 776.8810159505144,
+        "mean_speedup": 508.773902697952,
+        "median_speedup": 498.32746611728476,
+        "min_speedup": 304.6751560726204,
+        "original_timeouts": 30,
+        "ratio_of_totals": 509.86358296201473
+      },
+      "reachability_1": {
+        "count": 20,
+        "geomean_speedup": 445.8235236425699,
+        "historical_max_seconds": 803.6382254119962,
+        "historical_median_seconds": 556.8162340209965,
+        "historical_min_seconds": 349.0205877069966,
+        "historical_total_seconds": 11048.950307138992,
+        "lean_median_seconds": 1.1790518695001992,
+        "lean_total_seconds": 23.532416175000435,
+        "max_speedup": 568.3257985624583,
+        "mean_speedup": 453.752841167902,
+        "median_speedup": 456.9269279494225,
+        "min_speedup": 359.51020805451924,
+        "original_timeouts": 20,
+        "ratio_of_totals": 469.5204361920472
+      },
+      "reachability_2": {
+        "count": 20,
+        "geomean_speedup": 461.9821440410282,
+        "historical_max_seconds": 849.9020242910046,
+        "historical_median_seconds": 561.4546722094965,
+        "historical_min_seconds": 349.7258768629981,
+        "historical_total_seconds": 11078.844638935974,
+        "lean_median_seconds": 1.1430698345002384,
+        "lean_total_seconds": 22.811437153999577,
+        "max_speedup": 614.8044799752308,
+        "mean_speedup": 469.8291463265541,
+        "median_speedup": 478.8374439840836,
+        "min_speedup": 369.01049173146214,
+        "original_timeouts": 20,
+        "ratio_of_totals": 485.6706118138417
+      },
+      "waypointing": {
+        "count": 20,
+        "geomean_speedup": 419.0081196725766,
+        "historical_max_seconds": 761.6953201360011,
+        "historical_median_seconds": 530.618507248495,
+        "historical_min_seconds": 325.6656469840091,
+        "historical_total_seconds": 10397.19444792399,
+        "lean_median_seconds": 1.1615585049999027,
+        "lean_total_seconds": 23.654518064001422,
+        "max_speedup": 538.801113651023,
+        "mean_speedup": 425.17277387582584,
+        "median_speedup": 424.60936239014677,
+        "min_speedup": 343.08259769431703,
+        "original_timeouts": 20,
+        "ratio_of_totals": 439.54370238246105
+      }
+    },
+    "completed_at": "2026-11-23T00:09:26+03:30",
+    "duplicate_ids": 0,
+    "failures": 0,
+    "matched": {
+      "count": 90,
+      "geomean_speedup": 454.8666425305382,
+      "historical_max_seconds": 1135.2426432899956,
+      "historical_median_seconds": 492.59084372800135,
+      "historical_min_seconds": 325.6656469840091,
+      "historical_total_seconds": 52537.50899541096,
+      "lean_median_seconds": 1.3499837465001292,
+      "lean_total_seconds": 109.24910486400313,
+      "max_speedup": 776.8810159505144,
+      "mean_speedup": 469.31458120382445,
+      "median_speedup": 494.39369628208243,
+      "min_speedup": 304.6751560726204,
+      "original_timeouts": 90,
+      "ratio_of_totals": 480.8964710586084
+    },
+    "observations": [
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-01",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 19.95,
+          "Preprocessing": 267.37,
+          "Total": 350.17
+        },
+        "retry_of": "14-reachability_1-fresh-01",
+        "status": "completed",
+        "wall_seconds": 350.2970183819998
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-01",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 20.11,
+          "Preprocessing": 267.04,
+          "Total": 350.32
+        },
+        "retry_of": "14-reachability_2-fresh-01",
+        "status": "completed",
+        "wall_seconds": 350.43987307100906
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-01",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 59.17,
+          "Preprocessing": 267.15,
+          "Total": 327.3
+        },
+        "retry_of": "14-waypointing-fresh-01",
+        "status": "completed",
+        "wall_seconds": 327.4176278340019
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-01",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 57.98,
+          "Preprocessing": 266.63,
+          "Total": 490.79
+        },
+        "retry_of": "14-all_properties-fresh-01",
+        "status": "completed",
+        "wall_seconds": 490.91056593399844
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-01",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 40.0,
+          "Preprocessing": 575.82,
+          "Total": 741.03
+        },
+        "retry_of": "16-reachability_1-fresh-01",
+        "status": "completed",
+        "wall_seconds": 741.1515326880035
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-01",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 39.73,
+          "Preprocessing": 575.73,
+          "Total": 739.77
+        },
+        "retry_of": "16-reachability_2-fresh-01",
+        "status": "completed",
+        "wall_seconds": 739.8911860939988
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-01",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 121.94,
+          "Preprocessing": 575.91,
+          "Total": 699.51
+        },
+        "retry_of": "16-waypointing-fresh-01",
+        "status": "completed",
+        "wall_seconds": 699.6319566239981
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-01",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 121.93,
+          "Preprocessing": 576.6,
+          "Total": 1027.25
+        },
+        "retry_of": "16-all_properties-fresh-01",
+        "status": "completed",
+        "wall_seconds": 1027.3782267100032
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-01",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 1,
+        "reported_seconds": {
+          "NetKAT": 121.88,
+          "Preprocessing": 0.0,
+          "Total": 451.11
+        },
+        "retry_of": "16-all_properties-reused-01",
+        "status": "completed",
+        "wall_seconds": 451.23123314899567
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-02",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 19.83,
+          "Preprocessing": 266.79,
+          "Total": 349.19
+        },
+        "retry_of": "14-reachability_1-fresh-02",
+        "status": "completed",
+        "wall_seconds": 349.30923269900086
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-02",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 20.09,
+          "Preprocessing": 266.72,
+          "Total": 349.6
+        },
+        "retry_of": "14-reachability_2-fresh-02",
+        "status": "completed",
+        "wall_seconds": 349.7258768629981
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-02",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 58.04,
+          "Preprocessing": 266.55,
+          "Total": 325.56
+        },
+        "retry_of": "14-waypointing-fresh-02",
+        "status": "completed",
+        "wall_seconds": 325.68289401600487
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-02",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 57.91,
+          "Preprocessing": 266.65,
+          "Total": 490.42
+        },
+        "retry_of": "14-all_properties-fresh-02",
+        "status": "completed",
+        "wall_seconds": 490.5377167330007
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-02",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 39.45,
+          "Preprocessing": 575.98,
+          "Total": 739.44
+        },
+        "retry_of": "16-reachability_1-fresh-02",
+        "status": "completed",
+        "wall_seconds": 739.5672397019953
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-02",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 39.62,
+          "Preprocessing": 575.37,
+          "Total": 739.26
+        },
+        "retry_of": "16-reachability_2-fresh-02",
+        "status": "completed",
+        "wall_seconds": 739.3796844049939
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-02",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 122.18,
+          "Preprocessing": 578.33,
+          "Total": 702.17
+        },
+        "retry_of": "16-waypointing-fresh-02",
+        "status": "completed",
+        "wall_seconds": 702.2966448770021
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-02",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 121.88,
+          "Preprocessing": 575.77,
+          "Total": 1026.23
+        },
+        "retry_of": "16-all_properties-fresh-02",
+        "status": "completed",
+        "wall_seconds": 1026.349093441997
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-02",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 2,
+        "reported_seconds": {
+          "NetKAT": 122.01,
+          "Preprocessing": 0.0,
+          "Total": 451.19
+        },
+        "retry_of": "16-all_properties-reused-02",
+        "status": "completed",
+        "wall_seconds": 451.3109050600033
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-03",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 19.81,
+          "Preprocessing": 266.71,
+          "Total": 349.11
+        },
+        "retry_of": "14-reachability_1-fresh-03",
+        "status": "completed",
+        "wall_seconds": 349.23207848401216
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-03",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 19.9,
+          "Preprocessing": 267.19,
+          "Total": 349.72
+        },
+        "retry_of": "14-reachability_2-fresh-03",
+        "status": "completed",
+        "wall_seconds": 349.8481397279975
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-03",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 58.0,
+          "Preprocessing": 266.57,
+          "Total": 325.54
+        },
+        "retry_of": "14-waypointing-fresh-03",
+        "status": "completed",
+        "wall_seconds": 325.6656469840091
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-03",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 58.21,
+          "Preprocessing": 266.5,
+          "Total": 490.73
+        },
+        "retry_of": "14-all_properties-fresh-03",
+        "status": "completed",
+        "wall_seconds": 490.8584631279955
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-03",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 39.63,
+          "Preprocessing": 581.8,
+          "Total": 745.5
+        },
+        "retry_of": "16-reachability_1-fresh-03",
+        "status": "completed",
+        "wall_seconds": 745.6205980039958
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-03",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 39.52,
+          "Preprocessing": 574.89,
+          "Total": 738.41
+        },
+        "retry_of": "16-reachability_2-fresh-03",
+        "status": "completed",
+        "wall_seconds": 738.5291072109976
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-03",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 122.0,
+          "Preprocessing": 576.3,
+          "Total": 699.97
+        },
+        "retry_of": "16-waypointing-fresh-03",
+        "status": "completed",
+        "wall_seconds": 700.0903808059957
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-03",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 123.23,
+          "Preprocessing": 576.17,
+          "Total": 1030.07
+        },
+        "retry_of": "16-all_properties-fresh-03",
+        "status": "completed",
+        "wall_seconds": 1030.1876631320047
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-03",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 3,
+        "reported_seconds": {
+          "NetKAT": 124.11,
+          "Preprocessing": 0.0,
+          "Total": 457.3
+        },
+        "retry_of": "16-all_properties-reused-03",
+        "status": "completed",
+        "wall_seconds": 457.42446870100684
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-04",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 19.97,
+          "Preprocessing": 267.18,
+          "Total": 349.9
+        },
+        "retry_of": "14-reachability_1-fresh-04",
+        "status": "completed",
+        "wall_seconds": 350.02815397499944
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-04",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 19.81,
+          "Preprocessing": 267.4,
+          "Total": 349.73
+        },
+        "retry_of": "14-reachability_2-fresh-04",
+        "status": "completed",
+        "wall_seconds": 349.84969080699375
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-04",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 58.2,
+          "Preprocessing": 267.27,
+          "Total": 326.45
+        },
+        "retry_of": "14-waypointing-fresh-04",
+        "status": "completed",
+        "wall_seconds": 326.5739496140013
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-04",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 59.02,
+          "Preprocessing": 267.52,
+          "Total": 494.45
+        },
+        "retry_of": "14-all_properties-fresh-04",
+        "status": "completed",
+        "wall_seconds": 494.5718066219997
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-04",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 39.66,
+          "Preprocessing": 577.12,
+          "Total": 741.08
+        },
+        "retry_of": "16-reachability_1-fresh-04",
+        "status": "completed",
+        "wall_seconds": 741.2060487790004
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-04",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 39.45,
+          "Preprocessing": 577.21,
+          "Total": 740.68
+        },
+        "retry_of": "16-reachability_2-fresh-04",
+        "status": "completed",
+        "wall_seconds": 740.8141651339974
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-04",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 122.08,
+          "Preprocessing": 577.1,
+          "Total": 700.84
+        },
+        "retry_of": "16-waypointing-fresh-04",
+        "status": "completed",
+        "wall_seconds": 700.965372753999
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-04",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 122.99,
+          "Preprocessing": 580.28,
+          "Total": 1033.04
+        },
+        "retry_of": "16-all_properties-fresh-04",
+        "status": "completed",
+        "wall_seconds": 1033.1776162040042
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-04",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 4,
+        "reported_seconds": {
+          "NetKAT": 122.2,
+          "Preprocessing": 0.0,
+          "Total": 451.76
+        },
+        "retry_of": "16-all_properties-reused-04",
+        "status": "completed",
+        "wall_seconds": 451.8845621049986
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-05",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 19.94,
+          "Preprocessing": 267.6,
+          "Total": 350.23
+        },
+        "retry_of": "14-reachability_1-fresh-05",
+        "status": "completed",
+        "wall_seconds": 350.3511460879963
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-05",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 20.06,
+          "Preprocessing": 267.29,
+          "Total": 350.08
+        },
+        "retry_of": "14-reachability_2-fresh-05",
+        "status": "completed",
+        "wall_seconds": 350.20682644098997
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-05",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 57.99,
+          "Preprocessing": 266.92,
+          "Total": 325.89
+        },
+        "retry_of": "14-waypointing-fresh-05",
+        "status": "completed",
+        "wall_seconds": 326.01505620699027
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-05",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 58.08,
+          "Preprocessing": 267.37,
+          "Total": 491.33
+        },
+        "retry_of": "14-all_properties-fresh-05",
+        "status": "completed",
+        "wall_seconds": 491.4562319539982
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-05",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 39.41,
+          "Preprocessing": 575.84,
+          "Total": 739.27
+        },
+        "retry_of": "16-reachability_1-fresh-05",
+        "status": "completed",
+        "wall_seconds": 739.3910353810061
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-05",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 39.54,
+          "Preprocessing": 575.63,
+          "Total": 739.26
+        },
+        "retry_of": "16-reachability_2-fresh-05",
+        "status": "completed",
+        "wall_seconds": 739.3875966680062
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-05",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 122.05,
+          "Preprocessing": 575.85,
+          "Total": 699.56
+        },
+        "retry_of": "16-waypointing-fresh-05",
+        "status": "completed",
+        "wall_seconds": 699.6852875280019
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-05",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 121.94,
+          "Preprocessing": 575.98,
+          "Total": 1026.98
+        },
+        "retry_of": "16-all_properties-fresh-05",
+        "status": "completed",
+        "wall_seconds": 1027.1026115330023
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-05",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 5,
+        "reported_seconds": {
+          "NetKAT": 121.86,
+          "Preprocessing": 0.0,
+          "Total": 451.28
+        },
+        "retry_of": "16-all_properties-reused-05",
+        "status": "completed",
+        "wall_seconds": 451.39810824400047
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-06",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 19.85,
+          "Preprocessing": 266.4,
+          "Total": 348.9
+        },
+        "retry_of": "14-reachability_1-fresh-06",
+        "status": "completed",
+        "wall_seconds": 349.0205877069966
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-06",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 19.87,
+          "Preprocessing": 267.6,
+          "Total": 350.17
+        },
+        "retry_of": "14-reachability_2-fresh-06",
+        "status": "completed",
+        "wall_seconds": 350.293915450995
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-06",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 57.99,
+          "Preprocessing": 266.73,
+          "Total": 325.71
+        },
+        "retry_of": "14-waypointing-fresh-06",
+        "status": "completed",
+        "wall_seconds": 325.83706930300104
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-06",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 58.0,
+          "Preprocessing": 266.92,
+          "Total": 491.2
+        },
+        "retry_of": "14-all_properties-fresh-06",
+        "status": "completed",
+        "wall_seconds": 491.32196110599034
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-06",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 39.6,
+          "Preprocessing": 577.1,
+          "Total": 741.0
+        },
+        "retry_of": "16-reachability_1-fresh-06",
+        "status": "completed",
+        "wall_seconds": 741.1271236409957
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-06",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 39.65,
+          "Preprocessing": 577.42,
+          "Total": 741.27
+        },
+        "retry_of": "16-reachability_2-fresh-06",
+        "status": "completed",
+        "wall_seconds": 741.3970881540008
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-06",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 124.19,
+          "Preprocessing": 578.43,
+          "Total": 704.31
+        },
+        "retry_of": "16-waypointing-fresh-06",
+        "status": "completed",
+        "wall_seconds": 704.432945692999
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-06",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 124.03,
+          "Preprocessing": 601.23,
+          "Total": 1064.7
+        },
+        "retry_of": "16-all_properties-fresh-06",
+        "status": "completed",
+        "wall_seconds": 1064.8301181529969
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-06",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 6,
+        "reported_seconds": {
+          "NetKAT": 125.54,
+          "Preprocessing": 0.0,
+          "Total": 467.71
+        },
+        "retry_of": "16-all_properties-reused-06",
+        "status": "completed",
+        "wall_seconds": 467.8413408810011
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-07",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 20.09,
+          "Preprocessing": 268.82,
+          "Total": 352.12
+        },
+        "retry_of": "14-reachability_1-fresh-07",
+        "status": "completed",
+        "wall_seconds": 352.2488988650002
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-07",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 20.03,
+          "Preprocessing": 268.82,
+          "Total": 351.98
+        },
+        "retry_of": "14-reachability_2-fresh-07",
+        "status": "completed",
+        "wall_seconds": 352.10044564001146
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-07",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 58.32,
+          "Preprocessing": 268.72,
+          "Total": 328.03
+        },
+        "retry_of": "14-waypointing-fresh-07",
+        "status": "completed",
+        "wall_seconds": 328.15329505800037
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-07",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 58.26,
+          "Preprocessing": 268.12,
+          "Total": 493.6
+        },
+        "retry_of": "14-all_properties-fresh-07",
+        "status": "completed",
+        "wall_seconds": 493.7254555020045
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-07",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 39.92,
+          "Preprocessing": 579.7,
+          "Total": 744.63
+        },
+        "retry_of": "16-reachability_1-fresh-07",
+        "status": "completed",
+        "wall_seconds": 744.7521151209949
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-07",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 39.79,
+          "Preprocessing": 579.6,
+          "Total": 744.18
+        },
+        "retry_of": "16-reachability_2-fresh-07",
+        "status": "completed",
+        "wall_seconds": 744.3120064399991
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-07",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 122.45,
+          "Preprocessing": 579.74,
+          "Total": 703.86
+        },
+        "retry_of": "16-waypointing-fresh-07",
+        "status": "completed",
+        "wall_seconds": 703.9852623860061
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-07",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 122.39,
+          "Preprocessing": 580.09,
+          "Total": 1033.24
+        },
+        "retry_of": "16-all_properties-fresh-07",
+        "status": "completed",
+        "wall_seconds": 1033.3667084490007
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-07",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 7,
+        "reported_seconds": {
+          "NetKAT": 122.56,
+          "Preprocessing": 0.0,
+          "Total": 453.29
+        },
+        "retry_of": "16-all_properties-reused-07",
+        "status": "completed",
+        "wall_seconds": 453.4133727820008
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-08",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 20.22,
+          "Preprocessing": 274.54,
+          "Total": 358.44
+        },
+        "retry_of": "14-reachability_1-fresh-08",
+        "status": "completed",
+        "wall_seconds": 358.5662493619893
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-08",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 23.04,
+          "Preprocessing": 284.57,
+          "Total": 379.44
+        },
+        "retry_of": "14-reachability_2-fresh-08",
+        "status": "completed",
+        "wall_seconds": 379.57310852999217
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-08",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 63.11,
+          "Preprocessing": 297.4,
+          "Total": 361.52
+        },
+        "retry_of": "14-waypointing-fresh-08",
+        "status": "completed",
+        "wall_seconds": 361.65647024799546
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-08",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 63.79,
+          "Preprocessing": 279.35,
+          "Total": 525.79
+        },
+        "retry_of": "14-all_properties-fresh-08",
+        "status": "completed",
+        "wall_seconds": 525.9276439359965
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-08",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 45.83,
+          "Preprocessing": 616.25,
+          "Total": 803.45
+        },
+        "retry_of": "16-reachability_1-fresh-08",
+        "status": "completed",
+        "wall_seconds": 803.6382254119962
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-08",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 47.82,
+          "Preprocessing": 659.49,
+          "Total": 849.72
+        },
+        "retry_of": "16-reachability_2-fresh-08",
+        "status": "completed",
+        "wall_seconds": 849.9020242910046
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-08",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 129.27,
+          "Preprocessing": 630.47,
+          "Total": 761.5
+        },
+        "retry_of": "16-waypointing-fresh-08",
+        "status": "completed",
+        "wall_seconds": 761.6953201360011
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-08",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 127.13,
+          "Preprocessing": 641.63,
+          "Total": 1135.12
+        },
+        "retry_of": "16-all_properties-fresh-08",
+        "status": "completed",
+        "wall_seconds": 1135.2426432899956
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-08",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 8,
+        "reported_seconds": {
+          "NetKAT": 133.32,
+          "Preprocessing": 0.0,
+          "Total": 509.91
+        },
+        "retry_of": "16-all_properties-reused-08",
+        "status": "completed",
+        "wall_seconds": 510.0452474439953
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-09",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 22.12,
+          "Preprocessing": 283.27,
+          "Total": 374.32
+        },
+        "retry_of": "14-reachability_1-fresh-09",
+        "status": "completed",
+        "wall_seconds": 374.4608491429972
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-09",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 22.17,
+          "Preprocessing": 294.4,
+          "Total": 384.24
+        },
+        "retry_of": "14-reachability_2-fresh-09",
+        "status": "completed",
+        "wall_seconds": 384.3802372079954
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-09",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 60.55,
+          "Preprocessing": 290.68,
+          "Total": 352.24
+        },
+        "retry_of": "14-waypointing-fresh-09",
+        "status": "completed",
+        "wall_seconds": 352.3880791739939
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-09",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 61.05,
+          "Preprocessing": 281.26,
+          "Total": 521.74
+        },
+        "retry_of": "14-all_properties-fresh-09",
+        "status": "completed",
+        "wall_seconds": 521.8953642480046
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-09",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 39.62,
+          "Preprocessing": 616.9,
+          "Total": 780.63
+        },
+        "retry_of": "16-reachability_1-fresh-09",
+        "status": "completed",
+        "wall_seconds": 780.7645619640098
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-09",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 39.53,
+          "Preprocessing": 576.26,
+          "Total": 739.66
+        },
+        "retry_of": "16-reachability_2-fresh-09",
+        "status": "completed",
+        "wall_seconds": 739.7857531670015
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-09",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 121.86,
+          "Preprocessing": 575.94,
+          "Total": 699.46
+        },
+        "retry_of": "16-waypointing-fresh-09",
+        "status": "completed",
+        "wall_seconds": 699.5805442489946
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-09",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 121.96,
+          "Preprocessing": 575.55,
+          "Total": 1026.09
+        },
+        "retry_of": "16-all_properties-fresh-09",
+        "status": "completed",
+        "wall_seconds": 1026.2129168380052
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-09",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 9,
+        "reported_seconds": {
+          "NetKAT": 121.91,
+          "Preprocessing": 0.01,
+          "Total": 451.04
+        },
+        "retry_of": "16-all_properties-reused-09",
+        "status": "completed",
+        "wall_seconds": 451.15811123899766
+      },
+      {
+        "attempt_id": "retry-14-reachability_1-fresh-10",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 19.85,
+          "Preprocessing": 266.47,
+          "Total": 348.92
+        },
+        "retry_of": "14-reachability_1-fresh-10",
+        "status": "completed",
+        "wall_seconds": 349.0459928430064
+      },
+      {
+        "attempt_id": "retry-14-reachability_2-fresh-10",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 19.95,
+          "Preprocessing": 267.09,
+          "Total": 349.66
+        },
+        "retry_of": "14-reachability_2-fresh-10",
+        "status": "completed",
+        "wall_seconds": 349.777768119995
+      },
+      {
+        "attempt_id": "retry-14-waypointing-fresh-10",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 57.95,
+          "Preprocessing": 266.69,
+          "Total": 325.61
+        },
+        "retry_of": "14-waypointing-fresh-10",
+        "status": "completed",
+        "wall_seconds": 325.7338094680017
+      },
+      {
+        "attempt_id": "retry-14-all_properties-fresh-10",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 58.08,
+          "Preprocessing": 266.43,
+          "Total": 490.29
+        },
+        "retry_of": "14-all_properties-fresh-10",
+        "status": "completed",
+        "wall_seconds": 490.4144270290126
+      },
+      {
+        "attempt_id": "retry-16-reachability_1-fresh-10",
+        "group": "reachability_1",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 39.65,
+          "Preprocessing": 575.29,
+          "Total": 739.05
+        },
+        "retry_of": "16-reachability_1-fresh-10",
+        "status": "completed",
+        "wall_seconds": 739.1716188989958
+      },
+      {
+        "attempt_id": "retry-16-reachability_2-fresh-10",
+        "group": "reachability_2",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 39.52,
+          "Preprocessing": 575.66,
+          "Total": 739.13
+        },
+        "retry_of": "16-reachability_2-fresh-10",
+        "status": "completed",
+        "wall_seconds": 739.2501455129968
+      },
+      {
+        "attempt_id": "retry-16-waypointing-fresh-10",
+        "group": "waypointing",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 121.97,
+          "Preprocessing": 575.95,
+          "Total": 699.58
+        },
+        "retry_of": "16-waypointing-fresh-10",
+        "status": "completed",
+        "wall_seconds": 699.7068349649926
+      },
+      {
+        "attempt_id": "retry-16-all_properties-fresh-10",
+        "group": "all_properties",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 123.62,
+          "Preprocessing": 575.32,
+          "Total": 1030.28
+        },
+        "retry_of": "16-all_properties-fresh-10",
+        "status": "completed",
+        "wall_seconds": 1030.404622475995
+      },
+      {
+        "attempt_id": "retry-16-all_properties-reused-10",
+        "group": "all_properties",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 10,
+        "reported_seconds": {
+          "NetKAT": 121.82,
+          "Preprocessing": 0.0,
+          "Total": 450.82
+        },
+        "retry_of": "16-all_properties-reused-10",
+        "status": "completed",
+        "wall_seconds": 450.9403953879955
+      }
+    ],
+    "raw_log_sha256": "2c9ce436500bcbb236df112ec924f2df0493ec55b8798fcce98934e5faeb1d23",
+    "results_directory": "lean/.lake/v11-ubuntu-timing/recovery",
+    "runtime_decomposition": {
+      "fresh_median_preprocessing_seconds": {
+        "14": 267.23,
+        "16": 576.45
+      },
+      "netkat_time_semantics": "Maximum NetKAT decision time among checked properties, not the sum",
+      "preprocessing_fraction": 0.6512758342423265,
+      "reported_preprocessing_count": 90,
+      "reported_preprocessing_seconds": 34216.41,
+      "wall_seconds": 52537.50899541096
+    },
+    "selection": [
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-01",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-01",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-01",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-01",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-01",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-01",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-01",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-01",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-01",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 1,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-02",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-02",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-02",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-02",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-02",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-02",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-02",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-02",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-02",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 2,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-03",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-03",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-03",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-03",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-03",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-03",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-03",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-03",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-03",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 3,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-04",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-04",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-04",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-04",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-04",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-04",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-04",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-04",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-04",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 4,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-05",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-05",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-05",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-05",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-05",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-05",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-05",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-05",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-05",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 5,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-06",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-06",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-06",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-06",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-06",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-06",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-06",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-06",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-06",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 6,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-07",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-07",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-07",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-07",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-07",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-07",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-07",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-07",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-07",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 7,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-08",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-08",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-08",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-08",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-08",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-08",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-08",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-08",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-08",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 8,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-09",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-09",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-09",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-09",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-09",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-09",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-09",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-09",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-09",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 9,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "14-reachability_1-fresh-10",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "14-reachability_2-fresh-10",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "14-waypointing-fresh-10",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "14-all_properties-fresh-10",
+        "mode": "fresh",
+        "pods": 14,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_1",
+        "id": "16-reachability_1-fresh-10",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "reachability_2",
+        "id": "16-reachability_2-fresh-10",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "waypointing",
+        "id": "16-waypointing-fresh-10",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-fresh-10",
+        "mode": "fresh",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      },
+      {
+        "group": "all_properties",
+        "id": "16-all_properties-reused-10",
+        "mode": "reused",
+        "pods": 16,
+        "repeat": 10,
+        "status": "timeout",
+        "timeout_seconds": 300
+      }
+    ],
+    "source_sha256": "8ec932c474d8dd6a4a7e26a23e0bbb44a76d518179dacc140171d54d15c22dfb",
+    "successes": 90,
+    "timeout_seconds": null
+  }
+}

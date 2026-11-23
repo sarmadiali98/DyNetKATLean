@@ -11,6 +11,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import signal
 from statistics import median
 import subprocess
 import sys
@@ -40,14 +41,41 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def run(command, cwd, log):
+def positive_timeout(value):
+    try:
+        seconds = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("timeout must be a positive integer in seconds") from exc
+    if seconds < 1:
+        raise argparse.ArgumentTypeError("timeout must be a positive integer in seconds")
+    return seconds
+
+
+def wait_for_process(child, timeout):
+    try:
+        return child.wait(timeout=timeout)
+    except (subprocess.TimeoutExpired, KeyboardInterrupt) as exc:
+        try:
+            os.killpg(child.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        child.wait()
+        if isinstance(exc, KeyboardInterrupt):
+            raise
+        return None
+
+
+def run(command, cwd, log, timeout=None):
     start = time.perf_counter()
     with log.open("w") as stdout, log.with_suffix(".stderr").open("w") as stderr:
-        rc = subprocess.run(command, cwd=cwd, stdout=stdout, stderr=stderr).returncode
+        with subprocess.Popen(command, cwd=cwd, stdout=stdout, stderr=stderr,
+                              start_new_session=True) as child:
+            rc = wait_for_process(child, timeout)
     elapsed = time.perf_counter() - start
     timing = dict((k, float(v)) for k, v in TIMING.findall(log.read_text()))
     return {"command": list(map(str, command)), "cwd": str(cwd), "exit": rc,
-            "wall_seconds": elapsed, "reported_seconds": timing,
+            "wall_seconds": elapsed, "reported_seconds": timing, "timeout_seconds": timeout,
+            "timed_out": rc is None,
             "stdout": log.name, "stderr": log.with_suffix(".stderr").name}
 
 
@@ -116,6 +144,8 @@ def main():
     parser.add_argument("--maude", type=Path)
     parser.add_argument("--netkat", type=Path)
     parser.add_argument("--backend", choices=("netkat-idd", "netkat-automata"), default="netkat-idd")
+    parser.add_argument("--timeout", type=positive_timeout, metavar="SECONDS",
+                        help="per-timing-attempt limit (omitted: no timeout)")
     args = parser.parse_args()
     if any((args.reference, args.maude, args.netkat)) and not all(
             (args.reference, args.maude, args.netkat)):
@@ -268,7 +298,7 @@ def main():
                 key = f"{implementation}/{pods}/{group}"
                 for repeat in range(1, 11):
                     log = logs / f"{implementation}-{pods}-{group}-{repeat:02d}.stdout"
-                    item = run(command, cwd, log)
+                    item = run(command, cwd, log, args.timeout)
                     expected_rows = list(queries(path))
                     try:
                         if implementation.startswith("reference-"):

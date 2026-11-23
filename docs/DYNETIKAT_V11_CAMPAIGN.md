@@ -278,3 +278,132 @@ per-configuration medians, input and generator hashes, and raw-report
 checksums. The local raw archive is
 `lean/.lake/dynetikat-v11-native-campaign.tar.gz` and stays outside Git.
 No historical timing run was possible.
+
+## Ubuntu timing protocol
+
+The empirical comparison schedules 480 runs per implementation across
+the same six FatTree scales (6, 8, 10, 12, 14, and 16 pods), four query
+groups, two modes, and ten repetitions. The paired Ubuntu Lean run uses
+the existing campaign harness. The archived macOS Lean measurements
+remain available separately. Linux historical runs use
+`scripts/v11_reference_timing.py` with the verified reconstructed
+runtime and the hash-verified corpus. Each process runs serially with one
+worker. The reference cycles through the matrix for each repetition,
+without a separate warmup.
+
+Fresh wall time includes startup, input parsing, preprocessing, Maude
+and IDD calls, query evaluation, and report generation. Reused wall
+time covers the same CLI invocation with `-p`, using serialized
+preprocessing produced by the reference. It still includes loading the
+preprocessed JSON and constructing the reference's analysis module.
+For groups without a direct preprocessed artifact from the differential,
+the runner first verifies that the original inputs differ only in
+`properties`, then reuses the reference-generated artifact from that
+scale with the original property map for the requested group. The
+manifest records the source and resulting digest of each reused input.
+Lean reused mode uses in-memory preparation within its batch process,
+so the two reuse modes have different boundaries.
+
+The original standardized reference campaign ran with an explicit
+300-second cutoff per process. The runner kills the
+process group and records elapsed time and the cutoff on timeout.
+The timeout attempts remain in the denominator and stay out of the
+successful-run median and range. The runner validates every completed
+report against the existing reference evidence without creating new
+semantic observations. It also records the tool's own total,
+preprocessing, and maximum NetKAT times when available. GNU time
+provides user CPU, system CPU, and maximum RSS for successful commands.
+Maximum RSS is the operating system's reported maximum, with no
+aggregation of concurrent process-tree memory.
+
+Raw logs and progressively collected summaries live under
+`lean/.lake/v11-ubuntu-timing/`. The [Ubuntu timing evidence snapshot](DYNETIKAT_V11_UBUNTU_TIMING_EVIDENCE.json)
+records both completed standardized timing legs and the separate
+completed timeout recovery. The native leg completed 480/480 runs. Its pooled fresh
+median was 0.491 s (range 0.099 to 1.526 s), and its pooled reused
+median was 0.485 s (range 0.098 to 1.481 s).
+The standardized reference leg recorded 390 successes, 90 timeouts,
+and zero other failures in 480 attempts. The timeouts covered all fresh
+14- and 16-pod runs and all reused 16-pod all-properties runs. All 90 attempts completed in the separate uncensored recovery pass.
+The original timeout records are retained in the standardized results.
+
+The original IDD wrapper constructs temporary names by splitting the
+absolute filename at its first dot. In this work directory under
+`lean/.lake`, those temporary operands are `lean/_1.txt` and
+`lean/_2.txt`. The reference removes them after its IDD call. The
+runner uses one reference process and one worker, so the operands
+are not shared between concurrent benchmark invocations.
+
+### Timeout configuration and recovery
+
+Both runners accept an optional positive integer timeout in seconds.
+Omitting `--timeout` leaves measured attempts unrestricted.
+
+```sh
+# No timeout
+python3 scripts/v11_campaign.py --corpus "$corpus" --lean "$lean" --output "$results"
+
+# User-selected timeout
+python3 scripts/v11_campaign.py --corpus "$corpus" --lean "$lean" --output "$results" --timeout 300
+```
+
+Retry the recorded timeouts from the original reference results in a
+separate directory. The recovery runner verifies the original matrix
+and input hashes, then appends linked outcomes. To resume after an
+interruption, repeat the command with the same results directory.
+
+```sh
+python3 scripts/v11_reference_timing.py --runtime "$runtime" \
+  --results "$recovery" --retry-timeouts-from "$original_reference"
+```
+
+Recovery wall times come from a second pass. Report them separately
+from the original censored measurements.
+
+### Completed development timing analysis
+
+The uncensored recovery finished at 00:09:26 Tehran time on November 23,
+2026, with 90 successful retries, zero failures, and no duplicate retry IDs.
+Each retry links to exactly one original 300-second timeout and matches its
+pod count, query group, mode, and repetition. The original timing ledger
+matches its previously recorded SHA-256.
+
+The full-coverage analysis uses the 390 original successful timings and the
+90 successful retry timings. The original standardized results retain all
+90 timeouts. Fresh and reused below are development CLI modes with the
+lifecycle boundaries described above. The [CAV benchmark plan](CAV_BENCHMARK_PLAN.md)
+defines the publication workloads separately.
+
+| Mode | Matched | Historical total (s) | Lean total (s) | Ratio of totals | Mean paired | Median paired | Geometric mean | Range |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| All | 480 | 75278.60 | 291.03 | 258.66 | 171.79 | 91.69 | 103.83 | 10.30 to 776.88 |
+| fresh | 240 | 58476.88 | 145.68 | 401.41 | 266.13 | 239.07 | 199.62 | 46.75 to 776.88 |
+| reused | 240 | 16801.72 | 145.35 | 115.59 | 77.44 | 57.58 | 54.01 | 10.30 to 353.22 |
+
+Ratios are historical wall time divided by Lean wall time. The evidence
+also gives medians and paired ratios by pod count, query group, and mode.
+
+The **timeout-selected subset** ran for 52,537.51 s in DyNetiKAT and
+109.25 s in Lean, a 480.90 ratio of totals. The median paired ratio was
+494.39, the geometric mean was 454.87, and the range was 304.67 to 776.88.
+The reference reported preprocessing for all 90 retries, totaling
+34,216.41 s (65.13% of historical wall time). Median fresh preprocessing
+took 267.23 s at 14 pods and 576.45 s at 16 pods.
+
+| Recovered configuration | Runs | Historical median (s) | Lean median (s) | Median paired ratio |
+| --- | ---: | ---: | ---: | ---: |
+| `14/fresh/all_properties` | 10 | 491.39 | 0.987 | 498.33 |
+| `14/fresh/reachability_1` | 10 | 350.16 | 0.950 | 369.76 |
+| `14/fresh/reachability_2` | 10 | 350.25 | 0.923 | 380.36 |
+| `14/fresh/waypointing` | 10 | 326.29 | 0.932 | 349.84 |
+| `16/fresh/all_properties` | 10 | 1030.30 | 1.461 | 706.12 |
+| `16/fresh/reachability_1` | 10 | 741.18 | 1.398 | 531.85 |
+| `16/fresh/reachability_2` | 10 | 739.84 | 1.350 | 550.18 |
+| `16/fresh/waypointing` | 10 | 700.53 | 1.415 | 496.80 |
+| `16/reused/all_properties` | 10 | 451.64 | 1.462 | 310.55 |
+
+DyNetiKAT's `NetKAT time` is the maximum NetKAT decision time among
+checked properties. It cannot be added to preprocessing time to reconstruct
+total wall time. The existing logs lack a complete phase decomposition.
+The benchmark-validation gate will add finer-grained instrumentation
+before the paper-faithful run.
